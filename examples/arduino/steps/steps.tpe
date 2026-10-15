@@ -1,11 +1,12 @@
-(* A step counter on the M5Stack CoreS3 Lite: the accelerometer read at least
-   every 50 ms, a rise confirmed by a new sample, steps counted 250 ms apart
+(* A step counter on the M5Stack CoreS3 Lite: the accelerometer calibrated
+   from 50 samples and read at least every 50 ms, steps counted 250 ms apart
 
    Run this example with the 'event-separation' grading monoid, e.g.
 
      ./tempore --grades event-separation \
        --package m5-imu \
        --package m5-display \
+       --package m5-touch \
        --package m5-speaker \
        --board m5stack-cores3 \
        examples/arduino/steps/steps.tpe
@@ -13,56 +14,60 @@
    Grades (X, lead, gaps, tail): the times before the first X, between the
    starts of consecutive Xs and from the start of the last X to the end;
    (X, [s, t]): gaps in [s, t] and lead and tail at most t; (n, X, lead,
-   tail): exactly n Xs, the counts added by the product
+   gaps, tail): exactly n Xs, the counts added by the product
      - Unit 0: no operation, no time spent
      - Top ⊤: any times before, between and after the operations
      - Product: (a, G, b) · (a', G', b') = (a, G ∪ G' ∪ {b + a'}, b') *)
 
 (* Runs on the M5Stack CoreS3 Lite carried by a walker (steps.device.json):
-   'watch' as a free task, one loop of rounds of two readings. A step is a
-   rise of the smoothed magnitude of the acceleration above a threshold
-   that follows its recent range, 0.25 to 2 s after the previous rise; steps
-   count after a run of four, which are then counted at once, so that a
-   bump, shaking, or picking up the device counts none. The types bound the
-   spacing of the readings, the time of the confirming reading and the gap
-   between counts; the rest is program logic. The screen shows the state,
-   the steps, the cadence, the distance at an assumed stride and a bar of
-   the smoothed acceleration with its thresholds; a count beeps, and the
-   scaffold draws the charge of the battery at the top right. bindings.cpp
-   defines CountStep and ReadClock, world.cpp models a walk and motions that
-   are none. The figures below are those under the bounds of the CoreS3,
-   some of them provisional.
+   'watch' as a free task. It calibrates the accelerometer, beeps once and
+   counts steps in one loop of rounds of two readings, which also draws the
+   screen band by band and reads the touch screen: a double tap resets the
+   count. bindings.cpp defines CountStep, ResetSteps and ReadClock, world.cpp
+   models a walk and motions that are none. The figures below are those
+   under the bounds of the CoreS3, some of them provisional.
 
    On the board: make arduino-steps-upload; simulated on the host: make
    arduino-steps-simulate ('make examples-help',
    src/05-backends/arduino/README.md). *)
 
-(* CountStep n adds n steps to the steps counted, kept by bindings.cpp;
-   ReadClock () is the time since start-up, in milliseconds. Their bounds
-   are PROVISIONAL, not yet measured. *)
+(* CountStep n adds n steps to the steps counted, kept by bindings.cpp, and
+   ResetSteps sets them to zero; ReadClock () is the time since start-up, in
+   milliseconds. Their bounds are PROVISIONAL, not yet measured. *)
 
 operation CountStep : nat ~> unit # {CountStep} within [0, 0.2]
 default CountStep _ = delay 1/10
+
+operation ResetSteps : unit ~> unit # {ResetSteps} within [0, 0.2]
+default ResetSteps () = delay 1/10
 
 operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
 default ReadClock () = delay 1/100; 0
 
 (* The states of the counter: at rest, a run of steps not yet confirmed, a
-   confirmed walk, and rises too fast for steps. *)
-type status = Still | Checking | Walking | Shaking
+   confirmed walk, rises too fast for steps, and rises without a horizontal
+   sway. *)
+type status = Still | Checking | Walking | Shaking | Swayless
 
-(* The weight of a reading in the smoothed magnitude, an exponential moving
-   average; the decay of its envelope per reading and the least half swing
-   between the thresholds, in g; the shortest and the longest time between
-   rises, in ms; the steps of a confirming run; and the assumed stride, in
-   cm. *)
+(* The weight of a reading in the smoothed acceleration and in the direction
+   of gravity, exponential moving averages; the decay of the envelopes of
+   the vertical part per reading, the least half swing between the
+   thresholds and the least swing of the horizontal part in a step, in g;
+   the shortest and the longest time between rises, in ms; the steps of a
+   confirming run; the assumed stride, in cm; the time within which a
+   second tap resets, in ms, and its greatest distance from the first, in
+   pixels. *)
 let weight = 0.25
+let gravity_weight = 0.01
 let decay = 0.002
 let least_half_swing = 0.075
+let least_sway = 0.1
 let shortest_gap = 250
 let longest_gap = 2000
 let run_length = 4
 let stride = 70
+let window = 2000
+let reach = 60
 
 (* The colours of 24 bits: the bar, the thresholds, the states and the
    background. *)
@@ -73,17 +78,75 @@ let yellow = 0xffd000
 let white = 0xffffff
 let black = 0x000000
 
-(* The magnitude of the acceleration, in g. *)
-let load () : float # {ReadImu} =
-  let (ax, ay, az), _ = perform ReadImu () in
-  sqrt ((ax *. ax) +. (ay *. ay) +. (az *. az))
+(* The operations on vectors of m5-imu, in g. *)
+let plus ((ax, ay, az) : vector) ((bx, by, bz) : vector) : vector =
+  (ax +. bx, ay +. by, az +. bz)
 
-(* The smoothed magnitude and its upper and lower envelopes after a reading
-   x: each envelope follows the smoothed magnitude outwards at once and
-   inwards by the decay. *)
-let filter ((y, upper, lower) : float * float * float) (x : float) =
-  let y = y +. (weight *. (x -. y)) in
-  (y, max y (upper -. decay), min y (lower +. decay))
+let minus ((ax, ay, az) : vector) ((bx, by, bz) : vector) : vector =
+  (ax -. bx, ay -. by, az -. bz)
+
+let scale (s : float) ((x, y, z) : vector) : vector = (s *. x, s *. y, s *. z)
+
+let dot ((ax, ay, az) : vector) ((bx, by, bz) : vector) =
+  (ax *. bx) +. (ay *. by) +. (az *. bz)
+
+let norm (v : vector) = sqrt (dot v v)
+
+(* The moving average a moved towards b by the weight w. *)
+let toward (w : float) (a : vector) (b : vector) : vector =
+  plus a (scale w (minus b a))
+
+(* The acceleration, in g. *)
+let reading () : vector # {ReadImu} =
+  let accel, _ = perform ReadImu () in
+  accel
+
+(* Correctly accepted by the typechecker: the calibration handler. The case
+   of ReadImu performs the operation and resumes its continuation with the
+   acceleration multiplied by the gain. A case is checked against the grade
+   of its operation, {ReadImu}: its continuation is boxed with that grade,
+   so that the case performs one ReadImu and nothing else, and the bounds of
+   the counter hold under the handler. The Arduino backend compiles it to a
+   direct call. A case averaging two readings is rejected, its grade
+   {ReadImu; ReadImu} not below {ReadImu}. *)
+let calibrated (gain : float) =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let accel, gyro = perform ReadImu () in
+      continue k with (scale gain accel, gyro)
+
+(* The calibration: the sum of the accelerations of ten readings added to
+   sum, each followed by a delay of 10 ms. *)
+let sample (sum : vector) : vector =
+  let x = reading () in
+  delay 10;
+  plus sum x
+
+let ten (sum : vector) =
+  sample (sample (sample (sample (sample (sample (sample (sample (sample
+    (sample sum)))))))))
+
+(* The filter: the smoothed acceleration, the direction of gravity, the
+   upper and lower envelopes of the vertical part, whether it fell below the
+   low threshold since the last rise, and the least and the greatest
+   horizontal part since then. *)
+type filter = vector * vector * float * float * bool * float * float
+
+(* The filter after a reading x, and the vertical part. The direction of
+   gravity follows the readings slowly, so that no orientation of the unit
+   is assumed; the smoothed acceleration is split into its part along
+   gravity and the rest, whose magnitude is the horizontal part. Each
+   envelope follows the vertical part outwards at once and inwards by the
+   decay. Walking forwards and backwards are not distinguished. *)
+let filter ((y, g, upper, lower, armed, least, most) : filter) (x : vector) =
+  let y = toward weight y x in
+  let g = toward gravity_weight g x in
+  let u = scale (1.0 /. norm g) g in
+  let v = dot y u in
+  let h = norm (minus y (scale v u)) in
+  ((y, g, max v (upper -. decay), min v (lower +. decay), armed, min h least,
+    max h most), v)
 
 (* The high and low thresholds: the middle of the envelopes plus and minus a
    quarter of their distance, at least the least half swing. *)
@@ -96,6 +159,84 @@ let thresholds (upper : float) (lower : float) =
    2 g. *)
 let bar (a : float) = nat_of_float (a *. 160.0)
 
+(* The readings of a round, the first followed by the bar of the vertical
+   part and a delay of 10 ms. Returns the filter, whether the two vertical
+   parts rose above the high threshold after it fell below the low one,
+   whether the horizontal part swung by the least sway since the last rise,
+   and the time.
+
+   The filter after the first reading is boxed until the second, with a
+   count: exactly one reading, started 10 to 43 ms after the first ended,
+   and the decision at its end. The unit samples at 100 Hz, and a reading
+   within 10 ms of another may return the same sample; the second reading
+   is thus a new sample, taken within the rise.
+
+   The decision is boxed until it is paired with the time, with exactly one
+   ReadClock, started at most 0.1 ms after the box and ended within 0.05 ms:
+   the time of a rise is that of its confirming reading. A time read with
+   the first reading, 10.2 to 44.5 ms earlier, would let the gaps between
+   rises err by up to 34.3 ms, across the shortest gap of 250 ms. *)
+let sense (f : filter) =
+  let x = reading () in
+  let first, va = filter f x in
+  box (1, ReadImu, [10, 45], [0, 1.5]) first as boxed in
+  perform DrawBar (0, 198, 320, 12, bar va, blue);
+  delay 10;
+  let x = reading () in
+  unbox boxed as first in
+  let second, vb = filter first x in
+  let y, g, upper, lower, armed, least, most = second in
+  let high, low = thresholds upper lower in
+  let rose = armed && va > high && vb > high in
+  box (1, ReadClock, [0, 0.1], [0, 0.05]) (rose, most -. least >= least_sway)
+  as decision in
+  let t = perform ReadClock () in
+  unbox decision as (rose, swayed) in
+  let h = norm (minus y (scale (dot y g /. dot g g) g)) in
+  let armed = (armed && not rose) || va < low || vb < low in
+  if rose then ((y, g, upper, lower, armed, h, h), rose, swayed, t)
+  else ((y, g, upper, lower, armed, least, most), rose, swayed, t)
+
+(* The rhythm: the state, the steps of the current run, the time of its last
+   rise and the time between its last two steps, in ms. *)
+type rhythm = status * nat * nat * nat
+
+(* A rise at the time t: too fast for a step within the shortest gap of the
+   last rise; no step without a sway; the first step of a run after a gap
+   above the longest, and otherwise the next. With the steps to count: those
+   of the run once it is confirmed, and then each step. *)
+let rise ((status, streak, last, interval) : rhythm) (t : nat) (swayed : bool)
+    =
+  let gap = t - last in
+  if gap < shortest_gap then ((Shaking, 0, t, interval), 0)
+  else if not swayed then ((Swayless, 0, t, interval), 0)
+  else if streak = 0 || gap > longest_gap then ((Checking, 1, t, interval), 0)
+  else if streak + 1 < run_length then ((Checking, streak + 1, t, gap), 0)
+  else
+    let added = if streak + 1 = run_length then run_length else 1 in
+    ((Walking, streak + 1, t, gap), added)
+
+(* No rise at the time t: at rest after a gap above the longest. *)
+let idle ((status, streak, last, interval) : rhythm) (t : nat) =
+  if (not (status = Still)) && t - last > longest_gap then
+    (Still, 0, last, interval)
+  else (status, streak, last, interval)
+
+(* The touch screen: whether it was touched at the last reading, whether
+   that reading began a touch, and its point. *)
+type touch = bool * bool * nat * nat
+
+(* The bands of the screen left to redraw: the state, the steps, the prompt,
+   the cadence and the distance. *)
+type bands = bool * bool * bool * bool * bool
+
+(* The counter: the filter, the rhythm, the steps shown and those of them
+   not yet passed to CountStep, the bands left to redraw, the threshold
+   drawn next, the touch screen, whether the prompt is shown and the time of
+   the last round. *)
+type counter =
+  filter * rhythm * (nat * nat) * bands * bool * touch * bool * nat
+
 (* The state on the screen: its text and colour. *)
 let show_status (status : status) =
   match status with
@@ -105,6 +246,8 @@ let show_status (status : status) =
   | Walking -> perform ShowColourTextAt (0, 44, 2, green, black, "Walking")
   | Shaking ->
       perform ShowColourTextAt (0, 44, 2, orange, black, "Ignored: too fast")
+  | Swayless ->
+      perform ShowColourTextAt (0, 44, 2, orange, black, "Ignored: no sway")
 
 let show_steps (steps : nat) =
   perform ShowNumberAt (120, 72, 4, 0, float_of_nat steps)
@@ -119,300 +262,354 @@ let screen () =
   show_status Still;
   perform ShowTextAt (0, 80, 2, "Steps");
   show_steps 0;
-  perform ShowTextAt (0, 124, 2, "Steps a minute");
-  perform ShowNumberAt (200, 124, 2, 0, 0.0);
-  perform ShowTextAt (0, 150, 2, "Distance, m");
-  perform ShowNumberAt (200, 150, 2, 0, 0.0);
-  perform ShowTextAt (0, 180, 1, "Smoothed acceleration, 0 to 2 g; thresholds");
+  perform ShowTextAt (0, 140, 2, "Steps a minute");
+  perform ShowNumberAt (200, 140, 2, 0, 0.0);
+  perform ShowTextAt (0, 162, 2, "Distance, m");
+  perform ShowNumberAt (200, 162, 2, 0, 0.0);
+  perform ShowTextAt (0, 186, 1, "Vertical acceleration, 0 to 2 g; thresholds");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
 
-(* The rhythm: the state, the steps of the current run, the time of its last
-   rise and the time between its last two steps, in ms. *)
-type rhythm = status * nat * nat * nat
+(* The bands to redraw after the state before changes to after: the state,
+   the cadence and the distance where it changes. *)
+let changed (before : status) (after : status) ((s, n, p, c, d) : bands) =
+  if before = after then (s, n, p, c, d) else (true, n, p, true, true)
 
-(* The counter: the smoothed magnitude, its envelopes and whether it fell
-   below the low threshold since the last rise; the rhythm; the steps
-   counted; the bands left to redraw; and the threshold drawn next. *)
-type counter = ((float * float * float) * bool) * rhythm * nat * nat * bool
-
-(* A rise at the time t: too fast for a step within the shortest gap of the
-   last rise; the first step of a run after a gap above the longest, and
-   otherwise the next. With the steps to count: those of the run once it is
-   confirmed, and then each step. *)
-let rise ((status, streak, last, interval) : rhythm) (t : nat) =
-  let gap = t - last in
-  if gap < shortest_gap then ((Shaking, 0, t, interval), 0)
-  else if streak = 0 || gap > longest_gap then ((Checking, 1, t, interval), 0)
-  else if streak + 1 < run_length then ((Checking, streak + 1, t, gap), 0)
-  else
-    let added = if streak + 1 = run_length then run_length else 1 in
-    ((Walking, streak + 1, t, gap), added)
-
-(* No rise at the time t: at rest after a gap above the longest. *)
-let idle ((status, streak, last, interval) : rhythm) (t : nat) =
-  if (not (status = Still)) && t - last > longest_gap then
-    (Still, 0, last, interval)
-  else (status, streak, last, interval)
-
-(* The bands to redraw after the rhythm before changes to after: all three
-   where the state changes, and otherwise those left, redraw. *)
-let redraws ((before, _, _, _) : rhythm) ((after, _, _, _) : rhythm)
-    (redraw : nat) =
-  if before = after then redraw else 3
-
-(* The second band of a round, after its second reading: the next of the
-   state, the cadence and the distance to redraw, and otherwise one of the
-   thresholds in turn. *)
-let show ((filtered, rhythm, steps, redraw, turn) : counter) =
-  let (_, upper, lower), _ = filtered in
+(* The band of a round, after its second reading: the next band left to
+   redraw, and otherwise one of the thresholds in turn. *)
+let show ((f, rhythm, steps, bands, turn, touch, prompt, now) : counter) =
+  let _, _, upper, lower, _, _, _ = f in
   let status, _, _, interval = rhythm in
   let high, low = thresholds upper lower in
-  (match redraw with
-  | 3 -> show_status status
-  | 2 ->
-      let cadence = if status = Walking then 60000 / interval else 0 in
-      perform ShowNumberAt (200, 124, 2, 0, float_of_nat cadence)
-  | 1 ->
-      let metres = steps * stride / 100 in
-      perform ShowNumberAt (200, 150, 2, 0, float_of_nat metres)
-  | _ ->
-      if turn then perform DrawBar (0, 210, 320, 4, bar high, orange)
-      else perform DrawBar (0, 216, 320, 4, bar low, green));
-  (filtered, rhythm, steps, redraw - 1, not turn)
+  let s, n, p, c, d = bands in
+  let shown, _ = steps in
+  if s then (
+    show_status status;
+    (f, rhythm, steps, (false, n, p, c, d), turn, touch, prompt, now))
+  else if n then (
+    show_steps shown;
+    (f, rhythm, steps, (s, false, p, c, d), turn, touch, prompt, now))
+  else if p then (
+    (if prompt then
+       perform ShowColourTextAt (0, 116, 2, black, yellow, "Tap again to reset")
+     else perform ShowColourTextAt (0, 116, 2, white, black, ""));
+    (f, rhythm, steps, (s, n, false, c, d), turn, touch, prompt, now))
+  else if c then (
+    let cadence = if status = Walking then 60000 / interval else 0 in
+    perform ShowNumberAt (200, 140, 2, 0, float_of_nat cadence);
+    (f, rhythm, steps, (s, n, p, false, d), turn, touch, prompt, now))
+  else if d then (
+    perform ShowNumberAt (200, 162, 2, 0, float_of_nat (shown * stride / 100));
+    (f, rhythm, steps, (s, n, p, c, false), turn, touch, prompt, now))
+  else (
+    (if turn then perform DrawBar (0, 212, 320, 4, bar high, orange)
+     else perform DrawBar (0, 218, 320, 4, bar low, green));
+    (f, rhythm, steps, bands, not turn, touch, prompt, now))
 
-(* The readings of a round, the first followed by the bar of the smoothed
-   magnitude and a delay of 10 ms. Returns the state of the filter, whether
-   the two smoothed values rose above the high threshold after it fell below
-   the low one, and the time.
+(* The readings of a round and the rhythm after them: the counter, its
+   bands left to redraw, and the steps to count. *)
+let advance ((f, rhythm, steps, bands, turn, touch, prompt, _) : counter) =
+  let f, rose, swayed, t = sense f in
+  let status, _, _, _ = rhythm in
+  let next, added = if rose then rise rhythm t swayed else (idle rhythm t, 0) in
+  let after, _, _, _ = next in
+  ((f, next, steps, changed status after bands, turn, touch, prompt, t), added)
 
-   The smoothed magnitude after the first reading is boxed until the second,
-   with a count: exactly one reading, started 10 to 43 ms after the first
-   ended, and the decision at its end. The unit samples at 100 Hz, and a
-   reading within 10 ms of another may return the same sample; the second
-   reading is thus a new sample, taken within the rise. *)
-let sense (((y, upper, lower), armed) : (float * float * float) * bool) =
-  let x = load () in
-  let first = filter (y, upper, lower) x in
-  box (1, ReadImu, [10, 45], [0, 1.5]) first as boxed in
-  let y, _, _ = first in
-  perform DrawBar (0, 192, 320, 16, bar y, blue);
+(* The rest of a round without a count: a band and a delay of 10 ms. *)
+let pause (c : counter) =
+  let c = show c in
   delay 10;
-  let x = load () in
-  unbox boxed as first in
-  let ya, _, _ = first in
-  let second = filter first x in
-  let yb, upper, lower = second in
-  let high, low = thresholds upper lower in
-  let rose = armed && ya > high && yb > high in
-  let t = perform ReadClock () in
-  ((second, (armed && not rose) || ya < low || yb < low), rose, t)
+  c
 
-(* A round in which no step counts, followed by the second band and a delay
-   of 10 ms: a rise is too fast for a step, and ends the run. *)
-let quiet ((filtered, rhythm, steps, redraw, turn) : counter) =
-  let filtered, rose, t = sense filtered in
-  let _, _, _, interval = rhythm in
+(* The rest of a round with a count of the steps added: the count of these
+   and of those deferred, the steps and a delay of 10 ms, with the state,
+   the cadence and the distance left to redraw. *)
+let count ((f, rhythm, (shown, deferred), (state, _, p, _, _), turn, touch,
+    prompt, now) : counter) (added : nat) =
+  perform CountStep (added + deferred);
+  show_steps (shown + added);
+  delay 10;
+  (f, rhythm, (shown + added, 0), (state, false, p, true, true), turn, touch,
+    prompt, now)
+
+(* The rest of a round with steps added while the prompt is shown: the steps
+   and a delay of 10 ms, their count deferred to the next count. *)
+let defer ((f, rhythm, (shown, deferred), (state, _, p, _, _), turn, touch,
+    prompt, now) : counter) (added : nat) =
+  show_steps (shown + added);
+  delay 10;
+  (f, rhythm, (shown + added, deferred + added), (state, false, p, true, true),
+    turn, touch, prompt, now)
+
+(* A round in which no step counts: a rise is too fast for a step, and ends
+   the run. *)
+let quiet ((f, rhythm, steps, bands, turn, touch, prompt, _) : counter) =
+  let f, rose, _, t = sense f in
+  let status, _, _, interval = rhythm in
   let next = if rose then (Shaking, 0, t, interval) else rhythm in
   let counter =
-    show (filtered, next, steps, redraws rhythm next redraw, turn)
+    let after, _, _, _ = next in
+    show (f, next, steps, changed status after bands, turn, touch, prompt, t)
   in
   delay 10;
   counter
 
+(* A reading of the touch screen, 0 to 1.45 ms: a touch begins where the
+   screen is touched and was not at the last reading, so that a finger left
+   on the screen begins none. *)
+let poll ((f, rhythm, steps, bands, turn, (held, _, _, _), prompt, now) :
+    counter) =
+  let touched, x, y = perform ReadTouch () in
+  (f, rhythm, steps, bands, turn, (touched, touched && not held, x, y), prompt,
+    now)
+
+let polled c = poll (quiet c)
+
 (* The cooldown: twelve rounds in which no step counts, each of at least
    20.4 ms, two readings of at least 0.2 ms and two delays of 10 ms, the
-   bands and the clock taking at least 0. *)
-let quiet3 counter = quiet (quiet (quiet counter))
-let cooldown counter = quiet3 (quiet3 (quiet3 (quiet3 counter)))
+   bands, the clock and the touch screen taking at least 0; with the touch
+   screen read in each, or not. *)
+let quiet3 c = quiet (quiet (quiet c))
+let cooldown c = quiet3 (quiet3 (quiet3 (quiet3 c)))
+let polled3 c = polled (polled (polled c))
+let polled_cooldown c = polled3 (polled3 (polled3 (polled3 c)))
+
+(* A round, followed by the cooldown if it counted steps; with the touch
+   screen read at the end of each round, or not. *)
+let step c =
+  let c, added = advance c in
+  if added = 0 then pause c else cooldown (count c added)
+
+let step_polled c =
+  let c, added = advance c in
+  if added = 0 then poll (pause c) else polled_cooldown (count c added)
+
+(* A round while the prompt is shown: its steps deferred. *)
+let step_deferred c =
+  let c, added = advance c in
+  if added = 0 then poll (pause c) else polled_cooldown (defer c added)
+
+(* Fifteen rounds without a reading of the touch screen: at least 306 ms. *)
+let step5 c = step (step (step (step (step c))))
+let settle c = step5 (step5 (step5 c))
+
+(* Correctly accepted by the typechecker: the rounds after a tap, until a
+   second touch begins or 'window' ms have passed since the time 'since',
+   for at most n rounds; with the point of the second touch, if any. The
+   grade is an invariant: readings at least every 50 ms, the end at most
+   46 ms after the start of the last, and no count, the steps found being
+   deferred. *)
+let rec wait (n : nat) (since : nat) (c : counter)
+    : counter * (bool * nat * nat)
+    # ((ReadImu, [0, 0], [0, 50], [0, 46]), (0, CountStep, [0, ∞))) =
+  match n with
+  | 0 -> (c, (false, 0, 0))
+  | m + 1 ->
+      let c = step_deferred c in
+      let _, _, _, _, _, (_, began, x, y), _, now = c in
+      if began then (c, (true, x, y))
+      else if now - since > window then (c, (false, 0, 0))
+      else wait m since c
+
+(* The prompt shown, or cleared, by the band queue. *)
+let prompt ((f, rhythm, steps, (s, n, _, c, d), turn, touch, _, now) : counter)
+    (shown : bool) =
+  (f, rhythm, steps, (s, n, true, c, d), turn, touch, shown, now)
+
+(* The reset: the steps set to zero, and the bands of the steps, the prompt
+   and the distance to redraw. *)
+let reset ((f, rhythm, _, (s, _, _, c, _), turn, touch, _, now) : counter) =
+  perform ResetSteps ();
+  (f, rhythm, (0, 0), (s, true, true, c, true), turn, touch, false, now)
+
+(* Whether a and b are at most 'reach' apart. *)
+let near (a : nat) (b : nat) = a - b <= reach && b - a <= reach
+
+(* Correctly accepted by the typechecker: the response to a touch begun at
+   the point (x, y), with the prompt "Tap again to reset", while the rounds
+   go on. The point is boxed until the reset, over the recursive call of
+   'wait', with the product of two entries: readings of the unit at least
+   every 50 ms, so that no step is missed while the prompt is shown, and no
+   reading of the touch screen within 300 ms, longer than a tap, so that
+   the tap and the bounces of its contact are not read as a second. The
+   fifteen rounds of 'settle' read none, at least 306 ms; fourteen, at
+   least 285.6 ms, are rejected. A second touch at most 'reach' pixels from
+   the first and at most 'window' ms after it resets the count; otherwise
+   the prompt is cleared. The boxes of each round, in 'sense', are bound and
+   unboxed within this one, each checked against its own grade.
+
+   The steps found while the prompt is shown are shown at once and passed to
+   CountStep with the next count, or cleared by the reset: a rate limit of
+   the counts is not closed under sequencing, so that the loop of the
+   counter could not follow the recursive call with a count, while the
+   invariant of no count is. *)
+let respond (c : counter) (x : nat) (y : nat) =
+  let _, _, _, _, _, _, _, since = c in
+  box ((ReadImu, [0, 50], [0, 50], [0, 50]),
+       (ReadTouch, [300, ∞), [0, ∞), [0, ∞))) (x, y) as tap in
+  let c = settle (prompt c true) in
+  let c, (again, x2, y2) = wait 100 since c in
+  unbox tap as (x1, y1) in
+  if again && near x1 x2 && near y1 y2 then reset c else prompt c false
 
 (* Correctly accepted by the typechecker: n rounds, each count followed by
-   the cooldown. The grade is the invariant of the loop.
+   the cooldown, and a touch begun answered by 'respond'. The grade is the
+   invariant of the loop.
 
    ReadImu: the loop starts with a reading, and the starts of consecutive
    readings are at most 50 ms apart, as is the end from the start of the
    last. The first reading of a round, a band and the delay take at most
-   44.5 ms; the second, the clock, a band and the delay 44.55 ms, and 44.9
-   ms with CountStep and Beep: 1.5, 0.05, 0.2, 0.15, 33 and 10 ms.
+   44.5 ms; the second, the clock, a band, the delay and the touch screen
+   46 ms, and 46.2 ms with ResetSteps; the second, the clock, a count, the
+   steps and the delay 44.75 ms.
 
    CountStep: the starts of consecutive counts at least 250 ms apart. A
-   count is followed by its beep and band, of at least 0.1 ms, the delay of
-   10 ms and the cooldown, of at least 244.8 ms; the rounds before the next
+   count is followed by its band, of at least 0.05 ms, the delay of 10 ms
+   and the cooldown, of at least 244.8 ms, 254.85 ms in all; a cooldown of
+   eleven rounds, 234.45 ms in all, is rejected. The rounds before the next
    count add to the gap.
 
    Both are closed under sequencing as the loop is built, so that they hold
    of any number of rounds, and of the repetitions of the task, up to the
-   tick of the scheduler between them. Rounds start at most 89.4 ms apart
-   and see every rise that lasts 134 ms. The smoothing, the thresholds, the
-   shortest and longest gaps between rises and the confirming run are
-   program logic, which the types do not check; a rise within the cooldown,
-   of at least 244.8 ms, is no step. *)
-let rec listen (n : nat) counter
+   tick of the scheduler between them. The smoothing, the thresholds, the
+   sway, the shortest and longest gaps between rises and the confirming run
+   are program logic, which the types do not check; a rise within the
+   cooldown is no step. *)
+let rec listen (n : nat) (c : counter)
     : unit # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
   match n with
   | 0 -> ()
-  | m + 1 -> (
-      let filtered, rhythm, steps, redraw, turn = counter in
-      let filtered, rose, t = sense filtered in
-      if rose then
-        match rise rhythm t with
-        | next, 0 ->
-            let counter =
-              show (filtered, next, steps, redraws rhythm next redraw, turn)
-            in
-            delay 10;
-            let counter = cooldown counter in
-            listen m counter
-        | next, added ->
-            perform CountStep added;
-            perform Beep (2400, 30);
-            show_steps (steps + added);
-            delay 10;
-            let counter =
-              cooldown
-                (filtered, next, steps + added, redraws rhythm next 2, turn)
-            in
-            listen m counter
-      else
-        let next = idle rhythm t in
-        let counter =
-          show (filtered, next, steps, redraws rhythm next redraw, turn)
-        in
-        delay 10;
-        listen m counter)
+  | m + 1 ->
+      let c = step_polled c in
+      let _, _, _, _, _, (_, began, x, y), _, _ = c in
+      if began then
+        let c = respond c x y in
+        listen m c
+      else listen m c
 
-(* Correctly rejected by the typechecker: a count is not followed by the
-   cooldown, so that two counts may be 10.1 ms apart:
+(* The counter at rest with gravity along g: the filter at g, not armed; no
+   run; no steps; nothing to redraw; the touch screen not touched. *)
+let rest (g : vector) : counter =
+  ( (g, g, 1.0, 1.0, false, 0.0, 0.0),
+    (Still, 0, 0, 0),
+    (0, 0),
+    (false, false, false, false, false),
+    false,
+    (false, false, 0, 0),
+    false,
+    0 )
 
-     Typing error: This function's body has grade `0 ⊔ {ReadImu; DrawBar;
-       10; ReadImu; ReadClock} · ({CountStep; Beep; ShowNumberAt; 10} ·
-       ((CountStep, [250, ∞)), (ReadImu, [0, 0], [0, 50], [0, 50])) ⊔ ...)`,
-       which does not match its annotated grade `((CountStep, [250, ∞)),
-       (ReadImu, [0, 0], [0, 50], [0, 50]))`
-       ...
-       Note: the grade `⟨...; CountStep: active ([10.4, ∞), [10.1, ∞),
-       [0, ∞)); ...⟩` is below ... but not below `((CountStep, [250, ∞)),
-       (ReadImu, [0, 0], [0, 50], [0, 50]))`
-*)
-(*
-let rec listen_eager (n : nat) counter
-    : unit # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
-  match n with
-  | 0 -> ()
-  | m + 1 -> (
-      let filtered, rhythm, steps, redraw, turn = counter in
-      let filtered, rose, t = sense filtered in
-      if rose then
-        match rise rhythm t with
-        | next, 0 ->
-            let counter =
-              show (filtered, next, steps, redraws rhythm next redraw, turn)
-            in
-            delay 10;
-            listen_eager m counter
-        | next, added ->
-            perform CountStep added;
-            perform Beep (2400, 30);
-            show_steps (steps + added);
-            delay 10;
-            listen_eager m
-              (filtered, next, steps + added, redraws rhythm next 2, turn)
-      else
-        let next = idle rhythm t in
-        let counter =
-          show (filtered, next, steps, redraws rhythm next redraw, turn)
-        in
-        delay 10;
-        listen_eager m counter)
-*)
+(* The calibration, a value whose box changes as it passes through two
+   stages, each box licensing its use only after the computation its grade
+   admits.
 
-(* Correctly rejected by the typechecker: the screen is redrawn in full at a
-   count, which takes 31.55 to 411 ms, so that two readings may be 455.9 ms
-   apart and a step pass unseen:
+   The sampling: at the prompt "Hold still", the number of samples is boxed
+   with exactly 50 readings, the starts of consecutive readings 10 to 45 ms
+   apart, and at most 50 ms before the first and after the last; the box is
+   returned, and unboxed where the mean is formed. The mean thus divides
+   the sum by the number of readings taken, and the unit, at 100 Hz,
+   returns a new sample at each. A count is not closed under recursion,
+   whose grade states none, so the readings are written out.
 
-     Typing error: This function's body has grade `0 ⊔ {ReadImu; DrawBar;
-       10; ReadImu; ReadClock} · ({CountStep; Beep; ClearDisplay; ...} ...)`,
-       which does not match its annotated grade `((CountStep, [250, ∞)),
-       (ReadImu, [0, 0], [0, 50], [0, 50]))`
-       ...
-       Note: the grade `⟨...; ReadImu: active ([2, ∞), [0, 0], [0, 455.9],
-       [0, 50]); ...⟩` is below ... but not below `((CountStep, [250, ∞)),
-       (ReadImu, [0, 0], [0, 50], [0, 50]))`
-*)
-(*
-let rec listen_redrawn (n : nat) counter
-    : unit # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
-  match n with
-  | 0 -> ()
-  | m + 1 -> (
-      let filtered, rhythm, steps, redraw, turn = counter in
-      let filtered, rose, t = sense filtered in
-      if rose then
-        match rise rhythm t with
-        | next, 0 ->
-            let counter =
-              show (filtered, next, steps, redraws rhythm next redraw, turn)
-            in
-            delay 10;
-            let counter = cooldown counter in
-            listen_redrawn m counter
-        | next, added ->
-            perform CountStep added;
-            perform Beep (2400, 30);
-            screen ();
-            show_steps (steps + added);
-            delay 10;
-            let counter = cooldown (filtered, next, steps + added, 3, turn) in
-            listen_redrawn m counter
-      else
-        let next = idle rhythm t in
-        let counter =
-          show (filtered, next, steps, redraws rhythm next redraw, turn)
-        in
-        delay 10;
-        listen_redrawn m counter)
-*)
+   The readiness: the gain, 1 g over the magnitude of the mean, and the
+   direction of gravity are boxed after the screen of the counter is drawn,
+   with exactly one Beep, at once, and the end within 0.2 ms of its start,
+   its running time at most 0.15 ms; the box is returned, and unboxed where
+   the counting starts. The counter, whose loop starts with a reading, thus
+   sees the first steps after the beep. A beep before the screen, whose
+   drawing takes 31.55 to 411 ms, and thus 31.6 to 411.15 ms from the start
+   of the beep to the counting, is rejected. *)
+type sampling = [(50, ReadImu, [0, 50], [10, 45], [0, 50])]float
+type readiness = [(1, Beep, [0, 0], [0, 0.2])](float * vector)
 
-(* Correctly rejected by the typechecker: the second reading follows the
-   first at once, so that it may return the same sample and confirm
-   nothing:
+let hold_still () : sampling =
+  perform ShowColourTextAt (0, 44, 2, yellow, black, "Hold still");
+  box (50, ReadImu, [0, 50], [10, 45], [0, 50]) 50.0 as samples in
+  samples
 
-     Typing error: Variable `boxed` is unboxed with grade `{ReadImu}`
-       accumulated since it was bound, which is not below its box grade
-       `(1, ReadImu, [10, 45], [0, 1.5])`
-       ...
-       Note: the resource inequality `{ReadImu} <= (1, ReadImu, [10, 45],
-       [0, 1.5])` does not hold
-*)
-(*
-let sense_at_once (((y, upper, lower), armed) : (float * float * float) * bool)
-    =
-  let x = load () in
-  let first = filter (y, upper, lower) x in
-  box (1, ReadImu, [10, 45], [0, 1.5]) first as boxed in
-  let x = load () in
-  unbox boxed as first in
-  let ya, _, _ = first in
-  let y, _, _ = first in
-  perform DrawBar (0, 192, 320, 16, bar y, blue);
-  delay 10;
-  let second = filter first x in
-  let yb, upper, lower = second in
-  let high, low = thresholds upper lower in
-  let rose = armed && ya > high && yb > high in
-  let t = perform ReadClock () in
-  ((second, (armed && not rose) || ya < low || yb < low), rose, t)
-*)
+let calibrate (samples : sampling) : readiness =
+  let sum = ten (ten (ten (ten (ten (0.0, 0.0, 0.0))))) in
+  unbox samples as n in
+  let mean = scale (1.0 /. n) sum in
+  let gain = 1.0 /. norm mean in
+  screen ();
+  box (1, Beep, [0, 0], [0, 0.2]) (gain, scale gain mean) as ready in
+  ready
 
-(* The counter at rest: the filter at 1 g, not armed; no run; no steps. *)
-let rest : counter = (((1.0, 1.0, 1.0), false), (Still, 0, 0, 0), 0, 0, false)
-
-(* The task: the output data rate of the accelerometer set to 100 Hz, the
-   screen, and 4 billion rounds, at least 2.5 years. *)
+(* Correctly accepted by the typechecker: the task. The output data rate of
+   the accelerometer is set to 100 Hz; the calibration is taken, and a beep
+   tells the walker to start. The counter reads through the calibration
+   handler, for 4 billion rounds, at least 2.5 years. *)
 let watch () =
   perform ConfigureImu 100;
-  screen ();
-  listen 4000000000 rest
+  perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Step counter");
+  let samples = hold_still () in
+  let ready = calibrate samples in
+  perform Beep (2000, 150);
+  unbox ready as (gain, g) in
+  handle listen 4000000000 (rest g) with calibrated gain
 
-(* Three rounds with the default implementations, which read a unit at
-   rest: no step is counted. *)
-run listen 3 rest
+(* The simulation of a walk in the interpreter, which has no clock. The
+   handler 'walk t' replaces the readings by those of a walk at the time t,
+   in ms, and the time by t; its cases perform their operations, and keep
+   their running times. The device does not use it. *)
+
+(* A triangle wave of the period of 400 ms and the amplitude of 1 at the
+   time t, in ms. *)
+let triangle (t : nat) =
+  let p = float_of_nat (t mod 400) /. 100.0 in
+  if p < 1.0 then p else if p < 3.0 then 2.0 -. p else p -. 4.0
+
+(* A walk of 2.5 steps a second: the vertical acceleration 1 g plus 0.4 g
+   by the triangle wave, and the horizontal one 0.2 g by it a quarter period
+   later. *)
+let walk (t : nat) =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let _, gyro = perform ReadImu () in
+      continue k with
+        ((0.2 *. triangle (t + 100), 0.0, 1.0 +. (0.4 *. triangle t)), gyro)
+  | ReadClock () k ->
+      let _ = perform ReadClock () in
+      continue k with t
+
+(* Each round sees the walk at its start, the time advancing by 25 ms a
+   round, about the duration of a round under the default implementations,
+   23.21 to 25.31 ms. *)
+let period = 25
+
+(* A round, and the steps it counted. *)
+let round (c : counter) =
+  let c, added = advance c in
+  if added = 0 then (pause c, 0) else (count c added, added)
+
+let rec cool (n : nat) (t : nat) (c : counter) : counter * nat # ⊤ =
+  match n with
+  | 0 -> (c, t)
+  | m + 1 ->
+      let c = handle quiet c with walk t in
+      cool m (t + period) c
+
+(* Correctly accepted by the typechecker: n rounds of the walk from the time
+   t, each count followed by the twelve rounds of the cooldown. The tally:
+   the counts, the steps counted, the time of the last count and the least
+   time between two counts, the greatest natural number of 32 bits before
+   the second count. *)
+let rec replay (n : nat) (t : nat) (c : counter)
+    ((counts, steps, last, least) : nat * nat * nat * nat)
+    : nat * nat * nat * nat # ⊤ =
+  match n with
+  | 0 -> (counts, steps, last, least)
+  | m + 1 ->
+      let c, added = handle round c with walk t in
+      if added = 0 then replay m (t + period) c (counts, steps, last, least)
+      else
+        let c, next = cool 12 (t + period) c in
+        let least = if counts = 0 then least else min least (t - last) in
+        replay m next c (counts + 1, steps + added, t, least)
+
+(* The walk from the time 1 s for 64 rounds: its run is confirmed at its
+   fourth step, when four steps are counted, and the next step is counted
+   400 ms later; two counts of five steps, the last at 2875 ms. *)
+run replay 64 1000 (rest (0.0, 0.0, 1.0)) (0, 0, 0, 4294967295)

@@ -72,7 +72,7 @@ tests show those runs in detail.
   ../examples/arduino/steps/steps.tpe
   ======================================================================
   === Run 1 ===
-  return ()
+  return (2, 5, 2875, 400)
   
   ======================================================================
   ../examples/arduino/tilt/tilt.tpe
