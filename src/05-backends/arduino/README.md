@@ -670,10 +670,19 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     since the last event and a bar of the acceleration.
 - [`steps`](../../../examples/arduino/steps/steps.tpe): a step counter,
   under `event-separation`: one loop reads the unit at least every 50 ms
-  while it redraws the screen, one band per reading, the steps counted or
-  the bar of the acceleration.
-  - A step is confirmed by a second reading, boxed 10 to 45 ms after the
-    first, a new sample of the unit at 100 Hz.
+  while it redraws the screen, one band per reading: the state, the steps,
+  the cadence, the distance at a stride of 0.7 m, and a bar of the smoothed
+  acceleration with its thresholds.
+  - A step is a rise of the smoothed magnitude above thresholds that follow
+    its recent range, confirmed by a second reading, boxed 10 to 45 ms after
+    the first, a new sample of the unit at 100 Hz.
+  - Steps count only 0.25 to 2 s apart, and after a run of four, then added
+    at once, so that shaking, a bump or moving the device counts none; the
+    host model plays these motions and a walk.
+  - Each count goes through the operation `CountStep` of the example, with
+    a beep, and is followed by a cooldown of twelve rounds, so that the
+    typechecker proves the counts at least 250 ms apart. The time between
+    rises is read by the operation `ReadClock`.
 
 #### Using the digital level
 

@@ -1076,8 +1076,10 @@ would be rejected, as a gap may then be 6.5.
 Counts add under sequencing, so they suit bounded stretches, such as a box
 held over exactly one new reading, and not loop invariants, which carry no
 count. The step counter splits the two: its loop invariant bounds the spacing
-of the readings, and the box of a reading the count and the times until its
-use. `counts-upper-bound` bounds the numbers of calls from above, without
+of the readings and, as a rate limit, the gaps between its counts of steps,
+and the box of a reading the count and the times until its use. A rate limit
+`(X, [s, ∞))` is a loop invariant where each round that performs `X` takes
+at least `s` from its last `X` to its end. `counts-upper-bound` bounds the numbers of calls from above, without
 times; `event-separation` bounds counts together with the times before,
 between and after the occurrences. See
 [`examples/opentrons/binding.tpe`](examples/opentrons/binding.tpe) and

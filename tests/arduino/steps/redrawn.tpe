@@ -1,19 +1,35 @@
 (* A rejected variant of examples/arduino/steps/steps.tpe. *)
 
-let rec count_redrawn (n : nat) (steps : nat) (armed : bool)
-    : unit # (ReadImu, [0, 0], [0, 50], [0, 50]) =
+let rec listen_redrawn (n : nat) counter
+    : unit # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
   match n with
   | 0 -> ()
-  | m + 1 ->
-      let a = load () in
-      box (1, ReadImu, [10, 45], [0, 1.5]) a as first in
-      perform DrawBar (0, 180, 320, 16, bar a, blue);
-      delay 10;
-      let b = load () in
-      unbox first as a in
-      let stepped = armed && a > high && b > high in
-      let steps = if stepped then steps + 1 else steps in
-      (if stepped then screen steps
-       else perform DrawBar (0, 180, 320, 16, bar b, blue));
-      delay 10;
-      count_redrawn m steps ((armed && not stepped) || a < low || b < low)
+  | m + 1 -> (
+      let filtered, rhythm, steps, redraw, turn = counter in
+      let filtered, rose, t = sense filtered in
+      if rose then
+        match rise rhythm t with
+        | next, 0 ->
+            let counter =
+              show (filtered, next, steps, redraws rhythm next redraw, turn)
+            in
+            delay 10;
+            let counter = cooldown counter in
+            listen_redrawn m counter
+        | next, added ->
+            perform CountStep added;
+            perform Beep (2400, 30);
+            screen ();
+            show_steps (steps + added);
+            delay 10;
+            let counter =
+              cooldown (filtered, next, steps + added, 3, turn)
+            in
+            listen_redrawn m counter
+      else
+        let next = idle rhythm t in
+        let counter =
+          show (filtered, next, steps, redraws rhythm next redraw, turn)
+        in
+        delay 10;
+        listen_redrawn m counter)
