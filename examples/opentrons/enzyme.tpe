@@ -48,7 +48,7 @@ operation LoadPlate : nat ~> unit # ({LoadPlate}, Out, Out) within [0, 1]
 default LoadPlate _ = delay 1
 
 operation Dispense : nat ~> unit # ({Dispense}, Out, Out) within [3, 4]
-default Dispense _ = delay 3
+default Dispense _ = delay 4
 
 operation UnloadPlate : nat ~> unit # ({UnloadPlate}, Out, Out) within [0, 1]
 default UnloadPlate _ = delay 1

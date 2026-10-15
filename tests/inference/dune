@@ -37,6 +37,7 @@
   inference
   testSupport
   testPrograms
+  solvePrograms
   unix)
  (deps
   (glob_files_rec %{project_root}/examples/*.tpe)

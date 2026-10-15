@@ -37,13 +37,13 @@
    and a mix of every lysate, take one to two minutes each. Filling the wash
    plate with ethanol takes two to three minutes. *)
 operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
-default AddBeads () = delay 1
+default AddBeads () = delay 2
 
 operation Mix : unit ~> unit # {Mix} within [1, 2]
 default Mix () = delay 1
 
 operation FillWashPlate : unit ~> unit # {FillWashPlate} within [2, 3]
-default FillWashPlate () = delay 2
+default FillWashPlate () = delay 3
 
 (* Moving the plate onto and off the magnetic block takes at most a minute,
    and removing the liquid one to two minutes. *)
@@ -54,7 +54,7 @@ operation MagnetOff : unit ~> unit # {MagnetOff} within [0, 1]
 default MagnetOff () = delay 1
 
 operation RemoveLiquid : unit ~> unit # {RemoveLiquid} within [1, 2]
-default RemoveLiquid () = delay 1
+default RemoveLiquid () = delay 2
 
 (* Correctly accepted by the typechecker: n mixes, each followed by two
    minutes of incubation. The grade is the invariant of the loop: it starts

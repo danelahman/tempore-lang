@@ -5072,7 +5072,7 @@ it names none:
   return 42
   State: [
     { resource_0 ↦ 42 # 3 },
-    3
+    5
   ]
   
   === Run 9 ===
@@ -5418,6 +5418,77 @@ it names none:
   8 |   unbox (boxed : nat) as (l, r) in l + r
               ^^^^^^^^^^^^^
   Typing error: This expression has type `[_](nat × nat)` but is annotated with `nat`
+  ======================================================================
+  unbox_nested.tpe
+  ======================================================================
+  ======================================================================
+  unbox_nested_reject_lower.tpe
+  ======================================================================
+  File "unbox_nested_reject_lower.tpe", lines 14-15, characters 2-3:
+  14 |   unbox y as v in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `y` is unboxed with grade `[0.5, 0.5]` accumulated since it was bound, which is not below its box grade `[1, 3]`
+    File "unbox_nested_reject_lower.tpe", line 12, characters 13-14:
+    12 |   unbox x as y in
+                      ^
+    `y` is bound here
+    File "unbox_nested_reject_lower.tpe", line 13, characters 2-11:
+    13 |   delay 1/2;
+           ^^^^^^^^^
+    grade `[0.5, 0.5]` accumulates here (delay)
+    Note: the resource inequality `[0.5, 0.5] <= [1, 3]` does not hold
+  
+  File "unbox_nested_reject_lower.tpe", lines 24-25, characters 2-3:
+  24 |   unbox y as v in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `y` is unboxed with grade `[0.5, 0.5]` accumulated since it was bound, which is not below its box grade `[1, 3]`
+    File "unbox_nested_reject_lower.tpe", line 22, characters 13-14:
+    22 |   unbox x as y in
+                      ^
+    `y` is bound here
+    File "unbox_nested_reject_lower.tpe", line 23, characters 2-11:
+    23 |   delay 1/2;
+           ^^^^^^^^^
+    grade `[0.5, 0.5]` accumulates here (delay)
+    File "unbox_nested_reject_lower.tpe", lines 22-25, characters 2-3:
+    22 |   unbox x as y in
+           ^^^^^^^^^^^^^^^
+    the inequality goes through the unboxing of `x` here
+    Note: the resource inequality `[0.5, 0.5] <= [1, 3]` does not hold
+  ======================================================================
+  unbox_nested_reject_upper.tpe
+  ======================================================================
+  File "unbox_nested_reject_upper.tpe", lines 14-15, characters 2-3:
+  14 |   unbox y as v in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `y` is unboxed with grade `[4, 4]` accumulated since it was bound, which is not below its box grade `[1, 3]`
+    File "unbox_nested_reject_upper.tpe", line 12, characters 13-14:
+    12 |   unbox x as y in
+                      ^
+    `y` is bound here
+    File "unbox_nested_reject_upper.tpe", line 13, characters 2-9:
+    13 |   delay 4;
+           ^^^^^^^
+    grade `[4, 4]` accumulates here (delay)
+    Note: the resource inequality `[4, 4] <= [1, 3]` does not hold
+  
+  File "unbox_nested_reject_upper.tpe", lines 24-25, characters 2-3:
+  24 |   unbox y as v in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `y` is unboxed with grade `[4, 4]` accumulated since it was bound, which is not below its box grade `[1, 3]`
+    File "unbox_nested_reject_upper.tpe", line 22, characters 13-14:
+    22 |   unbox x as y in
+                      ^
+    `y` is bound here
+    File "unbox_nested_reject_upper.tpe", line 23, characters 2-9:
+    23 |   delay 4;
+           ^^^^^^^
+    grade `[4, 4]` accumulates here (delay)
+    File "unbox_nested_reject_upper.tpe", lines 22-25, characters 2-3:
+    22 |   unbox x as y in
+           ^^^^^^^^^^^^^^^
+    the inequality goes through the unboxing of `x` here
+    Note: the resource inequality `[4, 4] <= [1, 3]` does not hold
   ======================================================================
   unhandled_continue.tpe
   ======================================================================
@@ -6453,7 +6524,7 @@ implementations above, the examples over rational delays excepted:
     [{1}, {1}],
     [{4}, {4}],
     [{1}, {1}],
-    [{1}, {1}]
+    [{2}, {2}]
   ]
   
   ======================================================================
@@ -6465,7 +6536,7 @@ implementations above, the examples over rational delays excepted:
     [{1}, {1}],
     [{4}, {4}],
     [{1}, {1}],
-    [{1}, {1}]
+    [{2}, {2}]
   ]
   
   ======================================================================
@@ -6477,7 +6548,7 @@ implementations above, the examples over rational delays excepted:
     { resource_0 ↦ Part "gear" # {Coat; 4} },
     {1},
     {4},
-    {1}
+    {2}
   ]
   
   ======================================================================
@@ -6489,7 +6560,7 @@ implementations above, the examples over rational delays excepted:
     { resource_0 ↦ Part "gear" # {Coat; 4} },
     {1},
     {4},
-    {1}
+    {2}
   ]
   
   ======================================================================
@@ -6499,7 +6570,7 @@ implementations above, the examples over rational delays excepted:
   return (Checkpoint 5, 2)
   State: [
     { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
-    {2},
+    {3},
     {1},
     {1},
     {1},
@@ -6512,7 +6583,7 @@ implementations above, the examples over rational delays excepted:
   === Run 2 ===
   return (Message (1, "Agenda", false))
   State: [
-    {2},
+    {3},
     {1},
     {1}
   ]
@@ -6521,7 +6592,7 @@ implementations above, the examples over rational delays excepted:
   return 3
   State: [
     { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
-    {2},
+    {3},
     {1},
     {1},
     {1},
@@ -6546,7 +6617,7 @@ implementations above, the examples over rational delays excepted:
   return (Checkpoint 5, 2)
   State: [
     { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
-    {2},
+    {3},
     {1},
     {1},
     {1},
@@ -6559,7 +6630,7 @@ implementations above, the examples over rational delays excepted:
   === Run 2 ===
   return (Message (1, "Agenda", false))
   State: [
-    {2},
+    {3},
     {1},
     {1}
   ]
@@ -6568,7 +6639,7 @@ implementations above, the examples over rational delays excepted:
   return 3
   State: [
     { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
-    {2},
+    {3},
     {1},
     {1},
     {1},
@@ -6593,7 +6664,7 @@ implementations above, the examples over rational delays excepted:
   return (Reading 0)
   State: [
     { resource_0 ↦ Reading 0 # {2; Send; 6} },
-    {1},
+    {2},
     {2},
     {5}
   ]
@@ -6605,7 +6676,7 @@ implementations above, the examples over rational delays excepted:
   return (Reading 0)
   State: [
     { resource_0 ↦ Reading 0 # {2; Send; 6} },
-    {1},
+    {2},
     {2},
     {5}
   ]

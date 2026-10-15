@@ -30,7 +30,7 @@ let select_subject (number : nat) : string =
    ticks, a fetch of one to two, and a store and a logout of one each. A
    message is seen if its number is even. *)
 operation Login : string ~> unit # {Login} within [2, 3]
-default Login user = delay 2
+default Login user = delay 3
 
 operation Fetch : nat ~> message # {Fetch} within [1, 2]
 default Fetch number =

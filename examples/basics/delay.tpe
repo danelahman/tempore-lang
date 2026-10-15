@@ -69,11 +69,11 @@ let test () =
   delay 3; 
   x
 
-(* Correctly accepted by the typechecker: the delay banks exactly the three
-   ticks the box demands. *)
+(* Correctly accepted by the typechecker: the delay banks five ticks, more
+   than the three the box demands. *)
 let test2 () = 
   box 3 (42) as r in 
-  delay 3; 
+  delay 5; 
   unbox r as y in y
 
 (* Correctly accepted by the typechecker: grade 15 = 2 + 10 + 3, the delay

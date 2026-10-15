@@ -351,11 +351,11 @@ let suspect_late (least : float) =
   else Fall (least, 0.0)
 *)
 
-(* Correctly rejected by the typechecker: the response waits ten seconds and
-   raises the alarm without the prompt and the tone that ask for a tap:
+(* Correctly rejected by the typechecker: the response waits twenty seconds
+   and raises the alarm without the prompt and the tone that ask for a tap:
 
      Typing error: Variable `event` is unboxed with grade
-       `[{10000}, {10000}]` accumulated since it was bound, which is not
+       `[{20000}, {20000}]` accumulated since it was bound, which is not
        below its box grade
        `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]},
        {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
@@ -364,7 +364,7 @@ let suspect_late (least : float) =
 (*
 let respond_silent (fall : fall) =
   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
-  delay 10000;
+  delay 20000;
   unbox event as fall in
   raise fall
 *)

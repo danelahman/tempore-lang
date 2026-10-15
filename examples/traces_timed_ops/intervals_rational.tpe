@@ -20,18 +20,18 @@ operation Sample : unit ~> reading # [{Sample}, {Sample}] within [1/2, 3/2]
 default Sample () = delay 0.75; Reading 12
 
 (* Compressing a reading has a running time between a quarter of a second and
-   one second; its default takes a quarter of a second. *)
+   one second; its default takes half a second. *)
 operation Compress : reading ~> packet
   # [{Compress}, {Compress}]
   within [1/4, 1]
-default Compress r = delay 1/4; Packet r
+default Compress r = delay 1/2; Packet r
 
 (* A transmission has a running time between one second and two and a half;
-   its default takes one second. *)
+   its default takes one and three quarters. *)
 operation Transmit : packet ~> unit
   # [{Transmit}, {Transmit}]
   within [1, 5/2]
-default Transmit p = delay 1
+default Transmit p = delay 7/4
 
 (* A report samples, compresses and transmits, in that order. *)
 operation Report : unit ~> unit
@@ -69,10 +69,10 @@ let report_by_hand () =
   perform Transmit p
 
 (* Correctly accepted by the typechecker: a report fits a radio slot that opens
-   after 7/4 seconds and closes after 5, since its operations bank at least
+   after 3/2 seconds and closes after 11/2, since its operations bank at least
    1/2 + 1/4 + 1 = 7/4 and take at most 3/2 + 1 + 5/2 = 5. *)
 let report_in_slot () =
-  box [7/4, 5] () as slot in
+  box [3/2, 11/2] () as slot in
   perform Report ();
   unbox slot as s in
   s
@@ -119,5 +119,5 @@ let idle_packet () =
 *)
 
 (* The operations are atomic and run their defaults, so the report takes
-   0.75 + 0.25 + 1 = 2 seconds. *)
+   0.75 + 0.5 + 1.75 = 3 seconds. *)
 run report_by_hand ()

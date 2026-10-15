@@ -140,13 +140,13 @@ Nested handlers: their continuations are not shown.
   return 7
   State: [
     { resource_1 ↦ <fun> # 2, resource_3 ↦ <fun> # 3 },
-    3
+    4
   ]
   
   Timeline
   Run  Start  Event  Grade
-  1    0      delay  3
-  Run 1 returned 7 at 3.
+  1    0      delay  4
+  Run 1 returned 7 at 4.
   
 
 Channels boxed at security levels, whose delays are unit grades.
@@ -196,12 +196,12 @@ The ELISA protocol, interpreted.
     [3, 3],
     [2, 2],
     { resource_1 ↦ "plate" # [60, ∞) },
-    [60, 60],
+    [65, 65],
     [3, 3],
     [1, 1],
     { resource_2 ↦ "plate" # [15, 20] },
-    [15, 15],
-    [1, 1]
+    [17, 17],
+    [2, 2]
   ]
   
   Timeline
@@ -221,19 +221,19 @@ The ELISA protocol, interpreted.
   1    [8, 17]    Detect                                [1, 3]
   1               · delay                               [2, 2]
   1               · box incubating with grade [60, ∞)
-  1    [9, 20]    delay                                 [60, 60]
-  1    [69, 80]   unbox incubating
-  1    [69, 80]   Wash                                  [2, 4]
+  1    [9, 20]    delay                                 [65, 65]
+  1    [74, 85]   unbox incubating
+  1    [74, 85]   Wash                                  [2, 4]
   1               · delay                               [3, 3]
-  1    [71, 84]   Develop                               [1, 2]
+  1    [76, 89]   Develop                               [1, 2]
   1               · delay                               [1, 1]
   1               · box developing with grade [15, 20]
-  1    [72, 86]   delay                                 [15, 15]
-  1    [87, 101]  unbox developing
-  1    [87, 101]  Stop                                  [0, 1]
-  1    [87, 102]  Read                                  [1, 2]
-  1               · delay                               [1, 1]
-  Run 1 returned 0 at [88, 104].
+  1    [77, 91]   delay                                 [17, 17]
+  1    [94, 108]  unbox developing
+  1    [94, 108]  Stop                                  [0, 1]
+  1    [94, 109]  Read                                  [1, 2]
+  1               · delay                               [2, 2]
+  Run 1 returned 0 at [95, 111].
   
 
 Default implementations that perform operations: each call one level below
@@ -280,25 +280,25 @@ grades are printed in full. Only the timelines are shown.
   Timeline
   Run  Start                                                                                 Event                                         Grade
   1    [{0}, {0}]                                                                            AddBeads                                      [{AddBeads}, {AddBeads}]
-  1                                                                                          · delay                                       [{1}, {1}]
+  1                                                                                          · delay                                       [{2}, {2}]
   1    [{AddBeads}, {AddBeads}]                                                              box binding with grade [{5}, {10}]
-  1    [{AddBeads}, {AddBeads}]                                                              delay                                         [{5}, {5}]
-  1    [{AddBeads; 5}, {AddBeads; 5}]                                                        unbox binding
-  1    [{AddBeads; 5}, {AddBeads; 5}]                                                        MagnetOn                                      [{MagnetOn}, {MagnetOn}]
+  1    [{AddBeads}, {AddBeads}]                                                              delay                                         [{7}, {7}]
+  1    [{AddBeads; 7}, {AddBeads; 7}]                                                        unbox binding
+  1    [{AddBeads; 7}, {AddBeads; 7}]                                                        MagnetOn                                      [{MagnetOn}, {MagnetOn}]
   1                                                                                          · delay                                       [{1}, {1}]
-  1    [{AddBeads; 5; MagnetOn}, {AddBeads; 5; MagnetOn}]                                    delay                                         [{3}, {3}]
-  1    [{AddBeads; 5; MagnetOn; 3}, {AddBeads; 5; MagnetOn; 3}]                              RemoveLiquid                                  [{RemoveLiquid}, {RemoveLiquid}]
+  1    [{AddBeads; 7; MagnetOn}, {AddBeads; 7; MagnetOn}]                                    delay                                         [{3}, {3}]
+  1    [{AddBeads; 7; MagnetOn; 3}, {AddBeads; 7; MagnetOn; 3}]                              RemoveLiquid                                  [{RemoveLiquid}, {RemoveLiquid}]
+  1                                                                                          · delay                                       [{2}, {2}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid}]  box washed with grade [{Wash; …}, {Wash; …}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid}]  Wash                                          [{Wash}, {Wash}]
   1                                                                                          · delay                                       [{1}, {1}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid}]  box washed with grade [{Wash; …}, {Wash; …}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid}]  Wash                                          [{Wash}, {Wash}]
+  1    [{…; 7; MagnetOn; 3; RemoveLiquid; Wash}, {…; 7; MagnetOn; 3; RemoveLiquid; Wash}]    ChangeTip                                     [{ChangeTip}, {ChangeTip}]
   1                                                                                          · delay                                       [{1}, {1}]
-  1    [{…; 5; MagnetOn; 3; RemoveLiquid; Wash}, {…; 5; MagnetOn; 3; RemoveLiquid; Wash}]    ChangeTip                                     [{ChangeTip}, {ChangeTip}]
-  1                                                                                          · delay                                       [{0}, {0}]
   1    [{…; 3; RemoveLiquid; Wash; ChangeTip}, {…; 3; RemoveLiquid; Wash; ChangeTip}]        Wash                                          [{Wash}, {Wash}]
   1                                                                                          · delay                                       [{1}, {1}]
   1    [{…; RemoveLiquid; Wash; ChangeTip; Wash}, {…; RemoveLiquid; Wash; ChangeTip; Wash}]  delay                                         [{3}, {3}]
   1    [{…; Wash; ChangeTip; Wash; 3}, {…; Wash; ChangeTip; Wash; 3}]                        ChangeTip                                     [{ChangeTip}, {ChangeTip}]
-  1                                                                                          · delay                                       [{0}, {0}]
+  1                                                                                          · delay                                       [{1}, {1}]
   1    [{…; Wash; ChangeTip; Wash; 3; ChangeTip}, {…; Wash; ChangeTip; Wash; 3; ChangeTip}]  unbox washed
   1    [{…; Wash; ChangeTip; Wash; 3; ChangeTip}, {…; Wash; ChangeTip; Wash; 3; ChangeTip}]  MagnetOff                                     [{MagnetOff}, {MagnetOff}]
   1                                                                                          · delay                                       [{1}, {1}]
@@ -309,44 +309,44 @@ grades are printed in full. Only the timelines are shown.
   1                                                                                          · delay                                       [{1}, {1}]
   1    [{…; MagnetOff; EluteDNA; 2; MagnetOn}, {…; MagnetOff; EluteDNA; 2; MagnetOn}]        delay                                         [{3}, {3}]
   1    [{…; MagnetOff; EluteDNA; 2; MagnetOn; 3}, {…; MagnetOff; EluteDNA; 2; MagnetOn; 3}]  Transfer                                      [{Transfer}, {Transfer}]
-  1                                                                                          · delay                                       [{1}, {1}]
+  1                                                                                          · delay                                       [{2}, {2}]
   Run 1 returned () at [{…; EluteDNA; 2; MagnetOn; 3; Transfer}, {…; EluteDNA; 2; MagnetOn; 3; Transfer}].
 
   $ ../tempore --grades regex-timed-interval-symbolic --timeline-full ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
   Run  Start                                                                                                                                                                                                                                     Event                                                                                                                   Grade
   1    [{0}, {0}]                                                                                                                                                                                                                                AddBeads                                                                                                                [{AddBeads}, {AddBeads}]
-  1                                                                                                                                                                                                                                              · delay                                                                                                                 [{1}, {1}]
+  1                                                                                                                                                                                                                                              · delay                                                                                                                 [{2}, {2}]
   1    [{AddBeads}, {AddBeads}]                                                                                                                                                                                                                  box binding with grade [{5}, {10}]
-  1    [{AddBeads}, {AddBeads}]                                                                                                                                                                                                                  delay                                                                                                                   [{5}, {5}]
-  1    [{AddBeads; 5}, {AddBeads; 5}]                                                                                                                                                                                                            unbox binding
-  1    [{AddBeads; 5}, {AddBeads; 5}]                                                                                                                                                                                                            MagnetOn                                                                                                                [{MagnetOn}, {MagnetOn}]
+  1    [{AddBeads}, {AddBeads}]                                                                                                                                                                                                                  delay                                                                                                                   [{7}, {7}]
+  1    [{AddBeads; 7}, {AddBeads; 7}]                                                                                                                                                                                                            unbox binding
+  1    [{AddBeads; 7}, {AddBeads; 7}]                                                                                                                                                                                                            MagnetOn                                                                                                                [{MagnetOn}, {MagnetOn}]
   1                                                                                                                                                                                                                                              · delay                                                                                                                 [{1}, {1}]
-  1    [{AddBeads; 5; MagnetOn}, {AddBeads; 5; MagnetOn}]                                                                                                                                                                                        delay                                                                                                                   [{3}, {3}]
-  1    [{AddBeads; 5; MagnetOn; 3}, {AddBeads; 5; MagnetOn; 3}]                                                                                                                                                                                  RemoveLiquid                                                                                                            [{RemoveLiquid}, {RemoveLiquid}]
+  1    [{AddBeads; 7; MagnetOn}, {AddBeads; 7; MagnetOn}]                                                                                                                                                                                        delay                                                                                                                   [{3}, {3}]
+  1    [{AddBeads; 7; MagnetOn; 3}, {AddBeads; 7; MagnetOn; 3}]                                                                                                                                                                                  RemoveLiquid                                                                                                            [{RemoveLiquid}, {RemoveLiquid}]
+  1                                                                                                                                                                                                                                              · delay                                                                                                                 [{2}, {2}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid}]                                                                                                                                                      box washed with grade [{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}, {Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid}]                                                                                                                                                      Wash                                                                                                                    [{Wash}, {Wash}]
   1                                                                                                                                                                                                                                              · delay                                                                                                                 [{1}, {1}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid}]                                                                                                                                                      box washed with grade [{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}, {Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid}]                                                                                                                                                      Wash                                                                                                                    [{Wash}, {Wash}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash}]                                                                                                                                          ChangeTip                                                                                                               [{ChangeTip}, {ChangeTip}]
   1                                                                                                                                                                                                                                              · delay                                                                                                                 [{1}, {1}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash}]                                                                                                                                          ChangeTip                                                                                                               [{ChangeTip}, {ChangeTip}]
-  1                                                                                                                                                                                                                                              · delay                                                                                                                 [{0}, {0}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip}]                                                                                                                    Wash                                                                                                                    [{Wash}, {Wash}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip}]                                                                                                                    Wash                                                                                                                    [{Wash}, {Wash}]
   1                                                                                                                                                                                                                                              · delay                                                                                                                 [{1}, {1}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash}]                                                                                                        delay                                                                                                                   [{3}, {3}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3}]                                                                                                  ChangeTip                                                                                                               [{ChangeTip}, {ChangeTip}]
-  1                                                                                                                                                                                                                                              · delay                                                                                                                 [{0}, {0}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip}]                                                                            unbox washed
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip}]                                                                            MagnetOff                                                                                                               [{MagnetOff}, {MagnetOff}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash}]                                                                                                        delay                                                                                                                   [{3}, {3}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3}]                                                                                                  ChangeTip                                                                                                               [{ChangeTip}, {ChangeTip}]
   1                                                                                                                                                                                                                                              · delay                                                                                                                 [{1}, {1}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff}]                                                      EluteDNA                                                                                                                [{EluteDNA}, {EluteDNA}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip}]                                                                            unbox washed
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip}]                                                                            MagnetOff                                                                                                               [{MagnetOff}, {MagnetOff}]
   1                                                                                                                                                                                                                                              · delay                                                                                                                 [{1}, {1}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA}]                                  delay                                                                                                                   [{2}, {2}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2}]                            MagnetOn                                                                                                                [{MagnetOn}, {MagnetOn}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff}]                                                      EluteDNA                                                                                                                [{EluteDNA}, {EluteDNA}]
   1                                                                                                                                                                                                                                              · delay                                                                                                                 [{1}, {1}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn}]        delay                                                                                                                   [{3}, {3}]
-  1    [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn; 3}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn; 3}]  Transfer                                                                                                                [{Transfer}, {Transfer}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA}]                                  delay                                                                                                                   [{2}, {2}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2}]                            MagnetOn                                                                                                                [{MagnetOn}, {MagnetOn}]
   1                                                                                                                                                                                                                                              · delay                                                                                                                 [{1}, {1}]
-  Run 1 returned () at [{AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn; 3; Transfer}, {AddBeads; 5; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn; 3; Transfer}].
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn}]        delay                                                                                                                   [{3}, {3}]
+  1    [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn; 3}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn; 3}]  Transfer                                                                                                                [{Transfer}, {Transfer}]
+  1                                                                                                                                                                                                                                              · delay                                                                                                                 [{2}, {2}]
+  Run 1 returned () at [{AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn; 3; Transfer}, {AddBeads; 7; MagnetOn; 3; RemoveLiquid; Wash; ChangeTip; Wash; 3; ChangeTip; MagnetOff; EluteDNA; 2; MagnetOn; 3; Transfer}].
 
   $ ../tempore --grades traces-timed-interval --timeline ../examples/traces_timed_ops/3d_printing.tpe | sed -n '/^Timeline$/,/^Run [0-9][0-9]* /p'
   Timeline
@@ -357,7 +357,7 @@ grades are printed in full. Only the timelines are shown.
   1    [{MixEpoxy}, {MixEpoxy}]                                                  Heat                               [{Heat}, {Heat}]
   1                                                                              · delay                            [{1}, {1}]
   1    [{MixEpoxy; Heat}, {MixEpoxy; Heat}]                                      Extrude                            [{Extrude}, {Extrude}]
-  1                                                                              · delay                            [{3}, {3}]
+  1                                                                              · delay                            [{4}, {4}]
   1                                                                              · box p with grade [{2}, {2}]
   1    [{MixEpoxy; Heat; Extrude}, {MixEpoxy; Heat; Extrude}]                    Cool                               [{Cool}, {Cool}]
   1                                                                              · delay                            [{2}, {2}]
@@ -374,15 +374,15 @@ grades are printed in full. Only the timelines are shown.
   2    [{0}, {0}]                                            Heat                               [{Heat}, {Heat}]
   2                                                          · delay                            [{1}, {1}]
   2    [{Heat}, {Heat}]                                      Extrude                            [{Extrude}, {Extrude}]
-  2                                                          · delay                            [{3}, {3}]
+  2                                                          · delay                            [{4}, {4}]
   2                                                          · box p with grade [{2}, {2}]
   2    [{Heat; Extrude}, {Heat; Extrude}]                    Cool                               [{Cool}, {Cool}]
   2                                                          · delay                            [{2}, {2}]
   2                                                          · unbox p
   2    [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]        box printed with grade [{2}, {8}]
-  2    [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]        delay                              [{2}, {2}]
-  2    [{Heat; Extrude; Cool; 2}, {Heat; Extrude; Cool; 2}]  unbox printed
-  Run 2 returned ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword"))))) at [{Heat; Extrude; Cool; 2}, {Heat; Extrude; Cool; 2}].
+  2    [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]        delay                              [{4}, {4}]
+  2    [{Heat; Extrude; Cool; 4}, {Heat; Extrude; Cool; 4}]  unbox printed
+  Run 2 returned ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword"))))) at [{Heat; Extrude; Cool; 4}, {Heat; Extrude; Cool; 4}].
   Timeline
   Run  Start       Event    Grade
   3    [{0}, {0}]  Heat     [{Heat}, {Heat}]
@@ -401,7 +401,7 @@ grades are printed in full. Only the timelines are shown.
   1    [{MixEpoxy}, {MixEpoxy}]                                                  Heat                               [{Heat}, {Heat}]
   1                                                                              · delay                            [{1}, {1}]
   1    [{MixEpoxy; Heat}, {MixEpoxy; Heat}]                                      Extrude                            [{Extrude}, {Extrude}]
-  1                                                                              · delay                            [{3}, {3}]
+  1                                                                              · delay                            [{4}, {4}]
   1                                                                              · box p with grade [{2}, {2}]
   1    [{MixEpoxy; Heat; Extrude}, {MixEpoxy; Heat; Extrude}]                    Cool                               [{Cool}, {Cool}]
   1                                                                              · delay                            [{2}, {2}]
@@ -418,15 +418,15 @@ grades are printed in full. Only the timelines are shown.
   2    [{0}, {0}]                                            Heat                               [{Heat}, {Heat}]
   2                                                          · delay                            [{1}, {1}]
   2    [{Heat}, {Heat}]                                      Extrude                            [{Extrude}, {Extrude}]
-  2                                                          · delay                            [{3}, {3}]
+  2                                                          · delay                            [{4}, {4}]
   2                                                          · box p with grade [{2}, {2}]
   2    [{Heat; Extrude}, {Heat; Extrude}]                    Cool                               [{Cool}, {Cool}]
   2                                                          · delay                            [{2}, {2}]
   2                                                          · unbox p
   2    [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]        box printed with grade [{2}, {8}]
-  2    [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]        delay                              [{2}, {2}]
-  2    [{Heat; Extrude; Cool; 2}, {Heat; Extrude; Cool; 2}]  unbox printed
-  Run 2 returned ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword"))))) at [{Heat; Extrude; Cool; 2}, {Heat; Extrude; Cool; 2}].
+  2    [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]        delay                              [{4}, {4}]
+  2    [{Heat; Extrude; Cool; 4}, {Heat; Extrude; Cool; 4}]  unbox printed
+  Run 2 returned ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword"))))) at [{Heat; Extrude; Cool; 4}, {Heat; Extrude; Cool; 4}].
   
   === Run 3 ===
   return (Model "Sword")

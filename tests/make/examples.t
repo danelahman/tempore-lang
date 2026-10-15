@@ -140,7 +140,7 @@ _arduino/recordings, and extracts the recordings from the log:
 The aggregate targets cover every example:
 
   $ dry opentrons-simulate-all | grep -c tempore
-  10
+  11
   $ dry arduino-simulate-all | grep -c tempore
   9
   $ dry arduino-build-all | grep -c tempore

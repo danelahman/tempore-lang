@@ -369,34 +369,41 @@ module Small = struct
         fail "sequencing: expected the lock of the bound effect, got@.%s"
           (C.to_string constr)
 
-  (* [unbox x as y in return y] for [x : [3]nat] bound before [delay 2]: the
-     box type is pinned and the accumulated grade below its grade. *)
-  let unbox () =
-    let boxed =
-      Ast.TyBox (X.Rho.of_delay 3, Ast.TyConst Language.Const.NatTy)
-    in
+  (* [unbox x as y in return y] for [x] bound at [ty] before [delay 2]. *)
+  let unbox_at ty =
     let env =
       Gen.lock
-        (Gen.bind Gen.initial_env x boxed ~bound_at:loc)
+        (Gen.bind Gen.initial_env x ty ~bound_at:loc)
         ~at:loc
         (Reason.Delayed (Grades.Rational.of_int 2))
         (X.Rho.of_delay 2)
     in
     let c = at (Ast.Unbox (var x, (pvar y, return (var y)))) in
-    expect_text "unbox"
+    Gen.generate_computation env c (expect alpha) unit_eps
+
+  (* At [x : [3]nat] the grade and payload are those of the box type, the
+     accumulated grade below its grade. *)
+  let unbox () =
+    expect_text "unbox" ~expected:"2 ≾ 3\nnat <: α\nEt(nat) ∨ 0 ≾ 0\n0 ≾ 0"
+      (unbox_at
+         (Ast.TyBox (X.Rho.of_delay 3, Ast.TyConst Language.Const.NatTy)))
+
+  (* At a type unknown [x : β] the box type is equated with it. *)
+  let unbox_unknown () =
+    expect_text "unbox at an unknown"
       ~expected:
         "∃α ρ₀.\n\
-        \  [3]nat <: [ρ₀]α\n\
-        \  [ρ₀]α <: [3]nat\n\
+        \  β <: [ρ₀]α\n\
+        \  [ρ₀]α <: β\n\
         \  2 ≾ ρ₀\n\
-        \  α <: β\n\
+        \  α <: γ\n\
         \  Et(α) ∨ 0 ≾ 0\n\
         \  0 ≾ 0"
-      (Gen.generate_computation env c (expect alpha) unit_eps)
+      (unbox_at (Ast.TyParam (Ast.TyParamModule.fresh "b")))
 
   (* A handler with a clause for [Op] using [x] from outside: the clause is
      generated under [∀ε] and the lock [⟨⊤⟩], its continuation boxed at the
-     operation's grade. *)
+     operation's grade and unboxed below it. *)
   let handler_clause () =
     let op = Ast.OpName.fresh "Op" in
     let env =
@@ -466,16 +473,14 @@ module Small = struct
             (C.to_string constr);
         let continuation_boxed =
           List.exists
-            (function
-              | C.Sub
-                  ( _,
-                    Ast.TyBox
-                      ( X.Rho_const _,
-                        Ast.TyArrow (_, Ast.CompTy (_, X.Eps_var e)) ),
-                    _ ) ->
-                  X.Eps_var.equal e rigid
-              | _ -> false)
+            (function C.Rho_leq (_, _, X.Rho_const _) -> true | _ -> false)
             (atoms body)
+          && List.exists
+               (function
+                 | C.Sub (_, Ast.TyArrow (_, Ast.CompTy (_, X.Eps_var e)), _) ->
+                     X.Eps_var.equal e rigid
+                 | _ -> false)
+               (atoms body)
         in
         let effect_bounded =
           List.exists
@@ -536,6 +541,7 @@ module Small = struct
     box ();
     sequencing ();
     unbox ();
+    unbox_unknown ();
     handler_clause ();
     instance ()
 end

@@ -14,9 +14,9 @@ operation Op2 : unit ~> unit # 3
 
 (* Correctly accepted by the typechecker: with ε₀ the grade the outer
    continuation 'k' may have and ε₁ that of the inner 'k'', the inner case
-   delays the 3 ticks of 'Op2' and resumes 'k'', so its grade 3 · ε₁ is a
-   sub-grade of 3 · ε₁; the outer case resumes 'k' once the inner handle is
-   done. *)
+   delays 4 ticks, more than the 3 of 'Op2', and resumes 'k'', so its grade
+   4 · ε₁ is a sub-grade of 3 · ε₁; the outer case resumes 'k' once the
+   inner handle is done. *)
 let h =
   handler
   | x -> x
@@ -29,13 +29,13 @@ let h =
           (handler
            | y -> y
            | Op2 q k' ->
-               delay 3;
+               delay 4;
                continue k' with ())
       in
       continue k with ()
 
 (* The run performs 'Op1', whose case performs 'Op2'; the outer case's grade
-   3 · ε₀ covers the 2 ticks of 'Op1', and the run returns 7. *)
+   4 · ε₀ covers the 2 ticks of 'Op1', and the run returns 7. *)
 run
   handle
     perform Op1 ();

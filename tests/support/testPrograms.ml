@@ -25,3 +25,12 @@ let packages ~grades path =
             files
       | Some (Error message) -> failwith message
       | None -> failwith ("unknown package " ^ name))
+
+let corpus root =
+  let entry ~packaged path =
+    let grades = TestSupport.Header.grades path in
+    (path, grades, if packaged then packages ~grades path else [])
+  in
+  List.map (entry ~packaged:true) (tpe_files (Filename.concat root "examples"))
+  @ List.map (entry ~packaged:false)
+      (tpe_files ~recursive:false (Filename.concat root "tests"))

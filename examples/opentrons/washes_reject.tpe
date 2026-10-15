@@ -16,7 +16,7 @@ operation Wash : unit ~> unit # {Wash} within [1, 2]
 default Wash () = delay 1
 
 operation ChangeTip : unit ~> unit # {ChangeTip} within [0, 1]
-default ChangeTip () = delay 0
+default ChangeTip () = delay 1
 
 operation EluteDNA : unit ~> unit # {EluteDNA} within [1, 2]
 default EluteDNA () = delay 1

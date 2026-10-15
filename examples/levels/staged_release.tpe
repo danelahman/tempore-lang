@@ -46,7 +46,7 @@ type event =
 
 (* Building takes at least six ticks. *)
 operation Build : string * nat ~> artefact # (6, Low)
-default Build (source, version) = delay 6; Artefact (source, version)
+default Build (source, version) = delay 8; Artefact (source, version)
 
 (* Approving takes one tick. The approved release may be used after eight
    further ticks during which nothing above Low is touched. *)
@@ -55,10 +55,10 @@ default Approve artefact = delay 1; box (8, Low) (Release artefact)
 
 (* Installing takes at least three ticks, and reverting at least two. *)
 operation Install : host * release ~> unit # (3, Low)
-default Install (host, approved) = delay 3
+default Install (host, approved) = delay 4
 
 operation Revert : host ~> unit # (2, Low)
-default Revert host = delay 2
+default Revert host = delay 3
 
 (* A probe of a host running a release, at a given attempt, takes one tick.
    The host 'db-2' is degraded at its first attempt; the host 'db-3' is
@@ -75,7 +75,7 @@ default Probe (host, Release (Artefact (source, _)), attempt) =
    of hosts reporting errors; the host 'cache-1' reports errors. *)
 operation Observe : host list ~> nat # (10, Low)
 default Observe hosts =
-  delay 10;
+  delay 12;
   length (filter (fun host -> host = Host "cache-1") hosts)
 
 (* Deploying a host takes at least four ticks. The operation has no default
@@ -89,7 +89,7 @@ default Record event = ()
 (* Fetching a hotfix from an external source takes at least two ticks and
    touches the level High. *)
 operation FetchHotfix : string ~> string # (2, High)
-default FetchHotfix source = delay 2; "hotfix"
+default FetchHotfix source = delay 3; "hotfix"
 
 (* Correctly accepted by the typechecker: a division of a list into a first
    stage of one item followed by stages of at most 'size' items. *)

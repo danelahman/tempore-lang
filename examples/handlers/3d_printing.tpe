@@ -23,22 +23,23 @@ operation PrintResinModel : model ~> [5]fresh # 7
 (* Curing a cooled print takes five ticks. *)
 operation UvCure : cooled ~> uvCured # 5
 
-(* Correctly accepted by the typechecker: each clause delays exactly the grade
-   of the operation it handles and then continues, so each clause grade is that
-   of the operation composed with that of the continuation. *)
+(* Correctly accepted by the typechecker: each clause delays more than the
+   grade of the operation it handles and then continues, so each clause grade
+   is a sub-grade of that of the operation composed with that of the
+   continuation. *)
 let h = 
   handler
   | x -> x
   | PrintResinModel model k ->
-      delay 7;
+      delay 9;
       continue k with (box 5 (Fresh model))
   | UvCure cooled k ->
-      delay 5;
+      delay 6;
       continue k with (UvCured cooled)
 
-(* Correctly accepted by the typechecker: printing the hammer banks the seven
-   ticks the sword's '[5]' box demands, and curing the sword banks the five the
-   hammer's box demands. *)
+(* Correctly accepted by the typechecker: printing the hammer banks at least
+   seven ticks towards the five the sword's '[5]' box demands, and curing the
+   sword banks at least five towards the five the hammer's box demands. *)
 run
   handle
     let freshSword = perform PrintResinModel (Model "Sword") in

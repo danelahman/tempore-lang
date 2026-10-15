@@ -20,7 +20,8 @@ let rec box_n_values n boxed =
 (* Correctly accepted by the typechecker: each step of the fold wraps the
    accumulator in a box of ten ticks, and inside that box the grade has already
    grown by ten, which covers both the accumulator's ten and the element's
-   three; the closing delay then banks the ten the outermost box demands. *)
+   three; the closing delay of twelve then covers the ten the outermost box
+   demands. *)
 run
   let boxed_vals = box_n_values 5 [] in
   let boxed_fun = 
@@ -32,5 +33,5 @@ run
       (box 10 (fun () -> 0))
       boxed_vals 
   in
-  delay 10; 
+  delay 12; 
   (unbox boxed_fun) ()

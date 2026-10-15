@@ -33,7 +33,7 @@ default Heat m = delay 1; Heated m
 operation Extrude : heated ~> [2] extruded
   # [{Extrude}, {Extrude}]
   within [3, 5]
-default Extrude h = delay 3; box 2 (Extruded h)
+default Extrude h = delay 4; box 2 (Extruded h)
 
 (* The cooler takes the hot extruded model, once it has rested, and cools it
    down to something that can be handled. *)

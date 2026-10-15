@@ -1,0 +1,263 @@
+(* A bead purification on the Opentrons Flex: the stages of the beads as boxes.
+
+   Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-rational-symbolic \
+       examples/opentrons/purification.tpe
+
+   Grades [L, U]: a lower and upper regular-language bound on the traces with
+   rational durations
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
+
+(* A tick is a minute. The protocol for the Flex is written and simulated by
+
+     ./tempore --grades regex-timed-interval-rational-symbolic \
+       --emit-opentrons purification.py \
+       --bind examples/opentrons/purification_bindings.py \
+       --time-unit minutes \
+       --simulate \
+       examples/opentrons/purification.tpe
+
+   Each step unboxes the beads boxed by the step before it and returns them
+   boxed with the window of the next step: binding, separation, removal of
+   the supernatant, exactly two ethanol washes, air-drying, elution,
+   collection. The eluates are then boxed in two successive stages: the
+   transfer to the cold block, and from there the addition of the PCR master
+   mix. A box enclosing the steps bounds the time the samples spend at room
+   temperature. Modelled on the Opentrons Protocol Library protocol
+   kapa-amp-cleanup; the windows are the example's own. *)
+
+type sample = string
+type beads = string
+
+(* The beads are mixed into the samples, the supernatant and the ethanol
+   removed, the elution buffer mixed in, the eluates transferred to a plate
+   on the cold block and the master mix mixed into them, in one to two
+   minutes each; the plate is moved
+   onto and off the magnetic block, the ethanol added from above and the
+   residual ethanol removed, in at most a minute. *)
+operation AddBeads : sample ~> beads # {AddBeads} within [1, 2]
+default AddBeads samples = delay 3/2; "beads"
+
+operation MagnetOn : unit ~> unit # {MagnetOn} within [0, 1]
+default MagnetOn () = delay 1/2
+
+operation MagnetOff : unit ~> unit # {MagnetOff} within [0, 1]
+default MagnetOff () = delay 1/2
+
+operation RemoveSupernatant : beads ~> unit # {RemoveSupernatant}
+  within [1, 2]
+default RemoveSupernatant beads = delay 3/2
+
+operation AddEthanol : unit ~> unit # {AddEthanol} within [0, 1]
+default AddEthanol () = delay 3/4
+
+operation RemoveEthanol : unit ~> unit # {RemoveEthanol} within [1, 2]
+default RemoveEthanol () = delay 3/2
+
+operation RemoveResidualEthanol : beads ~> unit # {RemoveResidualEthanol}
+  within [0, 1]
+default RemoveResidualEthanol beads = delay 3/4
+
+operation EluteDNA : beads ~> unit # {EluteDNA} within [1, 2]
+default EluteDNA beads = delay 3/2
+
+operation Transfer : sample ~> unit # {Transfer} within [1, 2]
+default Transfer samples = delay 3/2
+
+operation AddMasterMix : beads ~> unit # {AddMasterMix} within [1, 2]
+default AddMasterMix eluates = delay 3/2
+
+(* The steps. The box a step takes is its argument's annotated type, and the
+   box it returns that of the next step:
+
+     bind       : sample → [[5, 10]]beads
+     separate   : [[5, 10]]beads → [[3, 5]]beads
+     clear      : [[3, 5]]beads → [{AddEthanol; [1/2, 3/2]}]beads
+     wash       : [{AddEthanol; [1/2, 3/2]}]beads
+                    → [{AddEthanol; [1/2, 3/2]; RemoveEthanol}]beads
+     final_wash : [{AddEthanol; [1/2, 3/2]; RemoveEthanol}]beads
+                    → [{[3, 5]; MagnetOff}]beads
+     elute      : [{[3, 5]; MagnetOff}]beads
+                    → [{[2, 5]; MagnetOn; [2, 5]}]beads
+     collect    : [{[2, 5]; MagnetOn; [2, 5]}]beads
+                    → [{Transfer}](unit → [[2, 5]]beads)
+
+   The beads bind the samples for five to ten minutes before the plate goes
+   on the magnet, where they settle for three to five minutes. *)
+let bind (samples : sample) =
+  let beads = perform AddBeads samples in
+  box [5, 10] beads
+
+let separate (binding : [[5, 10]]beads) =
+  delay 15/2;
+  unbox binding as beads in
+  perform MagnetOn ();
+  box [3, 5] beads
+
+(* Once the supernatant is removed, the beads take the ethanol of the first
+   wash at once, which stands for half a minute to a minute and a half
+   before its removal. *)
+let clear (settling : [[3, 5]]beads) =
+  delay 4;
+  unbox settling as beads in
+  perform RemoveSupernatant beads;
+  box {AddEthanol; [1/2, 3/2]} beads
+
+(* The first wash removes the ethanol and returns the beads boxed for the
+   whole of the second wash, whose ethanol is added at once and removed
+   after half a minute to a minute and a half. The final wash, which only
+   that box licenses, removes the residual ethanol and returns the beads to
+   air-dry on the magnet for three to five minutes, so that they are neither
+   wet nor overdried when the plate is moved off the magnet for the elution
+   buffer. *)
+let wash (soaking : [{AddEthanol; [1/2, 3/2]}]beads) =
+  perform AddEthanol ();
+  delay 1;
+  unbox soaking as beads in
+  perform RemoveEthanol ();
+  box {AddEthanol; [1/2, 3/2]; RemoveEthanol} beads
+
+let final_wash (rinsing : [{AddEthanol; [1/2, 3/2]; RemoveEthanol}]beads) =
+  perform AddEthanol ();
+  delay 3/4;
+  perform RemoveEthanol ();
+  unbox rinsing as beads in
+  perform RemoveResidualEthanol beads;
+  box {[3, 5]; MagnetOff} beads
+
+(* The beads release the DNA into the buffer off the magnet for two to five
+   minutes, and settle on the magnet for two to five minutes before the
+   eluates are taken. *)
+let elute (drying : [{[3, 5]; MagnetOff}]beads) =
+  delay 7/2;
+  perform MagnetOff ();
+  unbox drying as beads in
+  perform EluteDNA beads;
+  box {[2, 5]; MagnetOn; [2, 5]} beads
+
+(* The eluates are licensed in two stages: they are transferred to the cold
+   block, with no other step before, and once there cool to 4 °C for two to
+   five minutes before they take the master mix. The inner box is created
+   when the function in the outer box is called, after the outer box is
+   opened, so that its window starts on the cold block. The box
+   `box {Transfer} (box [2, 5] eluates)` would start the inner window at the
+   collection, and is rejected, its content not eternal. *)
+let collect (eluting : [{[2, 5]; MagnetOn; [2, 5]}]beads) =
+  delay 3;
+  perform MagnetOn ();
+  delay 5/2;
+  unbox eluting as eluates in
+  box {Transfer} (fun () -> box [2, 5] eluates)
+
+(* Correctly accepted by the typechecker: every step is taken within the
+   window of its box, the eluates reach the cold block 26.25 to 36.25
+   minutes after the beads were added, and take the master mix two to five
+   minutes later. The samples are boxed for at most 40 minutes at room
+   temperature, a box whose scope encloses the boxes of the steps: the
+   windows of the steps allow up to 47 minutes in all, so the box of the
+   samples bounds their combination. A third wash is rejected as the one
+   wash below is, its box not allowing for the removal of the ethanol. *)
+let purification (samples : sample) =
+  let binding = bind samples in
+  box [0, 40] samples as warm in
+  let collected =
+    collect (elute (final_wash (wash (clear (separate binding)))))
+  in
+  unbox warm as samples in
+  perform Transfer samples;
+  unbox collected as cool in
+  let cooling = cool () in
+  delay 7/2;
+  unbox cooling as eluates in
+  perform AddMasterMix eluates
+
+(* Correctly rejected by the typechecker: the beads air-dry for seven and a
+   half minutes, and are overdried:
+
+     Typing error: Variable `drying` is unboxed with grade
+       `[{7.5; MagnetOff}, {7.5; MagnetOff}]` accumulated since it was
+       bound, which is not below its box grade
+       `[{[3, 5]; MagnetOff}, {[3, 5]; MagnetOff}]`
+*)
+(*
+let elute_overdried (drying : [{[3, 5]; MagnetOff}]beads) =
+  delay 15/2;
+  perform MagnetOff ();
+  unbox drying as beads in
+  perform EluteDNA beads
+*)
+
+(* Correctly rejected by the typechecker: the binding, the settling on the
+   magnet and the air-dry each take the upper end of their windows, which
+   their boxes accept, but the eluates reach the cold block up to 41.25
+   minutes after the beads were added:
+
+     Typing error: Variable `warm` is unboxed with grade
+       `[{10; MagnetOn; 5; RemoveSupernatant; AddEthanol; 1; RemoveEthanol;
+       AddEthanol; 0.75; RemoveEthanol; RemoveResidualEthanol; 5; MagnetOff;
+       EluteDNA; 3; MagnetOn; 2.5}, ...]` accumulated since it was bound,
+       which is not below its box grade `[{0}, {40}]`
+*)
+(*
+let separate_long (binding : [[5, 10]]beads) =
+  delay 10;
+  unbox binding as beads in
+  perform MagnetOn ();
+  box [3, 5] beads
+
+let clear_long (settling : [[3, 5]]beads) =
+  delay 5;
+  unbox settling as beads in
+  perform RemoveSupernatant beads;
+  box {AddEthanol; [1/2, 3/2]} beads
+
+let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
+  delay 5;
+  perform MagnetOff ();
+  unbox drying as beads in
+  perform EluteDNA beads;
+  box {[2, 5]; MagnetOn; [2, 5]} beads
+
+let purification_generous (samples : sample) =
+  let binding = bind samples in
+  box [0, 40] samples as warm in
+  let collected =
+    collect
+      (elute_long (final_wash (wash (clear_long (separate_long binding)))))
+  in
+  unbox warm as samples in
+  perform Transfer samples;
+  unbox collected as cool in
+  let cooling = cool () in
+  delay 7/2;
+  unbox cooling as eluates in
+  perform AddMasterMix eluates
+*)
+
+(* Correctly rejected by the typechecker: the beads are washed once, and the
+   final wash finds them in the box of the first wash, which does not allow
+   for the removal of its ethanol before the box is opened:
+
+     Typing error: The resource inequality
+       `[{AddEthanol; [0.5, 1.5]; RemoveEthanol},
+       {AddEthanol; [0.5, 1.5]; RemoveEthanol}] <=
+       [{AddEthanol; [0.5, 1.5]}, {AddEthanol; [0.5, 1.5]}]` does not hold
+*)
+(*
+let purification_one_wash (samples : sample) =
+  let binding = bind samples in
+  box [0, 40] samples as warm in
+  let collected = collect (elute (final_wash (clear (separate binding)))) in
+  unbox warm as samples in
+  perform Transfer samples;
+  unbox collected as cool in
+  let cooling = cool () in
+  delay 7/2;
+  unbox cooling as eluates in
+  perform AddMasterMix eluates
+*)
+
+run purification "samples"

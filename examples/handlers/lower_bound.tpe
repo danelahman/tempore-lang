@@ -31,13 +31,13 @@ let h =
       continue k with ()
 
 (* Correctly accepted by the typechecker: a handler whose return case takes no
-   time, so its grade is 0; the 'Get' clause again delays the 71 ticks of the
-   operation. *)
+   time, so its grade is 0; the 'Get' clause delays 75 ticks, more than the 71
+   of the operation. *)
 let h' =
   handler
   | x -> x * x
   | Get x k ->
-      delay 71;
+      delay 75;
       continue k with 42
 
 (* Correctly accepted by the typechecker: the 'Get' clause performs 'Get'
@@ -53,12 +53,12 @@ let h'' =
 (* Correctly accepted by the typechecker: resuming twice unboxes 'k' a
    second time only after the first resumption has run for the
    continuation's own rigid effect eps, growing the accumulated grade to
-   71 · eps, which still meets its box grade 71, since more grade only helps. *)
+   80 · eps, which still meets its box grade 71, since more grade only helps. *)
 let h_twice =
   handler
   | x -> x
   | Get () k ->
-      delay 71;
+      delay 80;
       let y = continue k with 42 in
       continue k with y
 
@@ -68,7 +68,7 @@ let h_offset n =
   handler
   | x -> x + n
   | Get () k ->
-      delay 71;
+      delay 74;
       continue k with n
 
 (* Correctly rejected by the typechecker: the continuation may be resumed
@@ -146,7 +146,7 @@ let h_helper f =
   handler
   | x -> x
   | Get () k ->
-      delay 71;
+      delay 90;
       continue k with (f ())
 
 (* A single-use token, declared non-eternal whatever its structure. *)
@@ -177,7 +177,7 @@ let h_leak g =
   | x -> x
   | Get () k ->
       g k;
-      delay 71;
+      delay 72;
       continue k with 42
 
 (* The run handles a 'Get' with 'h_twice': the first resumption returns 45,

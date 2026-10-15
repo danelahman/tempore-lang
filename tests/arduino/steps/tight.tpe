@@ -1,0 +1,21 @@
+(* A rejected variant of examples/arduino/steps/steps.tpe. *)
+
+let sample_tight (sum : vector) : vector =
+  let x = reading () in
+  plus sum x
+
+let ten_tight (sum : vector) =
+  sample_tight (sample_tight (sample_tight (sample_tight (sample_tight
+    (sample_tight (sample_tight (sample_tight (sample_tight
+    (sample_tight sum)))))))))
+
+let calibrate_tight (samples : sampling) (steps : nat) : readiness =
+  let sum =
+    ten_tight (ten_tight (ten_tight (ten_tight (ten_tight (0.0, 0.0, 0.0)))))
+  in
+  unbox samples as n in
+  let mean = scale (1.0 /. n) sum in
+  let gain = 1.0 /. norm mean in
+  screen steps;
+  box (1, Beep, [0, 0], [0, 0.2]) (gain, scale gain mean) as ready in
+  ready

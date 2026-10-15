@@ -611,7 +611,9 @@ a reader of the closure.
 
 They can be compared by running
 `dune exec --profile release bench/regular/bench_regular.exe`; see
-[`bench/regular/README.md`](bench/regular/README.md).
+[`bench/regular/README.md`](bench/regular/README.md). The typechecking times of
+the examples and tests are in
+[`bench/typecheck/README.md`](bench/typecheck/README.md).
 
 ### Regular expressions of timed operations
 
@@ -1076,10 +1078,12 @@ would be rejected, as a gap may then be 6.5.
 Counts add under sequencing, so they suit bounded stretches, such as a box held
 over exactly one new reading, and not loop invariants, which carry no count. The
 step counter splits the two: its loop invariant bounds the spacing of the
-readings and, as a rate limit, the gaps between its counts of steps, and the box
-of a reading the count and the times until its use. A rate limit `(X, [s, ∞))`
-is a loop invariant where each round that performs `X` takes at least `s` from
-its last `X` to its end. `counts-upper-bound` bounds the numbers of calls from
+readings and, as a rate limit, the gaps between its counts of steps, and its
+boxes the count and the times until their use, such as the 50 distinct readings
+of its calibration. A rate limit `(X, [s, ∞))` is a loop invariant where each
+round that performs `X` takes at least `s` from its last `X` to its end; it is
+not closed under sequencing, so that a loop calling another loop between its
+counts gives the inner one the invariant of no count, `(0, X, [0, ∞))`. `counts-upper-bound` bounds the numbers of calls from
 above, without times; `event-separation` bounds counts together with the times
 before, between and after the occurrences. See
 [`examples/opentrons/binding.tpe`](examples/opentrons/binding.tpe) and
@@ -1531,7 +1535,10 @@ binding file and a rejected variant:
 - [`stopread`](examples/opentrons/stopread.tpe), a stop and read with boxed
   plates;
 - [`cleanup`](examples/opentrons/cleanup.tpe), a bead clean-up by compound
-  operations implemented by a handler.
+  operations implemented by a handler;
+- [`purification`](examples/opentrons/purification.tpe), a bead purification
+  whose steps unbox and rebox the beads, within a box of the whole run, and
+  whose eluates are boxed in two successive stages.
 
 #### Quick start
 <!-- web-skip -->

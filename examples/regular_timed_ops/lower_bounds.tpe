@@ -33,21 +33,22 @@ let cured () =
   x
 
 (* Correctly accepted by the typechecker: the coating is matched by the
-   grade's own, and the bake and a tick of waiting after it bank the four ticks
-   of curing demanded. *)
+   grade's own, and the bake and two ticks of waiting after it bank more than
+   the four ticks of curing demanded. *)
 let coated_then_cured () =
   box {Coat; 4} (Part "gear") as p in
   perform Coat ();
   perform Bake ();
-  delay 1;
+  delay 2;
   unbox p as x in
   x
 
 (* Correctly accepted by the typechecker: the grade demands a bake or six
-   ticks of air drying, and each branch covers one of them. *)
+   ticks of air drying, and each branch covers one of them, the second by eight
+   ticks of drying. *)
 let baked_or_dried (b : bool) =
   box {Bake | 6} (Part "gear") as p in
-  if b then perform Bake () else delay 6;
+  if b then perform Bake () else delay 8;
   unbox p as x in
   x
 

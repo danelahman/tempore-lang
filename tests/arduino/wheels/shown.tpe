@@ -3,10 +3,10 @@
 let spin_shown (drive : int) : float * float =
   let shown = float_of_int drive in
   perform ResetEncoders ();
-  box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
+  box {SetMotors; [100, 101]; ReadEncoders} 0.1005 as window in
   perform SetMotors (drive, drive);
   perform ShowNumber shown;
-  delay 100;
+  delay 100.5;
   let left, right = perform ReadEncoders () in
   unbox window as seconds in
   perform SetMotors (0i, 0i);

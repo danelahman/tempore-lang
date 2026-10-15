@@ -83,7 +83,7 @@ operation AddArticle : tip * column ~> unit # (1, High)
 default AddArticle (t, column) = delay 1
 
 operation Dilute : tip * (column * column) ~> unit # (2, High)
-default Dilute (t, columns) = delay 2
+default Dilute (t, columns) = delay 1
 
 operation AddDilution : tip * (column * column) ~> unit # (1, High)
 default AddDilution (t, columns) = delay 1

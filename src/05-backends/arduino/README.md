@@ -269,7 +269,8 @@ An operation handled by a case is not a call of its binding and is not
 monitored ([Monitors](#monitors)); an operation that no code performs
 outside all handlers needs no binding. See
 [`tests/arduino/handlers.tpe`](../../../tests/arduino/handlers.tpe) and the
-example [`calibrated`](../../../examples/arduino/calibrated/calibrated.tpe).
+examples [`calibrated`](../../../examples/arduino/calibrated/calibrated.tpe)
+and [`steps`](../../../examples/arduino/steps/steps.tpe).
 
 ### Typing of the tasks
 
@@ -670,19 +671,42 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     since the last event and a bar of the acceleration.
 - [`steps`](../../../examples/arduino/steps/steps.tpe): a step counter,
   under `event-separation`: one loop reads the unit at least every 50 ms
-  while it redraws the screen, one band per reading: the state, the steps,
-  the cadence, the distance at a stride of 0.7 m, and a bar of the smoothed
-  acceleration with its thresholds.
-  - A step is a rise of the smoothed magnitude above thresholds that follow
-    its recent range, confirmed by a second reading, boxed 10 to 45 ms after
-    the first, a new sample of the unit at 100 Hz.
+  and the touch screen while it redraws the screen, one band per round: the
+  state, the steps, the prompt of a reset, the Reset button, the cadence,
+  the distance at a stride of 0.7 m, and a bar of the vertical acceleration
+  with its thresholds. Two buttons of 156 by 40 pixels, "Calibrate" and
+  "Reset", fill the band above the footer; a touch counts for a button when
+  it begins inside it, and elsewhere does nothing.
+  - At start-up and at each tap on Calibrate, with "Hold still" shown, the
+    Calibrate button active and no step counted, 50 readings 10 to 45 ms
+    apart give the gain and the direction of gravity. The number of samples
+    is boxed with exactly these readings, and the calibration then with the
+    beep that starts the counting; each box is returned by the function
+    that binds it. A tail-resumptive handler, applied for each session of
+    counting, applies the gain to every reading. The steps are kept from
+    one session to the next, and the loop of the sessions proves the counts
+    250 ms apart across the calibrations.
+  - The smoothed acceleration is split into its parts along gravity and
+    across it. A step is a rise of the vertical part above thresholds that
+    follow its recent range, confirmed by a second reading, boxed 10 to
+    45 ms after the first, a new sample of the unit at 100 Hz, its time read
+    by the operation `ReadClock` within 0.1 ms of the decision, and with a
+    horizontal sway of at least 0.1 g since the last rise.
   - Steps count only 0.25 to 2 s apart, and after a run of four, then added
-    at once, so that shaking, a bump or moving the device counts none; the
-    host model plays these motions and a walk.
-  - Each count goes through the operation `CountStep` of the example, with
-    a beep, and is followed by a cooldown of twelve rounds, so that the
-    typechecker proves the counts at least 250 ms apart. The time between
-    rises is read by the operation `ReadClock`.
+    at once, so that shaking, a bump, moving the device or bouncing on the
+    spot counts none; the host model plays these motions and walks.
+  - Each count goes through the operation `CountStep` of the example and is
+    followed by a cooldown of twelve rounds, so that the typechecker proves
+    the counts at least 250 ms apart.
+  - A tap on Reset shows "Tap Reset again to reset", with the button
+    active; a second tap on Reset within 2 s, at least 300 ms after the
+    first, resets the count through `ResetSteps`, and a tap on Calibrate
+    clears the prompt. The button of the first tap is boxed over the
+    recursive wait, which reads the unit at least every 50 ms; the steps
+    found meanwhile are passed to `CountStep` with the next count.
+  - The operation `ShowButton` of the example draws a button, idle or
+    active.
+  - The handler `walk`, not compiled, replays a walk in the interpreter.
 
 #### Using the digital level
 

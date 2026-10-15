@@ -1,0 +1,8 @@
+; A benchmark of the typechecking of the examples and tests, each under the
+; grades it is checked with; it is built but not run by the tests:
+;
+;   dune exec --profile release bench/typecheck/bench_typecheck.exe
+
+(executable
+ (name bench_typecheck)
+ (libraries testPrograms solvePrograms unix))

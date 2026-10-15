@@ -14,11 +14,11 @@ type report = Report of string
 (* Compiling the figures takes at least two ticks and touches nothing
    secret. *)
 operation Compile : unit ~> report # (2, Low)
-default Compile () = delay 2; Report "quarterly figures"
+default Compile () = delay 3; Report "quarterly figures"
 
 (* Consulting an insider takes at least a tick and taints the desk. *)
 operation Consult : string ~> string # (1, High)
-default Consult question = delay 1; "insider view"
+default Consult question = delay 2; "insider view"
 
 (* Publishing a report takes at least a tick. *)
 operation Publish : report ~> report # (1, Low)
@@ -30,20 +30,20 @@ let embargoed () =
   let r = perform Compile () in
   box (3, Low) r
 
-(* Correctly accepted by the typechecker: the embargo has lifted after three
+(* Correctly accepted by the typechecker: the embargo has lifted after four
    ticks, and nothing secret was touched. *)
 let publish_after_embargo () =
   let e = embargoed () in
-  delay 3;
+  delay 4;
   unbox e as r in
   perform Publish r
 
-(* Correctly accepted by the typechecker: compiling another report takes two of
-   the three ticks. *)
+(* Correctly accepted by the typechecker: compiling another report takes at
+   least two ticks, and a delay of two more passes the three of the embargo. *)
 let publish_after_work () =
   let e = embargoed () in
   let _ = perform Compile () in
-  delay 1;
+  delay 2;
   unbox e as r in
   perform Publish r
 
@@ -66,16 +66,16 @@ let publish_too_early () =
 (* Correctly rejected by the typechecker: the embargo has lifted, but the desk
    consulted an insider in the meantime:
 
-     Typing error: Variable `e` is unboxed with grade `(3, High)` accumulated
+     Typing error: Variable `e` is unboxed with grade `(4, High)` accumulated
        since it was bound, which is not below its box grade `(3, Low)`
        ...
-       Note: the resource inequality `(3, High) ≾ (3, Low)` does not hold
+       Note: the resource inequality `(4, High) ≾ (3, Low)` does not hold
 *)
 (*
 let publish_tainted () =
   let e = embargoed () in
   let _ = perform Consult "what next?" in
-  delay 2;
+  delay 3;
   unbox e as r in
   perform Publish r
 *)

@@ -16,7 +16,7 @@ type reading = Reading of nat
    two ticks, a transmission of two to three and a calibration of four to
    six. *)
 operation Sample : unit ~> nat # {Sample} within [1, 2]
-default Sample () = delay 1; 7
+default Sample () = delay 2; 7
 
 operation Send : nat ~> unit # {Send} within [2, 3]
 default Send x = delay 2
