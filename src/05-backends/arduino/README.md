@@ -26,11 +26,14 @@ The I2C buses of a profile are started after M5Unified and then set to their
 frequency, since M5Unified may already have started a bus that shares their
 port at 100 kHz.
 
-On a board with M5Unified and the capability `display`, the build flag
-`TEMPORE_DISPLAY_BRIGHTNESS`, from 0 to 255, sets the brightness of the
-display once at start-up, after the initialisation of M5Unified and of the
-packages and before the tasks of the manifest are created; without it the
-brightness is the default of M5Unified. The host simulation ignores it.
+On a board with M5Unified and the capability `display`, the brightness of
+the display is set once at start-up, after the initialisation of M5Unified
+and of the packages and before the tasks of the manifest are created, to the
+build flag `TEMPORE_DISPLAY_BRIGHTNESS`, a percentage from 0 to 100 of the
+greatest brightness, and to 24 % without it, below the default of M5Unified,
+50 %. On the CoreS3 the percentage sets the voltage of the backlight in nine
+steps, from 2.5 V for 1 to 11 % to 3.3 V for 100 %, 0 switching it off;
+24 % gives 2.6 V. The host simulation ignores it.
 
 The optional member `imu_frequency` sets the frequency of the
 transactions with the inertial measurement unit (`M5.Imu.setClock`, and the
@@ -446,8 +449,9 @@ environment, are
   the example);
 - `MONITOR`, the monitor policy (by default `abort`, and `warn` for the
   targets that read the port);
-- `BRIGHTNESS`, when set, the brightness of the display, from 0 to 255,
-  passed as `-DTEMPORE_DISPLAY_BRIGHTNESS` to every target that builds;
+- `BRIGHTNESS`, when set, the brightness of the display, a percentage from 0
+  to 100 (default 24), passed as `-DTEMPORE_DISPLAY_BRIGHTNESS` to every target that
+  builds;
 - `BALANCE_LOG` and `BALANCE_RECORD`, the intervals in milliseconds of the log
   and of the samples of a recording (default 20);
 - `STEPS_RECORD`, the bound of the recordings of `steps`, in seconds

@@ -4,9 +4,10 @@
 // text of size 1 above the footer of the examples at y = 230. Text is cut at
 // the right edge of the screen; the line of the warnings leaves the cursor,
 // the text size and the colours white on black as the bindings of the display
-// expect them. The brightness of the display is TEMPORE_DISPLAY_BRIGHTNESS,
-// from 0 to 255, when it is defined, set once at start-up, and otherwise the
-// default of M5Unified; the host simulation ignores it.
+// expect them. The brightness of the display, set once at start-up, is
+// TEMPORE_DISPLAY_BRIGHTNESS percent of the greatest, 24 when it is not
+// defined, converted to the level from 0 to 255 of M5Unified; the host
+// simulation ignores it.
 
 #include <M5Unified.h>
 #include <stdio.h>
@@ -14,11 +15,12 @@
 
 #include "tempore_scaffold.h"
 
-#ifdef TEMPORE_DISPLAY_BRIGHTNESS
-static_assert(TEMPORE_DISPLAY_BRIGHTNESS >= 0 &&
-                  TEMPORE_DISPLAY_BRIGHTNESS <= 255,
-              "TEMPORE_DISPLAY_BRIGHTNESS is a level from 0 to 255");
+#ifndef TEMPORE_DISPLAY_BRIGHTNESS
+#define TEMPORE_DISPLAY_BRIGHTNESS 24
 #endif
+static_assert(TEMPORE_DISPLAY_BRIGHTNESS >= 0 &&
+                  TEMPORE_DISPLAY_BRIGHTNESS <= 100,
+              "TEMPORE_DISPLAY_BRIGHTNESS is a percentage from 0 to 100");
 
 namespace {
 
@@ -57,14 +59,14 @@ void centred(const char *text, int32_t y, uint32_t background) {
   M5.Display.print(line);
 }
 
-// Sets the brightness of the display under TEMPORE_DISPLAY_BRIGHTNESS. The
+// Sets the brightness of the display to TEMPORE_DISPLAY_BRIGHTNESS. The
 // tasks created by the initialisations of the packages may be running, and
 // some boards set the backlight over the internal I2C bus, through the power
 // management chip, so the lock of the I2C buses is held.
 void begin() {
-#if defined(TEMPORE_DISPLAY_BRIGHTNESS) && !defined(TEMPORE_HOST)
+#ifndef TEMPORE_HOST
   const tempore_i2c_guard guard;
-  M5.Display.setBrightness(TEMPORE_DISPLAY_BRIGHTNESS);
+  M5.Display.setBrightness((TEMPORE_DISPLAY_BRIGHTNESS * 255 + 50) / 100);
 #endif
 }
 

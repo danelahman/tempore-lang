@@ -198,7 +198,7 @@ listed apart:
     PORT=                                        when set, the port of every upload
     SIMULATE=                                    when set, the simulated seconds of every example
     MONITOR=                                     when set, the monitor policy of every target
-    BRIGHTNESS=                                  when set, the display brightness, 0 to 255, of every build
+    BRIGHTNESS=                                  when set, the display brightness, 0 to 100 % (default 24), of every build
   Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help
   $ make -s arduino-diagnostics-help
   Arduino diagnostic targets, by board:
@@ -221,4 +221,4 @@ listed apart:
     PORT=                                        when set, the port of every upload
     CAPTURE=30                                   the seconds for which the port is read
     MONITOR=                                     when set, the monitor policy of every target
-    BRIGHTNESS=                                  when set, the display brightness, 0 to 255, of every build
+    BRIGHTNESS=                                  when set, the display brightness, 0 to 100 % (default 24), of every build
