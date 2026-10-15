@@ -750,7 +750,8 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   and the sensor button, labelled with the current and the next rate.
   - A reference is taken after the unit is held still for a second and
     installed only after a check at rest.
-  - The reconfiguration of the unit invalidates it.
+  - The reconfiguration of the unit keeps it only after a new check at
+    rest, with no operation between.
   - It is applied only to a reading that no reconfiguration or new reference
     precedes within its 250 ms step, and expires after 30 seconds.
 - [`fall`](../../../examples/arduino/fall/fall.tpe): a fall detector, under
