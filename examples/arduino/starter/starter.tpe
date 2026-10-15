@@ -57,9 +57,7 @@ let marks (a : athlete) : at_marks =
   box {ShowColourTextAt; [1000, ∞)}
     (fun () ->
       box {ShowColourTextAt; [1500, 3000]}
-        (fun () -> box {Beep; ReadClock; [0, 1000]} a as gun in gun)
-      as set in set)
-  as m in m
+        (fun () -> box {Beep; ReadClock; [0, 1000]} a))
 
 (* The end of a start: abandoned by a tap on Stand up, the block not still
    at the marks, a movement in Set, no push within the polls after the gun,
@@ -605,7 +603,7 @@ let pushed =
 run
   let o =
     handle
-      fire (box {Beep; ReadClock; [0, 1000]} (1, 0) as gun in gun) 1.0 0.2
+      fire (box {Beep; ReadClock; [0, 1000]} (1, 0)) 1.0 0.2
     with still
   in
   conclude (0, 0, 0, 0, 0) (1, 0) o
@@ -615,7 +613,7 @@ run
 run
   let o =
     handle
-      fire (box {Beep; ReadClock; [0, 1000]} (1, 1) as gun in gun) 1.0 0.2
+      fire (box {Beep; ReadClock; [0, 1000]} (1, 1)) 1.0 0.2
     with pushed
   in
   conclude (0, 1, 0, 0, 0) (1, 1) o
