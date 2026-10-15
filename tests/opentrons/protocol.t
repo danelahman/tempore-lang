@@ -456,6 +456,10 @@ the steps, and the binding function of AddBeads returns the beads.
   delay(seconds=150.0)
   pipette.transfer(20, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], new_tip='always')
   comment: Tempore timeline: At 2010 s: operation `Transfer` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 2100 s: delay of 210 s
+  delay(seconds=210.0)
+  pipette.transfer(25, A4 of D1, [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], mix_after=(3, 30), new_tip='always')
+  comment: Tempore timeline: At 2310 s: operation `AddMasterMix` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore run 1 returns ()
 
 The rejected variants of the examples.

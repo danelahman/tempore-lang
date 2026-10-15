@@ -3,9 +3,10 @@
 #
 # The samples are the first four wells of a PCR plate on the deck, moved onto
 # and off a magnetic block by the gripper. The reservoir holds the beads (A1),
-# the ethanol (A2) and the elution buffer (A3), and receives the liquid waste
-# (A12); the eluates go to a PCR plate on the aluminium block of the
-# temperature module, held at 4 °C. The ethanol is added to every sample from
+# the ethanol (A2), the elution buffer (A3) and the PCR master mix (A4), and
+# receives the liquid waste (A12); the eluates go to a PCR plate on the
+# aluminium block of the temperature module, held at 4 °C, where the master
+# mix is mixed into them. The ethanol is added to every sample from
 # above with one tip; every other liquid is moved with a new tip for each
 # sample. Each function declares the nominal duration of its action in
 # seconds by tempore_elapse, the duration the virtual clock of a simulation
@@ -84,7 +85,13 @@ def EluteDNA(ctx, beads):
     return ()
 
 
-def Transfer(ctx, beads_and_samples):
+def Transfer(ctx, samples):
     ctx["pipette"].transfer(20, ctx["samples"], ctx["eluates"], new_tip="always")
+    tempore_elapse(90)
+    return ()
+
+
+def AddMasterMix(ctx, eluates):
+    ctx["pipette"].transfer(25, ctx["reservoir"]["A4"], ctx["eluates"], mix_after=(3, 30), new_tip="always")
     tempore_elapse(90)
     return ()

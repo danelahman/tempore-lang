@@ -41,8 +41,11 @@ default RemoveResidualEthanol beads = delay 3/4
 operation EluteDNA : beads ~> unit # {EluteDNA} within [1, 2]
 default EluteDNA beads = delay 3/2
 
-operation Transfer : beads * sample ~> unit # {Transfer} within [1, 2]
-default Transfer (beads, samples) = delay 3/2
+operation Transfer : sample ~> unit # {Transfer} within [1, 2]
+default Transfer samples = delay 3/2
+
+operation AddMasterMix : beads ~> unit # {AddMasterMix} within [1, 2]
+default AddMasterMix eluates = delay 3/2
 
 let bind (samples : sample) =
   let beads = perform AddBeads samples in
@@ -86,8 +89,8 @@ let collect (eluting : [{[2, 5]; MagnetOn; [2, 5]}]beads) =
   delay 3;
   perform MagnetOn ();
   delay 5/2;
-  unbox eluting as beads in
-  beads
+  unbox eluting as eluates in
+  box {Transfer} (fun () -> box [2, 5] eluates)
 
 (* Correctly rejected by the typechecker: the beads air-dry for seven and a
    half minutes, and are overdried:
@@ -132,12 +135,17 @@ let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
 let purification_generous (samples : sample) =
   let binding = bind samples in
   box [0, 40] samples as warm in
-  let beads =
+  let collected =
     collect
       (elute_long (final_wash (wash (clear_long (separate_long binding)))))
   in
   unbox warm as samples in
-  perform Transfer (beads, samples)
+  perform Transfer samples;
+  unbox collected as cool in
+  let cooling = cool () in
+  delay 7/2;
+  unbox cooling as eluates in
+  perform AddMasterMix eluates
 
 (* Correctly rejected by the typechecker: the beads are washed once, and the
    final wash finds them in the box of the first wash, which does not allow
@@ -150,8 +158,13 @@ let purification_generous (samples : sample) =
 let purification_one_wash (samples : sample) =
   let binding = bind samples in
   box [0, 40] samples as warm in
-  let beads = collect (elute (final_wash (clear (separate binding)))) in
+  let collected = collect (elute (final_wash (clear (separate binding)))) in
   unbox warm as samples in
-  perform Transfer (beads, samples)
+  perform Transfer samples;
+  unbox collected as cool in
+  let cooling = cool () in
+  delay 7/2;
+  unbox cooling as eluates in
+  perform AddMasterMix eluates
 
 run purification_generous "samples"
