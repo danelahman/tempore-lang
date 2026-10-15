@@ -117,15 +117,15 @@ let cleanup_steps =
 let cleanup (beads : beads) =
   let settling = perform Bind beads in
   delay 4;
-  unbox settling as beads in
+  unbox settling as settled in
   perform RemoveLiquid ();
-  box {AddEthanol; 1; RemoveEthanol; AddEthanol; 1; RemoveEthanol; [2, 3]} beads
-    as washed in
+  box {AddEthanol; 1; RemoveEthanol; AddEthanol; 1; RemoveEthanol; [2, 3]}
+    settled as washed in
   perform EthanolWash ();
   perform EthanolWash ();
   delay 3;
-  unbox washed as beads in
-  perform EluteDNA beads
+  unbox washed as dried in
+  perform EluteDNA dried
 
 (* Correctly rejected by the typechecker: the ethanol wash removes the ethanol
    without the minute of washing:
