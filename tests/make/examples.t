@@ -128,7 +128,7 @@ BRIGHTNESS adds the flag TEMPORE_DISPLAY_BRIGHTNESS to the build flags of
 every target that builds a device project, before those of the example:
 
   $ dry arduino-starter-build BRIGHTNESS=60
-  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60" ./tempore --grades regex-timed-interval-rational-symbolic --emit-arduino starter --device examples/arduino/starter/starter.device.json --monitor abort --build examples/arduino/starter/starter.tpe
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino starter --device examples/arduino/starter/starter.device.json --monitor abort --build examples/arduino/starter/starter.tpe
   $ for t in starter-upload starter-profile bala2-log bala2-record steps-record; do
   >   make -s --no-print-directory -n "arduino-$t" BRIGHTNESS=60 |
   >     grep -o '^PLATFORMIO_BUILD_FLAGS="[^"]*"'

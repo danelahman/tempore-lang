@@ -1,8 +1,8 @@
 The sprint starter of examples/arduino/starter on the M5Stack CoreS3 Lite,
 with the packages m5-imu, m5-display, m5-touch and m5-speaker, under the
-regular expressions of timed operations: its runs by the interpreter, its
-rejected variants, its project and its host simulation, over the starts and
-the taps of its host model.
+rigid regular expressions of timed operations: its runs by the interpreter,
+its rejected variants, its project and its host simulation, over the starts
+and the taps of its host model.
 
   $ app=../../examples/arduino/starter
   $ . ../helpers.sh
@@ -22,18 +22,21 @@ once, a disqualification, the reaction time 0 under the default ReadClock:
 
 The rejected variants, each loaded after the application: the screen
 cleared between the gun and the reading of its time, the athlete judged
-after fifty further polls, Set commanded at once after On your marks, and
-the gun fired after sixty polls of the hold:
+after fifty further polls, Set commanded at once after On your marks, the
+gun fired after sixty polls of the hold, and the unit reconfigured on a tap
+on Reset:
 
   $ for v in cleared late at_once early; do packages --typecheck-only $app/starter.tpe starter/$v.tpe > $v.log 2>&1; echo "[$?]"; grep -o 'Typing error: Variable `[a-z]*` is unboxed' $v.log; done
   [1]
-  Typing error: Variable `armed` is unboxed
+  Typing error: Variable `gun` is unboxed
   [1]
   Typing error: Variable `gun` is unboxed
   [1]
   Typing error: Variable `mark` is unboxed
   [1]
   Typing error: Variable `set` is unboxed
+  $ packages --typecheck-only $app/starter.tpe starter/reconfigured.tpe 2>&1 | grep -o "Typing error: This function's body has grade"
+  Typing error: This function's body has grade
 
 The project, for the board m5stack-cores3; its sources, with the thunks of
 the nested boxes compiled as closures, compile without exceptions and

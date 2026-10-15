@@ -1,9 +1,9 @@
 (* A sprint starter on the M5Stack CoreS3 Lite: the gun 1.5 to 3 s after Set,
    its time read at once, and the start judged within a second of it
 
-   Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-interval-rational-symbolic \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        --package m5-imu \
        --package m5-display \
        --package m5-touch \
@@ -11,8 +11,8 @@
        --board m5stack-cores3 \
        examples/arduino/starter/starter.tpe
 
-   Grades [L, U]: a lower and upper regular-language bound on the traces with
-   rational durations
+   Grades [L, U]: a lower bound in the coverage order and an upper bound in
+   the rigid allowance order on the traces with rational durations
      - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
      - Top [{0}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
@@ -46,9 +46,10 @@ type athlete = nat * nat
    after that command; the box of the Set, created at the Set command, the
    gun only 1.5 to 3 s after it; and the box of the gun, created at the gun,
    the judgement of the athlete only after the gun and the reading of its
-   time, and within a second. The lower bounds demand the commands and the
-   time after them; the upper bounds bound the time from the creation of
-   the box, any operation coming within their delays. *)
+   time, and within a second. Each command is the first operation after its
+   box, and the reading of the time of the gun the second; the lower bounds
+   demand the time after them, and the upper bounds bound it, any other
+   operation coming within their delays. *)
 type at_gun = [{Beep; ReadClock; [0, 1000]}]athlete
 type at_set = [{ShowColourTextAt; [1500, 3000]}](unit -> at_gun)
 type at_marks = [{ShowColourTextAt; [1000, ∞)}](unit -> at_set)
@@ -239,16 +240,13 @@ let recall () : unit # {Beep; [100, 120]; Beep} =
 
 (* Correctly accepted by the typechecker: the gun and the judgement. The gun
    is a tone of 300 ms, and the block is then polled for the push for up to
-   810 ms. The thresholds are boxed with the gun and the reading of its
-   time, without delays: the push is looked for only after a gun whose time
-   was read at once, with no operation between, a redraw of the screen in
-   particular. The box of the athlete, created at once before the gun,
-   admits the judgement only after the gun and within a second of it. *)
+   810 ms. The box of the athlete, created at once before the gun, admits
+   the judgement only after the gun and the reading of its time, at once,
+   with no operation between, a redraw of the screen in particular, and
+   within a second of the gun. *)
 let fire (gun : at_gun) (m : float) (w : float) : outcome =
-  box {Beep; ReadClock} (m, w) as armed in
   perform Beep (2500, 300);
   let fired = perform ReadClock () in
-  unbox armed as (m, w) in
   let found, at = react m w in
   unbox gun as (lane, warnings) in
   if found then Reaction (lane, warnings, elapsed fired at) else NoStart
@@ -257,19 +255,18 @@ let fire (gun : at_gun) (m : float) (w : float) : outcome =
    gun and the reading of its time, which the time then misses by 31 to
    48 ms:
 
-     Typing error: Variable `armed` is unboxed with grade
-       `[{Beep; ClearDisplay; ReadClock}, {Beep; ClearDisplay; ReadClock}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{Beep; ReadClock}, {Beep; ReadClock}]`
+     Typing error: Variable `gun` is unboxed with grade
+       `[{Beep; ClearDisplay; ReadClock; [0, 810]},
+       {Beep; ClearDisplay; ReadClock; [0, 810]}]` accumulated since it was
+       bound, which is not below its box grade
+       `[{Beep; ReadClock; [0, 1000]}, {Beep; ReadClock; [0, 1000]}]`
        ...
 *)
 (*
 let fire_cleared (gun : at_gun) (m : float) (w : float) : outcome =
-  box {Beep; ReadClock} (m, w) as armed in
   perform Beep (2500, 300);
   perform ClearDisplay ();
   let fired = perform ReadClock () in
-  unbox armed as (m, w) in
   let found, at = react m w in
   unbox gun as (lane, warnings) in
   if found then Reaction (lane, warnings, elapsed fired at) else NoStart
@@ -288,10 +285,8 @@ let fire_cleared (gun : at_gun) (m : float) (w : float) : outcome =
 *)
 (*
 let fire_late (gun : at_gun) (m : float) (w : float) : outcome =
-  box {Beep; ReadClock} (m, w) as armed in
   perform Beep (2500, 300);
   let fired = perform ReadClock () in
-  unbox armed as (m, w) in
   let r = react m w in
   let found, at = fifty_fast m w r in
   unbox gun as (lane, warnings) in
@@ -437,10 +432,11 @@ let frame () =
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
 
 (* The tally and the athlete on the screen, in four rows from the row 100,
-   22 pixels apart, and the buttons. Each band of text extends to the right
-   edge, so each row is written from left to right. *)
+   22 pixels apart, and the buttons, a label first and at most 495 ms in
+   all. Each band of text extends to the right edge, so each row is written
+   from left to right. *)
 let board ((legal, warned, out, none, best) : tally)
-    ((lane, warnings) : athlete) =
+    ((lane, warnings) : athlete) : unit # {ShowTextAt; [0, 495]} =
   perform ShowTextAt (0, 100, 2, "Legal");
   perform ShowNumberAt (96, 100, 2, 0, float_of_nat legal);
   perform ShowTextAt (160, 100, 2, "Warnings");
@@ -547,33 +543,99 @@ let conclude (t : tally) (a : athlete) (o : outcome) : tally * athlete =
         let best = if best = 0 || r < best then r else best in
         ((legal + 1, warned, out, none, best), (lane, warnings)))
 
+(* Correctly accepted by the typechecker: a start, its outcome and the
+   tally, On your marks first and at most 6 s in all. *)
+let race (t : tally) (a : athlete) : tally * athlete
+    # {ShowColourTextAt; [0, 6000]} =
+  let o = start_once a in
+  let t, a = conclude t a o in
+  board t a;
+  (t, a)
+
 (* Correctly accepted by the typechecker: at most n polls of the touch
    screen 50 ms apart, in idle, a start following a touch begun on Start
    and a tone and a cleared tally one begun on Reset; with the tally, the
    athlete and whether the screen was touched at the last poll, taken as
    touched after a start, so that a finger left on the screen begins no
-   touch. *)
-let rec officiate (n : nat) (t : tally) (a : athlete) (held : bool)
-    : unit # {_*} =
+   touch.
+
+   The grade is the session: rounds of a poll of the touch screen followed
+   by a start, the tone of Reset with its message and the tally, or a wait
+   of 50 ms; another operation fits only within the durations of a start
+   and of the tally. *)
+let rec officiate (n : nat) (t : tally) (a : athlete) (held : bool) : unit
+    # {(ReadTouch;
+        (ShowColourTextAt; [0, 6000]
+        | Beep; ShowColourTextAt; ShowColourTextAt; ShowTextAt; [0, 495]
+        | 50))*} =
   match n with
   | 0 -> ()
   | m + 1 ->
       let touched, x, y = perform ReadTouch () in
       let k = if touched && not held then key x y else Elsewhere in
-      if k = Start then (
-        let o = start_once a in
-        let t, a = conclude t a o in
-        board t a;
-        officiate m t a true)
-      else if k = Reset then (
-        perform Beep (3000, 50);
-        let lane, _ = a in
-        say Cleared;
-        board (0, 0, 0, 0, 0) (lane, 0);
-        officiate m (0, 0, 0, 0, 0) (lane, 0) touched)
-      else (
-        delay 50;
-        officiate m t a touched)
+      let t, a, held =
+        if k = Start then
+          let t, a = race t a in
+          (t, a, true)
+        else if k = Reset then (
+          perform Beep (3000, 50);
+          let lane, _ = a in
+          say Cleared;
+          board (0, 0, 0, 0, 0) (lane, 0);
+          ((0, 0, 0, 0, 0), (lane, 0), touched))
+        else (
+          delay 50;
+          (t, a, touched))
+      in
+      officiate m t a held
+
+(* Correctly rejected by the typechecker: a tap on Reset also reconfigures
+   the unit, after the tone:
+
+     Typing error: This function's body has grade `[{ReadTouch; (!50 | Beep;
+       ConfigureImu; ShowColourTextAt; ShowColourTextAt; ShowTextAt; [0, 495]
+       | ShowColourTextAt; [0, 6000]); (ReadTouch; (ShowColourTextAt;
+       [0, 6000] | Beep; ShowColourTextAt; ShowColourTextAt; ShowTextAt;
+       [0, 495] | 50))* | 0}, {ReadTouch; (!50 | Beep; ConfigureImu;
+       ShowColourTextAt; ShowColourTextAt; ShowTextAt; [0, 495] |
+       ShowColourTextAt; [0, 6000]); (ReadTouch; (ShowColourTextAt; [0, 6000]
+       | Beep; ShowColourTextAt; ShowColourTextAt; ShowTextAt; [0, 495] |
+       50))* | 0}]`, which does not match its annotated grade `[{(ReadTouch;
+       (ShowColourTextAt; [0, 6000] | Beep; ShowColourTextAt;
+       ShowColourTextAt; ShowTextAt; [0, 495] | 50))*}, {(ReadTouch;
+       (ShowColourTextAt; [0, 6000] | Beep; ShowColourTextAt;
+       ShowColourTextAt; ShowTextAt; [0, 495] | 50))*}]`
+       ...
+*)
+(*
+let rec officiate_reconfigured (n : nat) (t : tally) (a : athlete)
+    (held : bool) : unit
+    # {(ReadTouch;
+        (ShowColourTextAt; [0, 6000]
+        | Beep; ShowColourTextAt; ShowColourTextAt; ShowTextAt; [0, 495]
+        | 50))*} =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      let touched, x, y = perform ReadTouch () in
+      let k = if touched && not held then key x y else Elsewhere in
+      let t, a, held =
+        if k = Start then
+          let t, a = race t a in
+          (t, a, true)
+        else if k = Reset then (
+          perform Beep (3000, 50);
+          perform ConfigureImu 400;
+          let lane, _ = a in
+          say Cleared;
+          board (0, 0, 0, 0, 0) (lane, 0);
+          ((0, 0, 0, 0, 0), (lane, 0), touched))
+        else (
+          delay 50;
+          (t, a, touched))
+      in
+      officiate_reconfigured m t a held
+*)
 
 (* Correctly accepted by the typechecker: the task. The output data rate of
    the accelerometer is set to 400 Hz, at which the fast polls read a new
