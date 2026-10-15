@@ -13,9 +13,11 @@
 // - a walk from 21 s to 26 s of two steps a second, ten steps, the vertical
 //   acceleration swinging by 0.4 g and the horizontal one by 0.2 g a
 //   quarter period later;
-// - taps on the screen at its centre: one of 150 ms at 28 s; a finger held
-//   from 31 s to 32.5 s; and two of 120 ms at 35 s and 35.6 s;
-// - a walk of six steps from 38 s to 41 s.
+// - taps of 150 ms: on Calibrate at 28 s, on Reset at 31 s and at the
+//   centre of the screen, outside the buttons, at 34 s; and two of 120 ms
+//   on Reset at 36 s and 36.6 s;
+// - a walk of six steps from 39 s to 42 s;
+// - a tap of 150 ms on Calibrate at 44 s.
 
 #include <math.h>
 
@@ -41,16 +43,23 @@ void motion(double t, double &vertical, double &horizontal) {
     vertical = -0.3 * sin(2.0 * M_PI * (t - 12.0) / 0.8);
   } else if (t >= 15.0 && t < 19.0) {
     vertical = -0.4 * sin(w * (t - 15.0));
-  } else if ((t >= 21.0 && t < 26.0) || (t >= 38.0 && t < 41.0)) {
-    const double s = t < 30.0 ? t - 21.0 : t - 38.0;
+  } else if ((t >= 21.0 && t < 26.0) || (t >= 39.0 && t < 42.0)) {
+    const double s = t < 30.0 ? t - 21.0 : t - 39.0;
     vertical = -0.4 * sin(w * s);
     horizontal = 0.2 * cos(w * s);
   }
 }
 
-bool tapped(double t) {
-  return (t >= 28.0 && t < 28.15) || (t >= 31.0 && t < 32.5) ||
-         (t >= 35.0 && t < 35.12) || (t >= 35.6 && t < 35.72);
+// The point of the screen touched at the time t, in seconds, if any: on
+// Calibrate (78, 208), on Reset (242, 208), or at the centre (160, 120).
+bool tapped(double t, int &x, int &y) {
+  const bool calibrate = (t >= 28.0 && t < 28.15) || (t >= 44.0 && t < 44.15);
+  const bool reset = (t >= 31.0 && t < 31.15) || (t >= 36.0 && t < 36.12) ||
+                     (t >= 36.6 && t < 36.72);
+  const bool centre = t >= 34.0 && t < 34.15;
+  x = calibrate ? 78 : reset ? 242 : 160;
+  y = calibrate || reset ? 208 : 120;
+  return calibrate || reset || centre;
 }
 
 }  // namespace
@@ -71,7 +80,8 @@ void world_advance(tempore_world &w, double) {
   w.load = 0.95 * load;
   w.roll = asin(x2 / load);
   w.tilt = atan2(y1, z2);
-  w.touched = tapped(w.time);
-  w.touch[0] = 160;
-  w.touch[1] = 120;
+  int x, y;
+  w.touched = tapped(w.time, x, y);
+  w.touch[0] = x;
+  w.touch[1] = y;
 }

@@ -1,24 +1,23 @@
 (* A rejected variant of examples/arduino/steps/steps.tpe. *)
 
-let rec wait_touch (n : nat) (since : nat) (c : counter)
-    : counter * (bool * nat * nat)
+let rec wait_touch (n : nat) (since : nat) (c : counter) : counter * key
     # ((ReadTouch, [0, 0], [0, 50], [0, 50]), (0, CountStep, [0, ∞))) =
   match n with
-  | 0 -> (c, (false, 0, 0))
+  | 0 -> (c, Elsewhere)
   | m + 1 ->
       let c = poll c in
       let t = perform ReadClock () in
       delay 20;
-      let _, _, _, _, _, (_, began, x, y), _, _ = c in
-      if began then (c, (true, x, y))
-      else if t - since > window then (c, (false, 0, 0))
+      let k = tapped c in
+      if not (k = Elsewhere) then (c, k)
+      else if t - since > window then (c, Elsewhere)
       else wait_touch m since c
 
-let respond_touch (c : counter) (x : nat) (y : nat) =
+let respond_touch (c : counter) (k : key) =
   let _, _, _, _, _, _, _, since = c in
   box ((ReadImu, [0, 50], [0, 50], [0, 50]),
-       (ReadTouch, [300, ∞), [0, ∞), [0, ∞))) (x, y) as tap in
+       (ReadTouch, [300, ∞), [0, ∞), [0, ∞))) k as tap in
   let c = settle (prompt c true) in
-  let c, (again, x2, y2) = wait_touch 100 since c in
-  unbox tap as (x1, y1) in
-  if again && near x1 x2 && near y1 y2 then reset c else prompt c false
+  let c, second = wait_touch 100 since c in
+  unbox tap as first in
+  if second = first then reset c else prompt c false
