@@ -1,0 +1,34 @@
+(* Run this test with the 'regex-timed-rigid-interval-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-rigid-interval-symbolic \
+       tests/regex_timed_rigid_interval_reject.tpe
+
+   Rejected under the 'regex-timed-rigid-interval-symbolic' grading monoid:
+   the lower bound is in the coverage order and the upper bound in the rigid
+   allowance order, over whole time steps; the first definition is accepted,
+   the second rejected. *)
+
+type token = Token of string
+
+operation Read : unit ~> nat # {Read} within [1, 2]
+operation Log : unit ~> unit # {Log} within [1, 3]
+
+(* Reads, each within two steps of the last, at least one step apart. *)
+let sampled () =
+  box [{(1; Read)*}, {(2; Read)*}] (Token "s") as s in
+  delay 1;
+  let a = perform Read () in
+  delay 2;
+  let b = perform Read () in
+  unbox s as tok in
+  tok
+
+(* A log of up to three steps between two reads exceeds a delay of two. *)
+let logged () =
+  box [{(1; Read)*}, {(2; Read)*}] (Token "l") as l in
+  delay 1;
+  let a = perform Read () in
+  perform Log ();
+  let b = perform Read () in
+  unbox l as tok in
+  tok

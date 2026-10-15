@@ -11,9 +11,9 @@ module type WORLD = sig
   val world :
     (running_time -> Rational.t bound) -> bounds -> grade list -> world
 
-  val in_allowance : world -> grade -> grade -> bool
+  val in_allowance : rigid:bool -> world -> grade -> grade -> bool
   val in_coverage : world -> grade -> grade -> bool
-  val allowance : world -> grade -> grade -> word option
+  val allowance : rigid:bool -> world -> grade -> grade -> word option
   val coverage : world -> grade -> grade -> word option
   val min_weight : world -> grade -> Rational.t bound option
   val max_weight : world -> grade -> Rational.t bound option
@@ -41,10 +41,10 @@ struct
       world; the end of the running-time bounds it reads as the running time of
       an operation, and the representation of its greatest grade. *)
 
-  let allowance =
+  let allowance ~rigid =
     {
-      holds = W.in_allowance;
-      search = W.allowance;
+      holds = W.in_allowance ~rigid;
+      search = W.allowance ~rigid;
       endpoint = snd;
       top = L.top;
     }
@@ -129,92 +129,111 @@ struct
     let of_bounds (lo, _hi) = W.lower_shadow lo
   end
 
-  module Upper = struct
-    include Common
+  (** The upper bounds and the intervals, in the allowance order, rigid if
+      [O.rigid], named with the infix [O.infix]. *)
+  module Uppers (O : sig
+    val rigid : bool
+    val infix : string
+  end) =
+  struct
+    module Upper = struct
+      include Common
 
-    let name = "regex-timed-upper-bound" ^ W.suffix
-    let leq = leq allowance
-    let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
-    let counterexample = counterexample allowance
-    let top = allowance.top
-    let is_top = is_top allowance
-    let unit_least = true
-    let of_lit = L.of_lit
-    let accepts = L.accepts
-    let of_bounds (_lo, hi) = W.upper_shadow hi
+      let name = "regex-timed-" ^ O.infix ^ "upper-bound" ^ W.suffix
+      let allowance = allowance ~rigid:O.rigid
+      let leq = leq allowance
+      let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
+      let counterexample = counterexample allowance
+      let top = allowance.top
+      let is_top = is_top allowance
+      let unit_least = not O.rigid
+      let of_lit = L.of_lit
+      let accepts = L.accepts
+      let of_bounds (_lo, hi) = W.upper_shadow hi
+    end
+
+    module Interval = struct
+      type t = L.t * L.t
+
+      module Delay = L.Delay
+
+      let name = "regex-timed-" ^ O.infix ^ "interval" ^ W.suffix
+      let one = (Lower.one, Upper.one)
+      let mul (lo, hi) (lo', hi') = (L.mul lo lo', L.mul hi hi')
+
+      let leq bounds (lo, hi) (lo', hi') =
+        Lower.leq bounds lo lo' && Upper.leq bounds hi hi'
+
+      let leq_symbol = "<="
+      let top = (Lower.top, Upper.top)
+      let join (lo, hi) (lo', hi') = (L.join lo lo', L.join hi hi')
+      let equal bounds p q = leq bounds p q && leq bounds q p
+
+      let is_top bounds (lo, hi) =
+        Lower.is_top bounds lo && Upper.is_top bounds hi
+
+      let compare (lo, hi) (lo', hi') =
+        match L.compare lo lo' with 0 -> L.compare hi hi' | c -> c
+
+      let hash (lo, hi) = Hashing.combine (L.hash lo) (L.hash hi)
+
+      let counterexample bounds (lo, hi) (lo', hi') =
+        match Lower.counterexample bounds lo lo' with
+        | Some e -> Some (e, hi)
+        | None ->
+            Option.map (fun e -> (lo, e)) (Upper.counterexample bounds hi hi')
+
+      let unit_least = false
+      let commutative = false
+      let needs_op_bounds = true
+      let duration_bounds bounds (lo, hi) = duration_bounds bounds lo hi
+
+      let inhabited bounds (lo, hi) =
+        W.inhabited bounds lo && W.inhabited bounds hi
+
+      let events (lo, hi) =
+        List.sort_uniq String.compare (L.events lo @ L.events hi)
+
+      let of_lit = function
+        | Top -> top
+        | lit when W.single lit ->
+            let rho = L.of_lit lit in
+            (rho, rho)
+        | lit ->
+            bounds_of_lit lit ~number:W.number ~close:W.close
+              ~lower:Lower.of_lit ~upper:Upper.of_lit ~unbounded:Upper.top
+              ~bounds:"regular expressions"
+
+      let accepts = function
+        | Top -> true
+        | lit when W.single lit -> L.accepts lit
+        | lit ->
+            reads_lit
+              (fun lit ->
+                bounds_of_lit lit ~number:W.number ~close:W.close
+                  ~lower:(require Lower.accepts) ~upper:(require Upper.accepts)
+                  ~unbounded:() ~bounds:"regular expressions")
+              lit
+
+      let of_delay d = (L.of_delay d, L.of_delay d)
+      let of_bounds (lo, hi) = (W.lower_shadow lo, W.upper_shadow hi)
+      let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
+
+      let show (lo, hi) =
+        show_bounds (Lower.show lo)
+          (if L.compare hi Upper.top = 0 then None else Some (Upper.show hi))
+
+      let witnesses ~degree:_ _bounds = sampled mul
+    end
   end
 
-  module Interval = struct
-    type t = L.t * L.t
+  include Uppers (struct
+    let rigid = false
+    let infix = ""
+  end)
 
-    module Delay = L.Delay
-
-    let name = "regex-timed-interval" ^ W.suffix
-    let one = (Lower.one, Upper.one)
-    let mul (lo, hi) (lo', hi') = (L.mul lo lo', L.mul hi hi')
-
-    let leq bounds (lo, hi) (lo', hi') =
-      Lower.leq bounds lo lo' && Upper.leq bounds hi hi'
-
-    let leq_symbol = "<="
-    let top = (Lower.top, Upper.top)
-    let join (lo, hi) (lo', hi') = (L.join lo lo', L.join hi hi')
-    let equal bounds p q = leq bounds p q && leq bounds q p
-
-    let is_top bounds (lo, hi) =
-      Lower.is_top bounds lo && Upper.is_top bounds hi
-
-    let compare (lo, hi) (lo', hi') =
-      match L.compare lo lo' with 0 -> L.compare hi hi' | c -> c
-
-    let hash (lo, hi) = Hashing.combine (L.hash lo) (L.hash hi)
-
-    let counterexample bounds (lo, hi) (lo', hi') =
-      match Lower.counterexample bounds lo lo' with
-      | Some e -> Some (e, hi)
-      | None ->
-          Option.map (fun e -> (lo, e)) (Upper.counterexample bounds hi hi')
-
-    let unit_least = false
-    let commutative = false
-    let needs_op_bounds = true
-    let duration_bounds bounds (lo, hi) = duration_bounds bounds lo hi
-
-    let inhabited bounds (lo, hi) =
-      W.inhabited bounds lo && W.inhabited bounds hi
-
-    let events (lo, hi) =
-      List.sort_uniq String.compare (L.events lo @ L.events hi)
-
-    let of_lit = function
-      | Top -> top
-      | lit when W.single lit ->
-          let rho = L.of_lit lit in
-          (rho, rho)
-      | lit ->
-          bounds_of_lit lit ~number:W.number ~close:W.close ~lower:Lower.of_lit
-            ~upper:Upper.of_lit ~unbounded:Upper.top
-            ~bounds:"regular expressions"
-
-    let accepts = function
-      | Top -> true
-      | lit when W.single lit -> L.accepts lit
-      | lit ->
-          reads_lit
-            (fun lit ->
-              bounds_of_lit lit ~number:W.number ~close:W.close
-                ~lower:(require Lower.accepts) ~upper:(require Upper.accepts)
-                ~unbounded:() ~bounds:"regular expressions")
-            lit
-
-    let of_delay d = (L.of_delay d, L.of_delay d)
-    let of_bounds (lo, hi) = (W.lower_shadow lo, W.upper_shadow hi)
-    let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
-
-    let show (lo, hi) =
-      show_bounds (Lower.show lo)
-        (if L.compare hi Upper.top = 0 then None else Some (Upper.show hi))
-
-    let witnesses ~degree:_ _bounds = sampled mul
-  end
+  module Rigid = Uppers (struct
+    let rigid = true
+    let infix = "rigid-"
+  end)
 end

@@ -136,6 +136,20 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) : sig
       the interval [[{d}, {d}]] and [[d, e]] the interval [[{d}, {e}]]; an open
       numeric endpoint is read by [N.close]. Either end may be [⊤], the top of
       its order. *)
+
+  (** The grades in the rigid allowance order ({!TimedTrace.Make.allowance}):
+      every operation of a bound is matched, in order. The lower bounds are
+      those of {!LowerBound}. *)
+  module Rigid : sig
+    module UpperBound : Grade.S with type Delay.t = D.t
+    (** Sets of traces read as upper bounds,
+        ["traces-timed-rigid-upper-bound" ^ N.suffix], in the rigid allowance
+        order; the unit [{0}] is not least. *)
+
+    module Interval : Grade.S with type Delay.t = D.t
+    (** Intervals as {!Interval}, ["traces-timed-rigid-interval" ^ N.suffix],
+        their upper bounds in the rigid allowance order. *)
+  end
 end
 
 (** {1 Traces over whole time steps}
@@ -159,6 +173,13 @@ module Interval : Grade.S with type Delay.t = Delay.Nat.t
     [[{n}, {m}]]; an open endpoint abbreviates a closed one, [(n, m)] being
     [[n + 1, m - 1]]. Either end may be [⊤], the top of its order. *)
 
+(** The upper bounds and intervals in the rigid allowance order,
+    ["traces-timed-rigid-upper-bound"] and ["traces-timed-rigid-interval"]. *)
+module Rigid : sig
+  module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
+  module Interval : Grade.S with type Delay.t = Delay.Nat.t
+end
+
 (** {1 Traces over rational delays}
 
     The delays are the non-negative rationals, written as integers and
@@ -178,4 +199,12 @@ module Rational : sig
   (** Closed intervals of a lower and an upper bound,
       ["traces-timed-interval-rational"], compared componentwise. An open
       endpoint, a set of delays, is no finite set of traces, and is rejected. *)
+
+  (** The upper bounds and intervals in the rigid allowance order,
+      ["traces-timed-rigid-upper-bound-rational"] and
+      ["traces-timed-rigid-interval-rational"]. *)
+  module Rigid : sig
+    module UpperBound : Grade.S with type Delay.t = Delay.Rational.t
+    module Interval : Grade.S with type Delay.t = Delay.Rational.t
+  end
 end

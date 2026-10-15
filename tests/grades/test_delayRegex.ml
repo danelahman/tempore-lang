@@ -141,8 +141,10 @@ let whole_step_rejections =
            the `regex-upper-bound-rational-symbolic`, \
            `regex-timed-lower-bound-rational-symbolic`, \
            `regex-timed-upper-bound-rational-symbolic`, \
-           `regex-timed-interval-rational-symbolic` or `event-separation` \
-           grading monoids?")
+           `regex-timed-interval-rational-symbolic`, \
+           `regex-timed-rigid-upper-bound-rational-symbolic`, \
+           `regex-timed-rigid-interval-rational-symbolic` or \
+           `event-separation` grading monoids?")
        reason);
     (let reason =
        match parse "{Read; (0, 1)}" with Error reason -> reason | Ok () -> ""

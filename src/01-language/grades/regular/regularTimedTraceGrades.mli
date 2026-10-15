@@ -18,22 +18,28 @@
       i.e. [ρ ⊆ ↑ρ'], operations counting at their lower running-time bound
       [lo];
     - intervals: closed intervals of a lower and an upper bound, compared
-      componentwise.
+      componentwise;
+    - rigid upper bounds and intervals: as the upper bounds and intervals, in
+      the rigid allowance order [≼ʳ], which matches every operation of the
+      greater trace, in order, so that [ρ ≾ ρ'] iff [ρ ⊆ ↓ʳρ']. The unit [{0}]
+      is not least: [{0} ≾ {A}] fails. On grades without delays the rigid order
+      is the inclusion of languages, and on grades without operations it is the
+      allowance order.
 
-    Both are preorders, the closures being closure operators; a grade denotes
-    its closure, and [equal] is mutual [≾], coarser than the equality of
-    languages: if [Read] declares [within [1, 3]], then [{Read} ≾ {3}] but not
-    conversely and [{Read | 3} ≡ {3}] under the upper order, and
-    [{Read | 1} ≡ {1}] and [⊤ ≡ {0}] under the lower order. Products and joins
-    are those of languages, monotone in the orders, and [≡] is a congruence for
-    them; the product of closures is in general strictly smaller than the
-    closure of the product: under the upper order the trace [Read] is in
-    [↓({2}·{2})] but not in [↓{2}·↓{2}]. An operation cannot be excluded while
-    unbounded time is allowed: [{(_ & ~Read)*} ≡ ⊤] under the upper order, its
-    ticks paying for [Read]. The grades are thus regular languages modulo
-    downward closure under a preorder on traces compatible with concatenation
-    (allowance, or the converse of coverage), the model of Kleene algebra with
-    hypotheses (Doumane, Kuperberg, Pous and Pradic, FoSSaCS 2019).
+    All are preorders, the closures being closure operators; a grade denotes its
+    closure, and [equal] is mutual [≾], coarser than the equality of languages:
+    if [Read] declares [within [1, 3]], then [{Read} ≾ {3}] but not conversely
+    and [{Read | 3} ≡ {3}] under the upper order, and [{Read | 1} ≡ {1}] and
+    [⊤ ≡ {0}] under the lower order. Products and joins are those of languages,
+    monotone in the orders, and [≡] is a congruence for them; the product of
+    closures is in general strictly smaller than the closure of the product:
+    under the upper order the trace [Read] is in [↓({2}·{2})] but not in
+    [↓{2}·↓{2}]. An operation cannot be excluded while unbounded time is
+    allowed: [{(_ & ~Read)*} ≡ ⊤] under the upper order, its ticks paying for
+    [Read]. The grades are thus regular languages modulo downward closure under
+    a preorder on traces compatible with concatenation (allowance, or the
+    converse of coverage), the model of Kleene algebra with hypotheses (Doumane,
+    Kuperberg, Pous and Pradic, FoSSaCS 2019).
 
     {2 Closed world}
 
@@ -142,6 +148,15 @@ module Make
       [[{n + 1}, {m - 1}]]. *)
   module Interval :
     Grade.S with type t = L.t * L.t and type Delay.t = Delay.Nat.t
+
+  (** The upper bounds and the intervals in the rigid allowance order, named
+      with ["rigid-"] after ["regex-timed-"]. *)
+  module Rigid : sig
+    module Upper : Grade.S with type t = L.t and type Delay.t = Delay.Nat.t
+
+    module Interval :
+      Grade.S with type t = L.t * L.t and type Delay.t = Delay.Nat.t
+  end
 end
 
 module Automata : LANGUAGE with type t = RegularTraceGrade.t
@@ -203,6 +218,18 @@ module Interval :
     with type t = RegularTraceGrade.t * RegularTraceGrade.t
      and type Delay.t = Delay.Nat.t
 
+(** The upper bounds and the intervals in the rigid allowance order, named with
+    ["rigid-"] after ["regex-timed-"]. *)
+module Rigid : sig
+  module Upper :
+    Grade.S with type t = RegularTraceGrade.t and type Delay.t = Delay.Nat.t
+
+  module Interval :
+    Grade.S
+      with type t = RegularTraceGrade.t * RegularTraceGrade.t
+       and type Delay.t = Delay.Nat.t
+end
+
 (** The grades over {!Derivatives}, named ["regex-timed-lower-bound-symbolic"],
     ["regex-timed-upper-bound-symbolic"] and ["regex-timed-interval-symbolic"],
     decided over the graphs of the gap derivatives of the grades ({!GapGraph}),
@@ -241,6 +268,21 @@ module Symbolic : sig
       with type t =
         RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
        and type Delay.t = Delay.Nat.t
+
+  (** The upper bounds and the intervals in the rigid allowance order, named
+      with ["rigid-"] after ["regex-timed-"]. *)
+  module Rigid : sig
+    module Upper :
+      Grade.S
+        with type t = RegularTraceGradeDerivative.t
+         and type Delay.t = Delay.Nat.t
+
+    module Interval :
+      Grade.S
+        with type t =
+          RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
+         and type Delay.t = Delay.Nat.t
+  end
 end
 
 (** The grades over {!ConcreteDerivatives}, named
@@ -264,6 +306,21 @@ module Concrete : sig
       with type t =
         RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
        and type Delay.t = Delay.Nat.t
+
+  (** The upper bounds and the intervals in the rigid allowance order, named
+      with ["rigid-"] after ["regex-timed-"]. *)
+  module Rigid : sig
+    module Upper :
+      Grade.S
+        with type t = RegularTraceGradeDerivative.t
+         and type Delay.t = Delay.Nat.t
+
+    module Interval :
+      Grade.S
+        with type t =
+          RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
+         and type Delay.t = Delay.Nat.t
+  end
 end
 
 (** The grades over {!PlainDerivatives}, named
@@ -286,4 +343,18 @@ module Plain : sig
     Grade.S
       with type t = RegularTraceGradePlain.t * RegularTraceGradePlain.t
        and type Delay.t = Delay.Nat.t
+
+  (** The upper bounds and the intervals in the rigid allowance order, named
+      with ["rigid-"] after ["regex-timed-"]. *)
+  module Rigid : sig
+    module Upper :
+      Grade.S
+        with type t = RegularTraceGradePlain.t
+         and type Delay.t = Delay.Nat.t
+
+    module Interval :
+      Grade.S
+        with type t = RegularTraceGradePlain.t * RegularTraceGradePlain.t
+         and type Delay.t = Delay.Nat.t
+  end
 end

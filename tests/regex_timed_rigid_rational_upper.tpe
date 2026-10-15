@@ -1,0 +1,77 @@
+(* Run this test with the 'regex-timed-rigid-upper-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-rigid-upper-bound-rational-symbolic \
+       tests/regex_timed_rigid_rational_upper.tpe
+
+   Accepted under the 'regex-timed-rigid-upper-bound-rational-symbolic' grading
+   monoid: every operation of a bound is matched, in order, and the other
+   operations are bought within its delays at their upper running-time
+   bounds. *)
+
+type token = Token of string
+
+operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
+operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
+operation Beep : unit ~> unit # {Beep} within [0, 0.15]
+operation ReadTouch : unit ~> bool # {ReadTouch} within [0.1, 1]
+operation ConfigureImu : unit ~> unit # {ConfigureImu} within [0.1, 0.4]
+operation Wash : unit ~> unit # {Wash} within [1, 2]
+operation ChangeTip : unit ~> unit # {ChangeTip} within [1, 1]
+
+(* Three polls, each after a delay of at most 2.5. *)
+let three_polls () =
+  box {(2.5; ReadImu; ReadClock)*} (Token "p") as p in
+  delay 2.4;
+  let a = perform ReadImu () in
+  let s = perform ReadClock () in
+  delay 1/2;
+  let b = perform ReadImu () in
+  let t = perform ReadClock () in
+  delay 0.7;
+  let c = perform ReadImu () in
+  let u = perform ReadClock () in
+  unbox p as tok in
+  tok
+
+(* The stamp follows the signal at once, and a poll follows within the
+   window. *)
+let stamped () =
+  box {Beep; ReadClock; [0, 1000]} (Token "s") as s in
+  perform Beep ();
+  let t = perform ReadClock () in
+  delay 312.5;
+  let a = perform ReadImu () in
+  unbox s as tok in
+  tok
+
+(* A configuration of at most 0.4 and a delay of 49 fit in an idle round of
+   50. *)
+let idle_round () =
+  box {(ReadTouch; 50)*} (Token "i") as i in
+  let x = perform ReadTouch () in
+  perform ConfigureImu ();
+  delay 49;
+  let y = perform ReadTouch () in
+  unbox i as tok in
+  tok
+
+(* The two washes are matched by those of the bound, the change of tip between
+   them by its first `_*`, and the gap of 3.5 by `[2, 5]`. *)
+let washes () =
+  box {_*; Wash; _*; Wash; [2, 5]; ChangeTip} (Token "w") as w in
+  perform Wash ();
+  perform ChangeTip ();
+  perform Wash ();
+  delay 3.5;
+  perform ChangeTip ();
+  unbox w as tok in
+  tok
+
+(* A bound without delays is a set of traces, each matched exactly. *)
+let exact () =
+  box {Wash; (ChangeTip; Wash)*} (Token "e") as e in
+  perform Wash ();
+  perform ChangeTip ();
+  perform Wash ();
+  unbox e as tok in
+  tok

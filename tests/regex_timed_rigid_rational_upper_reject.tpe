@@ -1,0 +1,78 @@
+(* Run this test with the 'regex-timed-rigid-upper-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-rigid-upper-bound-rational-symbolic \
+       tests/regex_timed_rigid_rational_upper_reject.tpe
+
+   Rejected under the 'regex-timed-rigid-upper-bound-rational-symbolic' grading
+   monoid: traces that leave out an operation of the bound, or whose other
+   operations do not fit in its delays, all permitted under
+   'regex-timed-upper-bound-rational-symbolic'. *)
+
+type token = Token of string
+
+operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
+operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
+operation ShowColourTextAt : unit ~> unit # {ShowColourTextAt} within [0.05, 33]
+operation ClearDisplay : unit ~> unit # {ClearDisplay} within [31, 48]
+operation Beep : unit ~> unit # {Beep} within [0, 0.15]
+operation ReadTouch : unit ~> bool # {ReadTouch} within [0.1, 1]
+operation ConfigureImu : unit ~> unit # {ConfigureImu} within [0.1, 0.4]
+operation Wash : unit ~> unit # {Wash} within [1, 2]
+operation ChangeTip : unit ~> unit # {ChangeTip} within [1, 1]
+
+(* A redraw of up to 33 between two polls does not fit in a delay of 2.5. *)
+let redraw () =
+  box {(2.5; ReadImu; ReadClock)*} (Token "p") as p in
+  let a = perform ReadImu () in
+  let s = perform ReadClock () in
+  perform ShowColourTextAt ();
+  let b = perform ReadImu () in
+  let t = perform ReadClock () in
+  unbox p as tok in
+  tok
+
+(* A pause of 300 is no poll: the operations of a round are demanded. *)
+let pause () =
+  box {(2.5; ReadImu; ReadClock)*} (Token "p") as p in
+  delay 300;
+  unbox p as tok in
+  tok
+
+(* No delay separates the signal from its stamp, so nothing comes between
+   them. *)
+let cleared () =
+  box {Beep; ReadClock; [0, 1000]} (Token "s") as s in
+  perform Beep ();
+  perform ClearDisplay ();
+  let t = perform ReadClock () in
+  unbox s as tok in
+  tok
+
+(* A configuration of up to 0.4 and a delay of 50 exceed an idle round of
+   50. *)
+let full_round () =
+  box {(ReadTouch; 50)*} (Token "i") as i in
+  let x = perform ReadTouch () in
+  perform ConfigureImu ();
+  delay 50;
+  let y = perform ReadTouch () in
+  unbox i as tok in
+  tok
+
+(* The gap of 6 before the change of tip exceeds `[2, 5]`. *)
+let washes () =
+  box {_*; Wash; _*; Wash; [2, 5]; ChangeTip} (Token "w") as w in
+  perform Wash ();
+  perform ChangeTip ();
+  perform Wash ();
+  delay 6;
+  perform ChangeTip ();
+  unbox w as tok in
+  tok
+
+(* An operation of the bound is not left out. *)
+let skipped () =
+  box {Wash; ChangeTip} (Token "e") as e in
+  perform Wash ();
+  unbox e as tok in
+  tok

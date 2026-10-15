@@ -1,0 +1,148 @@
+(* A reaction timer timed in milliseconds: a start signal, its time stamp and a loop of polls, bounded by rigid regular upper bounds.
+
+   Run this example with the 'regex-timed-rigid-upper-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-rigid-upper-bound-rational-symbolic \
+       examples/regular_timed_rigid/upper_bounds_rational.tpe
+
+   Grades {...}: regular languages of traces with rational durations in the
+   rigid allowance order: every operation of a bound is demanded, in order,
+   and other operations are bought within its delays
+     - Unit {0}: the empty trace, not the least grade
+     - Top ⊤: every trace permitted
+     - Product: concatenation of traces *)
+
+type stamp = Stamp of nat
+
+(* The operations of a reaction timer, in milliseconds: a start signal, a
+   reading of the clock, a reading of the inertial unit and a redraw of the
+   screen. *)
+operation Beep : unit ~> unit # {Beep} within [0, 0.15]
+default Beep () = delay 0.1
+
+operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
+default ReadClock () = delay 0.02; 1200
+
+operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
+default ReadImu () = delay 0.6; 3
+
+operation Redraw : unit ~> unit # {Redraw} within [0.05, 33]
+default Redraw () = delay 21.5
+
+(* Correctly accepted by the typechecker: three polls, each a reading of the
+   inertial unit and a time stamp, each after a delay of at most 2.5
+   milliseconds. The loop demands its polls: a pause or another operation
+   between them is not a poll. *)
+let polls () =
+  box {(2.5; ReadImu; ReadClock)*} (Stamp 0) as p in
+  delay 1.8;
+  let a = perform ReadImu () in
+  let s = perform ReadClock () in
+  delay 2.25;
+  let b = perform ReadImu () in
+  let t = perform ReadClock () in
+  delay 0.75;
+  let c = perform ReadImu () in
+  let u = perform ReadClock () in
+  unbox p as x in
+  x
+
+(* Correctly accepted by the typechecker: the time stamp follows the start
+   signal at once, without a delay that could buy another operation between
+   them, and the first poll follows within 750 milliseconds. *)
+let stamped () =
+  box {Beep; ReadClock; [0, 750]} (Stamp 0) as s in
+  perform Beep ();
+  let t = perform ReadClock () in
+  delay 312.5;
+  let a = perform ReadImu () in
+  unbox s as x in
+  Stamp t
+
+(* Correctly accepted by the typechecker: the redraw is not in the bound, and
+   is bought within its delay of at most 40 milliseconds before the time
+   stamp, at its upper running-time bound of 33. *)
+let redrawn () =
+  box {Beep; [0, 40]; ReadClock} (Stamp 0) as s in
+  perform Beep ();
+  perform Redraw ();
+  delay 6.5;
+  let t = perform ReadClock () in
+  unbox s as x in
+  Stamp t
+
+(* Correctly rejected by the typechecker: a redraw of up to 33 milliseconds
+   between two polls exceeds the 2.5 the loop allows. Under the allowance
+   order of 'regex-timed-upper-bound-rational-symbolic', which leaves the
+   operations of a bound out, it is accepted, the delays of further rounds
+   paying for the redraw:
+
+     Typing error: Variable `p` is unboxed with grade
+       `{ReadImu; ReadClock; Redraw; ReadImu; ReadClock}` accumulated since it
+       was bound, which is not below its box grade
+       `{(2.5; ReadImu; ReadClock)*}`
+       ...
+       Note: the resource inequality
+         `{ReadImu; ReadClock; Redraw; ReadImu; ReadClock} <= {(2.5; ReadImu; ReadClock)*}`
+         does not hold
+*)
+(*
+let polls_redrawn () =
+  box {(2.5; ReadImu; ReadClock)*} (Stamp 0) as p in
+  let a = perform ReadImu () in
+  let s = perform ReadClock () in
+  perform Redraw ();
+  let b = perform ReadImu () in
+  let t = perform ReadClock () in
+  unbox p as x in
+  x
+*)
+
+(* Correctly rejected by the typechecker: the screen is redrawn between the
+   start signal and its time stamp, which the bound places next to each
+   other. Under the allowance order it is accepted, the time stamp of the
+   bound left out and the redraw bought within the 750 milliseconds:
+
+     Typing error: Variable `s` is unboxed with grade
+       `{Beep; Redraw; ReadClock; 312.5; ReadImu}` accumulated since it was
+       bound, which is not below its box grade `{Beep; ReadClock; [0, 750]}`
+       ...
+       Note: the resource inequality
+         `{Beep; Redraw; ReadClock; 312.5; ReadImu} <= {Beep; ReadClock; [0, 750]}`
+         does not hold
+*)
+(*
+let stamped_late () =
+  box {Beep; ReadClock; [0, 750]} (Stamp 0) as s in
+  perform Beep ();
+  perform Redraw ();
+  let t = perform ReadClock () in
+  delay 312.5;
+  let a = perform ReadImu () in
+  unbox s as x in
+  Stamp t
+*)
+
+(* Correctly rejected by the typechecker: a redraw of up to 33 milliseconds and
+   a delay of 7.5 exceed the 40 before the time stamp:
+
+     Typing error: Variable `s` is unboxed with grade
+       `{Beep; Redraw; 7.5; ReadClock}` accumulated since it was bound, which
+       is not below its box grade `{Beep; [0, 40]; ReadClock}`
+       ...
+       Note: the resource inequality
+         `{Beep; Redraw; 7.5; ReadClock} <= {Beep; [0, 40]; ReadClock}` does
+         not hold
+*)
+(*
+let redrawn_slowly () =
+  box {Beep; [0, 40]; ReadClock} (Stamp 0) as s in
+  perform Beep ();
+  perform Redraw ();
+  delay 7.5;
+  let t = perform ReadClock () in
+  unbox s as x in
+  Stamp t
+*)
+
+run stamped ()

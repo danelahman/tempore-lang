@@ -12,9 +12,12 @@ end
 module type DECISIONS = sig
   type t
 
-  val in_allowance : string list -> int list -> t -> t -> bool
+  val in_allowance : rigid:bool -> string list -> int list -> t -> t -> bool
   val in_coverage : string list -> int list -> t -> t -> bool
-  val allowance : string list -> int list -> t -> t -> regex list option
+
+  val allowance :
+    rigid:bool -> string list -> int list -> t -> t -> regex list option
+
   val coverage : string list -> int list -> t -> t -> regex list option
   val min_weight : string list -> int list -> t -> int option
   val max_weight : string list -> int list -> t -> int option
@@ -118,12 +121,17 @@ module ByLetters (L : LANGUAGE) = struct
          [] word)
 
   let allowance =
-    tabulated (fun names running_times rho rho' ->
-        let running_time = letter_running_time running_times
-        and letters = letters names in
-        Option.map (symbols names)
-          (Closed.counterexample letters (traces names rho)
-             (Allowance.closure ~running_time ~letters (traces names rho'))))
+    let decide rigid =
+      tabulated (fun names running_times rho rho' ->
+          let running_time = letter_running_time running_times
+          and letters = letters names in
+          Option.map (symbols names)
+            (Closed.counterexample letters (traces names rho)
+               (Allowance.closure ~rigid ~running_time ~letters
+                  (traces names rho'))))
+    in
+    let loose = decide false and rigid = decide true in
+    fun ~rigid:r -> if r then rigid else loose
 
   let coverage =
     tabulated (fun names running_times rho rho' ->
@@ -133,8 +141,8 @@ module ByLetters (L : LANGUAGE) = struct
                 ~running_time:(letter_running_time running_times)
                 (traces names rho'))))
 
-  let in_allowance names running_times rho rho' =
-    Option.is_none (allowance names running_times rho rho')
+  let in_allowance ~rigid names running_times rho rho' =
+    Option.is_none (allowance ~rigid names running_times rho rho')
 
   let in_coverage names running_times rho rho' =
     Option.is_none (coverage names running_times rho rho')
@@ -215,14 +223,25 @@ module ByGaps = struct
                    names"))
       word
 
-  let in_allowance = tabulated (on_graphs DelayTimedClosure.Graph.in_allowance)
+  (** [by_order decide] is [decide ~rigid] for each [rigid], tabulated
+      separately. *)
+  let by_order decide =
+    let loose = decide ~rigid:false and rigid = decide ~rigid:true in
+    fun ~rigid:r -> if r then rigid else loose
+
+  let in_allowance =
+    by_order (fun ~rigid ->
+        tabulated (on_graphs (DelayTimedClosure.Graph.in_allowance ~rigid)))
+
   let in_coverage = tabulated (on_graphs DelayTimedClosure.Graph.in_coverage)
 
   let allowance =
-    tabulated (fun names running_times rho rho' ->
-        Option.map symbols
-          (on_graphs DelayTimedClosure.Graph.allowance names running_times rho
-             rho'))
+    by_order (fun ~rigid ->
+        tabulated (fun names running_times rho rho' ->
+            Option.map symbols
+              (on_graphs
+                 (DelayTimedClosure.Graph.allowance ~rigid)
+                 names running_times rho rho')))
 
   let coverage =
     tabulated (fun names running_times rho rho' ->
@@ -286,11 +305,14 @@ module Over
                  (end_value (endpoint (bounds.running_time name)))))
           bounds
 
-      let in_allowance (names, running_times) =
-        D.in_allowance names running_times
+      let in_allowance ~rigid (names, running_times) =
+        D.in_allowance ~rigid names running_times
 
       let in_coverage (names, running_times) = D.in_coverage names running_times
-      let allowance (names, running_times) = D.allowance names running_times
+
+      let allowance ~rigid (names, running_times) =
+        D.allowance ~rigid names running_times
+
       let coverage (names, running_times) = D.coverage names running_times
 
       let weight extreme (names, running_times) rho =

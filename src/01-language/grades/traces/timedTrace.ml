@@ -166,15 +166,18 @@ module Make (D : Delay.MONUS) = struct
 
   (* Each rule advances in [s] or [t], so the search terminates. The [when]
      guards are the backtracking: a failing guard falls through to the next
-     rule. *)
-  let allowance running_time =
+     rule. The rigid order has no rule skip-op, and its rule nil requires [t]
+     exhausted, the delays of [t] left being banked by bank-delay. *)
+  let allowance ~rigid running_time =
     decide (fun go k i j s t ->
         match (s, t) with
-        | None, _ -> true (* nil *)
+        | None, None -> true (* nil *)
+        | None, _ when not rigid -> true (* nil *)
         | Some (Ev o), Some (Ev o')
           when String.equal o o' && go D.zero (i + 1) (j + 1) ->
             true (* keep: the budget does not cross a match *)
-        | _, Some (Ev _) when go k i (j + 1) -> true (* skip-op *)
+        | _, Some (Ev _) when (not rigid) && go k i (j + 1) ->
+            true (* skip-op *)
         | _, Some (Wait e) when go (D.add k e) i (j + 1) ->
             true (* bank-delay *)
         | Some (Wait d), _ when D.leq d k && go (D.monus k d) (i + 1) j ->
@@ -199,9 +202,10 @@ module Make (D : Delay.MONUS) = struct
             true (* use-delay *)
         | _ -> false)
 
-  let upper_bound_le running_time p q =
+  let upper_bound_le ~rigid running_time p q =
     List.for_all
-      (fun s -> List.exists (fun t -> allowance running_time D.zero s t) q)
+      (fun s ->
+        List.exists (fun t -> allowance ~rigid running_time D.zero s t) q)
       p
 
   let lower_bound_le running_time p q =
