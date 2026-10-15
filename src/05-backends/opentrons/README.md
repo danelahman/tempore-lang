@@ -172,12 +172,16 @@ each is a minute.
 - [`washes.tpe`](../../../examples/opentrons/washes.tpe): a bead clean-up
   with two or more ethanol washes, under `regex-timed-rigid-interval-symbolic`,
   whose recursion `washes n` has the grade `{(Wash; ChangeTip)*}`: each wash
-  is followed by a fresh tip and nothing else. The binding and the air-dry
-  are strict delays, `{AddBeads; ![5, 10]; MagnetOn}`, waiting only, and a
-  box of the whole run excludes a removal of liquid with the plate off the
-  magnet.
+  is followed by a fresh tip and nothing else. The operations take the
+  beads and the eluates they act on, and boxes release them: the beads to the
+  removal of the supernatant after the binding
+  `{AddBeads; ![5, 10]; MagnetOn}`, waiting only, and to the elution after
+  the washes and a strict air-dry, and the eluates to the transfer after a
+  settling of `{![2, 5]}`. The annotated grade of the clean-up excludes a
+  removal of liquid with the plate off the magnet.
 - [`contamination.tpe`](../../../examples/opentrons/contamination.tpe): a
-  ddPCR plate set-up under `time-upper-bound-levels`.
+  ddPCR plate set-up under `time-upper-bound-levels`, whose master mix is
+  boxed `(30, High)` and unboxed for each dispensing.
 - [`reagents.tpe`](../../../examples/opentrons/reagents.tpe): a tagmentation
   with reagents boxed `[0, 30]`, under `time-interval`.
 - [`staggered.tpe`](../../../examples/opentrons/staggered.tpe): a fixation
@@ -206,9 +210,9 @@ each is a minute.
   their box `[2, 5]` of the master mix, so that its window starts on the
   cold block. A box `[0, 40]` of the samples, whose scope encloses the
   steps, bounds their time at room temperature, below the 47 minutes the
-  windows of the steps allow in all. Its rejected variants overdry the
-  beads, take the upper end of several windows, wash once, and move the
-  plate off the magnet during a soak.
+  windows of the steps allow in all. Its rejected variants take the upper
+  end of several windows, wash once, and move the plate off the magnet
+  during a soak.
 
 ## Adding an example
 

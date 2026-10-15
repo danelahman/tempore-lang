@@ -467,11 +467,10 @@ The rejected variants of the examples.
   $ ../../tempore --grades time-interval --typecheck-only $examples/elisa_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `incubating` is unboxed with grade `[30, 30]` accumulated since it was bound, which is not below its box grade `[60, ∞)`
   $ ../../tempore --grades regex-timed-rigid-interval-symbolic --typecheck-only $examples/washes_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `washed` is unboxed with grade `[{Wash; !3; ChangeTip}, {Wash; !3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Wash; ChangeTip; Wash; !2; ChangeTip}, {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}]`
+  Typing error: This function's body has grade `[{0 | Wash; (Wash; ChangeTip)*}, {0 | Wash; (Wash; ChangeTip)*}]`, which does not match its annotated grade `[{(Wash; ChangeTip)*}, {(Wash; ChangeTip)*}]`
   $ ../../tempore --grades regex-timed-rigid-interval-symbolic --typecheck-only $examples/cleanup_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `k` is unboxed with grade `[{RemoveEthanol; !1; AddEthanol}, {RemoveEthanol; !1; AddEthanol}]` accumulated since it was bound, which is not below its box grade `[{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]`
   $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/purification_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `drying` is unboxed with grade `[{!7.5; MagnetOff}, {!7.5; MagnetOff}]` accumulated since it was bound, which is not below its box grade `[{[3, 5]; MagnetOff}, {[3, 5]; MagnetOff}]`
   Typing error: Variable `warm` is unboxed with grade `[{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}, {!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}]` accumulated since it was bound, which is not below its box grade `[{0}, {40}]`
   Typing error: The resource inequality `[{AddEthanol; ![0.5, 1.5]; RemoveEthanol}, {AddEthanol; ![0.5, 1.5]; RemoveEthanol}] <= [{AddEthanol; ![0.5, 1.5]}, {AddEthanol; ![0.5, 1.5]}]` does not hold
   Typing error: Variable `soaking` is unboxed with grade `[{AddEthanol; MagnetOff; !0.5}, {AddEthanol; MagnetOff; !0.5}]` accumulated since it was bound, which is not below its box grade `[{AddEthanol; ![0.5, 1.5]}, {AddEthanol; ![0.5, 1.5]}]`

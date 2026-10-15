@@ -8,10 +8,10 @@
 # pipette keeps its tip between operations; ChangeTip replaces it, picking up
 # the first, PrepareMix uses a tip of its own and AddWater drops the tip after
 # the water. The entry "has_tip" of the context records whether the pipette
-# holds a tip. A tip is passed to the functions as the Tempore value of type
-# tip, which they ignore. Each function declares the nominal duration of its
-# action in seconds by tempore_elapse, the duration the virtual clock of a
-# simulation advances by.
+# holds a tip. A tip and the master mix are passed to the functions as the
+# Tempore values of types tip and reagent, which they ignore. Each function
+# declares the nominal duration of its action in seconds by tempore_elapse,
+# the duration the virtual clock of a simulation advances by.
 
 ROWS = ["A", "B", "C", "D"]
 
@@ -81,8 +81,8 @@ def PrepareMix(ctx, unit):
     return "master mix"
 
 
-def AddMix(ctx, tip_and_column):
-    _, number = tip_and_column
+def AddMix(ctx, tip_and_mix_and_column):
+    _, (_, number) = tip_and_mix_and_column
     dispense(ctx, 20, "A4", "final", number)
     tempore_elapse(40)
     return ()

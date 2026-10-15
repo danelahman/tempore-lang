@@ -1101,69 +1101,51 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/purification_reject.tpe
   ======================================================================
-  File "../examples/opentrons/purification_reject.tpe", lines 106-107, characters 2-24:
-  106 |   unbox drying as beads in
-          ^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `drying` is unboxed with grade `[{!7.5; MagnetOff}, {!7.5; MagnetOff}]` accumulated since it was bound, which is not below its box grade `[{[3, 5]; MagnetOff}, {[3, 5]; MagnetOff}]`
-    File "../examples/opentrons/purification_reject.tpe", line 103, characters 21-27:
-    103 | let elute_overdried (drying : [{[3, 5]; MagnetOff}]beads) =
-                               ^^^^^^
-    `drying` is bound here
-    File "../examples/opentrons/purification_reject.tpe", line 104, characters 2-12:
-    104 |   delay 15/2;
-            ^^^^^^^^^^
-    grade `[{!7.5}, {!7.5}]` accumulates here (delay)
-    File "../examples/opentrons/purification_reject.tpe", line 105, characters 2-22:
-    105 |   perform MagnetOff ();
-            ^^^^^^^^^^^^^^^^^^^^
-    grade `[{MagnetOff}, {MagnetOff}]` accumulates here (operation `MagnetOff`)
-    Note: the resource inequality `[{!7.5; MagnetOff}, {!7.5; MagnetOff}] <= [{[3, 5]; MagnetOff}, {[3, 5]; MagnetOff}]` does not hold
-  
-  File "../examples/opentrons/purification_reject.tpe", lines 143-149, characters 2-30:
-  143 |   unbox warm as samples in
+  File "../examples/opentrons/purification_reject.tpe", lines 129-135, characters 2-30:
+  129 |   unbox warm as samples in
           ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `warm` is unboxed with grade `[{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}, {!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}]` accumulated since it was bound, which is not below its box grade `[{0}, {40}]`
-    File "../examples/opentrons/purification_reject.tpe", line 138, characters 25-29:
-    138 |   box [0, 40] samples as warm in
+    File "../examples/opentrons/purification_reject.tpe", line 124, characters 25-29:
+    124 |   box [0, 40] samples as warm in
                                    ^^^^
     `warm` is bound here
-    File "../examples/opentrons/purification_reject.tpe", lines 140-141, characters 4-75:
-    140 |     collect
+    File "../examples/opentrons/purification_reject.tpe", lines 126-127, characters 4-75:
+    126 |     collect
               ^^^^^^^
     grade `[{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}, {!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}]` accumulates here (this computation)
     Note: the resource inequality `[{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}, {!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}] <= [{0}, {40}]` does not hold
   
-  File "../examples/opentrons/purification_reject.tpe", line 162, characters 34-44:
-  162 |   let collected = collect (elute (final_wash (clear (separate binding)))) in
+  File "../examples/opentrons/purification_reject.tpe", line 148, characters 34-44:
+  148 |   let collected = collect (elute (final_wash (clear (separate binding)))) in
                                           ^^^^^^^^^^
   Typing error: The resource inequality `[{AddEthanol; ![0.5, 1.5]; RemoveEthanol}, {AddEthanol; ![0.5, 1.5]; RemoveEthanol}] <= [{AddEthanol; ![0.5, 1.5]}, {AddEthanol; ![0.5, 1.5]}]` does not hold
-    File "../examples/opentrons/purification_reject.tpe", lines 74-80, characters 0-31:
-    74 | let final_wash (rinsing : [{AddEthanol; ![1/2, 3/2]; RemoveEthanol}]beads) =
+    File "../examples/opentrons/purification_reject.tpe", lines 73-79, characters 0-31:
+    73 | let final_wash (rinsing : [{AddEthanol; ![1/2, 3/2]; RemoveEthanol}]beads) =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `final_wash` is defined here
-    File "../examples/opentrons/purification_reject.tpe", line 162, characters 46-51:
-    162 |   let collected = collect (elute (final_wash (clear (separate binding)))) in
+    File "../examples/opentrons/purification_reject.tpe", line 148, characters 46-51:
+    148 |   let collected = collect (elute (final_wash (clear (separate binding)))) in
                                                         ^^^^^
     the inequality goes through the type of `clear` here
   
-  File "../examples/opentrons/purification_reject.tpe", lines 182-184, characters 2-52:
-  182 |   unbox soaking as beads in
+  File "../examples/opentrons/purification_reject.tpe", lines 168-170, characters 2-52:
+  168 |   unbox soaking as beads in
           ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `soaking` is unboxed with grade `[{AddEthanol; MagnetOff; !0.5}, {AddEthanol; MagnetOff; !0.5}]` accumulated since it was bound, which is not below its box grade `[{AddEthanol; ![0.5, 1.5]}, {AddEthanol; ![0.5, 1.5]}]`
-    File "../examples/opentrons/purification_reject.tpe", line 178, characters 21-28:
-    178 | let wash_off_magnet (soaking : [{AddEthanol; ![1/2, 3/2]}]beads) =
+    File "../examples/opentrons/purification_reject.tpe", line 164, characters 21-28:
+    164 | let wash_off_magnet (soaking : [{AddEthanol; ![1/2, 3/2]}]beads) =
                                ^^^^^^^
     `soaking` is bound here
-    File "../examples/opentrons/purification_reject.tpe", line 179, characters 2-23:
-    179 |   perform AddEthanol ();
+    File "../examples/opentrons/purification_reject.tpe", line 165, characters 2-23:
+    165 |   perform AddEthanol ();
             ^^^^^^^^^^^^^^^^^^^^^
     grade `[{AddEthanol}, {AddEthanol}]` accumulates here (operation `AddEthanol`)
-    File "../examples/opentrons/purification_reject.tpe", line 180, characters 2-22:
-    180 |   perform MagnetOff ();
+    File "../examples/opentrons/purification_reject.tpe", line 166, characters 2-22:
+    166 |   perform MagnetOff ();
             ^^^^^^^^^^^^^^^^^^^^
     grade `[{MagnetOff}, {MagnetOff}]` accumulates here (operation `MagnetOff`)
-    File "../examples/opentrons/purification_reject.tpe", line 181, characters 2-11:
-    181 |   delay 1/2;
+    File "../examples/opentrons/purification_reject.tpe", line 167, characters 2-11:
+    167 |   delay 1/2;
             ^^^^^^^^^
     grade `[{!0.5}, {!0.5}]` accumulates here (delay)
     Note: the resource inequality `[{AddEthanol; MagnetOff; !0.5}, {AddEthanol; MagnetOff; !0.5}] <= [{AddEthanol; ![0.5, 1.5]}, {AddEthanol; ![0.5, 1.5]}]` does not hold
@@ -1284,9 +1266,6 @@ tests show those runs in detail.
   State: [
     { resource_0 ↦
         "beads"
-        # [{!_* & ~(_*; MagnetOff; (_ & ~MagnetOn)*; (RemoveLiquid | Wash | Transfer); _*)}, {!_* & ~(_*; MagnetOff; (_ & ~MagnetOn)*; (RemoveLiquid | Wash | Transfer); _*)}],
-      resource_1 ↦
-        "beads"
         # [{AddBeads; ![5, 10]; MagnetOn}, {AddBeads; ![5, 10]; MagnetOn}]
     },
     [{!2}, {!2}],
@@ -1294,7 +1273,7 @@ tests show those runs in detail.
     [{!1}, {!1}],
     [{!3}, {!3}],
     [{!2}, {!2}],
-    { resource_2 ↦
+    { resource_1 ↦
         "beads"
         # [{Wash; ChangeTip; Wash; !2; ChangeTip}, {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}]
     },
@@ -1307,6 +1286,7 @@ tests show those runs in detail.
     [{!1}, {!1}],
     [{!2}, {!2}],
     [{!1}, {!1}],
+    { resource_2 ↦ "eluates" # [{![2, 5]}, {![2, 5]}] },
     [{!3}, {!3}],
     [{!2}, {!2}]
   ]
@@ -1314,27 +1294,12 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/washes_reject.tpe
   ======================================================================
-  File "../examples/opentrons/washes_reject.tpe", lines 38-39, characters 2-21:
-  38 |   unbox washed as beads in
-         ^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `washed` is unboxed with grade `[{Wash; !3; ChangeTip}, {Wash; !3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Wash; ChangeTip; Wash; !2; ChangeTip}, {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}]`
-    File "../examples/opentrons/washes_reject.tpe", line 34, characters 64-70:
-    34 |        {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}] beads as washed in
-                                                                         ^^^^^^
-    `washed` is bound here
-    File "../examples/opentrons/washes_reject.tpe", line 35, characters 2-17:
-    35 |   perform Wash ();
-           ^^^^^^^^^^^^^^^
-    grade `[{Wash}, {Wash}]` accumulates here (operation `Wash`)
-    File "../examples/opentrons/washes_reject.tpe", line 36, characters 2-9:
-    36 |   delay 3;
-           ^^^^^^^
-    grade `[{!3}, {!3}]` accumulates here (delay)
-    File "../examples/opentrons/washes_reject.tpe", line 37, characters 2-22:
-    37 |   perform ChangeTip ();
-           ^^^^^^^^^^^^^^^^^^^^
-    grade `[{ChangeTip}, {ChangeTip}]` accumulates here (operation `ChangeTip`)
-    Note: the resource inequality `[{Wash; !3; ChangeTip}, {Wash; !3; ChangeTip}] <= [{Wash; ChangeTip; Wash; !2; ChangeTip}, {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}]` does not hold
+  File "../examples/opentrons/washes_reject.tpe", lines 32-37, characters 4-31:
+  32 |     : unit # {(Wash; ChangeTip)*} =
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `[{0 | Wash; (Wash; ChangeTip)*}, {0 | Wash; (Wash; ChangeTip)*}]`, which does not match its annotated grade `[{(Wash; ChangeTip)*}, {(Wash; ChangeTip)*}]`
+    Note: the effect inequality `[{0 | Wash; (Wash; ChangeTip)*}, {0 | Wash; (Wash; ChangeTip)*}] <= [{(Wash; ChangeTip)*}, {(Wash; ChangeTip)*}]` does not hold
+    Note: the grade `[{0 | Wash; (Wash; ChangeTip)*}, {Wash}]` is below `[{0 | Wash; (Wash; ChangeTip)*}, {0 | Wash; (Wash; ChangeTip)*}]` but not below `[{(Wash; ChangeTip)*}, {(Wash; ChangeTip)*}]`
   ======================================================================
   ../examples/regular/upper_bounds.tpe
   ======================================================================

@@ -64,8 +64,8 @@ default ChangeTip () = delay 1
 operation AddBuffer : tip * column ~> unit # (1, Low)
 default AddBuffer (t, column) = delay 1
 
-operation AddMix : tip * column ~> unit # (1, Low)
-default AddMix (t, column) = delay 1
+operation AddMix : tip * (reagent * column) ~> unit # (1, Low)
+default AddMix (t, (mix, column)) = delay 1
 
 operation AddWater : tip * column ~> unit # (1, Low)
 default AddWater (t, column) = delay 1
@@ -95,8 +95,9 @@ let new_tip () =
 (* Correctly accepted by the typechecker: one clean tip dispenses the buffer
    into both columns, each step of the dilution series has a new tip, another
    clean tip dispenses the master mix into the four columns of the final
-   plate, each dilution is transferred into it with a new tip, and the water
-   control, added last, has a new clean one. *)
+   plate, the box of the mix releasing it to each dispensing within 30
+   minutes of its preparation, each dilution is transferred into it with a
+   new tip, and the water control, added last, has a new clean one. *)
 let ddpcr () =
   let mix = perform PrepareMix () in
   let buffer_tip = new_tip () in
@@ -113,16 +114,19 @@ let ddpcr () =
   let dilution_tip = new_tip () in
   unbox dilution_tip as t in
   perform Dilute (t, (2, 3));
-  unbox mix as m in
   let mix_tip = new_tip () in
+  unbox mix as m in
   unbox mix_tip as t in
-  perform AddMix (t, 1);
+  perform AddMix (t, (m, 1));
+  unbox mix as m in
   unbox mix_tip as t in
-  perform AddMix (t, 2);
+  perform AddMix (t, (m, 2));
+  unbox mix as m in
   unbox mix_tip as t in
-  perform AddMix (t, 3);
+  perform AddMix (t, (m, 3));
+  unbox mix as m in
   unbox mix_tip as t in
-  perform AddMix (t, 4);
+  perform AddMix (t, (m, 4));
   let transfer_tip = new_tip () in
   unbox transfer_tip as t in
   perform AddDilution (t, (1, 1));
