@@ -16,13 +16,15 @@
     [s = s₀ o₁ s₁ ⋯ oₙ sₙ] and [t = t₀ o₁ t₁ ⋯ oₙ tₙ], the operations [oᵢ]
     matched, such that the weight of each [sᵢ] is at most the duration of [tᵢ];
     and a trace [t] covers a guarantee [s], [s ≼ᶜ t], iff they so factor with
-    each [sᵢ] a delay at most the weight of [tᵢ]. The downward closure of a
-    language [M] is [↓M = {s | s ≼ᵃ t for some t ∈ M}] and its upward closure
-    [↑M = {s | t ≼ᶜ s for some t ∈ M}]. Neither is in general a timed regular
-    language: with [c(A) = 1], the words [d A e] of [↓{3}] are those with
-    [d + 1 + e ≤ 3], which no automaton over finitely many sets of delays tells
-    apart for every [d]. Inclusion in a closure is therefore decided relative to
-    the language included.
+    each [sᵢ] a delay at most the weight of [tᵢ]. Under the rigid allowance
+    order, [s ≼ʳ t] iff they so factor with each [tᵢ] a delay: every operation
+    of [t] is matched. The downward closure of a language [M] is
+    [↓M = {s | s ≼ᵃ t for some t ∈ M}], [↓ʳM] likewise under [≼ʳ], and its
+    upward closure [↑M = {s | t ≼ᶜ s for some t ∈ M}]. Neither is in general a
+    timed regular language: with [c(A) = 1], the words [d A e] of [↓{3}] are
+    those with [d + 1 + e ≤ 3], which no automaton over finitely many sets of
+    delays tells apart for every [d]. Inclusion in a closure is therefore
+    decided relative to the language included.
 
     {2 Extremal values}
 
@@ -58,6 +60,12 @@
     finite supremum admits, where an infinite one does, is set to infinity, so
     that the configurations reached relative to [L] are finite in number.
 
+    [↓ʳM] is recognised by the same reader with a segment of [M] a single delay:
+    an operation is matched from a state [q] of weight within the set of delays
+    of a transition of [q], by its supremum, to the operation state it leads to,
+    and a configuration is accepting iff some weight is within the set of delays
+    of a transition of its state to a final state.
+
     [↑M] is recognised dually: the configuration maps each gap state of [M] to
     the greatest weight read since the last matched operation, every operation
     of the guarantee being matched, so that a segment of the guarantee is a
@@ -86,14 +94,16 @@ type world = (string * DelaySet.extremum) list
     {!min_weight}. *)
 
 val allowance :
+  rigid:bool ->
   world ->
   DelayAutomaton.t ->
   DelayAutomaton.t ->
   DelayAutomaton.symbol list option
-(** [allowance world l m] is [None] if every word of [l] over [world] is in
-    [↓m], and otherwise such a word outside [↓m], in gap form, its operations
-    single names of [world], shortest in its number of symbols. The results are
-    tabulated by the arguments in a module-level table that only ever grows. *)
+(** [allowance ~rigid world l m] is [None] if every word of [l] over [world] is
+    in [↓m], [↓ʳm] if [rigid], and otherwise such a word outside it, in gap
+    form, its operations single names of [world], shortest in its number of
+    symbols. The results are tabulated by the arguments in a module-level table
+    that only ever grows. *)
 
 val coverage :
   world ->
@@ -103,9 +113,11 @@ val coverage :
 (** [coverage world l m] is [None] if every word of [l] over [world] is in [↑m],
     and otherwise such a word outside [↑m], as {!allowance}. *)
 
-val permits : world -> DelayAutomaton.t -> DelayAutomaton.symbol list -> bool
-(** [permits world m w] is whether the word [w], its operations single names of
-    [world], is in [↓m], by the reader of [↓m] in exact arithmetic. *)
+val permits :
+  rigid:bool -> world -> DelayAutomaton.t -> DelayAutomaton.symbol list -> bool
+(** [permits ~rigid world m w] is whether the word [w], its operations single
+    names of [world], is in [↓m], [↓ʳm] if [rigid], by its reader in exact
+    arithmetic. *)
 
 val covers : world -> DelayAutomaton.t -> DelayAutomaton.symbol list -> bool
 (** [covers world m w] is whether the word [w], its operations single names of
@@ -156,21 +168,25 @@ val of_automaton : string list -> DelayAutomaton.t -> graph
 (** The decisions on graphs over the names of [world], each as the function of
     the same name on the graphs of the automata. *)
 module Graph : sig
-  val allowance : world -> graph -> graph -> DelayAutomaton.symbol list option
+  val allowance :
+    rigid:bool -> world -> graph -> graph -> DelayAutomaton.symbol list option
   (** As {!allowance}, untabulated. *)
 
   val coverage : world -> graph -> graph -> DelayAutomaton.symbol list option
   (** As {!coverage}, untabulated. *)
 
-  val in_allowance : world -> graph -> graph -> bool
-  (** [in_allowance world l m] is whether every word of [l] is in [↓m]: the
-      search of {!allowance} without its concretisation. *)
+  val in_allowance : rigid:bool -> world -> graph -> graph -> bool
+  (** [in_allowance ~rigid world l m] is whether every word of [l] is in [↓m],
+      [↓ʳm] if [rigid]: the search of {!allowance} without its concretisation.
+  *)
 
   val in_coverage : world -> graph -> graph -> bool
   (** [in_coverage world l m] is whether every word of [l] is in [↑m], as
       {!in_allowance}. *)
 
-  val permits : world -> graph -> DelayAutomaton.symbol list -> bool
+  val permits :
+    rigid:bool -> world -> graph -> DelayAutomaton.symbol list -> bool
+
   val covers : world -> graph -> DelayAutomaton.symbol list -> bool
   val max_weight : world -> graph -> (Rational.t * bool) option
   val min_weight : world -> graph -> (Rational.t * bool) option

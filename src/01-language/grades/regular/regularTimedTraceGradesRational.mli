@@ -17,9 +17,14 @@
       every trace of [ρ] covers some trace of [ρ'], i.e. [ρ ⊆ ↑ρ'], operations
       counting at their lower running-time bound [lo];
     - intervals, ["regex-timed-interval-rational-symbolic"]: closed intervals of
-      a lower and an upper bound, compared componentwise.
+      a lower and an upper bound, compared componentwise;
+    - rigid upper bounds and intervals,
+      ["regex-timed-rigid-upper-bound-rational-symbolic"] and
+      ["regex-timed-rigid-interval-rational-symbolic"]: as the upper bounds and
+      intervals, in the rigid allowance order of {!DelayTimedClosure}, so that
+      [ρ ≾ ρ'] iff [ρ ⊆ ↓ʳρ']; the unit [{0}] is not least.
 
-    Both are preorders, [equal] being mutual [≾]: if [Read] declares
+    All are preorders, [equal] being mutual [≾]: if [Read] declares
     [within [1/2, 3/2]], then [{Read} ≾ {3/2}] but not conversely under the
     upper order, and [{Read | 1/2} ≡ {1/2}] under the lower order. Products and
     joins are those of languages, monotone in the orders. The orders are exact
@@ -104,6 +109,20 @@ module Interval :
     with type t = RegularTraceGradeRational.t * RegularTraceGradeRational.t
      and type Delay.t = Delay.Rational.t
 
+(** The upper bounds and the intervals in the rigid allowance order, named with
+    ["rigid-"] after ["regex-timed-"]. *)
+module Rigid : sig
+  module Upper :
+    Grade.S
+      with type t = RegularTraceGradeRational.t
+       and type Delay.t = Delay.Rational.t
+
+  module Interval :
+    Grade.S
+      with type t = RegularTraceGradeRational.t * RegularTraceGradeRational.t
+       and type Delay.t = Delay.Rational.t
+end
+
 (** The same grades over {!RegularTraceGradeRational.Automata}, decided on the
     automata of the grades by {!DelayTimedClosure.allowance} and
     {!DelayTimedClosure.coverage}, the events of a grade being the names its
@@ -127,4 +146,20 @@ module Automata : sig
         RegularTraceGradeRational.Automata.t
         * RegularTraceGradeRational.Automata.t
        and type Delay.t = Delay.Rational.t
+
+  (** The upper bounds and the intervals in the rigid allowance order, named
+      with ["rigid-"] after ["regex-timed-"]. *)
+  module Rigid : sig
+    module Upper :
+      Grade.S
+        with type t = RegularTraceGradeRational.Automata.t
+         and type Delay.t = Delay.Rational.t
+
+    module Interval :
+      Grade.S
+        with type t =
+          RegularTraceGradeRational.Automata.t
+          * RegularTraceGradeRational.Automata.t
+         and type Delay.t = Delay.Rational.t
+  end
 end

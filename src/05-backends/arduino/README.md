@@ -89,7 +89,8 @@ The descriptor maps each grade system the package supports to a file of
 declarations, and may name a file of definitions, types and functions shared
 by all of them, such as the tilt filters of `m5-imu`. Every package is
 declared under `time-interval-rational`, under the regular expressions of
-timed operations over rational delays (`regex-timed-*-rational-symbolic`) and
+timed operations over rational delays (`regex-timed-*-rational-symbolic`),
+their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
 `event-separation`, with running-time bounds in milliseconds, and under
 `counts-upper-bound`, each call counting once.
 
@@ -322,8 +323,9 @@ as one expression, which is both bounds:
 
 A box grade without delays therefore excludes every operation it does not
 name, while a box grade with a delay bounds the time but not the operations
-within it. These guarantees are relative to the declared bounds of the
-operations.
+within it. Under the rigid variants, an upper bound alone demands its
+operations, in its order. These guarantees are relative to the declared bounds
+of the operations.
 
 ## Monitors
 

@@ -1,0 +1,32 @@
+(* Run this test with the 'traces-timed-rigid-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-rigid-upper-bound \
+       tests/traces_rigid_upper_reject.tpe
+
+   Rejected under the 'traces-timed-rigid-upper-bound' grading monoid: every
+   operation of a bound is matched, in order; the first definition is
+   accepted, the second rejected. *)
+
+type token = Token of string
+
+operation Heat : unit ~> unit # {Heat} within [2, 4]
+operation Cool : unit ~> unit # {Cool} within [1, 2]
+operation Log : unit ~> unit # {Log} within [1, 1]
+
+(* A log bought within the delay between heating and cooling. *)
+let logged () =
+  box {Heat; 3; Cool} (Token "l") as l in
+  perform Heat ();
+  perform Log ();
+  delay 2;
+  perform Cool ();
+  unbox l as tok in
+  tok
+
+(* The cooling of the bound is not left out. *)
+let uncooled () =
+  box {Heat; 3; Cool} (Token "u") as u in
+  perform Heat ();
+  delay 3;
+  unbox u as tok in
+  tok

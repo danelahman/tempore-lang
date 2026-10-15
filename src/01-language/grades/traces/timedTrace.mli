@@ -101,13 +101,17 @@ module Make (D : Delay.MONUS) : sig
     include Base (D)
   end
 
-  val allowance : (string -> D.t) -> D.t -> trace -> trace -> bool
-  (** [allowance running_time k s t] decides the allowance order at budget [k]:
-      the bound [t] permits the trace [s], given [k] units of budget already
-      banked. Budget comes from the bound's delays and is spent on the trace's
-      delays and on operations the bound does not name, at their [running_time];
-      a matched operation resets the budget, so slack the bound offers before an
-      operation it names is spent before that operation or not at all. *)
+  val allowance : rigid:bool -> (string -> D.t) -> D.t -> trace -> trace -> bool
+  (** [allowance ~rigid running_time k s t] decides the allowance order at
+      budget [k]: the bound [t] permits the trace [s], given [k] units of budget
+      already banked. Budget comes from the bound's delays and is spent on the
+      trace's delays and on operations the bound does not name, at their
+      [running_time]; a matched operation resets the budget, so slack the bound
+      offers before an operation it names is spent before that operation or not
+      at all. The operations of [t] may be left out, contributing nothing,
+      unless [rigid]: the rigid allowance order matches every operation of [t],
+      in order, so that [s = s₀ o₁ s₁ ⋯ oₙ sₙ] for [t = d₀ o₁ d₁ ⋯ oₙ dₙ] in gap
+      form, the weight of each [sᵢ] at most [dᵢ]. *)
 
   val coverage : (string -> D.t) -> D.t -> trace -> trace -> bool
   (** [coverage running_time k s t] decides the coverage order at budget [k]:
@@ -118,11 +122,11 @@ module Make (D : Delay.MONUS) : sig
       itself discharges a demand for an operation, which is what a guarantee
       wants and what makes this order not the converse of {!allowance}. *)
 
-  val upper_bound_le : (string -> D.t) -> traces -> traces -> bool
-  (** [upper_bound_le running_time p q] is the Hoare lift of the allowance
-      order, the order of the lower powerdomain: every bound listed by [p] stays
-      within some bound listed by [q]. This is the sub-grade order of the
-      upper-bound (right-sided) grade. *)
+  val upper_bound_le : rigid:bool -> (string -> D.t) -> traces -> traces -> bool
+  (** [upper_bound_le ~rigid running_time p q] is the Hoare lift of the
+      allowance order, rigid if [rigid], the order of the lower powerdomain:
+      every bound listed by [p] stays within some bound listed by [q]. This is
+      the sub-grade order of the upper-bound (right-sided) grade. *)
 
   val lower_bound_le : (string -> D.t) -> traces -> traces -> bool
   (** [lower_bound_le running_time p q] is the Smyth lift of the coverage order,

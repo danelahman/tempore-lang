@@ -50,8 +50,15 @@ module Bounded (D : Delay.S) = struct
   let show = function Within p -> Sets.show p | Unbounded -> "⊤"
 end
 
+(** The allowance order of the upper bounds, and the infix of their names. *)
+module type ORDER = sig
+  val rigid : bool
+  val infix : string
+end
+
 module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
   module Trace = TimedTrace.Make (D)
+  module Sets = Bounded (D)
 
   (* The running times of an operation in the coverage and the allowance orders:
      the values of the ends of its running-time bounds. The delays of a bound
@@ -95,24 +102,6 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let accepts = reads_lit of_lit
   end
 
-  (** Sets of traces read as upper bounds, in the allowance order, with a
-      separate greatest point [Unbounded]. *)
-  module UpperTraces = struct
-    include Bounded (D)
-
-    let of_lit = of_lit ~number:N.number
-    let accepts = reads_lit of_lit
-
-    (** Allowance order lifted to sets: every bound listed on the left stays
-        within some bound listed on the right. An operation's [hi] bound is what
-        its running time when bought with banked time. *)
-    let leq bounds p q =
-      match (p, q) with
-      | _, Unbounded -> true
-      | Unbounded, Within _ -> false
-      | Within p, Within q -> Trace.upper_bound_le (hi_running_time bounds) p q
-  end
-
   (** [extremal_duration ~lower running_time p] is the infimum of the durations
       of the traces of [p] if [lower], and their supremum otherwise, each
       operation lasting the end [running_time] of its running-time bounds,
@@ -143,9 +132,8 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     Some
       ( extremal_duration ~lower:true (running_time fst) lo,
         match hi with
-        | UpperTraces.Within hi ->
-            extremal_duration ~lower:false (running_time snd) hi
-        | UpperTraces.Unbounded -> Unbounded )
+        | Sets.Within hi -> extremal_duration ~lower:false (running_time snd) hi
+        | Sets.Unbounded -> Unbounded )
 
   let atomic_traces name = [ [ Trace.Ev name ] ]
 
@@ -168,7 +156,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let events = Trace.events
 
     let duration_bounds bounds p =
-      trace_duration_bounds bounds p (UpperTraces.Within p)
+      trace_duration_bounds bounds p (Sets.Within p)
 
     let inhabited _bounds _ = true
     let of_delay = Trace.of_delay
@@ -178,109 +166,144 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let witnesses ~degree:_ _bounds = sampled mul
   end
 
-  module UpperBound = struct
-    include UpperTraces
-    module Delay = D
+  (** The upper bounds and the intervals, in the allowance order, rigid if
+      [O.rigid], named with the infix [O.infix]. *)
+  module Uppers (O : ORDER) = struct
+    (** Sets of traces read as upper bounds, in the allowance order, rigid if
+        [O.rigid], with a separate greatest point [Unbounded]. *)
+    module UpperTraces = struct
+      include Sets
 
-    let name = "traces-timed-upper-bound" ^ N.suffix
-    let leq_symbol = "<="
-    let top = Unbounded
-    let equal bounds p q = leq bounds p q && leq bounds q p
-    let counterexample _bounds _ _ = None
-    let unit_least = true
-    let commutative = false
-    let needs_op_bounds = true
+      let of_lit = of_lit ~number:N.number
+      let accepts = reads_lit of_lit
 
-    let duration_bounds bounds = function
-      | Within p -> trace_duration_bounds bounds p (Within p)
-      | Unbounded -> Some (Closed Rational.zero, Unbounded)
+      (** Allowance order lifted to sets: every bound listed on the left stays
+          within some bound listed on the right. An operation's [hi] bound is
+          what its running time when bought with banked time. *)
+      let leq bounds p q =
+        match (p, q) with
+        | _, Unbounded -> true
+        | Unbounded, Within _ -> false
+        | Within p, Within q ->
+            Trace.upper_bound_le ~rigid:O.rigid (hi_running_time bounds) p q
+    end
 
-    let inhabited _bounds _ = true
-    let of_bounds b = Within (Trace.of_delay (snd (hull b)))
-    let is_atomic name p = compare p (Within (atomic_traces name)) = 0
-    let witnesses ~degree:_ _bounds = sampled mul
+    module UpperBound = struct
+      include UpperTraces
+      module Delay = D
+
+      let name = "traces-timed-" ^ O.infix ^ "upper-bound" ^ N.suffix
+      let leq_symbol = "<="
+      let top = Unbounded
+      let equal bounds p q = leq bounds p q && leq bounds q p
+      let counterexample _bounds _ _ = None
+      let unit_least = not O.rigid
+      let commutative = false
+      let needs_op_bounds = true
+
+      let duration_bounds bounds = function
+        | Within p -> trace_duration_bounds bounds p (Within p)
+        | Unbounded -> Some (Closed Rational.zero, Unbounded)
+
+      let inhabited _bounds _ = true
+      let of_bounds b = Within (Trace.of_delay (snd (hull b)))
+      let is_atomic name p = compare p (Within (atomic_traces name)) = 0
+      let witnesses ~degree:_ _bounds = sampled mul
+    end
+
+    module Interval = struct
+      type t = LowerTraces.t * UpperTraces.t
+
+      module Delay = D
+
+      let name = "traces-timed-" ^ O.infix ^ "interval" ^ N.suffix
+      let one = (LowerTraces.one, UpperTraces.one)
+
+      let mul (lo, hi) (lo', hi') =
+        (Trace.product lo lo', UpperTraces.mul hi hi')
+
+      let leq bounds (lo, hi) (lo', hi') =
+        LowerTraces.leq bounds lo lo' && UpperTraces.leq bounds hi hi'
+
+      let leq_symbol = "<="
+
+      (** The weakest guarantee under an unbounded allowance. *)
+      let top = (LowerTraces.top, UpperTraces.Unbounded)
+
+      let join (lo, hi) (lo', hi') =
+        (LowerTraces.join lo lo', UpperTraces.join hi hi')
+
+      let equal bounds p q = leq bounds p q && leq bounds q p
+
+      let is_top bounds (lo, hi) =
+        LowerTraces.is_top bounds lo && UpperTraces.is_top bounds hi
+
+      let compare (lo, hi) (lo', hi') =
+        match LowerTraces.compare lo lo' with
+        | 0 -> UpperTraces.compare hi hi'
+        | c -> c
+
+      let hash (lo, hi) =
+        Hashing.combine (LowerTraces.hash lo) (UpperTraces.hash hi)
+
+      let counterexample _bounds _ _ = None
+      let unit_least = false
+      let commutative = false
+      let needs_op_bounds = true
+
+      let events (lo, hi) =
+        List.sort_uniq String.compare (Trace.events lo @ UpperTraces.events hi)
+
+      let duration_bounds bounds (lo, hi) = trace_duration_bounds bounds lo hi
+      let inhabited _bounds _ = true
+
+      (** [diagonal lit] is the pair of the set of traces [lit] denotes with
+          itself. *)
+      let diagonal lit =
+        let ts = traces_of_lit lit in
+        (ts, UpperTraces.Within ts)
+
+      let of_lit = function
+        | Top -> top
+        | Braces _ as lit -> diagonal lit
+        | lit when Option.is_some (Trace.number lit) -> diagonal lit
+        | lit ->
+            bounds_of_lit lit ~number:Trace.number ~close:N.close
+              ~lower:LowerTraces.of_lit ~upper:UpperTraces.of_lit
+              ~unbounded:UpperTraces.Unbounded ~bounds:"sets of traces"
+
+      let accepts = reads_lit of_lit
+
+      let of_delay d =
+        let ts = Trace.of_delay d in
+        (ts, UpperTraces.Within ts)
+
+      let of_bounds b =
+        let lo, hi = hull b in
+        (Trace.of_delay lo, UpperTraces.Within (Trace.of_delay hi))
+
+      let is_atomic name (lo, hi) =
+        LowerBound.is_atomic name lo && UpperBound.is_atomic name hi
+
+      let show (lo, hi) =
+        show_bounds (Trace.show lo)
+          (match hi with
+          | UpperTraces.Within p -> Some (Trace.show p)
+          | UpperTraces.Unbounded -> None)
+
+      let witnesses ~degree:_ _bounds = sampled mul
+    end
   end
 
-  module Interval = struct
-    type t = LowerTraces.t * UpperTraces.t
+  include Uppers (struct
+    let rigid = false
+    let infix = ""
+  end)
 
-    module Delay = D
-
-    let name = "traces-timed-interval" ^ N.suffix
-    let one = (LowerTraces.one, UpperTraces.one)
-    let mul (lo, hi) (lo', hi') = (Trace.product lo lo', UpperTraces.mul hi hi')
-
-    let leq bounds (lo, hi) (lo', hi') =
-      LowerTraces.leq bounds lo lo' && UpperTraces.leq bounds hi hi'
-
-    let leq_symbol = "<="
-
-    (** The weakest guarantee under an unbounded allowance. *)
-    let top = (LowerTraces.top, UpperTraces.Unbounded)
-
-    let join (lo, hi) (lo', hi') =
-      (LowerTraces.join lo lo', UpperTraces.join hi hi')
-
-    let equal bounds p q = leq bounds p q && leq bounds q p
-
-    let is_top bounds (lo, hi) =
-      LowerTraces.is_top bounds lo && UpperTraces.is_top bounds hi
-
-    let compare (lo, hi) (lo', hi') =
-      match LowerTraces.compare lo lo' with
-      | 0 -> UpperTraces.compare hi hi'
-      | c -> c
-
-    let hash (lo, hi) =
-      Hashing.combine (LowerTraces.hash lo) (UpperTraces.hash hi)
-
-    let counterexample _bounds _ _ = None
-    let unit_least = false
-    let commutative = false
-    let needs_op_bounds = true
-
-    let events (lo, hi) =
-      List.sort_uniq String.compare (Trace.events lo @ UpperTraces.events hi)
-
-    let duration_bounds bounds (lo, hi) = trace_duration_bounds bounds lo hi
-    let inhabited _bounds _ = true
-
-    (** [diagonal lit] is the pair of the set of traces [lit] denotes with
-        itself. *)
-    let diagonal lit =
-      let ts = traces_of_lit lit in
-      (ts, UpperTraces.Within ts)
-
-    let of_lit = function
-      | Top -> top
-      | Braces _ as lit -> diagonal lit
-      | lit when Option.is_some (Trace.number lit) -> diagonal lit
-      | lit ->
-          bounds_of_lit lit ~number:Trace.number ~close:N.close
-            ~lower:LowerTraces.of_lit ~upper:UpperTraces.of_lit
-            ~unbounded:UpperTraces.Unbounded ~bounds:"sets of traces"
-
-    let accepts = reads_lit of_lit
-
-    let of_delay d =
-      let ts = Trace.of_delay d in
-      (ts, UpperTraces.Within ts)
-
-    let of_bounds b =
-      let lo, hi = hull b in
-      (Trace.of_delay lo, UpperTraces.Within (Trace.of_delay hi))
-
-    let is_atomic name (lo, hi) =
-      LowerBound.is_atomic name lo && UpperBound.is_atomic name hi
-
-    let show (lo, hi) =
-      show_bounds (Trace.show lo)
-        (match hi with
-        | UpperTraces.Within p -> Some (Trace.show p)
-        | UpperTraces.Unbounded -> None)
-
-    let witnesses ~degree:_ _bounds = sampled mul
-  end
+  module Rigid = Uppers (struct
+    let rigid = true
+    let infix = "rigid-"
+  end)
 end
 
 include

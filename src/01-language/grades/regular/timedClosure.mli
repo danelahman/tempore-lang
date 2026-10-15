@@ -22,15 +22,18 @@
     matched, such that the weight of each [sᵢ] is at most the number of ticks of
     [tᵢ]; and a trace [t] covers a guarantee [s], [s ≼ᶜ t], iff they so factor
     with each [sᵢ] a word of ticks whose length is at most the weight of [tᵢ].
+    Under the rigid allowance order, [s ≼ʳ t] iff they factor so that every
+    operation of [t] is matched, each [tᵢ] a word of ticks.
 
     {2 Closures}
 
     The downward closure of a language [M] is [↓M = {s | s ≼ᵃ t for some t ∈ M}]
-    and its upward closure [↑M = {s | t ≼ᶜ s for some t ∈ M}]. Both are regular.
-    They are returned as implicit automata over sets of states of an automaton
-    of [M], as sorted lists, explored only as far as a search needs; their
-    determinisation is exponential in the worst case, as for the closures under
-    the scattered-subword order, a special case.
+    and its upward closure [↑M = {s | t ≼ᶜ s for some t ∈ M}]; [↓ʳM] is the
+    downward closure under [≼ʳ]. All three are regular. They are returned as
+    implicit automata over sets of states of an automaton of [M], as sorted
+    lists, explored only as far as a search needs; their determinisation is
+    exponential in the worst case, as for the closures under the
+    scattered-subword order, a special case.
 
     {2 Runs of ticks}
 
@@ -46,11 +49,12 @@
     letters, over sets of their states ordered by [State.compare]. *)
 module Allowance (State : Map.OrderedType) : sig
   val closure :
+    rigid:bool ->
     running_time:(int -> int) ->
     letters:int ->
     State.t Dfa.automaton ->
     State.t list Dfa.automaton
-  (** [closure ~running_time ~letters m] is the automaton of the downward
+  (** [closure ~rigid ~running_time ~letters m] is the automaton of the downward
       closure [↓m], by the construction [D↓]: its states are the sets [S] of
       states of [m] closed under reachability, [S] is final iff it holds a final
       state of [m], and the letter [x] of weight [w] leads from [S] to the
@@ -59,6 +63,13 @@ module Allowance (State : Map.OrderedType) : sig
       successors of [S] by [x] (matching [x]). The closure is prefix-closed, and
       all sets without a final state, which reject every word, are the empty
       set, the one dead state.
+
+      If [rigid], it is the automaton of [↓ʳm], by the same construction with
+      reachability by ticks only: [S] is closed under ticks, and [x] leads to
+      the states reachable from [S] by at least [w] ticks and, if [x] is an
+      operation, to those reachable by ticks from the successors of [S] by [x].
+      The rigid closure is not prefix-closed; a set of live states accepts some
+      word, and the empty set is the one dead state.
 
       The sets hold only live states: [dead] must hold exactly of the states of
       [m] from which no final state is reachable. A set [S] is represented by
@@ -80,9 +91,10 @@ module Allowance (State : Map.OrderedType) : sig
       successor by [x]. *)
 end
 
-val allowance : running_time:(int -> int) -> Dfa.t -> int list Dfa.automaton
-(** [allowance ~running_time m] is {!Allowance.closure} over the table of [m].
-*)
+val allowance :
+  rigid:bool -> running_time:(int -> int) -> Dfa.t -> int list Dfa.automaton
+(** [allowance ~rigid ~running_time m] is {!Allowance.closure} over the table of
+    [m]. *)
 
 (** The upward closures of the languages of implicit automata, over sets of
     their states ordered by [State.compare]. *)

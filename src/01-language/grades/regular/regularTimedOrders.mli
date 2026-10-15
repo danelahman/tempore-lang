@@ -33,17 +33,17 @@ module type WORLD = sig
   (** [world endpoint bounds rhos] is the world of a comparison of [rhos], each
       operation running for the [endpoint] of its running-time bounds. *)
 
-  val in_allowance : world -> grade -> grade -> bool
-  (** [in_allowance w rho rho'] is whether every trace of [rho] over [w] is in
-      the downward closure of [rho'] under allowance. *)
+  val in_allowance : rigid:bool -> world -> grade -> grade -> bool
+  (** [in_allowance ~rigid w rho rho'] is whether every trace of [rho] over [w]
+      is in the downward closure of [rho'] under allowance, rigid if [rigid]. *)
 
   val in_coverage : world -> grade -> grade -> bool
   (** [in_coverage w rho rho'] is whether every trace of [rho] over [w] is in
       the upward closure of [rho'] under coverage. *)
 
-  val allowance : world -> grade -> grade -> word option
-  (** [allowance w rho rho'] is a trace of [rho] over [w] outside the downward
-      closure of [rho'], if any. *)
+  val allowance : rigid:bool -> world -> grade -> grade -> word option
+  (** [allowance ~rigid w rho rho'] is a trace of [rho] over [w] outside the
+      downward closure of [rho'] under allowance, rigid if [rigid], if any. *)
 
   val coverage : world -> grade -> grade -> word option
   (** [coverage w rho rho'] is a trace of [rho] over [w] outside the upward
@@ -86,8 +86,9 @@ module type WORLD = sig
 end
 
 (** The grades over [L] in the world [W], named ["regex-timed-lower-bound"],
-    ["regex-timed-upper-bound"] and ["regex-timed-interval"], each followed by
-    [W.suffix]. *)
+    ["regex-timed-upper-bound"] and ["regex-timed-interval"], and in the rigid
+    allowance order ["regex-timed-rigid-upper-bound"] and
+    ["regex-timed-rigid-interval"], each followed by [W.suffix]. *)
 module Make
     (L : Grade.S)
     (W : WORLD with type grade = L.t and type delay = L.Delay.t) : sig
@@ -99,4 +100,16 @@ module Make
 
   (** Closed intervals of a lower and an upper bound, compared componentwise. *)
   module Interval : Grade.S with type t = L.t * L.t and type Delay.t = L.Delay.t
+
+  (** The grades in the rigid allowance order, which matches every operation of
+      a bound; the unit is not the least upper bound. *)
+  module Rigid : sig
+    (** Upper bounds, in the rigid allowance order at [hi]. *)
+    module Upper : Grade.S with type t = L.t and type Delay.t = L.Delay.t
+
+    (** Closed intervals of a lower bound, in the coverage order, and an upper
+        bound, in the rigid allowance order, compared componentwise. *)
+    module Interval :
+      Grade.S with type t = L.t * L.t and type Delay.t = L.Delay.t
+  end
 end

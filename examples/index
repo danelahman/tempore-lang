@@ -94,6 +94,10 @@ Regular expressions of timed operations | Intervals (symbolic) | regex-timed-int
 Regular expressions of timed operations | Intervals (rational, symbolic) | regex-timed-interval-rational-symbolic | regular_timed_ops/intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds, one open, and whose windows are regular lower and upper bounds with intervals of durations.
 Regular expressions of timed operations | Mail session | regex-timed-upper-bound-symbolic | regular_timed_ops/mail_session.tpe | A mail session whose retrieval and flagging loops are graded by Kleene stars of traces, with operations taking their declared running times.
 
+group | Regular expressions of timed operations, rigid | Regex (timed ops, rigid) | Regular languages of traces whose operations are demanded in order, other operations bought within their delays.
+Regular expressions of timed operations, rigid | Upper bounds (rational, symbolic) | regex-timed-rigid-upper-bound-rational-symbolic | regular_timed_rigid/upper_bounds_rational.tpe | A reaction timer in milliseconds whose start signal, time stamp and loop of polls are bounded by rigid regular upper bounds, a redraw bought only within a delay that pays for it.
+Regular expressions of timed operations, rigid | Intervals (rational, symbolic) | regex-timed-rigid-interval-rational-symbolic | regular_timed_rigid/intervals_rational.tpe | A reaction window in milliseconds demanding at least three polls and allowing nothing but polls at most 2.5 milliseconds apart.
+
 group | Security levels | Security | Levels touched, alone or with time bounds and outputs.
 Security levels | Levels | security-levels | levels/security.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
 Security levels | Embargoes | time-lower-bound-levels | levels/time_lower.tpe | A box paired with a time lower bound and a level: an embargo with a taint check.

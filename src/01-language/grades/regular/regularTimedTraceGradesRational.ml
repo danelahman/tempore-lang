@@ -20,9 +20,9 @@ let end_of_extremum (q, attained) = if attained then Closed q else Open q
 module type DECISIONS = sig
   type t
 
-  val in_allowance : Closure.world -> t -> t -> bool
+  val in_allowance : rigid:bool -> Closure.world -> t -> t -> bool
   val in_coverage : Closure.world -> t -> t -> bool
-  val allowance : Closure.world -> t -> t -> A.symbol list option
+  val allowance : rigid:bool -> Closure.world -> t -> t -> A.symbol list option
   val coverage : Closure.world -> t -> t -> A.symbol list option
   val min_weight : Closure.world -> t -> (Rational.t * bool) option
   val max_weight : Closure.world -> t -> (Rational.t * bool) option
@@ -39,9 +39,12 @@ module ByAutomata = struct
   let on decide world rho rho' =
     decide world (L.automaton rho) (L.automaton rho')
 
-  let allowance = on Closure.allowance
+  let allowance ~rigid = on (Closure.allowance ~rigid)
   let coverage = on Closure.coverage
-  let in_allowance world rho rho' = Option.is_none (allowance world rho rho')
+
+  let in_allowance ~rigid world rho rho' =
+    Option.is_none (allowance ~rigid world rho rho')
+
   let in_coverage world rho rho' = Option.is_none (coverage world rho rho')
   let min_weight world rho = Closure.min_weight world (L.automaton rho)
   let max_weight world rho = Closure.max_weight world (L.automaton rho)
@@ -110,9 +113,16 @@ module ByGaps = struct
           RationalRegex.hash (L.form rho') )
         (fun () -> f world rho rho')
 
-  let in_allowance = tabulated (on_pair Closure.Graph.in_allowance)
+  (* [by_order decide] is [decide ~rigid] for each [rigid], tabulated
+     separately. *)
+  let by_order decide =
+    let loose = tabulated (on_pair (decide ~rigid:false))
+    and rigid = tabulated (on_pair (decide ~rigid:true)) in
+    fun ~rigid:r -> if r then rigid else loose
+
+  let in_allowance = by_order Closure.Graph.in_allowance
   let in_coverage = tabulated (on_pair Closure.Graph.in_coverage)
-  let allowance = tabulated (on_pair Closure.Graph.allowance)
+  let allowance = by_order Closure.Graph.allowance
   let coverage = tabulated (on_pair Closure.Graph.coverage)
   let min_weight = on Closure.Graph.min_weight
   let max_weight = on Closure.Graph.max_weight

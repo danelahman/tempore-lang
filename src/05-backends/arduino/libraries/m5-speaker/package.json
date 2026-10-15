@@ -5,6 +5,8 @@
     "regex-timed-lower-bound-rational-symbolic": "m5_speaker_timed_ops.tpe",
     "regex-timed-upper-bound-rational-symbolic": "m5_speaker_timed_ops.tpe",
     "regex-timed-interval-rational-symbolic": "m5_speaker_timed_ops.tpe",
+    "regex-timed-rigid-upper-bound-rational-symbolic": "m5_speaker_timed_ops.tpe",
+    "regex-timed-rigid-interval-rational-symbolic": "m5_speaker_timed_ops.tpe",
     "event-separation": "m5_speaker_timed_ops.tpe",
     "counts-upper-bound": "m5_speaker_counts.tpe"
   },

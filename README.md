@@ -479,6 +479,16 @@ can be used to express such cases instead.
 See
 [`examples/traces_timed_ops/intervals_rational.tpe`](examples/traces_timed_ops/intervals_rational.tpe).
 
+The rigid variants `traces-timed-rigid-upper-bound`,
+`traces-timed-rigid-interval` and their `-rational` variants order the upper
+bounds by the rigid allowance order of
+[Rigid regular expressions of timed operations](#rigid-regular-expressions-of-timed-operations):
+an upper bound's operations are demanded, in order. With `Heat` and `Cool`
+declared with running-time bounds, `{Heat}` is below `{Heat; Cool}` under
+`traces-timed-upper-bound`, the cooling left out, but not under
+`traces-timed-rigid-upper-bound`. The lower bounds are those of
+`traces-timed-lower-bound`.
+
 ### Regular expressions
 
 A grade is a non-empty regular language of traces. The order is inclusion, the
@@ -741,6 +751,77 @@ See
 [`examples/regular_timed_ops/upper_bounds_rational.tpe`](examples/regular_timed_ops/upper_bounds_rational.tpe)
 and
 [`examples/regular_timed_ops/intervals_rational.tpe`](examples/regular_timed_ops/intervals_rational.tpe).
+
+### Rigid regular expressions of timed operations
+
+Under the upper bounds above, the operations of a bound's traces may be left
+out. A Kleene star whose round contains a delay then permits every trace: its
+rounds unrolled and their operations left out, the delays add up to any
+duration.
+
+The grading monoids `regex-timed-rigid-upper-bound-symbolic` and
+`regex-timed-rigid-interval-symbolic`, and their variants
+`regex-timed-rigid-upper-bound-rational-symbolic` and
+`regex-timed-rigid-interval-rational-symbolic`, order the upper bounds by the
+*rigid allowance order*:
+
+- every operation of a bound's trace is demanded, matched in order by the
+  program's trace;
+- the program's other operations are bought within the delay of the bound they
+  fall in, at their `hi`.
+
+A star then permits its rounds only. The literals, lower bounds, units and tops
+are those of the grades above. Further:
+
+- on bounds without delays the order is the inclusion of languages: `{Read}`
+  is not below `{Read; Log}`;
+- on bounds without operations it is the allowance order: `{Read | 3}` equals
+  `{3}` and `{~1}` is `⊤`;
+- `{0}` is not least, as it is not below `{Read}`;
+- an upper bound forbids an operation between two of its operations by giving
+  them no delay between them, and bounds what happens within a delay by its
+  length: a complement does not exclude an operation that fits in a delay, so
+  `{(_ & ~Read)*}` is still `⊤`.
+
+For example, under `regex-timed-rigid-upper-bound-rational-symbolic`, the
+program
+
+```
+operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
+operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
+operation Redraw : unit ~> unit # {Redraw} within [0.05, 33]
+
+let polls () =
+  box {(2.5; ReadImu; ReadClock)*} () as p in
+  let a = perform ReadImu () in
+  let s = perform ReadClock () in
+  delay 2.25;
+  let b = perform ReadImu () in
+  let t = perform ReadClock () in
+  unbox p as x in
+  x
+```
+
+is accepted, while `perform Redraw ()` in place of `delay 2.25` is rejected, as
+a redraw of up to `33` units does not fit in a delay of `2.5`:
+
+    Variable `p` is unboxed with grade
+    `{ReadImu; ReadClock; Redraw; ReadImu; ReadClock}` accumulated since it was
+    bound, which is not below its box grade `{(2.5; ReadImu; ReadClock)*}`
+
+Under `regex-timed-upper-bound-rational-symbolic` both are accepted. Likewise,
+under `regex-timed-rigid-interval-symbolic` the box grade
+`{_*; Wash; _*; Wash; [2, 5]; ChangeTip}` of the previous section rejects the
+gap of six ticks before `ChangeTip`.
+
+The Arduino packages declare their operations under the rational rigid grades
+too. The implementations kept for benchmarking take the suffixes of the grades
+above.
+
+See
+[`examples/regular_timed_rigid/upper_bounds_rational.tpe`](examples/regular_timed_rigid/upper_bounds_rational.tpe)
+and
+[`examples/regular_timed_rigid/intervals_rational.tpe`](examples/regular_timed_rigid/intervals_rational.tpe).
 
 ### Security levels and products
 

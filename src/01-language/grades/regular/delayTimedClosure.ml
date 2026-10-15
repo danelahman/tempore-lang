@@ -270,25 +270,57 @@ let largest values =
       | Finite (q, _) when Rational.compare q m > 0 -> q | _ -> m)
     Rational.zero values
 
+(* [entered domain rows name config] is the gap states that the automaton [a]
+   enters by [name] from an operation state [o] of a row [(t, o)] of a state
+   [q] of [config] whose weight passes [t] in [domain]: the states at which
+   [name] is matched. *)
+let entered domain (a : graph) rows name config =
+  IntMap.fold
+    (fun q x targets ->
+      List.fold_left
+        (fun targets (t, o) ->
+          if domain.passes x t then
+            List.filter_map
+              (fun (name', g) ->
+                if String.equal name' name then Some g else None)
+              a.ops.(o)
+            @ targets
+          else targets)
+        targets rows.(q))
+    config []
+
+(* [gap_rows extremum a] is, for each gap state of [a], the extremal value
+   [extremum] of the set of delays of each of its transitions, with the
+   operation state it leads to. *)
+let gap_rows extremum (a : graph) =
+  Array.map
+    (List.filter_map (fun (s, o) -> Option.map (fun t -> (t, o)) (extremum s)))
+    a.gaps
+
 (* The reader of [↓m], and a delay above every finite threshold it compares a
-   weight with: the thresholds of a gap state [q] are the suprema [τ(q, o)] of
-   the durations of the paths of [m] from [q] to each live operation state
-   [o], operation transitions lasting [0]. *)
-let allowance_reader world (a : graph) =
+   weight with. The thresholds of a gap state [q] are, for each live operation
+   state [o], the supremum [τ(q, o)] of the durations of the segments of [m]
+   from [q] to [o]: under the rigid order, the supremum of the set of delays of
+   a transition of [q] to [o], a segment being one delay of [m]; otherwise that
+   of the durations of the paths of [m] from [q] to [o], operation transitions
+   lasting [0]. *)
+let allowance_reader ~rigid world (a : graph) =
   let ng = Array.length a.gaps in
-  let edges =
-    edges
-      ~gap:(fun s -> Option.value (DelaySet.sup s) ~default:zero)
-      ~op:(Fun.const zero) a
-  in
   let segments =
-    Array.init ng (fun q ->
-        if List.is_empty a.gaps.(q) then []
-        else
-          let d = longest edges q in
-          List.filter_map
-            (fun o -> Option.map (fun t -> (t, o)) d.(ng + o))
-            (List.init (Array.length a.ops) Fun.id))
+    if rigid then gap_rows DelaySet.sup a
+    else
+      let edges =
+        edges
+          ~gap:(fun s -> Option.value (DelaySet.sup s) ~default:zero)
+          ~op:(Fun.const zero) a
+      in
+      Array.init ng (fun q ->
+          if List.is_empty a.gaps.(q) then []
+          else
+            let d = longest edges q in
+            List.filter_map
+              (fun o -> Option.map (fun t -> (t, o)) d.(ng + o))
+              (List.init (Array.length a.ops) Fun.id))
   in
   let finals =
     Array.map
@@ -305,7 +337,8 @@ let allowance_reader world (a : graph) =
      operations are not matched: [m] may continue from [p] through [q], the
      durations of the path adding to its budget. The states are visited in
      increasing order of weight, then of number, those reached from the states
-     kept being marked by depth-first search. *)
+     kept being marked by depth-first search. Under the rigid order, which
+     matches every operation of [m], it is the identity. *)
   let prune config =
     let rec mark covered = function
       | [] -> covered
@@ -313,15 +346,17 @@ let allowance_reader world (a : graph) =
           if IntSet.mem g covered then mark covered gs
           else mark (IntSet.add g covered) (successors.(g) @ gs)
     in
-    IntMap.bindings config
-    |> List.stable_sort (fun (p, x) (q, y) ->
-        match down.compare x y with 0 -> Int.compare p q | c -> c)
-    |> List.fold_left
-         (fun (kept, covered) (q, y) ->
-           if IntSet.mem q covered then (kept, covered)
-           else (IntMap.add q y kept, mark covered successors.(q)))
-         (IntMap.empty, IntSet.empty)
-    |> fst
+    if rigid then config
+    else
+      IntMap.bindings config
+      |> List.stable_sort (fun (p, x) (q, y) ->
+          match down.compare x y with 0 -> Int.compare p q | c -> c)
+      |> List.fold_left
+           (fun (kept, covered) (q, y) ->
+             if IntSet.mem q covered then (kept, covered)
+             else (IntMap.add q y kept, mark covered successors.(q)))
+           (IntMap.empty, IntSet.empty)
+      |> fst
   in
   let normalise config =
     prune
@@ -342,25 +377,11 @@ let allowance_reader world (a : graph) =
   let delay v config = normalise (IntMap.map (add v) config) in
   let operation name config =
     let bought = IntMap.map (add (running_time_of world name)) config in
-    let matched =
-      IntMap.fold
-        (fun p x targets ->
-          List.fold_left
-            (fun targets (t, o) ->
-              if down.passes x t then
-                List.filter_map
-                  (fun (name', g) ->
-                    if String.equal name' name then Some g else None)
-                  a.ops.(o)
-                @ targets
-              else targets)
-            targets segments.(p))
-        config []
-    in
     normalise
       (List.fold_left
          (fun c g -> set_weight (lesser down) g zero c)
-         bought matched)
+         bought
+         (entered down a segments name config))
   in
   ( {
       start =
@@ -377,12 +398,7 @@ let allowance_reader world (a : graph) =
    sets of delays of its transitions, a segment of a guarantee being a single
    delay of [m]. *)
 let coverage_reader world (a : graph) =
-  let gaps =
-    Array.map
-      (List.filter_map (fun (s, o) ->
-           Option.map (fun t -> (t, o)) (DelaySet.inf s)))
-      a.gaps
-  in
+  let gaps = gap_rows DelaySet.inf a in
   let normalise config =
     IntMap.filter_map
       (fun q x ->
@@ -396,25 +412,11 @@ let coverage_reader world (a : graph) =
   let delay v config = normalise (IntMap.map (add v) config) in
   let operation name config =
     let banked = IntMap.map (add (running_time_of world name)) config in
-    let matched =
-      IntMap.fold
-        (fun q x targets ->
-          List.fold_left
-            (fun targets (t, o) ->
-              if up.passes x t then
-                List.filter_map
-                  (fun (name', g) ->
-                    if String.equal name' name then Some g else None)
-                  a.ops.(o)
-                @ targets
-              else targets)
-            targets gaps.(q))
-        config []
-    in
     normalise
       (List.fold_left
          (fun c g -> set_weight (greater up) g zero c)
-         banked matched)
+         banked
+         (entered up a gaps name config))
   in
   {
     start = normalise (if a.live then IntMap.singleton 0 zero else IntMap.empty);
@@ -444,7 +446,9 @@ let reads world reader word =
          | A.Operation c -> reader.operation (operation_of world c) config)
        reader.start word)
 
-let permits world m word = reads world (fst (allowance_reader world m)) word
+let permits ~rigid world m word =
+  reads world (fst (allowance_reader ~rigid world m)) word
+
 let covers world m word = reads world (coverage_reader world m) word
 
 (* {1 The product} *)
@@ -588,8 +592,8 @@ let concretise delay rejects steps =
 (* {1 Decisions} *)
 
 module Graph = struct
-  let allowance world l m =
-    let reader, above = allowance_reader world m in
+  let allowance ~rigid world l m =
+    let reader, above = allowance_reader ~rigid world m in
     Option.map
       (concretise (highest ~above) (fun w -> not (reads world reader w)))
       (search down reader l)
@@ -600,8 +604,8 @@ module Graph = struct
       (concretise lowest (fun w -> not (reads world reader w)))
       (search up reader l)
 
-  let in_allowance world l m =
-    Option.is_none (search down (fst (allowance_reader world m)) l)
+  let in_allowance ~rigid world l m =
+    Option.is_none (search down (fst (allowance_reader ~rigid world m)) l)
 
   let in_coverage world l m =
     Option.is_none (search up (coverage_reader world m) l)
@@ -620,7 +624,7 @@ let on_automaton f world l = f world (of_automaton (names world) l)
 let max_weight = on_automaton Graph.max_weight
 let min_weight = on_automaton Graph.min_weight
 let inhabited world l = Graph.inhabited (of_automaton (names world) l)
-let permits world m = on_automaton Graph.permits world m
+let permits ~rigid world m = on_automaton (Graph.permits ~rigid) world m
 let covers world m = on_automaton Graph.covers world m
 
 module Arguments = Memo.Make (struct
@@ -651,5 +655,9 @@ let tabulated decide =
   in
   fun world l m -> decide (world, l, m)
 
-let allowance = tabulated Graph.allowance
+let allowance =
+  let loose = tabulated (Graph.allowance ~rigid:false)
+  and rigid = tabulated (Graph.allowance ~rigid:true) in
+  fun ~rigid:r -> if r then rigid else loose
+
 let coverage = tabulated Graph.coverage

@@ -1062,8 +1062,12 @@ let registry =
           "time-interval-rational";
           "traces-timed-interval";
           "traces-timed-interval-rational";
+          "traces-timed-rigid-interval";
+          "traces-timed-rigid-interval-rational";
           "regex-timed-interval-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-interval-symbolic";
+          "regex-timed-rigid-interval-rational-symbolic";
           "windowed-schedules";
           "mode-times";
           "event-separation";
@@ -1074,8 +1078,12 @@ let registry =
         [
           "traces-timed-interval";
           "traces-timed-interval-rational";
+          "traces-timed-rigid-interval";
+          "traces-timed-rigid-interval-rational";
           "regex-timed-interval-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-interval-symbolic";
+          "regex-timed-rigid-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting
          (span (Grade.Braces (Grade.Letter "A"))
@@ -1091,8 +1099,11 @@ let registry =
           "time-interval";
           "time-interval-rational";
           "traces-timed-interval";
+          "traces-timed-rigid-interval";
           "regex-timed-interval-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-interval-symbolic";
+          "regex-timed-rigid-interval-rational-symbolic";
           "resource-levels";
           "windowed-schedules";
           "event-separation";
@@ -1110,10 +1121,14 @@ let registry =
           "traces-timed-lower-bound-rational";
           "traces-timed-upper-bound-rational";
           "traces-timed-interval-rational";
+          "traces-timed-rigid-upper-bound-rational";
+          "traces-timed-rigid-interval-rational";
           "regex-upper-bound-rational-symbolic";
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-upper-bound-rational-symbolic";
+          "regex-timed-rigid-interval-rational-symbolic";
           "mode-times";
           "event-separation";
         ]
@@ -1125,10 +1140,14 @@ let registry =
           "traces-timed-lower-bound-rational";
           "traces-timed-upper-bound-rational";
           "traces-timed-interval-rational";
+          "traces-timed-rigid-upper-bound-rational";
+          "traces-timed-rigid-interval-rational";
           "regex-upper-bound-rational-symbolic";
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-upper-bound-rational-symbolic";
+          "regex-timed-rigid-interval-rational-symbolic";
           "event-separation";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Frac (Rational.make 1 2))));
@@ -1138,9 +1157,13 @@ let registry =
           "traces-timed-lower-bound-rational";
           "traces-timed-upper-bound-rational";
           "traces-timed-interval-rational";
+          "traces-timed-rigid-upper-bound-rational";
+          "traces-timed-rigid-interval-rational";
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-upper-bound-rational-symbolic";
+          "regex-timed-rigid-interval-rational-symbolic";
           "mode-times";
           "event-separation";
         ]
@@ -1155,10 +1178,14 @@ let registry =
           "traces-timed-lower-bound-rational";
           "traces-timed-upper-bound-rational";
           "traces-timed-interval-rational";
+          "traces-timed-rigid-upper-bound-rational";
+          "traces-timed-rigid-interval-rational";
           "regex-upper-bound-rational-symbolic";
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-upper-bound-rational-symbolic";
+          "regex-timed-rigid-interval-rational-symbolic";
           "security-levels";
           "flow-levels";
           "mode-times";
@@ -1186,6 +1213,10 @@ let registry =
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-upper-bound-symbolic";
+          "regex-timed-rigid-interval-symbolic";
+          "regex-timed-rigid-upper-bound-rational-symbolic";
+          "regex-timed-rigid-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
     expect "registry: grades reading an interval of delays" show_names
@@ -1195,6 +1226,8 @@ let registry =
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-upper-bound-rational-symbolic";
+          "regex-timed-rigid-interval-rational-symbolic";
           "event-separation";
         ]
       (GradeRegistry.accepting
@@ -1220,6 +1253,14 @@ let registry =
           "regex-timed-lower-bound-letter-derivatives";
           "regex-timed-upper-bound-letter-derivatives";
           "regex-timed-interval-letter-derivatives";
+          "regex-timed-rigid-upper-bound-letter-automata";
+          "regex-timed-rigid-interval-letter-automata";
+          "regex-timed-rigid-upper-bound-rational-automata";
+          "regex-timed-rigid-interval-rational-automata";
+          "regex-timed-rigid-upper-bound-symbolic-by-letters";
+          "regex-timed-rigid-interval-symbolic-by-letters";
+          "regex-timed-rigid-upper-bound-letter-derivatives";
+          "regex-timed-rigid-interval-letter-derivatives";
         ]
       (List.concat_map
          (fun (g : GradeRegistry.group) ->
