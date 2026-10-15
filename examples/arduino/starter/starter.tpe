@@ -1,5 +1,5 @@
 (* A sprint starter on the M5Stack CoreS3 Lite: the gun 1.5 to 3 s after Set,
-   its time read at once, and the start judged within a second of it
+   its time read at once, and the start judged within half a second of it
 
    Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
@@ -46,11 +46,11 @@ type athlete = nat * nat
    after that command; the box of the Set, created at the Set command, the
    gun only 1.5 to 3 s after it; and the box of the gun, created at the gun,
    the judgement of the athlete only after the gun and the reading of its
-   time, and within a second. Each command is the first operation after its
-   box, and the reading of the time of the gun the second; the lower bounds
-   demand the time after them, and the upper bounds bound it, any other
-   operation coming within their delays. *)
-type at_gun = [{Beep; ReadClock; [0, 1000]}]athlete
+   time, and within half a second. Each command is the first operation
+   after its box, and the reading of the time of the gun the second; the
+   lower bounds demand the time after them, and the upper bounds bound it,
+   any other operation coming within their delays. *)
+type at_gun = [{Beep; ReadClock; [0, 500]}]athlete
 type at_set = [{ShowColourTextAt; [1500, 3000]}](unit -> at_gun)
 type at_marks = [{ShowColourTextAt; [1000, ∞)}](unit -> at_set)
 
@@ -58,7 +58,7 @@ let marks (a : athlete) : at_marks =
   box {ShowColourTextAt; [1000, ∞)}
     (fun () ->
       box {ShowColourTextAt; [1500, 3000]}
-        (fun () -> box {Beep; ReadClock; [0, 1000]} a))
+        (fun () -> box {Beep; ReadClock; [0, 500]} a))
 
 (* The end of a start: abandoned by a tap on Stand up, the block not still
    at the marks, a movement in Set, no push within the polls after the gun,
@@ -225,12 +225,10 @@ let fifty_fast (m : float) (w : float) (r : bool * nat) : bool * nat =
   let r = ten_fast m w r in
   r
 
-(* Two hundred fast polls, until the push: a push is found within 4.05 ms of
-   its start, and no push declared 540 to 810 ms after the first poll. *)
+(* A hundred fast polls, until the push: a push is found within 4.05 ms of
+   its start, and no push declared 270 to 405 ms after the first poll. *)
 let react (m : float) (w : float) : bool * nat =
   let r = fifty_fast m w (false, 0) in
-  let r = fifty_fast m w r in
-  let r = fifty_fast m w r in
   let r = fifty_fast m w r in
   r
 
@@ -242,10 +240,10 @@ let recall () : unit # {Beep; [100, 120]; Beep} =
 
 (* Correctly accepted by the typechecker: the gun and the judgement. The gun
    is a tone of 300 ms, and the block is then polled for the push for up to
-   810 ms. The box of the athlete, created at once before the gun, admits
+   405 ms. The box of the athlete, created at once before the gun, admits
    the judgement only after the gun and the reading of its time, at once,
    with no operation between, a redraw of the screen in particular, and
-   within a second of the gun.
+   within half a second of the gun.
 
    The box of the reaction window, created with it, holds the measure of the
    reaction time. It admits the measure only after the gun, its time and
@@ -257,7 +255,7 @@ let recall () : unit # {Beep; [100, 120]; Beep} =
    demands no polls until a push or the end of the window, and admits the
    polls ended once the push is found. *)
 let fire (gun : at_gun) (m : float) (w : float) : outcome
-    # {Beep; ReadClock; [0, 810]} =
+    # {Beep; ReadClock; [0, 405]} =
   box {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*} elapsed
     as window in
   perform Beep (2500, 300);
@@ -274,12 +272,12 @@ let fire (gun : at_gun) (m : float) (w : float) : outcome
      Typing error: Variable `gun` is unboxed with grade
        `[{Beep; ClearDisplay; ReadClock; (0 | !2.5; ReadImu; ReadClock); …},
        …]` accumulated since it was bound, which is not below its box grade
-       `[{Beep; ReadClock; [0, 1000]}, {Beep; ReadClock; [0, 1000]}]`
+       `[{Beep; ReadClock; [0, 500]}, {Beep; ReadClock; [0, 500]}]`
        ...
 *)
 (*
 let fire_cleared (gun : at_gun) (m : float) (w : float) : outcome
-    # {Beep; ReadClock; [0, 810]} =
+    # {Beep; ReadClock; [0, 405]} =
   box {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*} elapsed
     as window in
   perform Beep (2500, 300);
@@ -292,18 +290,18 @@ let fire_cleared (gun : at_gun) (m : float) (w : float) : outcome
 *)
 
 (* Correctly rejected by the typechecker: the block is polled for fifty
-   further polls, up to 1012.5 ms after the gun, before the athlete is
+   further polls, up to 607.5 ms after the gun, before the athlete is
    judged:
 
      Typing error: Variable `gun` is unboxed with grade
        `[{Beep; ReadClock; (0 | !2.5; ReadImu; ReadClock); …}, …]`
        accumulated since it was bound, which is not below its box grade
-       `[{Beep; ReadClock; [0, 1000]}, {Beep; ReadClock; [0, 1000]}]`
+       `[{Beep; ReadClock; [0, 500]}, {Beep; ReadClock; [0, 500]}]`
        ...
 *)
 (*
 let fire_late (gun : at_gun) (m : float) (w : float) : outcome
-    # {Beep; ReadClock; [0, 810]} =
+    # {Beep; ReadClock; [0, 405]} =
   box {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*} elapsed
     as window in
   perform Beep (2500, 300);
@@ -318,7 +316,7 @@ let fire_late (gun : at_gun) (m : float) (w : float) : outcome
 (* Correctly rejected by the typechecker: GO is shown on the screen after
    the reading of the time of the gun, before the polls, for up to 33 ms in
    which a push is not seen. The box of the athlete admits it, within its
-   second:
+   half second:
 
      Typing error: Variable `window` is unboxed with grade
        `[{Beep; ReadClock; ShowColourTextAt; (0 | !2.5; ReadImu; ReadClock);
@@ -329,7 +327,7 @@ let fire_late (gun : at_gun) (m : float) (w : float) : outcome
 *)
 (*
 let fire_shown (gun : at_gun) (m : float) (w : float) : outcome
-    # {Beep; ReadClock; ShowColourTextAt; [0, 810]} =
+    # {Beep; ReadClock; ShowColourTextAt; [0, 405]} =
   box {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*} elapsed
     as window in
   perform Beep (2500, 300);
@@ -360,13 +358,13 @@ let fire_shown (gun : at_gun) (m : float) (w : float) : outcome
    The grade is the protocol: On your marks and the polls, ended there or
    followed by the Set, its tone, the time and the hold, ended there or
    followed by the gun, its time and the polls for the push; 197.1 to
-   5273.9 ms in all. *)
+   4868.9 ms in all. *)
 let start_once (a : athlete) : outcome
     # {ShowColourTextAt; ShowColourTextAt; DrawButton; DrawButton;
        [197, 1347];
        (0
        | ShowColourTextAt; ShowColourTextAt; Beep; ReadClock; [197, 2918.5];
-         (0 | Beep; ReadClock; [0, 810]))} =
+         (0 | Beep; ReadClock; [0, 405]))} =
   let mark = marks a in
   perform ShowColourTextAt (0, 40, 3, black, white, "ON YOUR MARKS");
   perform ShowColourTextAt (0, 70, 2, black, white, "Settle for 1 s");
@@ -476,7 +474,7 @@ let frame () =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Sprint starter");
   perform ShowTextAt
-    (0, 20, 1, "Gun 1.5-3 s after Set; judged within 1 s of the gun");
+    (0, 20, 1, "Gun 1.5-3 s after Set; judged within 0.5 s of the gun");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
 
 (* The tally and the athlete on the screen, in four rows from the row 100,
@@ -534,7 +532,7 @@ let say (m : message) : unit # {ShowColourTextAt; ShowColourTextAt} =
         (0, 70, 2, black, orange, "Settle and tap Start")
   | NoPush ->
       perform ShowColourTextAt (0, 40, 3, black, orange, "NO START");
-      perform ShowColourTextAt (0, 70, 2, black, orange, "No push within 1 s")
+      perform ShowColourTextAt (0, 70, 2, black, orange, "No push seen")
   | Legal ->
       perform ShowColourTextAt (0, 40, 3, black, green, "LEGAL START");
       perform ShowColourTextAt (0, 70, 2, black, green, "Reaction, s")
@@ -719,11 +717,11 @@ let pushed =
       continue k with ((0.0, 0.0, 1.6), gyro)
 
 (* The athlete of lane 1, not warned, on a block at rest: no push within the
-   two hundred polls, a start without a push. *)
+   hundred polls, a start without a push. *)
 run
   let o =
     handle
-      fire (box {Beep; ReadClock; [0, 1000]} (1, 0)) 1.0 0.2
+      fire (box {Beep; ReadClock; [0, 500]} (1, 0)) 1.0 0.2
     with still
   in
   conclude (0, 0, 0, 0, 0) (1, 0) o
@@ -733,7 +731,7 @@ run
 run
   let o =
     handle
-      fire (box {Beep; ReadClock; [0, 1000]} (1, 1)) 1.0 0.2
+      fire (box {Beep; ReadClock; [0, 500]} (1, 1)) 1.0 0.2
     with pushed
   in
   conclude (0, 1, 0, 0, 0) (1, 1) o
