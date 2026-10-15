@@ -1,0 +1,621 @@
+(* A sprint starter on the M5Stack CoreS3 Lite: the gun 1.5 to 3 s after Set,
+   its time read at once, and the start judged within a second of it
+
+   Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-rational-symbolic \
+       --package m5-imu \
+       --package m5-display \
+       --package m5-touch \
+       --package m5-speaker \
+       --board m5stack-cores3 \
+       examples/arduino/starter/starter.tpe
+
+   Grades [L, U]: a lower and upper regular-language bound on the traces with
+   rational durations
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
+
+(* Runs on the M5Stack CoreS3 Lite lying on a starting block or held in the
+   hand (starter.device.json): 'starter' as a free task. A tap on Start
+   gives "On your marks", checks for a second that the block is still, gives
+   "Set" with a tone and fires the gun, a long tone, after a random hold;
+   the block is then polled for the push, and the reaction time judged
+   against 100 ms. "Stand up" abandons a start before the gun, and "Reset"
+   clears the tally. bindings.cpp defines ReadClock and the safe state,
+   world.cpp models the starts. The figures below are those under the
+   bounds of the CoreS3, some of them provisional.
+
+   On the board: make arduino-starter-upload; simulated on the host: make
+   arduino-starter-simulate ('make examples-help',
+   src/05-backends/arduino/README.md). *)
+
+(* ReadClock () is the time since start-up, in microseconds, modulo 2^32.
+   Its bounds are PROVISIONAL, not yet measured. *)
+operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
+default ReadClock () = delay 1/100; 0
+
+(* An athlete at the start: the lane and the false starts charged to the
+   athlete in this session. *)
+type athlete = nat * nat
+
+(* The protocol of a start, as three boxes nested in each other, each
+   containing a function that creates the next. The box of the marks,
+   created at On your marks, admits the Set command only a second or more
+   after that command; the box of the Set, created at the Set command, the
+   gun only 1.5 to 3 s after it; and the box of the gun, created at the gun,
+   the judgement of the athlete only after the gun and the reading of its
+   time, and within a second. The lower bounds demand the commands and the
+   time after them; the upper bounds bound the time from the creation of
+   the box, any operation coming within their delays. *)
+type at_gun = [{Beep; ReadClock; [0, 1000]}]athlete
+type at_set = [{ShowColourTextAt; [1500, 3000]}](unit -> at_gun)
+type at_marks = [{ShowColourTextAt; [1000, ∞)}](unit -> at_set)
+
+let marks (a : athlete) : at_marks =
+  box {ShowColourTextAt; [1000, ∞)}
+    (fun () ->
+      box {ShowColourTextAt; [1500, 3000]}
+        (fun () -> box {Beep; ReadClock; [0, 1000]} a as gun in gun)
+      as set in set)
+  as m in m
+
+(* The end of a start: abandoned by a tap on Stand up, the block not still
+   at the marks, a movement in Set, no push within the polls after the gun,
+   or a push, with the athlete and the reaction time, in microseconds. *)
+type outcome =
+  | Abandoned
+  | Unsettled
+  | Moved
+  | NoStart
+  | Reaction of nat * nat * nat
+
+(* The tally of a session: the legal starts, the warnings, the
+   disqualifications, the starts without a push and the best reaction time
+   of a legal start, in microseconds, 0 before the first. *)
+type tally = nat * nat * nat * nat * nat
+
+(* The least deviations of the magnitude of the acceleration from its mean
+   at the marks that count as a movement in Set and as the push, in g, and
+   their ratios to the standard deviation at the marks; the polls at the
+   marks; the shortest legal reaction time, in microseconds. *)
+let move_least = 0.1
+let move_ratio = 5.0
+let push_least = 0.2
+let push_ratio = 8.0
+let mark_polls = 60.0
+let false_start = 100000
+
+(* The colours of 24 bits: the states, the text on them, and the
+   background. *)
+let green = 0x00c000
+let yellow = 0xffd000
+let orange = 0xff8000
+let red = 0xe00000
+let white = 0xffffff
+let black = 0x000000
+
+let absolute (x : float) = if x < 0.0 then ~-.x else x
+
+(* The magnitude of the acceleration, in g. *)
+let load () : float # {ReadImu} =
+  let (ax, ay, az), _ = perform ReadImu () in
+  sqrt ((ax *. ax) +. (ay *. ay) +. (az *. az))
+
+(* The buttons, 40 pixels high from the row 188, each 156 pixels wide: Start
+   from the column 0 and Reset from the column 164. *)
+type key = Start | Reset | Elsewhere
+
+let key (x : nat) (y : nat) =
+  if y < 188 || y >= 228 then Elsewhere
+  else if x < 156 then Start
+  else if x >= 164 then Reset
+  else Elsewhere
+
+(* The time from the microsecond a to the microsecond b, modulo 2^32. *)
+let elapsed (a : nat) (b : nat) =
+  if b >= a then b - a else 4294967295 - a + b + 1
+
+(* The state of the slow polls: the sum of the magnitudes and of their
+   squares, the least and the greatest magnitude, whether the screen was
+   touched at the last poll, and whether a touch began on Stand up. *)
+type sense = float * float * float * float * bool * bool
+
+(* The phases of a start are bounded by boxes, each checked from its binding
+   to its unboxing. A recursion has a grade whose repetitions it includes,
+   which bounds no duration; the polls are therefore written out as fixed
+   sequences, each annotated with the interval of its durations. *)
+
+(* A reading of the unit and of the touch screen 19.5 ms after the last,
+   19.7 to 22.45 ms. A touch begins where the screen is touched and was not
+   at the last poll, so that the finger of the tap on Start begins none. *)
+let poll_slow ((sum, square, lo, hi, held, stood) : sense) : sense
+    # {19.5; ReadImu; ReadTouch} =
+  delay 39/2;
+  let m = load () in
+  let touched, x, y = perform ReadTouch () in
+  ( sum +. m,
+    square +. (m *. m),
+    min lo m,
+    max hi m,
+    touched,
+    stood || (touched && (not held) && key x y = Start) )
+
+(* Ten slow polls: 197 to 224.5 ms. *)
+let ten_slow (s : sense) : sense # {[197, 224.5]} =
+  poll_slow (poll_slow (poll_slow (poll_slow (poll_slow (poll_slow (poll_slow
+    (poll_slow (poll_slow (poll_slow s)))))))))
+
+let stood ((_, _, _, _, _, stood) : sense) = stood
+
+(* Whether the magnitude left the band of the half width w about the mean
+   m during the polls. *)
+let moved (m : float) (w : float) ((_, _, lo, hi, _, _) : sense) =
+  hi -. m > w || m -. lo > w
+
+(* A slow poll unless the hold is over, the block moved or Stand up was
+   tapped, with the optional polls left. *)
+let poll_more (m : float) (w : float) ((s, left) : sense * nat) : sense * nat
+    # {0 | 19.5; ReadImu; ReadTouch} =
+  if left = 0 || stood s || moved m w s then (s, left)
+  else (poll_slow s, left - 1)
+
+let ten_more (m : float) (w : float) (s : sense * nat) : sense * nat
+    # {[0, 224.5]} =
+  let s = poll_more m w s in
+  let s = poll_more m w s in
+  let s = poll_more m w s in
+  let s = poll_more m w s in
+  let s = poll_more m w s in
+  let s = poll_more m w s in
+  let s = poll_more m w s in
+  let s = poll_more m w s in
+  let s = poll_more m w s in
+  let s = poll_more m w s in
+  s
+
+(* Up to fifty optional polls: at most 1122.5 ms. *)
+let fifty_more (m : float) (w : float) (s : sense * nat) : sense * nat
+    # {[0, 1122.5]} =
+  let s = ten_more m w s in
+  let s = ten_more m w s in
+  let s = ten_more m w s in
+  let s = ten_more m w s in
+  let s = ten_more m w s in
+  s
+
+(* A reading of the unit 2.5 ms after the last, unless the push was found,
+   and the time read after it: whether the push was found, and its time.
+   The reading is boxed with ReadClock, without delays: the push is judged
+   only from a reading whose time was read at once, with no operation
+   between. *)
+let poll_fast (m : float) (w : float) ((found, at) : bool * nat) : bool * nat
+    # {0 | 2.5; ReadImu; ReadClock} =
+  if found then (found, at)
+  else (
+    delay 5/2;
+    let a = load () in
+    box {ReadClock} a as fresh in
+    let t = perform ReadClock () in
+    unbox fresh as a in
+    if absolute (a -. m) > w then (true, t) else (false, at))
+
+let ten_fast (m : float) (w : float) (r : bool * nat) : bool * nat
+    # {[0, 40.5]} =
+  let r = poll_fast m w r in
+  let r = poll_fast m w r in
+  let r = poll_fast m w r in
+  let r = poll_fast m w r in
+  let r = poll_fast m w r in
+  let r = poll_fast m w r in
+  let r = poll_fast m w r in
+  let r = poll_fast m w r in
+  let r = poll_fast m w r in
+  let r = poll_fast m w r in
+  r
+
+let fifty_fast (m : float) (w : float) (r : bool * nat) : bool * nat
+    # {[0, 202.5]} =
+  let r = ten_fast m w r in
+  let r = ten_fast m w r in
+  let r = ten_fast m w r in
+  let r = ten_fast m w r in
+  let r = ten_fast m w r in
+  r
+
+(* Two hundred fast polls, until the push: a push is found within 4.05 ms of
+   its start, and no push declared 540 to 810 ms after the first poll. *)
+let react (m : float) (w : float) : bool * nat # {[0, 810]} =
+  let r = fifty_fast m w (false, 0) in
+  let r = fifty_fast m w r in
+  let r = fifty_fast m w r in
+  let r = fifty_fast m w r in
+  r
+
+(* The recall of the athletes: two tones 110 ms apart. *)
+let recall () : unit # {Beep; [100, 120]; Beep} =
+  perform Beep (800, 80);
+  delay 110;
+  perform Beep (800, 80)
+
+(* Correctly accepted by the typechecker: the gun and the judgement. The gun
+   is a tone of 300 ms, and the block is then polled for the push for up to
+   810 ms. The thresholds are boxed with the gun and the reading of its
+   time, without delays: the push is looked for only after a gun whose time
+   was read at once, with no operation between, a redraw of the screen in
+   particular. The box of the athlete, created at once before the gun,
+   admits the judgement only after the gun and within a second of it. *)
+let fire (gun : at_gun) (m : float) (w : float) : outcome =
+  box {Beep; ReadClock} (m, w) as armed in
+  perform Beep (2500, 300);
+  let fired = perform ReadClock () in
+  unbox armed as (m, w) in
+  let found, at = react m w in
+  unbox gun as (lane, warnings) in
+  if found then Reaction (lane, warnings, elapsed fired at) else NoStart
+
+(* Correctly rejected by the typechecker: the screen is cleared between the
+   gun and the reading of its time, which the time then misses by 31 to
+   48 ms:
+
+     Typing error: Variable `armed` is unboxed with grade
+       `[{Beep; ClearDisplay; ReadClock}, {Beep; ClearDisplay; ReadClock}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{Beep; ReadClock}, {Beep; ReadClock}]`
+       ...
+*)
+(*
+let fire_cleared (gun : at_gun) (m : float) (w : float) : outcome =
+  box {Beep; ReadClock} (m, w) as armed in
+  perform Beep (2500, 300);
+  perform ClearDisplay ();
+  let fired = perform ReadClock () in
+  unbox armed as (m, w) in
+  let found, at = react m w in
+  unbox gun as (lane, warnings) in
+  if found then Reaction (lane, warnings, elapsed fired at) else NoStart
+*)
+
+(* Correctly rejected by the typechecker: the block is polled for fifty
+   further polls, up to 1012.5 ms after the gun, before the athlete is
+   judged:
+
+     Typing error: Variable `gun` is unboxed with grade
+       `[{Beep; ReadClock; [0, 810]; [0, 202.5]},
+       {Beep; ReadClock; [0, 810]; [0, 202.5]}]` accumulated since it was
+       bound, which is not below its box grade
+       `[{Beep; ReadClock; [0, 1000]}, {Beep; ReadClock; [0, 1000]}]`
+       ...
+*)
+(*
+let fire_late (gun : at_gun) (m : float) (w : float) : outcome =
+  box {Beep; ReadClock} (m, w) as armed in
+  perform Beep (2500, 300);
+  let fired = perform ReadClock () in
+  unbox armed as (m, w) in
+  let r = react m w in
+  let found, at = fifty_fast m w r in
+  unbox gun as (lane, warnings) in
+  if found then Reaction (lane, warnings, elapsed fired at) else NoStart
+*)
+
+(* Correctly accepted by the typechecker: a start, from the tap on Start to
+   the outcome. On your marks: sixty slow polls, 1182 to 1347 ms, check that
+   the spread of the magnitude is below 0.1 g and give its mean and standard
+   deviation. Set: a tone, the time read, eighty slow polls, 1576 to
+   1796 ms, and as many optional polls, up to fifty, as the time in
+   microseconds modulo 51; the gun is thus fired 1576 to 2919 ms after the
+   Set command. The polls are checked every ten, and a tap on Stand up or a
+   movement in Set ends the start before the gun.
+
+   The box of the marks is unboxed after the sixty polls, its thunk applied
+   to create the box of the Set, which is unboxed after the hold, its thunk
+   applied to create the box of the gun. Their lower bounds exclude a Set
+   commanded at once and a gun fired after sixty polls of the hold, and the
+   upper bound of the Set a hold of more than 3 s. A gun after the eighty
+   fixed polls alone is accepted: that the hold is random is program logic.
+
+   The grade is the protocol: On your marks and the polls, ended there or
+   followed by the Set, its tone, the time and the hold, ended there or
+   followed by the gun, its time and the polls for the push; 197.1 to
+   5207.9 ms in all. *)
+let start_once (a : athlete) : outcome
+    # {ShowColourTextAt; ShowColourTextAt; DrawButton; [197, 1347];
+       (0
+       | ShowColourTextAt; Beep; ReadClock; [197, 2918.5];
+         (0 | Beep; ReadClock; [0, 810]))} =
+  let mark = marks a in
+  perform ShowColourTextAt (0, 44, 3, black, white, "ON YOUR MARKS");
+  perform ShowColourTextAt (0, 76, 2, black, white, "");
+  perform DrawButton (0, 188, 156, 40, "Stand up");
+  let s = ten_slow (0.0, 0.0, 10.0, 0.0, true, false) in
+  if stood s then Abandoned else
+  let s = ten_slow s in
+  if stood s then Abandoned else
+  let s = ten_slow s in
+  if stood s then Abandoned else
+  let s = ten_slow s in
+  if stood s then Abandoned else
+  let s = ten_slow s in
+  if stood s then Abandoned else
+  let s = ten_slow s in
+  if stood s then Abandoned else
+  let sum, square, lo, hi, held, _ = s in
+  let mean = sum /. mark_polls in
+  let variance = (square /. mark_polls) -. (mean *. mean) in
+  let deviation = sqrt (max 0.0 variance) in
+  let move = max move_least (move_ratio *. deviation) in
+  let push = max push_least (push_ratio *. deviation) in
+  if hi -. lo > move_least then Unsettled else
+  unbox mark as set_thunk in
+  let set = set_thunk () in
+  perform ShowColourTextAt (0, 44, 3, black, yellow, "SET");
+  perform Beep (1500, 80);
+  let now = perform ReadClock () in
+  let s = ten_slow (0.0, 0.0, mean, mean, held, false) in
+  if stood s then Abandoned else if moved mean move s then Moved else
+  let s = ten_slow s in
+  if stood s then Abandoned else if moved mean move s then Moved else
+  let s = ten_slow s in
+  if stood s then Abandoned else if moved mean move s then Moved else
+  let s = ten_slow s in
+  if stood s then Abandoned else if moved mean move s then Moved else
+  let s = ten_slow s in
+  if stood s then Abandoned else if moved mean move s then Moved else
+  let s = ten_slow s in
+  if stood s then Abandoned else if moved mean move s then Moved else
+  let s = ten_slow s in
+  if stood s then Abandoned else if moved mean move s then Moved else
+  let s = ten_slow s in
+  if stood s then Abandoned else if moved mean move s then Moved else
+  let s, _ = fifty_more mean move (s, now mod 51) in
+  if stood s then Abandoned else if moved mean move s then Moved else
+  unbox set as gun_thunk in
+  fire (gun_thunk ()) mean push
+
+(* Correctly rejected by the typechecker: Set is commanded at once after On
+   your marks, without the stillness window:
+
+     Typing error: Variable `mark` is unboxed with grade
+       `[{ShowColourTextAt; DrawButton}, {ShowColourTextAt; DrawButton}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{ShowColourTextAt; [1000, ∞)}, {ShowColourTextAt; [1000, ∞)}]`
+       ...
+*)
+(*
+let set_at_once (a : athlete) : at_set =
+  let mark = marks a in
+  perform ShowColourTextAt (0, 44, 3, black, white, "ON YOUR MARKS");
+  perform DrawButton (0, 188, 156, 40, "Stand up");
+  unbox mark as set_thunk in
+  set_thunk ()
+*)
+
+(* Correctly rejected by the typechecker: the gun is fired after sixty slow
+   polls of the Set hold, 1182 to 1347 ms after the Set command:
+
+     Typing error: Variable `set` is unboxed with grade
+       `[{ShowColourTextAt; Beep; [197, 224.5]; [197, 224.5]; [197, 224.5];
+       [197, 224.5]; [197, 224.5]; [197, 224.5]},
+       {ShowColourTextAt; Beep; [197, 224.5]; [197, 224.5]; [197, 224.5];
+       [197, 224.5]; [197, 224.5]; [197, 224.5]}]` accumulated since it was
+       bound, which is not below its box grade
+       `[{ShowColourTextAt; [1500, 3000]}, {ShowColourTextAt; [1500, 3000]}]`
+       ...
+*)
+(*
+let start_early (a : athlete) : outcome =
+  let mark = marks a in
+  perform ShowColourTextAt (0, 44, 3, black, white, "ON YOUR MARKS");
+  let s = ten_slow (ten_slow (ten_slow (ten_slow (ten_slow (ten_slow
+    (0.0, 0.0, 10.0, 0.0, true, false)))))) in
+  let sum, _, _, _, held, _ = s in
+  let mean = sum /. mark_polls in
+  unbox mark as set_thunk in
+  let set = set_thunk () in
+  perform ShowColourTextAt (0, 44, 3, black, yellow, "SET");
+  perform Beep (1500, 80);
+  let _ = ten_slow (ten_slow (ten_slow (ten_slow (ten_slow (ten_slow
+    (0.0, 0.0, mean, mean, held, false)))))) in
+  unbox set as gun_thunk in
+  fire (gun_thunk ()) mean push_least
+*)
+
+(* The screen of the session: the title, the guarantee, the labels of the
+   tally, the buttons and the footer. *)
+let frame () =
+  perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Sprint starter");
+  perform ShowTextAt
+    (0, 20, 1, "Gun 1.5-3 s after Set; judged within 1 s of the gun");
+  perform ShowTextAt (0, 106, 2, "Legal");
+  perform ShowTextAt (160, 106, 2, "Warnings");
+  perform ShowTextAt (0, 128, 2, "DQ");
+  perform ShowTextAt (160, 128, 2, "No starts");
+  perform ShowTextAt (0, 150, 2, "Best, s");
+  perform ShowTextAt (0, 168, 2, "Lane");
+  perform ShowTextAt (96, 168, 2, "false starts");
+  perform DrawButton (0, 188, 156, 40, "Start");
+  perform DrawButton (164, 188, 156, 40, "Reset");
+  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
+
+(* The tally and the athlete on the screen, and the Start button. *)
+let board ((legal, warned, out, none, best) : tally)
+    ((lane, warnings) : athlete) =
+  perform ShowNumberAt (96, 106, 2, 0, float_of_nat legal);
+  perform ShowNumberAt (280, 106, 2, 0, float_of_nat warned);
+  perform ShowNumberAt (96, 128, 2, 0, float_of_nat out);
+  perform ShowNumberAt (280, 128, 2, 0, float_of_nat none);
+  perform ShowNumberAt (96, 150, 2, 3, float_of_nat best /. 1000000.0);
+  perform ShowNumberAt (60, 168, 2, 0, float_of_nat lane);
+  perform ShowNumberAt (256, 168, 2, 0, float_of_nat warnings);
+  perform DrawButton (0, 188, 156, 40, "Start")
+
+(* The messages of the two lines of the state: in idle, after a reset,
+   after a start abandoned or not still, without a push, legal, and a false
+   start charged as a warning or a disqualification, after a movement in Set
+   or not. *)
+type message =
+  | Ready
+  | Cleared
+  | StandUp
+  | NotStill
+  | NoPush
+  | Legal
+  | Warned of bool
+  | Disqualified of bool
+
+let say (m : message) : unit # {ShowColourTextAt; ShowColourTextAt} =
+  match m with
+  | Ready ->
+      perform ShowColourTextAt (0, 44, 3, black, white, "READY");
+      perform ShowColourTextAt (0, 76, 2, black, white, "Tap Start")
+  | Cleared ->
+      perform ShowColourTextAt (0, 44, 3, black, white, "READY");
+      perform ShowColourTextAt (0, 76, 2, black, white, "Tally cleared")
+  | StandUp ->
+      perform ShowColourTextAt (0, 44, 3, black, white, "STAND UP");
+      perform ShowColourTextAt (0, 76, 2, black, white, "Start abandoned")
+  | NotStill ->
+      perform ShowColourTextAt (0, 44, 3, black, orange, "NOT STILL");
+      perform ShowColourTextAt
+        (0, 76, 2, black, orange, "Settle and tap Start")
+  | NoPush ->
+      perform ShowColourTextAt (0, 44, 3, black, orange, "NO START");
+      perform ShowColourTextAt (0, 76, 2, black, orange, "No push within 1 s")
+  | Legal ->
+      perform ShowColourTextAt (0, 44, 3, black, green, "LEGAL START");
+      perform ShowColourTextAt (0, 76, 2, black, green, "Reaction, s")
+  | Warned moved ->
+      perform ShowColourTextAt (0, 44, 3, white, red, "FALSE START");
+      if moved then
+        perform ShowColourTextAt
+          (0, 76, 2, white, red, "Warning: moved in Set")
+      else
+        perform ShowColourTextAt (0, 76, 2, white, red, "Warning: under 0.1 s")
+  | Disqualified moved ->
+      perform ShowColourTextAt (0, 44, 3, white, red, "DISQUALIFIED");
+      if moved then
+        perform ShowColourTextAt (0, 76, 2, white, red, "Moved in Set")
+      else
+        perform ShowColourTextAt (0, 76, 2, white, red, "Reaction under 0.1 s")
+
+(* A false start charged to the athlete, after a movement in Set or not: a
+   warning for the first, a disqualification for each further one (the
+   rule of the combined events), with the recall. *)
+let charge ((legal, warned, out, none, best) : tally)
+    ((lane, warnings) : athlete) (moved : bool) : tally * athlete =
+  recall ();
+  if warnings = 0 then (
+    say (Warned moved);
+    ((legal, warned + 1, out, none, best), (lane, 1)))
+  else (
+    say (Disqualified moved);
+    ((legal, warned, out + 1, none, best), (lane, warnings + 1)))
+
+(* The outcome of a start on the screen and in the tally, for the athlete
+   'a' of the session. A push within 100 ms of the gun is a false start,
+   charged to the athlete judged after the gun; a movement in Set to the
+   athlete of the session. *)
+let conclude (t : tally) (a : athlete) (o : outcome) : tally * athlete =
+  let legal, warned, out, none, best = t in
+  match o with
+  | Abandoned ->
+      say StandUp;
+      (t, a)
+  | Unsettled ->
+      say NotStill;
+      (t, a)
+  | Moved -> charge t a true
+  | NoStart ->
+      say NoPush;
+      ((legal, warned, out, none + 1, best), a)
+  | Reaction (lane, warnings, r) ->
+      if r < false_start then charge t (lane, warnings) false
+      else (
+        say Legal;
+        perform ShowNumberAt (160, 76, 2, 3, float_of_nat r /. 1000000.0);
+        let best = if best = 0 || r < best then r else best in
+        ((legal + 1, warned, out, none, best), (lane, warnings)))
+
+(* Correctly accepted by the typechecker: at most n polls of the touch
+   screen 50 ms apart, in idle, a start following a touch begun on Start
+   and a tone and a cleared tally one begun on Reset; with the tally, the
+   athlete and whether the screen was touched at the last poll, taken as
+   touched after a start, so that a finger left on the screen begins no
+   touch. *)
+let rec officiate (n : nat) (t : tally) (a : athlete) (held : bool)
+    : unit # {_*} =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      let touched, x, y = perform ReadTouch () in
+      let k = if touched && not held then key x y else Elsewhere in
+      if k = Start then (
+        let o = start_once a in
+        let t, a = conclude t a o in
+        board t a;
+        officiate m t a true)
+      else if k = Reset then (
+        perform Beep (3000, 50);
+        let lane, _ = a in
+        say Cleared;
+        board (0, 0, 0, 0, 0) (lane, 0);
+        officiate m (0, 0, 0, 0, 0) (lane, 0) touched)
+      else (
+        delay 50;
+        officiate m t a touched)
+
+(* Correctly accepted by the typechecker: the task. The output data rate of
+   the accelerometer is set to 400 Hz, at which the fast polls read a new
+   sample each, and the session starts with an empty tally and the athlete
+   of lane 1. *)
+let starter () =
+  frame ();
+  perform ConfigureImu 400;
+  say Ready;
+  board (0, 0, 0, 0, 0) (1, 0);
+  officiate 4000000000 (0, 0, 0, 0, 0) (1, 0) false
+
+(* The judgement in the interpreter, which has no clock. The handler 'still'
+   replaces the readings by those of a block at rest with its z axis up,
+   and 'pushed' by those of a block pushed by 0.6 g; their cases perform
+   their operations, and keep their running times. The default ReadClock
+   returns 0, so that the reaction time of a run is 0 and a push is a false
+   start. The box of the athlete is created by the run, in place of the
+   boxes of the marks and the Set, whose polls take long to interpret. The
+   device does not use them. *)
+let still =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let _, gyro = perform ReadImu () in
+      continue k with ((0.0, 0.0, 1.0), gyro)
+
+let pushed =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let _, gyro = perform ReadImu () in
+      continue k with ((0.0, 0.0, 1.6), gyro)
+
+(* The athlete of lane 1, not warned, on a block at rest: no push within the
+   two hundred polls, a start without a push. *)
+run
+  let o =
+    handle
+      fire (box {Beep; ReadClock; [0, 1000]} (1, 0) as gun in gun) 1.0 0.2
+    with still
+  in
+  conclude (0, 0, 0, 0, 0) (1, 0) o
+
+(* The athlete of lane 1, warned once, on a block pushed at once: the push
+   found at the first poll, and the athlete disqualified. *)
+run
+  let o =
+    handle
+      fire (box {Beep; ReadClock; [0, 1000]} (1, 1) as gun in gun) 1.0 0.2
+    with pushed
+  in
+  conclude (0, 1, 0, 0, 0) (1, 1) o
