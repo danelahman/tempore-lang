@@ -826,6 +826,9 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   - The gun follows the Set command after a hold of 80 polls and as many
     further polls as the clock gives, 1576 to 2919 ms; the time of the gun is
     read at once, with no operation between.
+  - A box over the reaction window admits the reaction time only after
+    nothing but polls, each reading stamped at once and taken at most 2.5 ms
+    after the last stamp, so that a push is seen within about 4 ms.
   - The session consists of rounds of a poll of the touch screen followed by
     a start, a reset or a wait of 50 ms.
   - A reaction under 100 ms or a movement in Set is a false start: a warning

@@ -1,9 +1,13 @@
 (* A rejected variant of examples/arduino/starter/starter.tpe. *)
 
-let fire_late (gun : at_gun) (m : float) (w : float) : outcome =
+let fire_late (gun : at_gun) (m : float) (w : float) : outcome
+    # {Beep; ReadClock; [0, 810]} =
+  box {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*} elapsed
+    as window in
   perform Beep (2500, 300);
   let fired = perform ReadClock () in
   let r = react m w in
   let found, at = fifty_fast m w r in
   unbox gun as (lane, warnings) in
-  if found then Reaction (lane, warnings, elapsed fired at) else NoStart
+  unbox window as reaction in
+  if found then Reaction (lane, warnings, reaction fired at) else NoStart
