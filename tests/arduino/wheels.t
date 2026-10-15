@@ -181,8 +181,8 @@ second, and repeats after two seconds; the step runs every 10 ms:
 
   $ tempore --emit-arduino wheels --device $app/wheels.device.json --host-simulate 3 $app/wheels.tpe | grep '\] \(Display\|Operation SetMotors\|Operation ReadEncoders\)\|simulation'
   [31.245 ms] Display cleared
-  [35.025 ms] Display at (0, 0): Wheel check
-  [37.785 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [35.025 ms] Display at (0, 2): Wheel check
+  [37.785 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [38.365 ms] Operation SetMotors took 245 us
   [139.333 ms] Operation ReadEncoders took 468 us
   [139.578 ms] Operation SetMotors took 245 us
@@ -193,8 +193,8 @@ second, and repeats after two seconds; the step runs every 10 ms:
   [543.371 ms] Display: 308.458
   [544.371 ms] Display: 308.458
   [2576.000 ms] Display cleared
-  [2579.780 ms] Display at (0, 0): Wheel check
-  [2582.540 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [2579.780 ms] Display at (0, 2): Wheel check
+  [2582.540 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [2583.120 ms] Operation SetMotors took 245 us
   [2684.088 ms] Operation ReadEncoders took 468 us
   [2684.333 ms] Operation SetMotors took 245 us
@@ -209,11 +209,11 @@ With the right wheel stalled, the check reports its fault:
   $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DSTAND_STALLED_WHEEL -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ ./simulation 3000000 | grep '\] Display'
   [31.245 ms] Display cleared
-  [35.025 ms] Display at (0, 0): Wheel check
-  [37.785 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [35.025 ms] Display at (0, 2): Wheel check
+  [37.785 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [542.371 ms] Display: Right wheel fault
   [543.371 ms] Display: 308.458
   [544.371 ms] Display: 0.000
   [2576.000 ms] Display cleared
-  [2579.780 ms] Display at (0, 0): Wheel check
-  [2582.540 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [2579.780 ms] Display at (0, 2): Wheel check
+  [2582.540 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)

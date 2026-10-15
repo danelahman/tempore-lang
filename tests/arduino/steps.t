@@ -68,7 +68,7 @@ tap on Reset clears the prompt, the tap outside the buttons does nothing,
 and the double tap on Reset resets the count with a short tone:
 
   $ tempore --emit-arduino steps --device $app/steps.device.json --host-simulate 46 $app/steps.tpe > run.log
-  $ awk '/Display at \(0, (30|168)\)|Steps:|Speaker|fill at \((0|164), 188\)/ { t = substr($1, 2) / 1000; w = t < 3 ? "rest" : t < 7 ? "shaking" : t < 9 ? "bump" : t < 12 ? "picked up" : t < 15 ? "put down" : t < 21 ? "bouncing" : t < 28 ? "walk" : t < 31 ? "calibrate" : t < 34 ? "single reset" : t < 36 ? "outside" : t < 39 ? "double reset" : t < 44 ? "walk" : "calibrate"; sub(/^\[[0-9.]* ms\] (Display at \(0, 30\): )?/, ""); sub(/^Display at \(0, 168\): ?/, "prompt: "); sub(/^Display fill at \(0, 188\), 156 by 40:/, "Calibrate:"); sub(/^Display fill at \(164, 188\), 156 by 40:/, "Reset:"); sub(/0xffd000/, "active"); sub(/0x303030/, "idle"); print w ": " $0 }' run.log | sed 's/ *$//'
+  $ awk '/Display at \((0, 32|[06], 170)\)|Steps:|Speaker|fill at \((0|164), 188\)/ { t = substr($1, 2) / 1000; w = t < 3 ? "rest" : t < 7 ? "shaking" : t < 9 ? "bump" : t < 12 ? "picked up" : t < 15 ? "put down" : t < 21 ? "bouncing" : t < 28 ? "walk" : t < 31 ? "calibrate" : t < 34 ? "single reset" : t < 36 ? "outside" : t < 39 ? "double reset" : t < 44 ? "walk" : "calibrate"; sub(/^\[[0-9.]* ms\] (Display at \(0, 32\): )?/, ""); sub(/^Display at \([06], 170\): ?/, "prompt: "); sub(/^Display fill at \(0, 188\), 156 by 40:/, "Calibrate:"); sub(/^Display fill at \(164, 188\), 156 by 40:/, "Reset:"); sub(/0xffd000/, "active"); sub(/0x303030/, "idle"); print w ": " $0 }' run.log | sed 's/ *$//'
   rest: Hold still
   rest: prompt: Calibrating: not counting
   rest: Calibrate: active
@@ -128,12 +128,12 @@ and the double tap on Reset resets the count with a short tone:
 The steps redrawn after the first tap on Calibrate, kept; and the steps and
 the distance, in metres, shown at the end, kept by the second:
 
-  $ grep "Display at (120, 52)" run.log | awk '{ t = substr($1, 2) / 1000 } t > 28 && t < 29' | sed "s/^\[[0-9.]* ms\] //"
-  Display at (120, 52): 10
-  $ grep "Display at (120, 52)" run.log | tail -1 | sed "s/^\[[0-9.]* ms\] //"
-  Display at (120, 52): 6
-  $ grep "Display at (200, 112)" run.log | tail -1 | sed "s/^\[[0-9.]* ms\] //"
-  Display at (200, 112): 4
+  $ grep "Display at (120, 56)" run.log | awk '{ t = substr($1, 2) / 1000 } t > 28 && t < 29' | sed "s/^\[[0-9.]* ms\] //"
+  Display at (120, 56): 10
+  $ grep "Display at (120, 56)" run.log | tail -1 | sed "s/^\[[0-9.]* ms\] //"
+  Display at (120, 56): 6
+  $ grep "Display at (200, 114)" run.log | tail -1 | sed "s/^\[[0-9.]* ms\] //"
+  Display at (200, 114): 4
 
 While counting, from each beep to the next calibration, the readings are
 about 12 ms apart; the longest time between the ends of two readings, in

@@ -27,6 +27,11 @@ operation ShowColourTextAt : nat * nat * nat * nat * nat * string ~> unit
     # (ShowColourTextAt, 1)
 default ShowColourTextAt _ = ()
 
+operation ShowColourNumberAt
+    : nat * nat * nat * nat * nat * nat * float ~> unit
+    # (ShowColourNumberAt, 1)
+default ShowColourNumberAt _ = ()
+
 operation DrawButton : nat * nat * nat * nat * string ~> unit # (DrawButton, 1)
 default DrawButton _ = ()
 

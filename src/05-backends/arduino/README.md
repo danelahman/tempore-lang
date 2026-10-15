@@ -119,9 +119,11 @@ timed operations over rational delays (`regex-timed-*-rational-symbolic`) and
   - `ShowTextAt` and `ShowNumberAt`, a text or a number written at a position
     in a size from 1 to 4 over a band of the display filled first, so that it
     replaces the text of that band without a clearing, the next line
-    following below it;
+    following below it; the text is centred vertically in the band, with a
+    left margin of 3 times the size in pixels on a band not black;
   - `ShowTimeAt`, a text followed by a duration as m:ss;
   - `ShowColourTextAt`, a text in a colour over a band of another;
+  - `ShowColourNumberAt`, a number in a colour over a band of another;
   - `DrawButton`, a button with a centred label;
   - `DrawBar`, a horizontal bar filled to a length;
   - `DrawLevel`, a bubble level, a vial with a bubble at an offset from its
@@ -182,8 +184,9 @@ how the bounds not measured directly, such as those of `i2c`, are derived.
   measured on the CoreS3 only.
 - The least times of `ShowTextAt` and `ShowNumberAt` depend on the text, so
   their lower bound is that of `ShowText`.
-- The bounds of `ShowTimeAt`, `ShowColourTextAt`, `DrawButton`, `DrawBar` and
-  `DrawLevel` are provisional, derived from those measurements.
+- The bounds of `ShowTimeAt`, `ShowColourTextAt`, `ShowColourNumberAt`,
+  `DrawButton`, `DrawBar` and `DrawLevel` are provisional, derived from those
+  measurements; `ShowColourNumberAt` has the bounds of `ShowNumberAt`.
 
 ## The program
 

@@ -317,16 +317,18 @@ let fire_late (gun : at_gun) (m : float) (w : float) : outcome =
    The grade is the protocol: On your marks and the polls, ended there or
    followed by the Set, its tone, the time and the hold, ended there or
    followed by the gun, its time and the polls for the push; 197.1 to
-   5207.9 ms in all. *)
+   5273.9 ms in all. *)
 let start_once (a : athlete) : outcome
-    # {ShowColourTextAt; ShowColourTextAt; DrawButton; [197, 1347];
+    # {ShowColourTextAt; ShowColourTextAt; DrawButton; DrawButton;
+       [197, 1347];
        (0
-       | ShowColourTextAt; Beep; ReadClock; [197, 2918.5];
+       | ShowColourTextAt; ShowColourTextAt; Beep; ReadClock; [197, 2918.5];
          (0 | Beep; ReadClock; [0, 810]))} =
   let mark = marks a in
-  perform ShowColourTextAt (0, 44, 3, black, white, "ON YOUR MARKS");
-  perform ShowColourTextAt (0, 76, 2, black, white, "");
+  perform ShowColourTextAt (0, 40, 3, black, white, "ON YOUR MARKS");
+  perform ShowColourTextAt (0, 70, 2, black, white, "Settle for 1 s");
   perform DrawButton (0, 188, 156, 40, "Stand up");
+  perform DrawButton (164, 188, 156, 40, "");
   let s = ten_slow (0.0, 0.0, 10.0, 0.0, true, false) in
   if stood s then Abandoned else
   let s = ten_slow s in
@@ -348,7 +350,8 @@ let start_once (a : athlete) : outcome
   if hi -. lo > move_least then Unsettled else
   unbox mark as set_thunk in
   let set = set_thunk () in
-  perform ShowColourTextAt (0, 44, 3, black, yellow, "SET");
+  perform ShowColourTextAt (0, 40, 3, black, yellow, "SET");
+  perform ShowColourTextAt (0, 70, 2, black, yellow, "Hold still");
   perform Beep (1500, 80);
   let now = perform ReadClock () in
   let s = ten_slow (0.0, 0.0, mean, mean, held, false) in
@@ -376,7 +379,8 @@ let start_once (a : athlete) : outcome
    your marks, without the stillness window:
 
      Typing error: Variable `mark` is unboxed with grade
-       `[{ShowColourTextAt; DrawButton}, {ShowColourTextAt; DrawButton}]`
+       `[{ShowColourTextAt; ShowColourTextAt; DrawButton; DrawButton},
+       {ShowColourTextAt; ShowColourTextAt; DrawButton; DrawButton}]`
        accumulated since it was bound, which is not below its box grade
        `[{ShowColourTextAt; [1000, ∞)}, {ShowColourTextAt; [1000, ∞)}]`
        ...
@@ -384,8 +388,10 @@ let start_once (a : athlete) : outcome
 (*
 let set_at_once (a : athlete) : at_set =
   let mark = marks a in
-  perform ShowColourTextAt (0, 44, 3, black, white, "ON YOUR MARKS");
+  perform ShowColourTextAt (0, 40, 3, black, white, "ON YOUR MARKS");
+  perform ShowColourTextAt (0, 70, 2, black, white, "Settle for 1 s");
   perform DrawButton (0, 188, 156, 40, "Stand up");
+  perform DrawButton (164, 188, 156, 40, "");
   unbox mark as set_thunk in
   set_thunk ()
 *)
@@ -394,25 +400,27 @@ let set_at_once (a : athlete) : at_set =
    polls of the Set hold, 1182 to 1347 ms after the Set command:
 
      Typing error: Variable `set` is unboxed with grade
-       `[{ShowColourTextAt; Beep; [197, 224.5]; [197, 224.5]; [197, 224.5];
-       [197, 224.5]; [197, 224.5]; [197, 224.5]},
-       {ShowColourTextAt; Beep; [197, 224.5]; [197, 224.5]; [197, 224.5];
-       [197, 224.5]; [197, 224.5]; [197, 224.5]}]` accumulated since it was
-       bound, which is not below its box grade
+       `[{ShowColourTextAt; ShowColourTextAt; Beep; [197, 224.5];
+       [197, 224.5]; [197, 224.5]; [197, 224.5]; [197, 224.5]; [197, 224.5]},
+       {ShowColourTextAt; ShowColourTextAt; Beep; [197, 224.5];
+       [197, 224.5]; [197, 224.5]; [197, 224.5]; [197, 224.5]; [197, 224.5]}]`
+       accumulated since it was bound, which is not below its box grade
        `[{ShowColourTextAt; [1500, 3000]}, {ShowColourTextAt; [1500, 3000]}]`
        ...
 *)
 (*
 let start_early (a : athlete) : outcome =
   let mark = marks a in
-  perform ShowColourTextAt (0, 44, 3, black, white, "ON YOUR MARKS");
+  perform ShowColourTextAt (0, 40, 3, black, white, "ON YOUR MARKS");
+  perform ShowColourTextAt (0, 70, 2, black, white, "Settle for 1 s");
   let s = ten_slow (ten_slow (ten_slow (ten_slow (ten_slow (ten_slow
     (0.0, 0.0, 10.0, 0.0, true, false)))))) in
   let sum, _, _, _, held, _ = s in
   let mean = sum /. mark_polls in
   unbox mark as set_thunk in
   let set = set_thunk () in
-  perform ShowColourTextAt (0, 44, 3, black, yellow, "SET");
+  perform ShowColourTextAt (0, 40, 3, black, yellow, "SET");
+  perform ShowColourTextAt (0, 70, 2, black, yellow, "Hold still");
   perform Beep (1500, 80);
   let _ = ten_slow (ten_slow (ten_slow (ten_slow (ten_slow (ten_slow
     (0.0, 0.0, mean, mean, held, false)))))) in
@@ -420,35 +428,36 @@ let start_early (a : athlete) : outcome =
   fire (gun_thunk ()) mean push_least
 *)
 
-(* The screen of the session: the title, the guarantee, the labels of the
-   tally, the buttons and the footer. *)
+(* The screen of the session: the title, the guarantee and the footer. *)
 let frame () =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Sprint starter");
   perform ShowTextAt
     (0, 20, 1, "Gun 1.5-3 s after Set; judged within 1 s of the gun");
-  perform ShowTextAt (0, 106, 2, "Legal");
-  perform ShowTextAt (160, 106, 2, "Warnings");
-  perform ShowTextAt (0, 128, 2, "DQ");
-  perform ShowTextAt (160, 128, 2, "No starts");
-  perform ShowTextAt (0, 150, 2, "Best, s");
-  perform ShowTextAt (0, 168, 2, "Lane");
-  perform ShowTextAt (96, 168, 2, "false starts");
-  perform DrawButton (0, 188, 156, 40, "Start");
-  perform DrawButton (164, 188, 156, 40, "Reset");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
 
-(* The tally and the athlete on the screen, and the Start button. *)
+(* The tally and the athlete on the screen, in four rows from the row 100,
+   22 pixels apart, and the buttons. Each band of text extends to the right
+   edge, so each row is written from left to right. *)
 let board ((legal, warned, out, none, best) : tally)
     ((lane, warnings) : athlete) =
-  perform ShowNumberAt (96, 106, 2, 0, float_of_nat legal);
-  perform ShowNumberAt (280, 106, 2, 0, float_of_nat warned);
-  perform ShowNumberAt (96, 128, 2, 0, float_of_nat out);
-  perform ShowNumberAt (280, 128, 2, 0, float_of_nat none);
-  perform ShowNumberAt (96, 150, 2, 3, float_of_nat best /. 1000000.0);
-  perform ShowNumberAt (60, 168, 2, 0, float_of_nat lane);
-  perform ShowNumberAt (256, 168, 2, 0, float_of_nat warnings);
-  perform DrawButton (0, 188, 156, 40, "Start")
+  perform ShowTextAt (0, 100, 2, "Legal");
+  perform ShowNumberAt (96, 100, 2, 0, float_of_nat legal);
+  perform ShowTextAt (160, 100, 2, "Warnings");
+  perform ShowNumberAt (280, 100, 2, 0, float_of_nat warned);
+  perform ShowTextAt (0, 122, 2, "DQ");
+  perform ShowNumberAt (96, 122, 2, 0, float_of_nat out);
+  perform ShowTextAt (160, 122, 2, "No starts");
+  perform ShowNumberAt (280, 122, 2, 0, float_of_nat none);
+  perform ShowTextAt (0, 144, 2, "Best, s");
+  if best = 0 then perform ShowTextAt (96, 144, 2, "-")
+  else perform ShowNumberAt (96, 144, 2, 3, float_of_nat best /. 1000000.0);
+  perform ShowTextAt (0, 166, 2, "Lane");
+  perform ShowNumberAt (60, 166, 2, 0, float_of_nat lane);
+  perform ShowTextAt (96, 166, 2, "False starts");
+  perform ShowNumberAt (256, 166, 2, 0, float_of_nat warnings);
+  perform DrawButton (0, 188, 156, 40, "Start");
+  perform DrawButton (164, 188, 156, 40, "Reset")
 
 (* The messages of the two lines of the state: in idle, after a reset,
    after a start abandoned or not still, without a push, legal, and a false
@@ -467,37 +476,37 @@ type message =
 let say (m : message) : unit # {ShowColourTextAt; ShowColourTextAt} =
   match m with
   | Ready ->
-      perform ShowColourTextAt (0, 44, 3, black, white, "READY");
-      perform ShowColourTextAt (0, 76, 2, black, white, "Tap Start")
+      perform ShowColourTextAt (0, 40, 3, black, white, "READY");
+      perform ShowColourTextAt (0, 70, 2, black, white, "Tap Start")
   | Cleared ->
-      perform ShowColourTextAt (0, 44, 3, black, white, "READY");
-      perform ShowColourTextAt (0, 76, 2, black, white, "Tally cleared")
+      perform ShowColourTextAt (0, 40, 3, black, white, "READY");
+      perform ShowColourTextAt (0, 70, 2, black, white, "Tally cleared")
   | StandUp ->
-      perform ShowColourTextAt (0, 44, 3, black, white, "STAND UP");
-      perform ShowColourTextAt (0, 76, 2, black, white, "Start abandoned")
+      perform ShowColourTextAt (0, 40, 3, black, white, "STAND UP");
+      perform ShowColourTextAt (0, 70, 2, black, white, "Start abandoned")
   | NotStill ->
-      perform ShowColourTextAt (0, 44, 3, black, orange, "NOT STILL");
+      perform ShowColourTextAt (0, 40, 3, black, orange, "NOT STILL");
       perform ShowColourTextAt
-        (0, 76, 2, black, orange, "Settle and tap Start")
+        (0, 70, 2, black, orange, "Settle and tap Start")
   | NoPush ->
-      perform ShowColourTextAt (0, 44, 3, black, orange, "NO START");
-      perform ShowColourTextAt (0, 76, 2, black, orange, "No push within 1 s")
+      perform ShowColourTextAt (0, 40, 3, black, orange, "NO START");
+      perform ShowColourTextAt (0, 70, 2, black, orange, "No push within 1 s")
   | Legal ->
-      perform ShowColourTextAt (0, 44, 3, black, green, "LEGAL START");
-      perform ShowColourTextAt (0, 76, 2, black, green, "Reaction, s")
+      perform ShowColourTextAt (0, 40, 3, black, green, "LEGAL START");
+      perform ShowColourTextAt (0, 70, 2, black, green, "Reaction, s")
   | Warned moved ->
-      perform ShowColourTextAt (0, 44, 3, white, red, "FALSE START");
+      perform ShowColourTextAt (0, 40, 3, white, red, "FALSE START");
       if moved then
         perform ShowColourTextAt
-          (0, 76, 2, white, red, "Warning: moved in Set")
+          (0, 70, 2, white, red, "Warning: moved in Set")
       else
-        perform ShowColourTextAt (0, 76, 2, white, red, "Warning: under 0.1 s")
+        perform ShowColourTextAt (0, 70, 2, white, red, "Warning: under 0.1 s")
   | Disqualified moved ->
-      perform ShowColourTextAt (0, 44, 3, white, red, "DISQUALIFIED");
+      perform ShowColourTextAt (0, 40, 3, white, red, "DISQUALIFIED");
       if moved then
-        perform ShowColourTextAt (0, 76, 2, white, red, "Moved in Set")
+        perform ShowColourTextAt (0, 70, 2, white, red, "Moved in Set")
       else
-        perform ShowColourTextAt (0, 76, 2, white, red, "Reaction under 0.1 s")
+        perform ShowColourTextAt (0, 70, 2, white, red, "Reaction under 0.1 s")
 
 (* A false start charged to the athlete, after a movement in Set or not: a
    warning for the first, a disqualification for each further one (the
@@ -533,7 +542,8 @@ let conclude (t : tally) (a : athlete) (o : outcome) : tally * athlete =
       if r < false_start then charge t (lane, warnings) false
       else (
         say Legal;
-        perform ShowNumberAt (160, 76, 2, 3, float_of_nat r /. 1000000.0);
+        perform ShowColourNumberAt
+          (160, 70, 2, 3, black, green, float_of_nat r /. 1000000.0);
         let best = if best = 0 || r < best then r else best in
         ((legal + 1, warned, out, none, best), (lane, warnings)))
 
