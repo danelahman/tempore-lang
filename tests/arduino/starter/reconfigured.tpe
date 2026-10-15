@@ -1,0 +1,29 @@
+(* A rejected variant of examples/arduino/starter/starter.tpe. *)
+
+let rec officiate_reconfigured (n : nat) (t : tally) (a : athlete)
+    (held : bool) : unit
+    # {(ReadTouch;
+        (ShowColourTextAt; [0, 6000]
+        | Beep; ShowColourTextAt; ShowColourTextAt; ShowTextAt; [0, 495]
+        | 50))*} =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      let touched, x, y = perform ReadTouch () in
+      let k = if touched && not held then key x y else Elsewhere in
+      let t, a, held =
+        if k = Start then
+          let t, a = race t a in
+          (t, a, true)
+        else if k = Reset then (
+          perform Beep (3000, 50);
+          perform ConfigureImu 400;
+          let lane, _ = a in
+          say Cleared;
+          board (0, 0, 0, 0, 0) (lane, 0);
+          ((0, 0, 0, 0, 0), (lane, 0), touched))
+        else (
+          delay 50;
+          (t, a, touched))
+      in
+      officiate_reconfigured m t a held

@@ -1,10 +1,8 @@
 (* A rejected variant of examples/arduino/starter/starter.tpe. *)
 
 let fire_late (gun : at_gun) (m : float) (w : float) : outcome =
-  box {Beep; ReadClock} (m, w) as armed in
   perform Beep (2500, 300);
   let fired = perform ReadClock () in
-  unbox armed as (m, w) in
   let r = react m w in
   let found, at = fifty_fast m w r in
   unbox gun as (lane, warnings) in

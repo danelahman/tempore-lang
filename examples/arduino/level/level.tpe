@@ -1,9 +1,9 @@
 (* A digital level on the M5Stack CoreS3 Lite: a reference applied only to
-   readings that no reconfiguration of the unit precedes
+   readings that no reconfiguration of the unit precedes unchecked
 
-   Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-interval-rational-symbolic \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        --package m5-imu \
        --package m5-display \
        --package m5-touch \
@@ -11,8 +11,8 @@
        --board m5stack-cores3 \
        examples/arduino/level/level.tpe
 
-   Grades [L, U]: a lower and upper regular-language bound on the traces with
-   rational durations
+   Grades [L, U]: a lower bound in the coverage order and an upper bound in
+   the rigid allowance order on the traces with rational durations
      - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
      - Top [{0}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
@@ -24,11 +24,12 @@
    reference, and two buttons: "Set reference" takes a reference, checked
    at rest, and the sensor button, labelled "Sensor 100->400Hz" or
    "Sensor 400->100Hz", switches the output data rate of the accelerometer
-   between 100 and 400 Hz, which invalidates it; a reference expires after
-   30 seconds. The scaffold draws the charge of the battery at the top
-   right. bindings.cpp defines the safe state and world.cpp models the
-   surface and the taps. The figures below are those under the bounds of
-   the CoreS3, some of them provisional.
+   between 100 and 400 Hz, after which a reference is kept only if a check
+   finds the unit at rest; a reference expires after 30 seconds. The
+   scaffold draws the charge of the battery at the top right. bindings.cpp
+   defines the safe state and world.cpp models the surface and the taps.
+   The figures below are those under the bounds of the CoreS3, some of them
+   provisional.
 
    On the board: make arduino-level-upload; simulated on the host: make
    arduino-level-simulate ('make examples-help',
@@ -86,8 +87,9 @@ let angles (accel : vector) (reference : reference) =
 let level ((pitch, roll) : float * float) =
   magnitude pitch <= tolerance && magnitude roll <= tolerance
 
-(* The two lines of the state of the reference, of age 'age' in steps. *)
-let status (reference : reference) (age : nat) :
+(* The two lines of the state of the reference, of age 'age' in steps, kept
+   after a reconfiguration to the rate 'kept', or 0. *)
+let status (reference : reference) (age : nat) (kept : nat) :
     unit # {(ShowTextAt | ShowTimeAt); ShowTextAt} =
   match reference with
   | NoReference ->
@@ -109,8 +111,15 @@ let status (reference : reference) (age : nat) :
       perform ShowTextAt (0, 150, 2, "Reference expired:");
       perform ShowTextAt (0, 172, 2, "tap Set reference")
   | Offsets _ ->
-      perform ShowTimeAt (0, 150, 2, "Reference valid for ", (expiry - age) / 4);
-      perform ShowTextAt (0, 172, 2, "(checked at rest)")
+      if kept = 400 then (
+        perform ShowTextAt (0, 150, 2, "Reconfigured, now 400 Hz:");
+        perform ShowTextAt (0, 172, 2, "reference kept, at rest"))
+      else if kept = 100 then (
+        perform ShowTextAt (0, 150, 2, "Reconfigured, now 100 Hz:");
+        perform ShowTextAt (0, 172, 2, "reference kept, at rest"))
+      else (
+        perform ShowTimeAt (0, 150, 2, "Reference valid for ", (expiry - age) / 4);
+        perform ShowTextAt (0, 172, 2, "(checked at rest)"))
 
 (* The screen: the title, the guarantee, the labels, the buttons and the
    footer, drawn once by 'start', the sensor button, labelled with the
@@ -118,7 +127,8 @@ let status (reference : reference) (age : nat) :
    bubble moves to the higher side, grey without a valid reference and
    green when level, the angles, the verdict and the state of the
    reference, redrawn by each step over the bands of the previous. *)
-let display (reference : reference) (shown : float * float) (age : nat) :
+let display (reference : reference) (shown : float * float) (age : nat)
+    (kept : nat) :
     unit
     # {DrawLevel; ShowNumberAt; ShowNumberAt; ShowTextAt;
        (ShowTextAt | ShowTimeAt); ShowTextAt} =
@@ -131,7 +141,7 @@ let display (reference : reference) (shown : float * float) (age : nat) :
   perform ShowNumberAt (200, 80, 3, 1, roll);
   (if valid && level shown then perform ShowTextAt (130, 120, 3, "LEVEL")
    else perform ShowTextAt (130, 120, 3, ""));
-  status reference age
+  status reference age kept
 
 (* The tilts of a reading, in degrees. *)
 let tilts () : float * float # {ReadImu} =
@@ -139,13 +149,7 @@ let tilts () : float * float # {ReadImu} =
   (tilt_x_of_accel accel, tilt_y_of_accel accel)
 
 (* The box grades below name operations without delays: such a grade
-   excludes every operation it does not name. A box grade such as
-   '{~(_*; ConfigureImu; ...)}', the traces in which every reconfiguration
-   is followed by a check, does not exclude a reconfiguration here, since it
-   contains the delays, within which any operation may come; nor does
-   '{(ConfigureImu; CheckAtRest | 0); ReadImu}', whose upper bound permits
-   the check to be left out and whose lower bound demands only one of its
-   traces. *)
+   excludes every operation it does not name. *)
 
 (* Correctly accepted by the typechecker: a reference reads the unit four
    times, 10 ms apart, checks that it is at rest and sounds a tone, high if
@@ -191,14 +195,17 @@ let take_unchecked () : reference =
 (* Correctly accepted by the typechecker: the step reads the unit and then
    the touch screen; on a tap on the sensor button, it reconfigures the
    unit, setting the output data rate of its accelerometer to 400 or 100 Hz,
-   redraws the button with the rate, reads the unit anew and draws; at the
-   end of the hold after a tap on "Set reference", it takes the reference
-   and shows its state; and otherwise it draws the first reading. Its
-   durations, 0.45 to 213 ms, lie below its period of 250 ms. The first
-   reading is boxed with the reading of the touch screen, and the reference
-   of the state with any number of readings of the unit and of the touch
-   screen, without delays: each is used only if no other operation came
-   between, in particular no reconfiguration and no new reference.
+   checks that the unit is at rest, keeping the reference if it is, redraws
+   the button with the rate, reads the unit anew and draws; at the end of
+   the hold after a tap on "Set reference", it takes the reference and shows
+   its state; and otherwise it draws the first reading. Its durations, 0.45
+   to 241.5 ms, lie below its period of 250 ms. The first reading is boxed
+   with the reading of the touch screen, and the reference of the state
+   with any number of readings of the unit and of the touch screen,
+   followed by a reconfiguration and a check at rest or by nothing, without
+   delays: each is used only if no other operation came between, the
+   reference after a reconfiguration only after a check at rest, and never
+   after a new reference.
 
    A box is checked from its binding to its unboxing, within one function
    body. The reference persists from step to step in the state, as data:
@@ -210,12 +217,13 @@ let take_unchecked () : reference =
    unchecked, which is plain data. *)
 let step ((reference, age, rate, touching) : state) : state
     # {ReadImu; ReadTouch;
-       ((ConfigureImu; Beep; DrawButton; ReadImu | 0); DrawLevel;
+       ((ConfigureImu; CheckAtRest; Beep; DrawButton; ReadImu | 0); DrawLevel;
         ShowNumberAt; ShowNumberAt; ShowTextAt; (ShowTextAt | ShowTimeAt);
         ShowTextAt
        | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; CheckAtRest; Beep;
          (ShowTextAt | ShowTimeAt); ShowTextAt)} =
-  box {(ReadImu | ReadTouch)*} reference as kept in
+  box {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | 0)} reference
+    as kept in
   let accel, _ = perform ReadImu () in
   box {ReadTouch} accel as reading in
   let touched, x, y = perform ReadTouch () in
@@ -223,17 +231,24 @@ let step ((reference, age, rate, touching) : state) : state
   if tapped && on_sensor x y then (
     let rate = if rate = 100 then 400 else 100 in
     perform ConfigureImu rate;
+    let rest = perform CheckAtRest () in
+    unbox kept as reference in
+    let next, age =
+      match reference with
+      | Offsets _ -> if rest then (reference, age) else (Reconfigured rate, 0)
+      | _ -> (Reconfigured rate, 0)
+    in
     perform Beep (600, 50);
     (if rate = 100 then perform DrawButton (148, 194, 172, 24, "Sensor 100->400Hz")
      else perform DrawButton (148, 194, 172, 24, "Sensor 400->100Hz"));
     let accel, _ = perform ReadImu () in
-    display (Reconfigured rate) (angles accel (Reconfigured rate)) 0;
-    (Reconfigured rate, 0, rate, touched))
+    display next (angles accel next) age (if rest then rate else 0);
+    (next, age, rate, touched))
   else
     match reference with
     | Holding 0 ->
         let reference = take () in
-        status reference 0;
+        status reference 0 0;
         (reference, 0, rate, touched)
     | _ ->
         unbox kept as reference in
@@ -247,7 +262,7 @@ let step ((reference, age, rate, touching) : state) : state
                 if age + 1 >= expiry then (Expired, 0) else (reference, age + 1)
             | _ -> (reference, 0)
         in
-        display next (angles accel next) age;
+        display next (angles accel next) age 0;
         (next, age, rate, touched)
 
 (* The initial state: the screen cleared, with its title, guarantee, labels,
@@ -256,7 +271,7 @@ let step ((reference, age, rate, touching) : state) : state
 let start () : state =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Digital level");
-  perform ShowTextAt (0, 24, 1, "Reference used only if at rest and not reconfigured");
+  perform ShowTextAt (0, 24, 1, "Reference used only if checked at rest");
   perform ShowTextAt (130, 45, 2, "Pitch");
   perform ShowTextAt (130, 85, 2, "Roll");
   perform DrawButton (0, 194, 144, 24, "Set reference");
@@ -267,22 +282,19 @@ let start () : state =
 
 (* Correctly rejected by the typechecker: a tap on the sensor button
    reconfigures the unit, and the step keeps the reference and applies it
-   to the reading, although it was taken at the former rate:
+   to the reading without a check at rest:
 
-     Typing error: Variable `kept` is unboxed with grade
-       `[{ReadImu; ReadTouch; (0 | ConfigureImu)},
-       {ReadImu; ReadTouch; (0 | ConfigureImu)}]` accumulated since it was
-       bound, which is not below its box grade
-       `[{(ReadImu | ReadTouch)*}, {(ReadImu | ReadTouch)*}]`
+     Typing error: Variable `kept` is unboxed with grade `[{ReadImu;
+       ReadTouch; (0 | ConfigureImu)}, {ReadImu; ReadTouch; (0 |
+       ConfigureImu)}]` accumulated since it was bound, which is not below
+       its box grade `[{(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest |
+       0)}, {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | 0)}]`
        ...
-       Note: the resource inequality
-         `[{ReadImu; ReadTouch; (0 | ConfigureImu)},
-         {ReadImu; ReadTouch; (0 | ConfigureImu)}] <=
-         [{(ReadImu | ReadTouch)*}, {(ReadImu | ReadTouch)*}]` does not hold
 *)
 (*
 let step_reconfigured ((reference, age, rate, touching) : state) : state =
-  box {(ReadImu | ReadTouch)*} reference as kept in
+  box {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | 0)} reference
+    as kept in
   let accel, _ = perform ReadImu () in
   let touched, x, y = perform ReadTouch () in
   let rate =
@@ -293,7 +305,7 @@ let step_reconfigured ((reference, age, rate, touching) : state) : state =
     else rate
   in
   unbox kept as reference in
-  display reference (angles accel reference) age;
+  display reference (angles accel reference) age 0;
   (reference, age, rate, touched)
 *)
 
@@ -319,7 +331,7 @@ let step_stale ((reference, age, rate, touching) : state) : state =
     perform ConfigureImu rate;
     perform Beep (600, 50);
     unbox reading as accel in
-    display (Reconfigured rate) (angles accel (Reconfigured rate)) 0;
+    display (Reconfigured rate) (angles accel (Reconfigured rate)) 0 0;
     (Reconfigured rate, 0, rate, touched))
   else (reference, age, rate, touched)
 *)

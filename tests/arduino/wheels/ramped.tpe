@@ -1,0 +1,18 @@
+(* A rejected variant of examples/arduino/wheels/wheels.tpe. *)
+
+let profile_ramped (drive : int) : float * float =
+  perform ResetEncoders ();
+  box {SetMotors; (![19, 21]; ReadEncoders)*} 0.02 as spaced in
+  perform SetMotors (drive, drive);
+  let l1, r1 = sample () in
+  perform SetMotors (drive +! drive, drive +! drive);
+  let l2, r2 = sample () in
+  let l3, r3 = sample () in
+  let l4, r4 = sample () in
+  let l5, r5 = sample () in
+  unbox spaced as spacing in
+  perform SetMotors (0i, 0i);
+  ( rise (speed 0i l1 spacing) (speed l1 l2 spacing) (speed l2 l3 spacing)
+      (speed l3 l4 spacing) (speed l4 l5 spacing) spacing,
+    rise (speed 0i r1 spacing) (speed r1 r2 spacing) (speed r2 r3 spacing)
+      (speed r3 r4 spacing) (speed r4 r5 spacing) spacing )

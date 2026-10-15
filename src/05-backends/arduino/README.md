@@ -313,19 +313,19 @@ monitor only, and the operations have no running-time bounds.
 Boxes specify how long a reading may be used and, under other grades, which
 operations must or may not precede its use.
 
-Under the regular expressions of timed operations, the examples write a grade
-as one expression, which is both bounds:
+The examples under the regular expressions of timed operations use their
+rigid variants and write a grade as one expression, which is both bounds:
 
 - the operations it names are demanded, in its order;
 - the delays between them are bounded below and above;
 - another operation may come between them only within a delay, at the upper
-  bound of its running time.
+  bound of its running time, and not within a strict delay `!d`;
+- a Kleene star of rounds permits these rounds only.
 
 A box grade without delays therefore excludes every operation it does not
-name, while a box grade with a delay bounds the time but not the operations
-within it. Under the rigid variants, an upper bound alone demands its
-operations, in its order. These guarantees are relative to the declared bounds
-of the operations.
+name, while a box grade with a delay bounds the time, and the operations
+within it only by their running times. These guarantees are relative to the
+declared bounds of the operations.
 
 ## Monitors
 
@@ -715,16 +715,21 @@ port variable `PORT_M5STACK_GRAY`).
     commands the motors, and uses the reading of the unit only if no command
     of the motors and no delay came between, across any number of reads of
     the encoders and setpoints.
+  - The bias is measured from readings of the attitude at most 10 ms apart,
+    with no other operation between.
   - The supervision disarms, calibrates, arms at least a second after its
     prompt, drives and disarms, in this order.
   - Handlers, which the device does not use, simulate the robot and a fault
     of its gyroscope in the interpreter, each case of an operation performing
     that operation.
 - [`wheels`](../../../examples/arduino/wheels/wheels.tpe): a wheel check of
-  the robot on a stand, under the regular expressions of timed operations:
-  the counts of the encoders are divided by the length of the window only
-  after a drive command, 100 to 101 ms and a reading of the encoders, in this
-  order.
+  the robot on a stand, under the regular expressions of timed operations.
+  - The counts of the encoders are divided by the length of the window only
+    after a drive command, 100 to 101 ms and a reading of the encoders, in
+    this order.
+  - A spin-up profile samples the encoders after the drive command, each
+    sample after a wait of 19 to 21 ms with no other operation, and shows
+    the time of each wheel to reach 90 % of its final speed.
 
 ### M5Stack CoreS3 and CoreS3 Lite
 
@@ -748,16 +753,19 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   and the sensor button, labelled with the current and the next rate.
   - A reference is taken after the unit is held still for a second and
     installed only after a check at rest.
-  - The reconfiguration of the unit invalidates it.
+  - The reconfiguration of the unit keeps it only after a new check at
+    rest, with no operation between.
   - It is applied only to a reading that no reconfiguration or new reference
     precedes within its 250 ms step, and expires after 30 seconds.
 - [`fall`](../../../examples/arduino/fall/fall.tpe): a fall detector, under
   the regular expressions of timed operations.
   - A free fall of at least 100 ms followed within a second by an impact is
-    a fall.
+    a fall; it is confirmed from readings alone, each after a wait of 9.5
+    to 10.5 ms.
   - After a fall, a prompt, in orange, a tone and a countdown of 10 seconds
     with a shrinking bar precede the alarm, in red, raised only 10 to 30
-    seconds after the prompt unless a tap cancels, and stopped by a tap.
+    seconds after the prompt unless a tap cancels, sounding a tone every
+    second until a tap stops it.
   - While watching, in green, the screen shows the falls counted, the time
     since the last event and a bar of the acceleration.
 - [`steps`](../../../examples/arduino/steps/steps.tpe): a step counter,
@@ -818,6 +826,8 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   - The gun follows the Set command after a hold of 80 polls and as many
     further polls as the clock gives, 1576 to 2919 ms; the time of the gun is
     read at once, with no operation between.
+  - The session consists of rounds of a poll of the touch screen followed by
+    a start, a reset or a wait of 50 ms.
   - A reaction under 100 ms or a movement in Set is a false start: a warning
     for the first, a disqualification for the second. "Stand up" abandons a
     start before the gun, and "Reset" clears the tally.

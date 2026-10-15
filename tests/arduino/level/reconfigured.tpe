@@ -1,7 +1,8 @@
 (* A rejected variant of examples/arduino/level/level.tpe. *)
 
 let step_reconfigured ((reference, age, rate, touching) : state) : state =
-  box {(ReadImu | ReadTouch)*} reference as kept in
+  box {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | 0)} reference
+    as kept in
   let accel, _ = perform ReadImu () in
   let touched, x, y = perform ReadTouch () in
   let rate =
@@ -12,5 +13,5 @@ let step_reconfigured ((reference, age, rate, touching) : state) : state =
     else rate
   in
   unbox kept as reference in
-  display reference (angles accel reference) age;
+  display reference (angles accel reference) age 0;
   (reference, age, rate, touched)

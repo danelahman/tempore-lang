@@ -1,5 +1,5 @@
 The wheel check of examples/arduino/wheels on the M5Stack BALA2, under the
-regular expressions of timed operations, with the declarations of the
+rigid regular expressions of timed operations, with the declarations of the
 packages m5-imu, m5-display and bala2-base under these grades: its runs by
 the interpreter, its rejected variants, the check of a periodic task against
 its period from the durations of a trace, and its host simulation on a
@@ -18,33 +18,35 @@ implementations of the operations:
   === Run 1 ===
   return 2.94
   State: [
-    [{0.6}, {0.6}],
-    [{0.01}, {0.01}]
+    [{!0.6}, {!0.6}],
+    [{!0.01}, {!0.01}]
   ]
   
   === Run 2 ===
   return (0., 0.)
   State: [
-    [{0.35}, {0.35}],
+    [{!0.35}, {!0.35}],
     { resource_0 ↦
         0.1005
         # [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]
     },
-    [{0.2}, {0.2}],
-    [{100.5}, {100.5}],
-    [{0.5}, {0.5}],
-    [{0.2}, {0.2}]
+    [{!0.2}, {!0.2}],
+    [{!100.5}, {!100.5}],
+    [{!0.5}, {!0.5}],
+    [{!0.2}, {!0.2}]
   ]
   
 
 The rejected variants, each loaded after the application: a drive commanded
-after the wait, and the drive shown on the display within the window:
+after the wait, the drive shown on the display within the window, a count
+shown on the display between the samples of the profile, and the drive
+doubled between them:
 
-  $ for v in unordered shown; do packages --typecheck-only $app/wheels.tpe wheels/$v.tpe; echo "[$?]"; done
+  $ for v in unordered shown drawn ramped; do packages --typecheck-only $app/wheels.tpe wheels/$v.tpe; echo "[$?]"; done
   File "wheels/unordered.tpe", lines 9-11, characters 2-63:
   9 |   unbox window as seconds in
         ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `window` is unboxed with grade `[{100.5; SetMotors; ReadEncoders}, {100.5; SetMotors; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]`
+  Typing error: Variable `window` is unboxed with grade `[{!100.5; SetMotors; ReadEncoders}, {!100.5; SetMotors; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]`
     File "wheels/unordered.tpe", line 5, characters 54-60:
     5 |   box {SetMotors; [100, 101]; ReadEncoders} 0.1005 as window in
                                                               ^^^^^^
@@ -52,7 +54,7 @@ after the wait, and the drive shown on the display within the window:
     File "wheels/unordered.tpe", line 6, characters 2-13:
     6 |   delay 100.5;
           ^^^^^^^^^^^
-    grade `[{100.5}, {100.5}]` accumulates here (delay)
+    grade `[{!100.5}, {!100.5}]` accumulates here (delay)
     File "wheels/unordered.tpe", line 7, characters 2-34:
     7 |   perform SetMotors (drive, drive);
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -61,12 +63,12 @@ after the wait, and the drive shown on the display within the window:
     8 |   let left, right = perform ReadEncoders () in
                             ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{ReadEncoders}, {ReadEncoders}]` accumulates here (operation `ReadEncoders`)
-    Note: the resource inequality `[{100.5; SetMotors; ReadEncoders}, {100.5; SetMotors; ReadEncoders}] <= [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]` does not hold
+    Note: the resource inequality `[{!100.5; SetMotors; ReadEncoders}, {!100.5; SetMotors; ReadEncoders}] <= [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]` does not hold
   [1]
   File "wheels/shown.tpe", lines 11-13, characters 2-63:
   11 |   unbox window as seconds in
          ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `window` is unboxed with grade `[{SetMotors; ShowNumber; 100.5; ReadEncoders}, {SetMotors; ShowNumber; 100.5; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]`
+  Typing error: Variable `window` is unboxed with grade `[{SetMotors; ShowNumber; !100.5; ReadEncoders}, {SetMotors; ShowNumber; !100.5; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]`
     File "wheels/shown.tpe", line 6, characters 54-60:
     6 |   box {SetMotors; [100, 101]; ReadEncoders} 0.1005 as window in
                                                               ^^^^^^
@@ -82,12 +84,88 @@ after the wait, and the drive shown on the display within the window:
     File "wheels/shown.tpe", line 9, characters 2-13:
     9 |   delay 100.5;
           ^^^^^^^^^^^
-    grade `[{100.5}, {100.5}]` accumulates here (delay)
+    grade `[{!100.5}, {!100.5}]` accumulates here (delay)
     File "wheels/shown.tpe", line 10, characters 20-43:
     10 |   let left, right = perform ReadEncoders () in
                              ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{ReadEncoders}, {ReadEncoders}]` accumulates here (operation `ReadEncoders`)
-    Note: the resource inequality `[{SetMotors; ShowNumber; 100.5; ReadEncoders}, {SetMotors; ShowNumber; 100.5; ReadEncoders}] <= [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]` does not hold
+    Note: the resource inequality `[{SetMotors; ShowNumber; !100.5; ReadEncoders}, {SetMotors; ShowNumber; !100.5; ReadEncoders}] <= [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]` does not hold
+  [1]
+  File "wheels/drawn.tpe", lines 13-18, characters 2-59:
+  13 |   unbox spaced as spacing in
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `spaced` is unboxed with grade `[{SetMotors; !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}, {SetMotors; !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; (![19, 21]; ReadEncoders)*}, {SetMotors; (![19, 21]; ReadEncoders)*}]`
+    File "wheels/drawn.tpe", line 5, characters 54-60:
+    5 |   box {SetMotors; (![19, 21]; ReadEncoders)*} 0.02 as spaced in
+                                                              ^^^^^^
+    `spaced` is bound here
+    File "wheels/drawn.tpe", line 6, characters 2-34:
+    6 |   perform SetMotors (drive, drive);
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[{SetMotors}, {SetMotors}]` accumulates here (operation `SetMotors`)
+    File "wheels/drawn.tpe", line 7, characters 15-24:
+    7 |   let l1, r1 = sample () in
+                       ^^^^^^^^^
+    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
+    File "wheels/drawn.tpe", line 8, characters 2-38:
+    8 |   perform ShowNumber (float_of_int l1);
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[{ShowNumber}, {ShowNumber}]` accumulates here (this computation)
+    File "wheels/drawn.tpe", line 9, characters 15-24:
+    9 |   let l2, r2 = sample () in
+                       ^^^^^^^^^
+    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
+    File "wheels/drawn.tpe", line 10, characters 15-24:
+    10 |   let l3, r3 = sample () in
+                        ^^^^^^^^^
+    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
+    File "wheels/drawn.tpe", line 11, characters 15-24:
+    11 |   let l4, r4 = sample () in
+                        ^^^^^^^^^
+    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
+    File "wheels/drawn.tpe", line 12, characters 15-24:
+    12 |   let l5, r5 = sample () in
+                        ^^^^^^^^^
+    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
+    Note: the resource inequality `[{SetMotors; !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}, {SetMotors; !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}] <= [{SetMotors; (![19, 21]; ReadEncoders)*}, {SetMotors; (![19, 21]; ReadEncoders)*}]` does not hold
+  [1]
+  File "wheels/ramped.tpe", lines 13-18, characters 2-59:
+  13 |   unbox spaced as spacing in
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `spaced` is unboxed with grade `[{SetMotors; !19.75; ReadEncoders; SetMotors; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}, {SetMotors; !19.75; ReadEncoders; SetMotors; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; (![19, 21]; ReadEncoders)*}, {SetMotors; (![19, 21]; ReadEncoders)*}]`
+    File "wheels/ramped.tpe", line 5, characters 54-60:
+    5 |   box {SetMotors; (![19, 21]; ReadEncoders)*} 0.02 as spaced in
+                                                              ^^^^^^
+    `spaced` is bound here
+    File "wheels/ramped.tpe", line 6, characters 2-34:
+    6 |   perform SetMotors (drive, drive);
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[{SetMotors}, {SetMotors}]` accumulates here (operation `SetMotors`)
+    File "wheels/ramped.tpe", line 7, characters 15-24:
+    7 |   let l1, r1 = sample () in
+                       ^^^^^^^^^
+    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
+    File "wheels/ramped.tpe", line 8, characters 2-52:
+    8 |   perform SetMotors (drive +! drive, drive +! drive);
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[{SetMotors}, {SetMotors}]` accumulates here (this computation)
+    File "wheels/ramped.tpe", line 9, characters 15-24:
+    9 |   let l2, r2 = sample () in
+                       ^^^^^^^^^
+    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
+    File "wheels/ramped.tpe", line 10, characters 15-24:
+    10 |   let l3, r3 = sample () in
+                        ^^^^^^^^^
+    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
+    File "wheels/ramped.tpe", line 11, characters 15-24:
+    11 |   let l4, r4 = sample () in
+                        ^^^^^^^^^
+    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
+    File "wheels/ramped.tpe", line 12, characters 15-24:
+    12 |   let l5, r5 = sample () in
+                        ^^^^^^^^^
+    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
+    Note: the resource inequality `[{SetMotors; !19.75; ReadEncoders; SetMotors; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}, {SetMotors; !19.75; ReadEncoders; SetMotors; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}] <= [{SetMotors; (![19, 21]; ReadEncoders)*}, {SetMotors; (![19, 21]; ReadEncoders)*}]` does not hold
   [1]
 
 A periodic task whose trace takes 10.2 to 10.8 ms is refused for a period of
@@ -177,7 +255,9 @@ exceptions and run-time type information:
 Three seconds of simulated time: the check spins the wheels forwards and
 backwards, each window from the drive command to the reading of the encoders
 lasting about 100.97 ms, shows the forward speeds, about 308 counts per
-second, and repeats after two seconds; the step runs every 10 ms:
+second, records the spin-up profile, five samples about 20.2 ms apart,
+shows the times to spin up, 60 ms, and repeats after two seconds; the step
+runs every 10 ms:
 
   $ tempore --emit-arduino wheels --device $app/wheels.device.json --host-simulate 3 $app/wheels.tpe | grep '\] \(Display\|Operation SetMotors\|Operation ReadEncoders\)\|simulation'
   [31.245 ms] Display cleared
@@ -192,18 +272,26 @@ second, and repeats after two seconds; the step runs every 10 ms:
   [542.371 ms] Display: Wheels turn
   [543.371 ms] Display: 308.458
   [544.371 ms] Display: 308.458
-  [2576.000 ms] Display cleared
-  [2579.780 ms] Display at (0, 2): Wheel check
-  [2582.540 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [2583.120 ms] Operation SetMotors took 245 us
-  [2684.088 ms] Operation ReadEncoders took 468 us
-  [2684.333 ms] Operation SetMotors took 245 us
-  [2984.913 ms] Operation SetMotors took 245 us
+  [844.951 ms] Operation SetMotors took 245 us
+  [865.169 ms] Operation ReadEncoders took 468 us
+  [885.387 ms] Operation ReadEncoders took 468 us
+  [905.605 ms] Operation ReadEncoders took 468 us
+  [925.823 ms] Operation ReadEncoders took 468 us
+  [946.041 ms] Operation ReadEncoders took 468 us
+  [946.286 ms] Operation SetMotors took 245 us
+  [947.286 ms] Display: Spin-up (ms)
+  [948.286 ms] Display: 60.000
+  [949.286 ms] Display: 60.000
+  [2981.000 ms] Display cleared
+  [2984.780 ms] Display at (0, 2): Wheel check
+  [2987.540 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
+  [2988.120 ms] Operation SetMotors took 245 us
   [3000.000 ms] End of the simulation
   $ tempore --emit-arduino wheels --device $app/wheels.device.json --host-simulate 3 $app/wheels.tpe | grep -c 'Release watch'
   300
 
-With the right wheel stalled, the check reports its fault:
+With the right wheel stalled, the check reports its fault and, for it, no
+spin-up time:
 
   $ cd _arduino/projects/wheels
   $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DSTAND_STALLED_WHEEL -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
@@ -214,6 +302,9 @@ With the right wheel stalled, the check reports its fault:
   [542.371 ms] Display: Right wheel fault
   [543.371 ms] Display: 308.458
   [544.371 ms] Display: 0.000
-  [2576.000 ms] Display cleared
-  [2579.780 ms] Display at (0, 2): Wheel check
-  [2582.540 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
+  [947.286 ms] Display: Spin-up (ms)
+  [948.286 ms] Display: 60.000
+  [949.286 ms] Display: 0.000
+  [2981.000 ms] Display cleared
+  [2984.780 ms] Display at (0, 2): Wheel check
+  [2987.540 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)

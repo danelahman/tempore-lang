@@ -106,7 +106,7 @@ to PORT:
   $ dry arduino-tilt-upload PORT_M5STACK_CORES3=/dev/ttyACM0
   ./tempore --grades time-interval-rational --emit-arduino tilt --device examples/arduino/tilt/tilt.device.json --monitor abort --upload --port /dev/ttyACM0 examples/arduino/tilt/tilt.tpe
   $ (export PORT_M5STACK_GRAY=/dev/ttyUSB1; dry arduino-wheels-upload)
-  ./tempore --grades regex-timed-interval-rational-symbolic --emit-arduino wheels --device examples/arduino/wheels/wheels.device.json --monitor abort --upload --port /dev/ttyUSB1 examples/arduino/wheels/wheels.tpe
+  ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino wheels --device examples/arduino/wheels/wheels.device.json --monitor abort --upload --port /dev/ttyUSB1 examples/arduino/wheels/wheels.tpe
   $ dry arduino-bala2-upload PORT=/dev/ttyUSB0
   ./tempore --grades time-interval-rational --emit-arduino balance --device examples/arduino/bala2/balance.device.json --monitor abort --upload --port /dev/ttyUSB0 examples/arduino/bala2/balance.tpe
 
@@ -120,7 +120,7 @@ Further targets, under variables set on the command line:
   $ dry arduino-bala2-profile
   ./tempore --grades time-interval-rational --emit-arduino balance-profile --device examples/arduino/bala2/balance.device.json --monitor warn --profile --upload --port /dev/cu.usbserial-02012C91 --capture 30 examples/arduino/bala2/balance.tpe
   $ dry arduino-bala2-regex-log BALANCE_LOG=50 MONITOR=abort
-  PLATFORMIO_BUILD_FLAGS="-DBALANCE_LOG=50" ./tempore --grades regex-timed-interval-rational-symbolic --emit-arduino balance_regex-log --device examples/arduino/bala2-regex/balance_regex.device.json --monitor abort --upload --port /dev/cu.usbserial-02012C91 --capture 30 examples/arduino/bala2-regex/balance_regex.tpe
+  PLATFORMIO_BUILD_FLAGS="-DBALANCE_LOG=50" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino balance_regex-log --device examples/arduino/bala2-regex/balance_regex.device.json --monitor abort --upload --port /dev/cu.usbserial-02012C91 --capture 30 examples/arduino/bala2-regex/balance_regex.tpe
   $ dry arduino-bala2-record BALANCE_RECORD=50
   PLATFORMIO_BUILD_FLAGS="-DBALANCE_RECORD=50" ./tempore --grades time-interval-rational --emit-arduino balance-record --device examples/arduino/bala2/balance.device.json --monitor warn --upload --port /dev/cu.usbserial-02012C91 --capture 30 examples/arduino/bala2/balance.tpe
 
@@ -128,7 +128,7 @@ BRIGHTNESS adds the flag TEMPORE_DISPLAY_BRIGHTNESS to the build flags of
 every target that builds a device project, before those of the example:
 
   $ dry arduino-starter-build BRIGHTNESS=60
-  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60" ./tempore --grades regex-timed-interval-rational-symbolic --emit-arduino starter --device examples/arduino/starter/starter.device.json --monitor abort --build examples/arduino/starter/starter.tpe
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino starter --device examples/arduino/starter/starter.device.json --monitor abort --build examples/arduino/starter/starter.tpe
   $ for t in starter-upload starter-profile bala2-log bala2-record steps-record; do
   >   make -s --no-print-directory -n "arduino-$t" BRIGHTNESS=60 |
   >     grep -o '^PLATFORMIO_BUILD_FLAGS="[^"]*"'
@@ -144,7 +144,7 @@ _arduino/recordings, and extracts the recordings from the log:
 
   $ make -s --no-print-directory -n arduino-bala2-regex-capture CAPTURE=60 |
   >   grep -o -e '\./tempore .*tpe' -e 'awk -f [^ ]*'
-  ./tempore --grades regex-timed-interval-rational-symbolic --emit-arduino balance_regex-record --device examples/arduino/bala2-regex/balance_regex.device.json --capture 60 --port /dev/cu.usbserial-02012C91 examples/arduino/bala2-regex/balance_regex.tpe
+  ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino balance_regex-record --device examples/arduino/bala2-regex/balance_regex.device.json --capture 60 --port /dev/cu.usbserial-02012C91 examples/arduino/bala2-regex/balance_regex.tpe
   awk -f examples/arduino/bala2/recordings.awk
 
 The targets -capture and -erase of steps ask the device for its recordings

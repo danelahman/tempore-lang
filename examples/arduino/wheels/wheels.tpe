@@ -1,16 +1,17 @@
-(* A wheel check of the M5Stack BALA2: speeds over windows of fixed traces
+(* A wheel check of the M5Stack BALA2: speeds and spin-up times over windows
+   of fixed traces
 
-   Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-interval-rational-symbolic \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        --package m5-imu \
        --package m5-display \
        --package bala2-base \
        --board m5stack-gray \
        examples/arduino/wheels/wheels.tpe
 
-   Grades [L, U]: a lower and upper regular-language bound on the traces with
-   rational durations
+   Grades [L, U]: a lower bound in the coverage order and an upper bound in
+   the rigid allowance order on the traces with rational durations
      - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
      - Top [{0}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
@@ -80,18 +81,12 @@ let spin (drive : int) : float * float =
    wait, just before the encoders are read, so that the counts are read 0.2
    to 0.45 ms after the drive command, not 100 to 101 ms:
 
-     Typing error: Variable `window` is unboxed with grade
-       `[{100.5; SetMotors; ReadEncoders},
-       {100.5; SetMotors; ReadEncoders}]` accumulated since it was bound, which
-       is not below its box grade
-       `[{SetMotors; [100, 101]; ReadEncoders},
-       {SetMotors; [100, 101]; ReadEncoders}]`
+     Typing error: Variable `window` is unboxed with grade `[{!100.5;
+       SetMotors; ReadEncoders}, {!100.5; SetMotors; ReadEncoders}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101];
+       ReadEncoders}]`
        ...
-       Note: the resource inequality
-         `[{100.5; SetMotors; ReadEncoders},
-         {100.5; SetMotors; ReadEncoders}] <=
-         [{SetMotors; [100, 101]; ReadEncoders},
-         {SetMotors; [100, 101]; ReadEncoders}]` does not hold
 *)
 (*
 let spin_unordered (drive : int) : float * float =
@@ -109,18 +104,12 @@ let spin_unordered (drive : int) : float * float =
    within the window, which takes up to 12.5 ms, so that the counts may be
    read up to 113 ms after the drive command:
 
-     Typing error: Variable `window` is unboxed with grade
-       `[{SetMotors; ShowNumber; 100.5; ReadEncoders},
-       {SetMotors; ShowNumber; 100.5; ReadEncoders}]` accumulated since it was
-       bound, which is not below its box grade
-       `[{SetMotors; [100, 101]; ReadEncoders},
-       {SetMotors; [100, 101]; ReadEncoders}]`
+     Typing error: Variable `window` is unboxed with grade `[{SetMotors;
+       ShowNumber; !100.5; ReadEncoders}, {SetMotors; ShowNumber; !100.5;
+       ReadEncoders}]` accumulated since it was bound, which is not below its
+       box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors;
+       [100, 101]; ReadEncoders}]`
        ...
-       Note: the resource inequality
-         `[{SetMotors; ShowNumber; 100.5; ReadEncoders},
-         {SetMotors; ShowNumber; 100.5; ReadEncoders}] <=
-         [{SetMotors; [100, 101]; ReadEncoders},
-         {SetMotors; [100, 101]; ReadEncoders}]` does not hold
 *)
 (*
 let spin_shown (drive : int) : float * float =
@@ -136,6 +125,121 @@ let spin_shown (drive : int) : float * float =
   (float_of_int left /. seconds, float_of_int right /. seconds)
 *)
 
+(* A reading of the encoders after a wait of 19.75 ms. *)
+let sample () : int * int # {!79/4; ReadEncoders} =
+  delay 79/4;
+  perform ReadEncoders ()
+
+(* The speed between the counts a and b, read 'seconds' apart, in encoder
+   counts per second. *)
+let speed (a : int) (b : int) (seconds : float) =
+  (float_of_int b -. float_of_int a) /. seconds
+
+(* The time to spin up, in ms: the end of the first of five intervals of
+   'spacing' seconds whose speed reaches 90 % of that of the last, or 0 if
+   the last is below 100 counts per second. *)
+let rise (s1 : float) (s2 : float) (s3 : float) (s4 : float) (s5 : float)
+    (spacing : float) =
+  let least = 0.9 *. magnitude s5 in
+  let ms = 1000.0 *. spacing in
+  if magnitude s5 < 100.0 then 0.0
+  else if magnitude s1 >= least then ms
+  else if magnitude s2 >= least then 2.0 *. ms
+  else if magnitude s3 >= least then 3.0 *. ms
+  else if magnitude s4 >= least then 4.0 *. ms
+  else 5.0 *. ms
+
+(* Correctly accepted by the typechecker: the spin-up profile of the wheels
+   at the drive 'drive' of both motors, from rest: the times of each wheel
+   to spin up. The encoders are reset, and the spacing of the samples,
+   0.02 s, is boxed with the drive command followed by readings of the
+   encoders, each after a wait of 19 to 21 ms, with no other operation: the
+   counts are divided by the spacing only once it is unboxed, so that they
+   are counts over evenly spaced intervals of the spin-up; the motors are
+   then stopped. *)
+let profile (drive : int) : float * float =
+  perform ResetEncoders ();
+  box {SetMotors; (![19, 21]; ReadEncoders)*} 0.02 as spaced in
+  perform SetMotors (drive, drive);
+  let l1, r1 = sample () in
+  let l2, r2 = sample () in
+  let l3, r3 = sample () in
+  let l4, r4 = sample () in
+  let l5, r5 = sample () in
+  unbox spaced as spacing in
+  perform SetMotors (0i, 0i);
+  ( rise (speed 0i l1 spacing) (speed l1 l2 spacing) (speed l2 l3 spacing)
+      (speed l3 l4 spacing) (speed l4 l5 spacing) spacing,
+    rise (speed 0i r1 spacing) (speed r1 r2 spacing) (speed r2 r3 spacing)
+      (speed r3 r4 spacing) (speed r4 r5 spacing) spacing )
+
+(* Correctly rejected by the typechecker: the profile shows the first count
+   on the display between two samples, which takes up to 12.5 ms, so that
+   the samples may be up to 33.25 ms of waiting and drawing apart:
+
+     Typing error: Variable `spaced` is unboxed with grade `[{SetMotors;
+       !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75;
+       ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}, {SetMotors;
+       !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75;
+       ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{SetMotors; (![19, 21]; ReadEncoders)*}, {SetMotors; (![19, 21];
+       ReadEncoders)*}]`
+       ...
+*)
+(*
+let profile_shown (drive : int) : float * float =
+  perform ResetEncoders ();
+  box {SetMotors; (![19, 21]; ReadEncoders)*} 0.02 as spaced in
+  perform SetMotors (drive, drive);
+  let l1, r1 = sample () in
+  perform ShowNumber (float_of_int l1);
+  let l2, r2 = sample () in
+  let l3, r3 = sample () in
+  let l4, r4 = sample () in
+  let l5, r5 = sample () in
+  unbox spaced as spacing in
+  perform SetMotors (0i, 0i);
+  ( rise (speed 0i l1 spacing) (speed l1 l2 spacing) (speed l2 l3 spacing)
+      (speed l3 l4 spacing) (speed l4 l5 spacing) spacing,
+    rise (speed 0i r1 spacing) (speed r1 r2 spacing) (speed r2 r3 spacing)
+      (speed r3 r4 spacing) (speed r4 r5 spacing) spacing )
+*)
+
+(* Correctly rejected by the typechecker: the drive is doubled after the
+   first sample, so that the profile is not that of one drive command; with
+   budget delays in place of the strict ones, the box would admit the
+   command, of at most 0.45 ms, beside a wait of 19.75 ms:
+
+     Typing error: Variable `spaced` is unboxed with grade `[{SetMotors;
+       !19.75; ReadEncoders; SetMotors; !19.75; ReadEncoders; !19.75;
+       ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}, {SetMotors;
+       !19.75; ReadEncoders; SetMotors; !19.75; ReadEncoders; !19.75;
+       ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{SetMotors; (![19, 21]; ReadEncoders)*}, {SetMotors; (![19, 21];
+       ReadEncoders)*}]`
+       ...
+*)
+(*
+let profile_ramped (drive : int) : float * float =
+  perform ResetEncoders ();
+  box {SetMotors; (![19, 21]; ReadEncoders)*} 0.02 as spaced in
+  perform SetMotors (drive, drive);
+  let l1, r1 = sample () in
+  perform SetMotors (drive +! drive, drive +! drive);
+  let l2, r2 = sample () in
+  let l3, r3 = sample () in
+  let l4, r4 = sample () in
+  let l5, r5 = sample () in
+  unbox spaced as spacing in
+  perform SetMotors (0i, 0i);
+  ( rise (speed 0i l1 spacing) (speed l1 l2 spacing) (speed l2 l3 spacing)
+      (speed l3 l4 spacing) (speed l4 l5 spacing) spacing,
+    rise (speed 0i r1 spacing) (speed r1 r2 spacing) (speed r2 r3 spacing)
+      (speed r3 r4 spacing) (speed r4 r5 spacing) spacing )
+*)
+
 (* Whether a wheel turns at the speeds 'forward' and 'backward', measured at
    opposite drives: at least 100 counts per second in each direction, in
    opposite directions. *)
@@ -147,7 +251,8 @@ let turns (forward : float) (backward : float) =
 (* Correctly accepted by the typechecker: the check spins the wheels forwards
    and backwards, 300 ms apart, only while the robot stands upright within 20
    degrees, and shows the verdict and the forward speeds, with the title
-   and the footer; it then waits two seconds. *)
+   and the footer; after 300 ms more it records the spin-up profile
+   forwards and shows the times to spin up; it then waits two seconds. *)
 let check () =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Wheel check");
@@ -163,7 +268,12 @@ let check () =
      | true, false -> perform ShowText "Right wheel fault"
      | false, false -> perform ShowText "Both wheels fault");
      perform ShowNumber left;
-     perform ShowNumber right)
+     perform ShowNumber right;
+     delay 300;
+     let up_left, up_right = profile 300i in
+     perform ShowText "Spin-up (ms)";
+     perform ShowNumber up_left;
+     perform ShowNumber up_right)
    else perform ShowText "Not upright");
   delay 2000
 
