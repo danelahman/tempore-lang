@@ -776,6 +776,17 @@ module Make (C : Constraint.S) = struct
       { C.no_vars with ty_vars = vars }
       (k (List.map (fun a -> Ast.TyParam a) vars))
 
+  (* [box_of because ty k] is [k (ρ, α, c)] for the grade [ρ] and payload [α]
+     of the box type [ty] and the constraint [c] that [ty] is [[ρ] α]: the
+     components of [ty] where it is a box, and [∃ρ α. ty = [ρ] α] otherwise. *)
+  let box_of because ty k =
+    match ty with
+    | Ast.TyBox (rho, payload_ty) -> k (rho, payload_ty, C.True)
+    | _ ->
+        let@ payload_ty = exists_ty in
+        let@ rho = exists_rho in
+        k (rho, payload_ty, C.equal_ty because ty (Ast.TyBox (rho, payload_ty)))
+
   (* The substitution sending the parameters [params] to the types [args]. *)
   let instance_subst params args =
     {
@@ -1357,7 +1368,8 @@ module Make (C : Constraint.S) = struct
 
   (* [unbox x as p in c], of a variable only: its type is a box [[r] α] whose
      grade covers the grade accumulated since its binding, the pattern against
-     [α]. An annotation [(x : A)] requires the type of [x] to be a subtype of
+     [α]; [r] and [α] are the components of the type where it is a box
+     ({!box_of}). An annotation [(x : A)] requires the type of [x] to be a subtype of
      [A]; the box unboxed is that of [x]. *)
   and unbox env at e pat c' ty eps =
     let rec find_var (e : expression) =
@@ -1390,15 +1402,14 @@ module Make (C : Constraint.S) = struct
             :: atoms ))
         anns (var_ty, [])
     in
-    let@ payload_ty = exists_ty in
-    let@ rho = exists_rho in
     let because =
       Reason.because at (Reason.Unboxed { var = x; bound_at; locks })
     in
+    let@ rho, payload_ty, shape = box_of because var_ty in
     C.conj_all
       (annotations
       @ [
-          C.equal_ty because var_ty (Ast.TyBox (rho, payload_ty));
+          shape;
           C.Rho_leq (because, accumulated_grade locks, rho);
           with_pattern env pat
             (expect payload_ty
