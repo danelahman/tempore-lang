@@ -919,8 +919,8 @@ See [`tests/strict_delays_rational_reject.tpe`](tests/strict_delays_rational_rej
 [`tests/strict_delays_lower_reject.tpe`](tests/strict_delays_lower_reject.tpe)
 and the Opentrons examples
 [`examples/opentrons/washes.tpe`](examples/opentrons/washes.tpe), with a strict
-binding, a strict air-dry and a box excluding a removal of liquid off the
-magnet, and
+binding, a strict air-dry and an annotated grade excluding a removal of liquid
+off the magnet, and
 [`examples/opentrons/purification.tpe`](examples/opentrons/purification.tpe),
 with strict ethanol soaks.
 

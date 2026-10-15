@@ -172,10 +172,13 @@ each is a minute.
 - [`washes.tpe`](../../../examples/opentrons/washes.tpe): a bead clean-up
   with two or more ethanol washes, under `regex-timed-rigid-interval-symbolic`,
   whose recursion `washes n` has the grade `{(Wash; ChangeTip)*}`: each wash
-  is followed by a fresh tip and nothing else. The binding and the air-dry
-  are strict delays, `{AddBeads; ![5, 10]; MagnetOn}`, waiting only, and a
-  box of the whole run excludes a removal of liquid with the plate off the
-  magnet.
+  is followed by a fresh tip and nothing else. The operations take the
+  beads and the eluates they act on, and boxes release them: the beads to the
+  removal of the supernatant after the binding
+  `{AddBeads; ![5, 10]; MagnetOn}`, waiting only, and to the elution after
+  the washes and a strict air-dry, and the eluates to the transfer after a
+  settling of `{![2, 5]}`. The annotated grade of the clean-up excludes a
+  removal of liquid with the plate off the magnet.
 - [`contamination.tpe`](../../../examples/opentrons/contamination.tpe): a
   ddPCR plate set-up under `time-upper-bound-levels`.
 - [`reagents.tpe`](../../../examples/opentrons/reagents.tpe): a tagmentation

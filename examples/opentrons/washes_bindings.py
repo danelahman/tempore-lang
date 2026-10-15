@@ -9,6 +9,8 @@
 # sample with a tip of its own, keeping the last; ChangeTip replaces the tip,
 # and the elution buffer is added with the tip it leaves, then a new tip for
 # each further sample. The context records whether the pipette holds a tip.
+# The beads and the eluates are passed to the functions as the Tempore values
+# of types beads and eluates, which they ignore.
 # Each function declares the nominal duration of its action in seconds by
 # tempore_elapse, the duration the virtual clock of a simulation advances by.
 
@@ -53,13 +55,13 @@ def MagnetOff(ctx, unit):
     return ()
 
 
-def RemoveLiquid(ctx, unit):
+def RemoveLiquid(ctx, beads):
     ctx["pipette"].transfer(80, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(90)
     return ()
 
 
-def Wash(ctx, unit):
+def Wash(ctx, beads):
     pipette = ctx["pipette"]
     if not ctx["tip"]:
         pipette.pick_up_tip()
@@ -83,7 +85,7 @@ def ChangeTip(ctx, unit):
     return ()
 
 
-def EluteDNA(ctx, unit):
+def EluteDNA(ctx, beads):
     pipette = ctx["pipette"]
     for sample in ctx["samples"]:
         if not ctx["tip"]:
@@ -92,10 +94,10 @@ def EluteDNA(ctx, unit):
         pipette.drop_tip()
         ctx["tip"] = False
     tempore_elapse(90)
-    return ()
+    return "eluates"
 
 
-def Transfer(ctx, unit):
+def Transfer(ctx, eluates):
     ctx["pipette"].transfer(20, ctx["samples"], ctx["eluates"], new_tip="always")
     tempore_elapse(90)
     return ()

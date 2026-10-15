@@ -1,4 +1,4 @@
-(* As the bead clean-up example, with one ethanol wash in place of two or more.
+(* As the bead clean-up example, with the further ethanol washes sharing a tip.
 
    Run this example with the 'regex-timed-rigid-interval-symbolic' grading monoid, e.g.
 
@@ -13,29 +13,27 @@
 
 type beads = string
 
-operation Wash : unit ~> unit # {Wash} within [1, 2]
-default Wash () = delay 1
+operation Wash : beads ~> unit # {Wash} within [1, 2]
+default Wash beads = delay 1
 
 operation ChangeTip : unit ~> unit # {ChangeTip} within [0, 1]
 default ChangeTip () = delay 1
 
-operation EluteDNA : unit ~> unit # {EluteDNA} within [1, 2]
-default EluteDNA () = delay 1
+(* Correctly rejected by the typechecker: the further washes share a tip,
+   where the grade of the recursion demands a fresh tip after each:
 
-(* Correctly rejected by the typechecker: the beads are washed once only,
-   short of the two washes the lower bound demands:
-
-     Typing error: Variable `washed` is unboxed with grade `[{Wash; !3;
-       ChangeTip}, {Wash; !3; ChangeTip}]` accumulated since it was bound,
-       which is not below its box grade ...
+     Typing error: This function's body has grade `[{0 | Wash;
+       (Wash; ChangeTip)*}, {0 | Wash; (Wash; ChangeTip)*}]`, which does not
+       match its annotated grade `[{(Wash; ChangeTip)*},
+       {(Wash; ChangeTip)*}]`
+       ...
 *)
-let one_wash (beads : beads) =
-  box [{Wash; ChangeTip; Wash; !2; ChangeTip},
-       {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}] beads as washed in
-  perform Wash ();
-  delay 3;
-  perform ChangeTip ();
-  unbox washed as beads in
-  perform EluteDNA ()
+let rec washes_shared_tip (beads : beads) (n : nat)
+    : unit # {(Wash; ChangeTip)*} =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      perform Wash beads;
+      washes_shared_tip beads m
 
-run one_wash "beads"
+run washes_shared_tip "beads" 2
