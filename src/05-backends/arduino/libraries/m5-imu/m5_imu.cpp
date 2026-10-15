@@ -29,6 +29,9 @@
 // with the normal bandwidth, and on a unit of the MPU6886 family by its
 // sample rate divider SMPLRT_DIV (0x19). CheckAtRest reads the unit four
 // times, the readings started 6 ms apart, and checks that it is at rest.
+//
+// Each reading of ReadImu is passed to m5_imu_observe, defined weakly here to
+// do nothing, which an application may define to record the readings.
 
 #include <Arduino.h>
 #include <M5Unified.h>
@@ -173,8 +176,13 @@ static inline m5_imu_reading m5_imu_read() {
 #endif
 
 #ifdef TEMPORE_PERFORMS_ReadImu
+// The observer of the readings of ReadImu: the acceleration, in g, and the
+// angular rate, in degrees per second.
+__attribute__((weak)) void m5_imu_observe(const float *, const float *) {}
+
 tempore_result_ReadImu binding_ReadImu(tempore_argument_ReadImu) {
   const m5_imu_reading r = m5_imu_read();
+  m5_imu_observe(r.accel, r.gyro);
   return {{r.accel[0], r.accel[1], r.accel[2]},
           {r.gyro[0], r.gyro[1], r.gyro[2]}};
 }

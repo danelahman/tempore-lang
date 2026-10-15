@@ -7,5 +7,6 @@
   %{project_root}/Makefile
   %{project_root}/src/05-backends/arduino/README.md
   %{project_root}/examples/examples.mk
+  (glob_files %{project_root}/src/05-backends/arduino/boards/*.json)
   (source_tree %{project_root}/examples/opentrons)
   (source_tree %{project_root}/examples/arduino)))

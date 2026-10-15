@@ -11,19 +11,67 @@
 // - bouncing on the spot from 15 s to 19 s, two bounces a second of 0.4 g,
 //   vertical only;
 // - a walk from 21 s to 26 s of two steps a second, ten steps, the vertical
-//   acceleration swinging by 0.4 g and the horizontal one by 0.2 g a
+//   acceleration swinging by 0.4 g and the horizontal one by 0.3 g a
 //   quarter period later;
 // - taps of 150 ms: on Calibrate at 28 s, on Reset at 31 s and at the
 //   centre of the screen, outside the buttons, at 34 s; and two of 120 ms
 //   on Reset at 36 s and 36.6 s;
 // - a walk of six steps from 39 s to 42 s;
 // - a tap of 150 ms on Calibrate at 44 s.
+//
+// When the environment variable STEPS_REPLAY names a recording written by
+// the target arduino-steps-capture, the accelerometer reads its readings
+// instead, from its first at time 0, each until the next, the last held, and
+// the screen is not touched; its events are ignored. The readings are
+// given to the accelerometer as they are, without trigonometry, so that the
+// replay does not depend on the mathematical library. Under the build flag
+// STEPS_RECORD the recordings are printed at the end of the simulation.
 
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <vector>
 
 #include "tempore_world.h"
 
+#ifdef STEPS_RECORD
+void steps_record_print();
+
+void world_finish(const tempore_world &) { steps_record_print(); }
+#endif
+
 namespace {
+
+// A reading of a recording: its time, in ms from the first, and the
+// acceleration, in g.
+struct reading {
+  double t;
+  double a[3];
+};
+
+std::vector<reading> replay;
+size_t replayed = 0;
+
+// The readings of the recording named by STEPS_REPLAY, if any: the rows of
+// four numbers or more after the line of the columns.
+void load_replay() {
+  const char *path = getenv("STEPS_REPLAY");
+  if (path == nullptr) return;
+  FILE *f = fopen(path, "r");
+  if (f == nullptr) {
+    fprintf(stderr, "STEPS_REPLAY: cannot open %s\n", path);
+    exit(1);
+  }
+  char line[160];
+  while (fgets(line, sizeof line, f) != nullptr) {
+    reading r;
+    if (sscanf(line, "%lf,%lf,%lf,%lf", &r.t, &r.a[0], &r.a[1], &r.a[2]) == 4)
+      replay.push_back(r);
+  }
+  fclose(f);
+  for (size_t i = replay.size(); i-- > 0;) replay[i].t -= replay[0].t;
+}
 
 // The vertical and horizontal accelerations at the time t, in seconds, less
 // gravity, in g.
@@ -46,7 +94,7 @@ void motion(double t, double &vertical, double &horizontal) {
   } else if ((t >= 21.0 && t < 26.0) || (t >= 39.0 && t < 42.0)) {
     const double s = t < 30.0 ? t - 21.0 : t - 39.0;
     vertical = -0.4 * sin(w * s);
-    horizontal = 0.2 * cos(w * s);
+    horizontal = 0.3 * cos(w * s);
   }
 }
 
@@ -64,12 +112,29 @@ bool tapped(double t, int &x, int &y) {
 
 }  // namespace
 
-void world_start(tempore_world &w) { w.tilt = 0; }
+void world_start(tempore_world &w) {
+  w.tilt = 0;
+  load_replay();
+}
+
+// The reading a of a recording, given to the accelerometer.
+static void replay_reading(tempore_world &w, const double *a) {
+  w.accel_given = true;
+  for (int k = 0; k < 3; ++k) w.accel[k] = a[k];
+  w.touched = false;
+}
 
 // The reading of the unit is load (sin roll, sin tilt cos roll, cos tilt cos
 // roll); the force (horizontal, 0, 1 + vertical), rotated into the frame of
 // the unit and scaled by 0.95, gives the load, the roll and the tilt.
 void world_advance(tempore_world &w, double) {
+  if (!replay.empty()) {
+    while (replayed + 1 < replay.size() &&
+           replay[replayed + 1].t <= w.time * 1000.0)
+      ++replayed;
+    replay_reading(w, replay[replayed].a);
+    return;
+  }
   double vertical, horizontal;
   motion(w.time, vertical, horizontal);
   const double a = 0.5, b = 0.3;

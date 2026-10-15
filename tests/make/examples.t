@@ -3,7 +3,8 @@ fragment of each example, shown by dry runs, which need neither PlatformIO
 nor Python. The variables of the targets are those of the Makefile.
 
   $ unset MAKEFLAGS MFLAGS MAKELEVEL PORT PORT_M5STACK_GRAY PORT_M5STACK_CORES3 \
-  >   CAPTURE SIMULATE MONITOR BALANCE_LOG BALANCE_RECORD PLATFORMIO_BUILD_FLAGS
+  >   CAPTURE SIMULATE MONITOR BALANCE_LOG BALANCE_RECORD STEPS_RECORD \
+  >   PLATFORMIO_BUILD_FLAGS
   $ cd ../..
   $ dry () {
   >   make -s --no-print-directory -n "$@" |
@@ -130,6 +131,16 @@ _arduino/recordings, and extracts the recordings from the log:
   >   grep -o -e '\./tempore .*tpe' -e 'awk -f [^ ]*'
   ./tempore --grades regex-timed-interval-rational-symbolic --emit-arduino balance_regex-record --device examples/arduino/bala2-regex/balance_regex.device.json --capture 60 --port /dev/cu.usbserial-02012C91 examples/arduino/bala2-regex/balance_regex.tpe
   awk -f examples/arduino/bala2/recordings.awk
+
+The targets -capture and -erase of steps ask the device for its recordings
+and to erase them through the script of its fragment:
+
+  $ make -s --no-print-directory -n arduino-steps-capture arduino-steps-erase CAPTURE=60 |
+  >   grep -o 'python3 .*--wait 60'
+  python3 -I scripts/steps-recording.py capture --port /dev/cu.usbmodem101 --wait 60
+  python3 -I scripts/steps-recording.py erase --port /dev/cu.usbmodem101 --wait 60
+  $ dry arduino-steps-record STEPS_RECORD=60
+  PLATFORMIO_BUILD_FLAGS="-DSTEPS_RECORD=60" ./tempore --grades event-separation --emit-arduino steps-record --device examples/arduino/steps/steps.device.json --monitor warn --upload --port /dev/cu.usbmodem101 --capture 30 examples/arduino/steps/steps.tpe
   $ dry arduino-tilt-build SIMULATE=5
   ./tempore --grades time-interval-rational --emit-arduino tilt --device examples/arduino/tilt/tilt.device.json --monitor abort --build examples/arduino/tilt/tilt.tpe
   $ dry arduino-tilt-simulate SIMULATE=5
@@ -145,3 +156,52 @@ The aggregate targets cover every example:
   9
   $ dry arduino-build-all | grep -c tempore
   9
+
+The help of the examples and that of the diagnostic targets, which are
+listed apart:
+
+  $ make -s examples-help
+  Arduino examples, by board:
+  M5Stack CoreS3, port PORT_M5STACK_CORES3 = /dev/cu.usbmodem101:
+    NAME one of: calibrated fall level peak steps tilt
+    arduino-NAME-simulate         simulates the project on the host
+    arduino-NAME-build            builds the project with PlatformIO
+    arduino-NAME-upload           builds the project and uploads it to the board
+  M5Stack Gray, port PORT_M5STACK_GRAY = /dev/cu.usbserial-02012C91:
+    NAME one of: bala2 bala2-regex wheels
+    arduino-NAME-simulate         simulates the project on the host
+    arduino-NAME-build            builds the project with PlatformIO
+    arduino-NAME-upload           builds the project and uploads it to the board
+  All Arduino examples:
+    arduino-simulate-all          arduino-NAME-simulate for every example
+    arduino-build-all             arduino-NAME-build for every example
+  Opentrons examples, NAME one of: beads binding cleanup contamination elisa enzyme purification reagents staggered stopread washes
+    opentrons-NAME-emit           writes the protocol to _opentrons/protocols/NAME.py
+    opentrons-NAME-simulate       writes the protocol and runs the Opentrons simulator
+    opentrons-simulate-all        opentrons-NAME-simulate for every example
+  Variables, with their values:
+    PORT=                                        when set, the port of every upload
+    SIMULATE=                                    when set, the simulated seconds of every example
+    MONITOR=                                     when set, the monitor policy of every target
+  Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help
+  $ make -s arduino-diagnostics-help
+  Arduino diagnostic targets, by board:
+  M5Stack CoreS3, port PORT_M5STACK_CORES3 = /dev/cu.usbmodem101:
+    NAME one of: calibrated fall level peak steps tilt
+    arduino-NAME-profile          uploads the project with the profile and reads the port
+    arduino-steps-record          uploads the project with -DSTEPS_RECORD=600 and reads the port
+    arduino-steps-capture         reads the recordings from the port into _arduino/recordings/steps-TIME-N.csv
+    arduino-steps-erase           erases the recordings on the device
+  M5Stack Gray, port PORT_M5STACK_GRAY = /dev/cu.usbserial-02012C91:
+    NAME one of: bala2 bala2-regex wheels
+    arduino-NAME-profile          uploads the project with the profile and reads the port
+    arduino-bala2-log             uploads the project with -DBALANCE_LOG=20 and reads the port
+    arduino-bala2-regex-log       uploads the project with -DBALANCE_LOG=20 and reads the port
+    arduino-bala2-record          uploads the project with -DBALANCE_RECORD=20 and reads the port
+    arduino-bala2-capture         reads the recordings from the port into _arduino/recordings/bala2-TIME.csv
+    arduino-bala2-regex-record    uploads the project with -DBALANCE_RECORD=20 and reads the port
+    arduino-bala2-regex-capture   reads the recordings from the port into _arduino/recordings/bala2-regex-TIME.csv
+  Variables, with their values:
+    PORT=                                        when set, the port of every upload
+    CAPTURE=30                                   the seconds for which the port is read
+    MONITOR=                                     when set, the monitor policy of every target

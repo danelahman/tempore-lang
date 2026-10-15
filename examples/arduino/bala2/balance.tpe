@@ -22,8 +22,8 @@
 
    On the board: make arduino-bala2-upload; simulated on the host: make
    arduino-bala2-simulate; tuning log and recording: make arduino-bala2-log,
-   arduino-bala2-record and arduino-bala2-capture ('make examples-help',
-   src/05-backends/arduino/README.md). *)
+   arduino-bala2-record and arduino-bala2-capture
+   ('make arduino-diagnostics-help', src/05-backends/arduino/README.md). *)
 
 (* The exchange between the tasks, through bindings.cpp. The step publishes
    the tilt, in degrees, the rate of the gyroscope, in degrees per second,
