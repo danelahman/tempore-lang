@@ -90,5 +90,5 @@ vscode-extension:
   opentrons-deps clean-opentrons arduino-deps clean-arduino vscode-extension
 
 # The targets of the examples of the Arduino and Opentrons backends, listed by
-# 'make examples-help'.
+# 'make examples-help' and 'make arduino-diagnostics-help'.
 include examples/examples.mk

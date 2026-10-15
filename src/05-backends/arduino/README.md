@@ -415,7 +415,8 @@ and `steps` the targets `-record`, `-capture` and `-erase` of
 
 `make arduino-simulate-all` and `make arduino-build-all` run the first two for
 every example, and `make examples-help` lists the targets by board with the
-values of their variables. The targets that need PlatformIO install it by
+values of their variables; `make arduino-diagnostics-help` lists likewise the
+diagnostic targets, `-profile`, `-log`, `-record`, `-capture` and `-erase`. The targets that need PlatformIO install it by
 `make arduino-deps` first. The variables, set on the command line or in the
 environment, are
 

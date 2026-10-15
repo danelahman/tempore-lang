@@ -1,5 +1,6 @@
 # The targets of the examples of the Arduino and Opentrons backends, included
-# by the Makefile; 'make examples-help' lists them. Each example has a
+# by the Makefile; 'make examples-help' and 'make arduino-diagnostics-help'
+# list them. Each example has a
 # fragment of variables, found here by its path, from which a template of its
 # backend defines its targets:
 #
@@ -19,8 +20,8 @@
 #   -erase read and erase the recordings kept on the device. The
 #   board is that of the manifest, and its port the variable PORT_BOARD, the
 #   name of the board in upper case with '-' replaced by '_'. 'make
-#   examples-help' groups the Arduino targets by board, named by the member
-#   "title" of the board profile.
+#   examples-help' and 'make arduino-diagnostics-help' group the Arduino
+#   targets by board, named by the member "title" of the board profile.
 #
 # Each target builds tempore first, and a target that needs the Opentrons
 # simulator or PlatformIO first installs it by opentrons-deps or
@@ -279,6 +280,13 @@ define arduino_board_help
 	@echo "  arduino-NAME-simulate         simulates the project on the host"
 	@echo "  arduino-NAME-build            builds the project with PlatformIO"
 	@echo "  arduino-NAME-upload           builds the project and uploads it to the board"
+endef
+
+# The help of the diagnostic targets of the Arduino examples of the board
+# $(1): its title, port variable and port, and the targets of its examples.
+define arduino_diagnostics_board_help
+	@echo "$(call board_title,$(1)), port $(call port_variable,$(1)) = $($(call port_variable,$(1))):"
+	@echo "  NAME one of: $(ARDUINO_EXAMPLES_$(1))"
 	@echo "  arduino-NAME-profile          uploads the project with the profile and reads the port"
 	@$(foreach name,$(ARDUINO_LOGS_$(1)),printf '  %-29s %s\n' \
 	  "arduino-$(name)-log" \
@@ -305,11 +313,21 @@ examples-help:
 	@echo "Variables, with their values:"
 	@printf '  %-44s %s\n' \
 	  "PORT=$(PORT)" "when set, the port of every upload" \
-	  "CAPTURE=$(CAPTURE)" "the seconds for which the port is read" \
 	  "SIMULATE=$(SIMULATE)" "when set, the simulated seconds of every example" \
+	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target"
+	@echo "Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help"
+
+arduino-diagnostics-help:
+	@echo "Arduino diagnostic targets, by board:"
+	$(foreach board,$(sort $(ARDUINO_BOARDS)),$(call arduino_diagnostics_board_help,$(board))$(newline))
+	@echo "Variables, with their values:"
+	@printf '  %-44s %s\n' \
+	  "PORT=$(PORT)" "when set, the port of every upload" \
+	  "CAPTURE=$(CAPTURE)" "the seconds for which the port is read" \
 	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target"
 
 .PHONY: tempore-cli opentrons-simulate-all arduino-simulate-all \
-  arduino-build-all examples-help $(ARDUINO_TARGETS) \
+  arduino-build-all examples-help arduino-diagnostics-help \
+  $(ARDUINO_TARGETS) \
   $(OPENTRONS_EXAMPLES:%=opentrons-%-emit) \
   $(OPENTRONS_EXAMPLES:%=opentrons-%-simulate)
