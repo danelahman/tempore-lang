@@ -69,12 +69,12 @@ let fixation (columns : column list) =
   | first :: rest -> (
       let fixing = perform Fix first in
       match rest with
-      | [] -> delay 15; unbox fixing as first in perform Rinse first
-      | second :: rest ->
+      | [] -> delay 15; unbox fixing as fixed in perform Rinse fixed
+      | second :: remaining ->
           delay 14;
           let started = perform Fix second in
-          unbox fixing as first in
-          stagger rest (started, first))
+          unbox fixing as fixed in
+          stagger remaining (started, fixed))
 
 (* Correctly rejected by the typechecker: the next column is started five
    minutes after the rinse instead of 13, so a column is rinsed seven to
