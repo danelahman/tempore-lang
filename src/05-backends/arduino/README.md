@@ -1,6 +1,6 @@
 # Arduino backend
 
-The proof-of-concept Arduino backend compiles a first-order fragment of
+The proof-of-concept Arduino backend compiles a fragment of
 Tempore to allocation-free C++ and generates a PlatformIO project for an
 Arduino or ESP32 board, with FreeRTOS tasks and run-time monitors.
 
@@ -203,13 +203,21 @@ The fragment consists of
 - datatypes without type parameters that are not recursive;
 - `delay` and operation calls;
 - self calls in tail position, which become loops;
+- anonymous functions `fun p -> c` as values, also in boxes, tuples and the
+  state of a periodic task, compiled by defunctionalisation (Reynolds,
+  "Definitional interpreters for higher-order programming languages", 1972):
+  a closure is a struct with a tag, which names its function among those of
+  its type, and the values of its free variables, and an application calls
+  the function of the tag;
 - tail-resumptive handlers.
 
 The following are refused, each with a `Compilation error` at the
-construct: local functions, functions and handlers as values, partial
-application, handlers that are not tail-resumptive, lists, strings other
-than constant arguments of operations, and recursion other than self calls
-in tail position.
+construct: local recursive functions, top-level functions and handlers as
+values, partial application, datatypes whose constructors take functions, a
+closure whose environment contains a closure of its own type, handlers that
+are not tail-resumptive, lists, strings other than constant arguments of
+operations, and recursion other than self calls in tail position, also
+inside a closure.
 
 ### Tail-resumptive handlers
 
@@ -255,9 +263,11 @@ allocation:
   resumption;
 - the return case becomes a function applied to the result of the handled
   computation;
-- each function is compiled once for each instance of its type and each
-  context of the handlers its operations reach, with the parameters of those
-  handlers as further parameters.
+- each function, also of a closure, is compiled once for each instance of
+  its type and each context of the handlers its operations reach, with the
+  parameters of those handlers as further parameters; the operations of a
+  closure thus go to the handlers around its application, as in the
+  interpreter.
 
 As in the interpreter, the handlers are deep and a case runs outside its
 handler. An operation performed inside a `handle`, also in the functions it

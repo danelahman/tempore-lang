@@ -13,8 +13,8 @@
     the members [c0], [c1], ...; a value of a datatype is a struct with a tag,
     the enumeration of the constructors in the order of their labels, and the
     union [arg] of the arguments of the constructors. Each struct without a
-    string component has a function [tempore_compare] that orders its values as
-    the comparison primitives do.
+    string or function component has a function [tempore_compare] that orders
+    its values as the comparison primitives do.
 
     {2 Functions}
 
@@ -27,6 +27,22 @@
     when none before it applies. An operation call is a call of the external
     function {!ArduinoNames.operation} of the operation, and [delay q] a call of
     [tempore_delay] with the numerator and the denominator of [q].
+
+    {2 Closures}
+
+    Closures are compiled by defunctionalisation (Reynolds, "Definitional
+    interpreters for higher-order programming languages", 1972). A value of a
+    function type is a struct with a tag, the position of its function among the
+    anonymous functions of that type in the program, and the union [env] of
+    their environments [e0], [e1], ..., each a tuple of the values of the free
+    variables of the function; a function [make_e0], [make_e1], ... of the
+    struct creates a closure. The body of each anonymous function is a C++
+    function of the variables of its environment and its argument. An
+    application is a call of the application of the closures of its type, a C++
+    function that calls the function of the tag of the closure. A struct whose
+    environments contain, directly or through other structs, a closure of its
+    own type is rejected. A closure in the result of a [run] is printed as
+    [<fun>].
 
     {2 Handlers}
 
@@ -42,13 +58,16 @@
     the context of the handlers outside that handler, or the external function
     of the operation if no handler around it handles it.
 
-    A function is compiled once for each instance of its type and each context
-    of the handlers that its operations reach, the values of the parameters of
-    those handlers following its own parameters; the cases of a handler are
-    compiled once for each instance of the types of its parameters and its
-    cases, and each context outside it. An operation handled by a case is not a
-    call of its external function, and is not monitored on a device; the
-    operations of the case are.
+    A function, the body of an anonymous function and the application of the
+    closures of a function type are compiled once for each instance of their
+    types and each context of the handlers that their operations reach, the
+    values of the parameters of those handlers following their own parameters.
+    The operations of a closure are thus handled by the handlers around its
+    application, as in the interpreter. The cases of a handler are compiled once
+    for each instance of the types of its parameters and its cases, and each
+    context outside it. An operation handled by a case is not a call of its
+    external function, and is not monitored on a device; the operations of the
+    case are.
 
     {2 Names}
 

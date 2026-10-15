@@ -15,6 +15,7 @@ type ty =
   | String
   | Tuple of ty list
   | Data of Ast.ty_name
+  | Arrow of ty * ty
   | Meta of int
 
 let rank = function
@@ -25,18 +26,23 @@ let rank = function
   | String -> 4
   | Tuple _ -> 5
   | Data _ -> 6
-  | Meta _ -> 7
+  | Arrow _ -> 7
+  | Meta _ -> 8
 
 let rec compare_ty t1 t2 =
   match (t1, t2) with
   | Tuple ts1, Tuple ts2 -> List.compare compare_ty ts1 ts2
   | Data n1, Data n2 -> Ast.TyName.compare n1 n2
+  | Arrow (a1, b1), Arrow (a2, b2) ->
+      let c = compare_ty a1 a2 in
+      if c <> 0 then c else compare_ty b1 b2
   | Meta i1, Meta i2 -> Int.compare i1 i2
   | _ -> Int.compare (rank t1) (rank t2)
 
 let rec substitute f = function
   | Meta i as ty -> Option.value (f i) ~default:ty
   | Tuple tys -> Tuple (List.map (substitute f) tys)
+  | Arrow (a, b) -> Arrow (substitute f a, substitute f b)
   | (Nat | Int | Float | Bool | String | Data _) as ty -> ty
 
 type global = { variable : Ast.variable; instance : ty list }
@@ -49,8 +55,17 @@ and value_node =
   | Constant of Const.t
   | Tuple_value of value list
   | Construct of Ast.label * value option
+  | Closure of closure
 
-type pattern = { pattern : pattern_node; pattern_ty : ty }
+and closure = {
+  closure_name : Ast.variable;
+  closure_at : Location.t;
+  environment : (Ast.variable * ty) list;
+  closure_parameter : pattern;
+  closure_body : computation;
+}
+
+and pattern = { pattern : pattern_node; pattern_ty : ty }
 
 and pattern_node =
   | PVar of Ast.variable
@@ -61,15 +76,15 @@ and pattern_node =
   | PSucc of pattern * Z.t
   | PAny
 
-type callee = Self | Function of global | Primitive of Primitives.primitive
-
-type computation = { computation : computation_node; result : ty }
+and callee = Self | Function of global | Primitive of Primitives.primitive
+and computation = { computation : computation_node; result : ty }
 
 and computation_node =
   | Return of value
   | Bind of pattern * computation * computation
   | Match of value * (pattern * computation) list
   | Call of callee * value list
+  | Apply of value * value
   | Perform of Ast.operation * value
   | Delay of Grades.Rational.t * computation
   | Handle of handler_use * computation
@@ -139,16 +154,6 @@ let fits_int n =
 
 let map_global f g = { g with instance = List.map f g.instance }
 
-let rec map_value f v =
-  let value =
-    match v.value with
-    | (Local _ | Constant _) as node -> node
-    | Global g -> Global (map_global f g)
-    | Tuple_value vs -> Tuple_value (List.map (map_value f) vs)
-    | Construct (l, arg) -> Construct (l, Option.map (map_value f) arg)
-  in
-  { value; ty = f v.ty }
-
 let rec map_pattern f p =
   let pattern =
     match p.pattern with
@@ -164,7 +169,25 @@ let map_callee f = function
   | Function g -> Function (map_global f g)
   | (Self | Primitive _) as callee -> callee
 
-let rec map_computation f c =
+let rec map_value f v =
+  let value =
+    match v.value with
+    | (Local _ | Constant _) as node -> node
+    | Global g -> Global (map_global f g)
+    | Tuple_value vs -> Tuple_value (List.map (map_value f) vs)
+    | Construct (l, arg) -> Construct (l, Option.map (map_value f) arg)
+    | Closure k ->
+        Closure
+          {
+            k with
+            environment = List.map (fun (x, ty) -> (x, f ty)) k.environment;
+            closure_parameter = map_pattern f k.closure_parameter;
+            closure_body = map_computation f k.closure_body;
+          }
+  in
+  { value; ty = f v.ty }
+
+and map_computation f c =
   let computation =
     match c.computation with
     | Return v -> Return (map_value f v)
@@ -177,6 +200,7 @@ let rec map_computation f c =
               (fun (p, c) -> (map_pattern f p, map_computation f c))
               cases )
     | Call (callee, vs) -> Call (map_callee f callee, List.map (map_value f) vs)
+    | Apply (v1, v2) -> Apply (map_value f v1, map_value f v2)
     | Perform (op, v) -> Perform (op, map_value f v)
     | Delay (q, c) -> Delay (q, map_computation f c)
     | Handle (u, c) -> Handle (map_handler_use f u, map_computation f c)
@@ -222,7 +246,7 @@ let map_body f = function
 let rec calls_self c =
   match c.computation with
   | Call (Self, _) -> true
-  | Return _ | Call _ | Perform _ -> false
+  | Return _ | Call _ | Apply _ | Perform _ -> false
   | Bind (_, c1, c2) -> calls_self c1 || calls_self c2
   | Match (_, cases) -> List.exists (fun (_, c) -> calls_self c) cases
   | Delay (_, c) | Handle (_, c) -> calls_self c
@@ -268,6 +292,9 @@ type state = {
   definitions : definition Ast.VariableMap.t;
   order : definition list;  (** the definitions, the last first *)
   performed : (ty * ty) Ast.OpNameMap.t;
+  comparisons : (Location.t * ty) list;
+      (** the comparisons of the definition being reconstructed, each with the
+          type of the compared values *)
 }
 
 type ('rho, 'eps) environment = {
@@ -305,17 +332,25 @@ let rec resolve st = function
 let rec substituted st ty =
   match resolve st ty with
   | Tuple tys -> Tuple (List.map (substituted st) tys)
+  | Arrow (a, b) -> Arrow (substituted st a, substituted st b)
   | ty -> ty
 
 let rec has_string = function
   | String -> true
   | Tuple tys -> List.exists has_string tys
+  | Arrow (a, b) -> has_string a || has_string b
   | Nat | Int | Float | Bool | Data _ | Meta _ -> false
+
+let rec has_function = function
+  | Arrow _ -> true
+  | Tuple tys -> List.exists has_function tys
+  | Nat | Int | Float | Bool | String | Data _ | Meta _ -> false
 
 let rec occurs st i ty =
   match resolve st ty with
   | Meta j -> i = j
   | Tuple tys -> List.exists (occurs st i) tys
+  | Arrow (a, b) -> occurs st i a || occurs st i b
   | Nat | Int | Float | Bool | String | Data _ -> false
 
 (* Unification, by a substitution of the type variables. *)
@@ -331,6 +366,8 @@ let rec unify st ty1 ty2 =
       List.fold_left2
         (fun st ty1 ty2 -> Option.bind st (fun st -> unify st ty1 ty2))
         (Some st) tys1 tys2
+  | Arrow (a1, b1), Arrow (a2, b2) ->
+      Option.bind (unify st a1 a2) (fun st -> unify st b1 b2)
   | _ -> None
 
 let unify_at at st ty1 ty2 =
@@ -381,7 +418,10 @@ let rec convert env ?(visiting = Ast.TyNameSet.empty) st (ty : _ Ast.ty) =
               type_parameters = Ast.TyParamMap.add a ty st.type_parameters;
             },
             ty ))
-  | Ast.TyArrow _ -> raise (Unsupported_type "function types")
+  | Ast.TyArrow (a, Ast.CompTy (b, _)) ->
+      let st, a = convert env ~visiting st a in
+      let st, b = convert env ~visiting st b in
+      (st, Arrow (a, b))
   | Ast.TyHandler _ -> raise (Unsupported_type "handler types")
   | Ast.TyApply (name, args) -> (
       match
@@ -433,12 +473,15 @@ and convert_sum env ~visiting st name params constructors =
         (fun (_, arg) ->
           Option.iter
             (fun ty ->
-              if has_string (snd (convert env ~visiting st ty)) then
+              let argument = snd (convert env ~visiting st ty) in
+              let refuse what =
                 raise
                   (Unsupported_type
-                     (Printf.sprintf
-                        "the type `%s`, whose constructors take strings"
-                        (ty_name_string name))))
+                     (Printf.sprintf "the type `%s`, whose constructors take %s"
+                        (ty_name_string name) what))
+              in
+              if has_string argument then refuse "strings";
+              if has_function argument then refuse "functions")
             arg)
         constructors;
       Data name
@@ -541,6 +584,7 @@ let type_variables tys =
   let rec collect acc = function
     | Meta i -> if List.mem i acc then acc else i :: acc
     | Tuple tys -> List.fold_left collect acc tys
+    | Arrow (a, b) -> collect (collect acc a) b
     | Nat | Int | Float | Bool | String | Data _ -> acc
   in
   List.rev (List.fold_left collect [] tys)
@@ -899,13 +943,23 @@ let unreached_handler_warnings ~reached sources =
           [])
     sources
 
+(* The rejection of the comparisons of [st] whose values are of a type with a
+   function component. *)
+let check_comparisons st =
+  List.iter
+    (fun (at, ty) ->
+      if has_function (substituted st ty) then
+        unsupported at "the comparison of functions")
+    (List.rev st.comparisons)
+
 let add_local x local env =
   { env with locals = Ast.VariableMap.add x local env.locals }
 
-(* The free variables of the handler [h], in the order of their first
-   occurrences: the variables of its values that its patterns do not bind.
-   The handlers of its [handle]s are closed but for their arguments. *)
-let free_variables (h : handler) =
+(* The free variables of the patterns [ps] and the computations [cs] in their
+   scope, in the order of their first occurrences: the variables of their values
+   that their patterns do not bind. The handlers of their [handle]s are closed
+   but for their arguments, and their closures but for their environments. *)
+let free_variables ps cs =
   let rec value (refs, binders) v =
     match v.value with
     | Local x -> (x :: refs, binders)
@@ -913,6 +967,7 @@ let free_variables (h : handler) =
     | Tuple_value vs -> List.fold_left value (refs, binders) vs
     | Construct (_, arg) ->
         Option.fold ~none:(refs, binders) ~some:(value (refs, binders)) arg
+    | Closure k -> (List.rev_append (List.map fst k.environment) refs, binders)
   in
   let rec pattern (refs, binders) p =
     match p.pattern with
@@ -933,15 +988,12 @@ let free_variables (h : handler) =
           (fun acc (p, c) -> computation (pattern acc p) c)
           (value acc v) cases
     | Call (_, vs) -> List.fold_left value acc vs
+    | Apply (v1, v2) -> value (value acc v1) v2
     | Delay (_, c) -> computation acc c
     | Handle (u, c) -> computation (List.fold_left value acc u.arguments) c
   in
-  let ret_p, ret_c = h.return_case in
   let refs, binders =
-    List.fold_left
-      (fun acc oc -> computation (pattern acc oc.case_parameter) oc.case_body)
-      (computation (pattern ([], []) ret_p) ret_c)
-      h.operation_cases
+    List.fold_left computation (List.fold_left pattern ([], []) ps) cs
   in
   let _, free =
     List.fold_left
@@ -952,6 +1004,13 @@ let free_variables (h : handler) =
       (List.rev refs)
   in
   List.rev free
+
+(* The free variables of the handler [h]. *)
+let handler_free_variables (h : handler) =
+  let ret_p, ret_c = h.return_case in
+  free_variables
+    (ret_p :: List.map (fun oc -> oc.case_parameter) h.operation_cases)
+    (ret_c :: List.map (fun oc -> oc.case_body) h.operation_cases)
 
 let rec resolve_variable env st at x =
   let name = Ast.Variable.string_of x in
@@ -1004,8 +1063,10 @@ and ensure env st x =
 (* The reconstruction of the top-level definition [x] of [e], generalised
    over the type variables of its type. *)
 and define env st x at in_sources e =
-  let saved = st.type_parameters in
-  let st = { st with type_parameters = Ast.TyParamMap.empty } in
+  let saved = st.type_parameters and saved_comparisons = st.comparisons in
+  let st =
+    { st with type_parameters = Ast.TyParamMap.empty; comparisons = [] }
+  in
   let env = { env with locals = Ast.VariableMap.empty; self = None } in
   let st, definition_body =
     match (strip_expression e).it with
@@ -1018,6 +1079,7 @@ and define env st x at in_sources e =
         let st, v = value env st e in
         (st, Constant_body v)
   in
+  check_comparisons st;
   let definition_body = map_body (substituted st) definition_body in
   let d = { variable = x; at; in_sources; quantified = []; definition_body } in
   let params, results = signature d in
@@ -1025,6 +1087,7 @@ and define env st x at in_sources e =
   ( {
       st with
       type_parameters = saved;
+      comparisons = saved_comparisons;
       definitions = Ast.VariableMap.add x d st.definitions;
       order = d :: st.order;
     },
@@ -1127,7 +1190,7 @@ and operation_types at env st op =
    variables. *)
 and inline_handler env st ret_case op_cases =
   let st, h = handler env st [] ret_case op_cases in
-  let free = free_variables h in
+  let free = handler_free_variables h in
   let typed =
     List.map
       (fun x ->
@@ -1194,9 +1257,40 @@ and value ?(strings = false) env st (e : _ Ast.expression) =
           let st = unify_at arg.at st arg_ty v.ty in
           (st, { value = Construct (l, Some v); ty = data })
       | _ -> (st, { value = Construct (l, None); ty = data }))
-  | Ast.Lambda _ | Ast.PureLambda _ | Ast.RecLambda _ ->
-      unsupported e.at "functions other than top-level definitions"
+  | Ast.Lambda abs | Ast.PureLambda abs -> closure env st e.at abs
+  | Ast.RecLambda _ -> unsupported e.at "local recursive functions"
   | Ast.Handler _ -> unsupported e.at "handlers used as values"
+
+(* The closure of the function [fun p -> body] at [at], whose environment is
+   its free variables. Its body is not in tail position of the function being
+   defined. *)
+and closure env st at ((p, body) : _ Ast.abstraction) =
+  let parameter_ty, st = fresh st in
+  let st, closure_parameter, inner = pattern env st p parameter_ty in
+  let st, elaborated = computation inner st ~tail:false body in
+  let closure_body = as_computation elaborated in
+  let environment =
+    List.map
+      (fun x ->
+        match Ast.VariableMap.find_opt x env.locals with
+        | Some (Value ty) -> (x, ty)
+        | Some (Partial _ | Handler_local _) | None ->
+            invalid_arg "free variable of a closure")
+      (free_variables [ closure_parameter ] [ closure_body ])
+  in
+  ( st,
+    {
+      value =
+        Closure
+          {
+            closure_name = Ast.Variable.fresh "lambda";
+            closure_at = at;
+            environment;
+            closure_parameter;
+            closure_body;
+          };
+      ty = Arrow (parameter_ty, closure_body.result);
+    } )
 
 and pattern env st (p : _ Ast.pattern) ty =
   let make st node env = (st, { pattern = node; pattern_ty = ty }, env) in
@@ -1302,13 +1396,11 @@ and computation env st ~tail (c : _ Ast.computation) =
       | Ast.Var x -> (
           match resolve_variable env st e1.at x with
           | st, Resolved_function p -> apply env st ~tail c.at p e2
-          | _, (Resolved_value _ | Resolved_handler _) ->
-              unsupported e1.at
-                "the application of a function other than a top-level \
-                 definition")
+          | st, Resolved_value f -> apply_closure env st e1.at f e2
+          | _, Resolved_handler h -> reject_handler h e1.at)
       | _ ->
-          unsupported e1.at
-            "the application of a function other than a top-level definition")
+          let st, f = value env st e1 in
+          apply_closure env st e1.at f e2)
   | Ast.Delay (q, c') ->
       if
         not
@@ -1351,6 +1443,15 @@ and bind env st ~tail p c1 c2 =
       (st, Computed c1)
   | _ -> (st, Computed { computation = Bind (p, c1, c2); result = c2.result })
 
+(* The application of the closure [f] at [at] to [e]. *)
+and apply_closure env st at f e =
+  let a, st = fresh st in
+  let b, st = fresh st in
+  let st = unify_at at st f.ty (Arrow (a, b)) in
+  let st, v = value env st e in
+  let st = unify_at e.at st a v.ty in
+  (st, Computed { computation = Apply (f, v); result = b })
+
 (* The application of the function [p] to [e]: a call, or a handler, once it
    has all its arguments. *)
 and apply env st ~tail at p e =
@@ -1362,11 +1463,18 @@ and apply env st ~tail at p e =
       let arguments = p.arguments @ [ v ] in
       match (remaining, p.target) with
       | [], Call_target (callee, result) ->
-          (match callee with
-          | Self when not tail ->
-              unsupported at
-                "the recursive call of `%s` outside a tail position" p.name
-          | Self | Function _ | Primitive _ -> ());
+          let st =
+            match callee with
+            | Self when not tail ->
+                unsupported at
+                  "the recursive call of `%s` outside a tail position" p.name
+            | Primitive
+                ( Primitives.CompareEq | Primitives.CompareLt
+                | Primitives.CompareGt | Primitives.CompareLe
+                | Primitives.CompareGe | Primitives.CompareNe ) ->
+                { st with comparisons = (at, v.ty) :: st.comparisons }
+            | Self | Function _ | Primitive _ -> st
+          in
           (st, Computed { computation = Call (callee, arguments); result })
       | [], Handler_target (g, input, output) ->
           ( st,
@@ -1420,6 +1528,7 @@ let initial_state =
     definitions = Ast.VariableMap.empty;
     order = [];
     performed = Ast.OpNameMap.empty;
+    comparisons = [];
   }
 
 (* The environment of [library] and [sources], with the datatypes without type
@@ -1461,8 +1570,11 @@ let reconstruct env ~runs included sources =
       match cmd.it with
       | Ast.TopLet (x, _) when included x -> (fst (ensure env st x), runs_rev)
       | Ast.TopDo c when runs ->
-          let st = { st with type_parameters = Ast.TyParamMap.empty } in
+          let st =
+            { st with type_parameters = Ast.TyParamMap.empty; comparisons = [] }
+          in
           let st, c = computation env st ~tail:true c in
+          check_comparisons st;
           let c = map_computation (substituted st) (as_computation c) in
           (st, c :: runs_rev)
       | Ast.TopLet _ | Ast.TopDo _ | Ast.TyDef _ | Ast.OpSig _ | Ast.OpDefault _

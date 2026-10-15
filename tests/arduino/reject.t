@@ -2,26 +2,59 @@ Constructs outside the fragment that the Arduino backend compiles are rejected
 with a compilation error at the construct, and nothing is written.
 
   $ reject () { ../../tempore --emit-arduino rejected "$1"; echo "exit $?"; }
-A function other than a top-level definition:
+A local recursive function:
   $ cat > local.tpe <<'TPE'
-  > let f x = let g y = y + x in g 1
+  > let f x =
+  >   let rec g (y : nat) = match y with | 0 -> x | m + 1 -> g m in
+  >   g 3
   > TPE
   $ reject local.tpe
-  File "local.tpe", line 1, characters 16-25:
-  1 | let f x = let g y = y + x in g 1
-                      ^^^^^^^^^
-  Compilation error: The Arduino backend does not support functions other than top-level definitions
+  File "local.tpe", line 2, characters 12-60:
+  2 |   let rec g (y : nat) = match y with | 0 -> x | m + 1 -> g m in
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Compilation error: The Arduino backend does not support local recursive functions
   exit 1
 
-The application of a parameter:
-  $ cat > parameter.tpe <<'TPE'
-  > let apply g x = g x
+A closure whose environment contains a closure of its own type, whose struct
+would contain itself:
+  $ cat > own_type.tpe <<'TPE'
+  > let f (k : nat) =
+  >   let g = fun (x : nat) -> x + k in
+  >   let h = fun (x : nat) -> g x in
+  >   h 1
   > TPE
-  $ reject parameter.tpe
-  File "parameter.tpe", line 1, characters 16-17:
-  1 | let apply g x = g x
-                      ^
-  Compilation error: The Arduino backend does not support the application of a function other than a top-level definition
+  $ reject own_type.tpe
+  File "own_type.tpe", line 3, characters 10-30:
+  3 |   let h = fun (x : nat) -> g x in
+                ^^^^^^^^^^^^^^^^^^^^
+  Compilation error: The Arduino backend does not support a closure whose environment contains a closure of its own type
+  exit 1
+
+A closure stored in a datatype:
+  $ cat > stored.tpe <<'TPE'
+  > type action = Act of (nat -> nat)
+  > let f (k : nat) = Act (fun (x : nat) -> x + k)
+  > TPE
+  $ reject stored.tpe
+  File "stored.tpe", line 2, characters 18-46:
+  2 | let f (k : nat) = Act (fun (x : nat) -> x + k)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Compilation error: The Arduino backend does not support the type `action`, whose constructors take functions
+  exit 1
+
+A recursive call inside a closure, which is not in tail position of the
+function:
+  $ cat > self.tpe <<'TPE'
+  > let rec count (n : nat) =
+  >   match n with
+  >   | 0 -> 0
+  >   | m + 1 -> let g = fun () -> count m in g ()
+  > TPE
+  $ reject self.tpe
+  File "self.tpe", line 4, characters 31-38:
+  4 |   | m + 1 -> let g = fun () -> count m in g ()
+                                     ^^^^^^^
+  Compilation error: The Arduino backend does not support the recursive call of `count` outside a tail position
   exit 1
 
 A partial application:

@@ -45,6 +45,8 @@ let rec value_types acc (v : F.value) =
   | F.Local _ | F.Constant _ | F.Global _ -> acc
   | F.Tuple_value vs -> List.fold_left value_types acc vs
   | F.Construct (_, arg) -> Option.fold ~none:acc ~some:(value_types acc) arg
+  | F.Closure k ->
+      List.fold_left (fun acc (_, ty) -> ty :: acc) acc k.environment
 
 let rec pattern_types acc (p : F.pattern) =
   let acc = p.pattern_ty :: acc in
@@ -66,6 +68,7 @@ let rec computation_types acc (c : F.computation) =
         (fun acc (p, c) -> computation_types (pattern_types acc p) c)
         (value_types acc v) cases
   | F.Call (_, vs) -> List.fold_left value_types acc vs
+  | F.Apply (v1, v2) -> value_types (value_types acc v1) v2
   | F.Delay (_, c) -> computation_types acc c
   | F.Handle (u, c) ->
       let acc = List.fold_left value_types acc u.arguments in
@@ -96,6 +99,15 @@ let body_types acc = function
       computation_types (List.fold_left pattern_types acc parameters) body
   | F.Constant_body v -> value_types acc v
   | F.Handler_body _ -> acc
+
+(* The types of the closure [k], which name it with its variable. *)
+let closure_types (k : F.closure) =
+  List.rev
+    (computation_types
+       (pattern_types
+          (List.fold_left (fun acc (_, ty) -> ty :: acc) [] k.environment)
+          k.closure_parameter)
+       k.closure_body)
 
 (* Instances. *)
 
@@ -142,18 +154,39 @@ let returns_input (h : F.handler) =
       Ast.Variable.equal x y
   | _ -> false
 
-(* The operations that a computation may perform outside itself, from those
-   [escaping] that each top-level function may perform outside itself, and
-   the [definitions] of the program. *)
-type operations = {
-  escaping : OpNameSet.t Ast.VariableMap.t;
-  definitions : F.definition Ast.VariableMap.t;
+(* Closures. A closure is compiled by defunctionalisation (Reynolds,
+   "Definitional interpreters for higher-order programming languages", 1972):
+   the values of a function type are a struct with a tag, which names the
+   function of the closure among the functions of that type in the program,
+   and the environment of the closure. A closure is named by the key of its
+   variable and its types. *)
+
+type lambda = {
+  lambda_key : Key.t;
+  lambda_code : F.closure;
+  lambda_ty : F.ty;  (** the function type of the closure *)
 }
 
-let handler_of_source ops = function
+let lambda_key (k : F.closure) = (k.closure_name, closure_types k)
+
+(* The operations that a computation may perform outside itself, from those
+   [escaping] that each instance of a top-level function may perform outside
+   itself, those [applied] that the application of a closure of each function
+   type may perform, the [definitions] of the program and its closures
+   [lambdas], by their function types, in the order of their tags. *)
+type operations = {
+  escaping : OpNameSet.t KeyMap.t;
+  applied : OpNameSet.t TyMap.t;
+  definitions : F.definition Ast.VariableMap.t;
+  lambdas : lambda list TyMap.t;
+  lambda_codes : lambda KeyMap.t;  (** the closures, by their keys *)
+}
+
+(* The handler of [source], at the types of its instance. *)
+let handler_of_source definitions = function
   | F.Defined g -> (
       match
-        (Ast.VariableMap.find g.variable ops.definitions).definition_body
+        ground_body (Ast.VariableMap.find g.variable definitions) g.instance
       with
       | F.Handler_body h -> h
       | F.Function_body _ | F.Constant_body _ -> invalid_arg "not a handler")
@@ -165,8 +198,10 @@ let rec computation_operations ops (c : F.computation) =
   | F.Perform (op, _) -> OpNameSet.singleton op
   | F.Call (F.Function g, _) ->
       Option.value
-        (Ast.VariableMap.find_opt g.variable ops.escaping)
+        (KeyMap.find_opt (g.variable, g.instance) ops.escaping)
         ~default:OpNameSet.empty
+  | F.Apply (f, _) ->
+      Option.value (TyMap.find_opt f.ty ops.applied) ~default:OpNameSet.empty
   | F.Bind (_, c1, c2) ->
       OpNameSet.union
         (computation_operations ops c1)
@@ -178,7 +213,7 @@ let rec computation_operations ops (c : F.computation) =
   | F.Delay (_, c) -> computation_operations ops c
   | F.Handle (u, c) ->
       handled_operations ops
-        (handler_of_source ops u.source)
+        (handler_of_source ops.definitions u.source)
         (computation_operations ops c)
 
 (* The operations performed outside a [handle] of [h] whose body performs
@@ -194,26 +229,154 @@ and handled_operations ops h performed =
     performed
     (computation_operations ops (snd h.return_case))
 
-let operations (definitions : F.definition list) =
-  let map =
+(* The instances of the top-level functions and constants reached, each
+   after those it uses, with their bodies, and the closures they create. *)
+type reached = {
+  bodies : F.body KeyMap.t;
+  postorder : Key.t list;  (** the instances, the last first *)
+  closures : lambda KeyMap.t;
+  closures_rev : lambda list;  (** the closures, the last first *)
+}
+
+let rec reach_value definitions acc (v : F.value) =
+  match v.value with
+  | F.Local _ | F.Constant _ -> acc
+  | F.Global g -> reach_instance definitions acc (g.variable, g.instance)
+  | F.Tuple_value vs -> List.fold_left (reach_value definitions) acc vs
+  | F.Construct (_, arg) ->
+      Option.fold ~none:acc ~some:(reach_value definitions acc) arg
+  | F.Closure k ->
+      let key = lambda_key k in
+      if KeyMap.mem key acc.closures then acc
+      else
+        let lambda = { lambda_key = key; lambda_code = k; lambda_ty = v.ty } in
+        reach_computation definitions
+          {
+            acc with
+            closures = KeyMap.add key lambda acc.closures;
+            closures_rev = lambda :: acc.closures_rev;
+          }
+          k.closure_body
+
+and reach_computation definitions acc (c : F.computation) =
+  let value = reach_value definitions
+  and computation = reach_computation definitions in
+  match c.computation with
+  | F.Return v | F.Perform (_, v) -> value acc v
+  | F.Bind (_, c1, c2) -> computation (computation acc c1) c2
+  | F.Match (v, cases) ->
+      List.fold_left (fun acc (_, c) -> computation acc c) (value acc v) cases
+  | F.Call (callee, vs) ->
+      let acc =
+        match callee with
+        | F.Function g -> reach_instance definitions acc (g.variable, g.instance)
+        | F.Self | F.Primitive _ -> acc
+      in
+      List.fold_left value acc vs
+  | F.Apply (v1, v2) -> value (value acc v1) v2
+  | F.Delay (_, c) -> computation acc c
+  | F.Handle (u, c) ->
+      let h = handler_of_source definitions u.source in
+      let acc = List.fold_left value acc u.arguments in
+      let acc = computation acc (snd h.return_case) in
+      let acc =
+        List.fold_left
+          (fun acc (oc : F.operation_case) -> computation acc oc.case_body)
+          acc h.operation_cases
+      in
+      computation acc c
+
+and reach_instance definitions acc ((x, tys) as key) =
+  if KeyMap.mem key acc.bodies then acc
+  else
+    let body = ground_body (Ast.VariableMap.find x definitions) tys in
+    let acc = { acc with bodies = KeyMap.add key body acc.bodies } in
+    let acc =
+      match body with
+      | F.Function_body { body; _ } -> reach_computation definitions acc body
+      | F.Constant_body v -> reach_value definitions acc v
+      | F.Handler_body _ -> acc
+    in
+    { acc with postorder = key :: acc.postorder }
+
+(* The operations of the instances of the top-level functions and of the
+   function types reached from the instances [roots] and the computations
+   [runs], the least solution of their equations, computed by iteration from
+   the instances each after those it calls. *)
+let operations (definitions : F.definition list) ~roots ~runs =
+  let definitions =
     List.fold_left
       (fun map (d : F.definition) -> Ast.VariableMap.add d.variable d map)
       Ast.VariableMap.empty definitions
   in
-  List.fold_left
-    (fun ops (d : F.definition) ->
-      match d.definition_body with
-      | F.Function_body { body; _ } ->
+  let reached =
+    List.fold_left
+      (reach_computation definitions)
+      (List.fold_left
+         (reach_instance definitions)
+         {
+           bodies = KeyMap.empty;
+           postorder = [];
+           closures = KeyMap.empty;
+           closures_rev = [];
+         }
+         roots)
+      runs
+  in
+  let lambdas =
+    List.fold_left
+      (fun map lambda ->
+        TyMap.update lambda.lambda_ty
+          (fun lambdas -> Some (lambda :: Option.value lambdas ~default:[]))
+          map)
+      TyMap.empty reached.closures_rev
+  in
+  let functions =
+    List.filter_map
+      (fun key ->
+        match KeyMap.find key reached.bodies with
+        | F.Function_body { body; _ } -> Some (key, body)
+        | F.Constant_body _ | F.Handler_body _ -> None)
+      (List.rev reached.postorder)
+  in
+  let rec iterate ops =
+    let ops' =
+      List.fold_left
+        (fun ops (key, body) ->
           {
             ops with
             escaping =
-              Ast.VariableMap.add d.variable
-                (computation_operations ops body)
-                ops.escaping;
-          }
-      | F.Constant_body _ | F.Handler_body _ -> ops)
-    { escaping = Ast.VariableMap.empty; definitions = map }
-    definitions
+              KeyMap.add key (computation_operations ops body) ops.escaping;
+          })
+        ops functions
+    in
+    let ops' =
+      {
+        ops' with
+        applied =
+          TyMap.map
+            (List.fold_left
+               (fun acc lambda ->
+                 OpNameSet.union acc
+                   (computation_operations ops' lambda.lambda_code.closure_body))
+               OpNameSet.empty)
+            lambdas;
+      }
+    in
+    if
+      KeyMap.equal OpNameSet.equal ops.escaping ops'.escaping
+      && TyMap.equal OpNameSet.equal ops.applied ops'.applied
+    then ops'
+    else iterate ops'
+  in
+  iterate
+    {
+      escaping = KeyMap.empty;
+      applied = TyMap.empty;
+      definitions;
+      lambdas;
+      lambda_codes = reached.closures;
+    }
 
 (* A handler of a context, with the C++ expressions of the values of its
    parameters. *)
@@ -256,18 +419,30 @@ type unit_key =
   | Instance of Key.t * Key.t list
   | Case of Key.t * Ast.operation * Key.t list
   | Return_case of Key.t * Key.t list
+  | Lambda of Key.t * Key.t list  (** the function of a closure *)
+  | Dispatch of F.ty * Key.t list
+      (** the application of the closures of a function type *)
 
 module UnitKey = struct
   type t = unit_key
 
-  let rank = function Instance _ -> 0 | Case _ -> 1 | Return_case _ -> 2
+  let rank = function
+    | Instance _ -> 0
+    | Case _ -> 1
+    | Return_case _ -> 2
+    | Lambda _ -> 3
+    | Dispatch _ -> 4
+
   let keys = List.compare Key.compare
 
   let compare u1 u2 =
     match (u1, u2) with
     | Instance (k1, c1), Instance (k2, c2)
-    | Return_case (k1, c1), Return_case (k2, c2) ->
+    | Return_case (k1, c1), Return_case (k2, c2)
+    | Lambda (k1, c1), Lambda (k2, c2) ->
         Key.compare k1 k2 <?> fun () -> keys c1 c2
+    | Dispatch (ty1, c1), Dispatch (ty2, c2) ->
+        F.compare_ty ty1 ty2 <?> fun () -> keys c1 c2
     | Case (k1, op1, c1), Case (k2, op2, c2) ->
         Key.compare k1 k2 <?> fun () ->
         Ast.OpName.compare op1 op2 <?> fun () -> keys c1 c2
@@ -283,11 +458,31 @@ let frame_keys frames = List.map (fun frame -> frame.frame_key) frames
 let call_unit ops frames (g : F.global) =
   let performed =
     Option.value
-      (Ast.VariableMap.find_opt g.variable ops.escaping)
+      (KeyMap.find_opt (g.variable, g.instance) ops.escaping)
       ~default:OpNameSet.empty
   in
   let relevant = relevant ops performed frames in
   (Instance ((g.variable, g.instance), frame_keys relevant), relevant)
+
+(* The unit of the function of the closure [lambda] in [frames], with the
+   relevant handlers. *)
+let lambda_unit ops frames lambda =
+  let relevant =
+    relevant ops
+      (computation_operations ops lambda.lambda_code.closure_body)
+      frames
+  in
+  (Lambda (lambda.lambda_key, frame_keys relevant), relevant)
+
+(* The unit of an application of a closure of type [ty] in [frames], with the
+   relevant handlers. *)
+let dispatch_unit ops frames ty =
+  let relevant =
+    relevant ops
+      (Option.value (TyMap.find_opt ty ops.applied) ~default:OpNameSet.empty)
+      frames
+  in
+  (Dispatch (ty, frame_keys relevant), relevant)
 
 (* The unit of the case of [op] in [frames], with its handler and the
    relevant handlers outside it, if a handler of [frames] handles [op]. *)
@@ -320,16 +515,10 @@ let return_unit ops frames frame =
 (* The handler of [u] at a [handle], with the expressions [captured] of its
    arguments. *)
 let handle_frame definitions (u : F.handler_use) captured =
-  let x, code =
-    match u.source with
-    | F.Defined g -> (
-        match
-          ground_body (Ast.VariableMap.find g.variable definitions) g.instance
-        with
-        | F.Handler_body code -> (g.variable, code)
-        | F.Function_body _ | F.Constant_body _ -> invalid_arg "not a handler")
-    | F.Inline (x, code) -> (x, code)
+  let x =
+    match u.source with F.Defined g -> g.variable | F.Inline (x, _) -> x
   in
+  let code = handler_of_source definitions u.source in
   {
     frame_key = (x, List.rev (handler_types [] ~return:false code));
     return_key = (x, List.rev (handler_types [] ~return:true code));
@@ -337,10 +526,14 @@ let handle_frame definitions (u : F.handler_use) captured =
     captured;
   }
 
+(* The code of a unit: a body, or the application of the closures of a
+   function type, in the order of their tags. *)
+type unit_body = Body of F.body | Applications of F.ty * lambda list
+
 type instance = {
   key : unit_key;
   context : Key.t list;
-  body : F.body;  (** at the types of the instance *)
+  body : unit_body;  (** at the types of the instance *)
   entry : bool;  (** whether the instance is an entry point *)
 }
 
@@ -382,6 +575,7 @@ let rec value_uses acc (v : F.value) =
   | F.Global g -> use (Instance ((g.variable, g.instance), [])) acc
   | F.Tuple_value vs -> List.fold_left value_uses acc vs
   | F.Construct (_, arg) -> Option.fold ~none:acc ~some:(value_uses acc) arg
+  | F.Closure _ -> acc
 
 let rec computation_uses ops frames acc (c : F.computation) =
   let uses = computation_uses ops frames in
@@ -402,6 +596,10 @@ let rec computation_uses ops frames acc (c : F.computation) =
         | F.Self | F.Primitive _ -> acc
       in
       List.fold_left value_uses acc vs
+  | F.Apply (f, v) ->
+      use
+        (fst (dispatch_unit ops frames f.ty))
+        (value_uses (value_uses acc f) v)
   | F.Delay (_, c) -> uses acc c
   | F.Handle (u, c) ->
       let acc = List.fold_left value_uses acc u.arguments in
@@ -419,34 +617,56 @@ let rec computation_uses ops frames acc (c : F.computation) =
       else use (fst (return_unit ops frames frame)) acc
 
 let body_uses ops frames = function
-  | F.Function_body { body; _ } -> computation_uses ops frames no_uses body
-  | F.Constant_body v -> value_uses no_uses v
-  | F.Handler_body _ -> no_uses
+  | Body (F.Function_body { body; _ }) ->
+      computation_uses ops frames no_uses body
+  | Body (F.Constant_body v) -> value_uses no_uses v
+  | Body (F.Handler_body _) -> no_uses
+  | Applications (_, lambdas) ->
+      List.fold_left
+        (fun acc lambda -> use (fst (lambda_unit ops frames lambda)) acc)
+        no_uses lambdas
+
+(* The parameters of the function of the closure [k]: its environment and its
+   parameter. *)
+let lambda_parameters (k : F.closure) =
+  List.map
+    (fun (x, ty) -> { F.pattern = F.PVar x; pattern_ty = ty })
+    k.environment
+  @ [ k.closure_parameter ]
 
 (* The unit of [key], with the handlers known so far. *)
-let instance definitions handlers ~entries key =
-  let unit_of_case hk context parameter body =
-    let code : F.handler = KeyMap.find hk handlers in
+let instance ops handlers ~entries key =
+  let function_unit context parameters body =
     {
       key;
       context;
-      body =
-        F.Function_body
-          {
-            parameters = code.handler_parameters @ [ parameter ];
-            body;
-            recursive = false;
-          };
+      body = Body (F.Function_body { parameters; body; recursive = false });
       entry = false;
     }
+  in
+  let unit_of_case hk context parameter body =
+    let code : F.handler = KeyMap.find hk handlers in
+    function_unit context (code.handler_parameters @ [ parameter ]) body
   in
   match key with
   | Instance (((x, tys) as k), context) ->
       {
         key;
         context;
-        body = ground_body (Ast.VariableMap.find x definitions) tys;
+        body = Body (ground_body (Ast.VariableMap.find x ops.definitions) tys);
         entry = context = [] && List.mem k entries;
+      }
+  | Lambda (lk, context) ->
+      let k = (KeyMap.find lk ops.lambda_codes).lambda_code in
+      function_unit context (lambda_parameters k) k.closure_body
+  | Dispatch (ty, context) ->
+      {
+        key;
+        context;
+        body =
+          Applications
+            (ty, Option.value (TyMap.find_opt ty ops.lambdas) ~default:[]);
+        entry = false;
       }
   | Case (hk, op, context) ->
       let oc = case_of (KeyMap.find hk handlers) op in
@@ -480,7 +700,7 @@ let instances ops ~entries ~runs roots =
   let rec visit closure key =
     if UnitSet.mem key closure.seen then closure
     else
-      let inst = instance ops.definitions closure.handlers ~entries key in
+      let inst = instance ops closure.handlers ~entries key in
       let uses =
         body_uses ops (context_frames closure.handlers inst.context) inst.body
       in
@@ -506,31 +726,65 @@ let instances ops ~entries ~runs roots =
   in
   (List.rev closure.order, closure.handlers, closure.external_ops)
 
-(* The types a struct of type [ty] has members of. *)
+(* The types a tuple or a datatype [ty] has members of. *)
 let components datatypes ty =
   match ty with
   | F.Tuple tys -> tys
   | F.Data n ->
       List.filter_map snd
         (Ast.TyNameMap.find n datatypes : F.datatype).constructors
-  | F.Nat | F.Int | F.Float | F.Bool | F.String | F.Meta _ -> []
+  | F.Nat | F.Int | F.Float | F.Bool | F.String | F.Arrow _ | F.Meta _ -> []
+
+(* The type of the environment of a closure, a tuple of the types of its
+   variables, if it has any. *)
+let environment_ty (k : F.closure) =
+  match k.environment with
+  | [] -> None
+  | environment -> Some (F.Tuple (List.map snd environment))
 
 let is_struct = function
-  | F.Tuple (_ :: _) | F.Data _ -> true
+  | F.Tuple (_ :: _) | F.Data _ | F.Arrow _ -> true
   | F.Tuple [] | F.Nat | F.Int | F.Float | F.Bool | F.String | F.Meta _ -> false
 
+let lambdas_of ops ty = Option.value (TyMap.find_opt ty ops.lambdas) ~default:[]
+
+(* A struct type whose members include, through other structs, a struct of
+   the same type. *)
+exception Cycle of F.ty
+
 (* The struct types of [tys] and of their members, each after the types of
-   its members. *)
-let structs datatypes tys =
-  let rec visit (seen, order) ty =
+   its members. The members of the struct of a function type are the
+   environments of its closures; a closure whose environment contains a
+   closure of its own type is rejected, since the struct would contain
+   itself. *)
+let structs datatypes ops tys =
+  let rec visit visiting (seen, order) ty =
     if (not (is_struct ty)) || TySet.mem ty seen then (seen, order)
+    else if TySet.mem ty visiting then raise (Cycle ty)
     else
+      let visiting = TySet.add ty visiting in
       let seen, order =
-        List.fold_left visit (seen, order) (components datatypes ty)
+        match ty with
+        | F.Arrow _ ->
+            List.fold_left
+              (fun acc lambda ->
+                let k = lambda.lambda_code in
+                match environment_ty k with
+                | None -> acc
+                | Some env -> (
+                    try visit visiting acc env
+                    with Cycle ty' when F.compare_ty ty ty' = 0 ->
+                      Utils.Error.compilation ~loc:k.closure_at
+                        "The Arduino backend does not support a closure whose \
+                         environment contains a closure of its own type"))
+              (seen, order) (lambdas_of ops ty)
+        | _ ->
+            List.fold_left (visit visiting) (seen, order)
+              (components datatypes ty)
       in
       (TySet.add ty seen, ty :: order)
   in
-  List.rev (snd (List.fold_left visit (TySet.empty, []) tys))
+  List.rev (snd (List.fold_left (visit TySet.empty) (TySet.empty, []) tys))
 
 (* Names. *)
 
@@ -541,6 +795,8 @@ type names = {
   tags : string LabelMap.t;
   wrappers : Primitives.primitive UnitMap.t;
       (** the instances whose calls are applications of a primitive *)
+  lambda_tags : int KeyMap.t;
+      (** the tag of each closure, its position among those of its type *)
 }
 
 let rec pattern_binders acc (p : F.pattern) =
@@ -553,7 +809,7 @@ let rec pattern_binders acc (p : F.pattern) =
 
 let rec computation_binders acc (c : F.computation) =
   match c.computation with
-  | F.Return _ | F.Call _ | F.Perform _ -> acc
+  | F.Return _ | F.Call _ | F.Apply _ | F.Perform _ -> acc
   | F.Bind (p, c1, c2) ->
       computation_binders (computation_binders (pattern_binders acc p) c1) c2
   | F.Match (_, cases) ->
@@ -605,6 +861,8 @@ let unit_name = function
   | Case ((x, _), op, _) ->
       Ast.Variable.string_of x ^ "_" ^ Ast.OpName.string_of op
   | Return_case ((x, _), _) -> Ast.Variable.string_of x ^ "_return"
+  | Lambda ((x, _), _) -> Ast.Variable.string_of x
+  | Dispatch _ -> "apply"
 
 (* What a name is given to. *)
 type named =
@@ -615,13 +873,18 @@ type named =
 
 (* The names of the program: each name is numbered by its position among all
    the names, so that distinct names get distinct identifiers. *)
-let names datatypes instances runs structs =
+let names datatypes ops instances runs structs =
   let data =
     List.filter_map
       (function F.Data n as ty -> Some (ty, n) | _ -> None)
       structs
   in
-  let tuples = List.filter (function F.Data _ -> false | _ -> true) structs in
+  let tuples =
+    List.filter (function F.Tuple _ -> true | _ -> false) structs
+  in
+  let closures =
+    List.filter (function F.Arrow _ -> true | _ -> false) structs
+  in
   let tags =
     List.concat_map
       (fun (_, n) ->
@@ -632,7 +895,12 @@ let names datatypes instances runs structs =
   in
   let binders =
     List.fold_left computation_binders
-      (List.fold_left (fun acc inst -> body_binders acc inst.body) [] instances)
+      (List.fold_left
+         (fun acc inst ->
+           match inst.body with
+           | Body body -> body_binders acc body
+           | Applications _ -> acc)
+         [] instances)
       runs
   in
   let _, locals =
@@ -654,18 +922,33 @@ let names datatypes instances runs structs =
       locals = Ast.VariableMap.empty;
       types =
         List.fold_left
-          (fun types (i, ty) ->
-            TyMap.add ty (Printf.sprintf "tempore_tuple%d" i) types)
+          (fun types (prefix, tys) ->
+            List.fold_left
+              (fun types (i, ty) ->
+                TyMap.add ty (Printf.sprintf "%s%d" prefix i) types)
+              types
+              (List.mapi (fun i ty -> (i, ty)) tys))
           TyMap.empty
-          (List.mapi (fun i ty -> (i, ty)) tuples);
+          [ ("tempore_tuple", tuples); ("tempore_closure", closures) ];
       tags = LabelMap.empty;
       wrappers =
         List.fold_left
           (fun wrappers inst ->
-            match primitive_wrapper inst.body with
-            | Some p when not inst.entry -> UnitMap.add inst.key p wrappers
+            match (inst.key, inst.body) with
+            | Instance _, Body body -> (
+                match primitive_wrapper body with
+                | Some p when not inst.entry -> UnitMap.add inst.key p wrappers
+                | _ -> wrappers)
             | _ -> wrappers)
           UnitMap.empty instances;
+      lambda_tags =
+        TyMap.fold
+          (fun _ lambdas tags ->
+            List.fold_left
+              (fun tags (i, lambda) -> KeyMap.add lambda.lambda_key i tags)
+              tags
+              (List.mapi (fun i lambda -> (i, lambda)) lambdas))
+          ops.lambdas KeyMap.empty;
     }
   in
   List.fold_left
@@ -769,6 +1052,21 @@ let rec expression names (v : F.value) =
       Printf.sprintf "%s::make_%s(%s)" (ty_name names v.ty)
         (LabelMap.find l names.tags)
         (Option.fold ~none:"" ~some:(expression names) arg)
+  | F.Closure k ->
+      Printf.sprintf "%s::make_e%d(%s)" (ty_name names v.ty)
+        (KeyMap.find (lambda_key k) names.lambda_tags)
+        (Option.fold ~none:""
+           ~some:(fun ty ->
+             expression names
+               {
+                 value =
+                   F.Tuple_value
+                     (List.map
+                        (fun (x, ty) -> { F.value = F.Local x; ty })
+                        k.environment);
+                 ty;
+               })
+           (environment_ty k))
 
 (* The [i]-th component of the tuple [v]. *)
 let component names (v : F.value) i =
@@ -790,6 +1088,9 @@ let primitive names p (v : F.value) =
     | F.Tuple [ (F.Nat | F.Int | F.Bool); _ ] ->
         Printf.sprintf "(%s %s %s)" (component names v 0) operator
           (component names v 1)
+    | F.Tuple [ ty; _ ] when F.has_function ty ->
+        Utils.Error.compilation
+          "The Arduino backend does not support the comparison of functions"
     | F.Tuple [ ty; _ ] ->
         Printf.sprintf "(%s(%s, %s) %s 0)" (compare_function ty)
           (component names v 0) (component names v 1) operator
@@ -845,6 +1146,8 @@ let rec value_free acc (v : F.value) =
   | F.Global _ | F.Constant _ -> acc
   | F.Tuple_value vs -> List.fold_left value_free acc vs
   | F.Construct (_, arg) -> Option.fold ~none:acc ~some:(value_free acc) arg
+  | F.Closure k ->
+      List.fold_left (fun acc (x, _) -> VariableSet.add x acc) acc k.environment
 
 let binds_used used p =
   List.exists (fun x -> VariableSet.mem x used) (pattern_binders [] p)
@@ -865,6 +1168,7 @@ let rec computation_free acc (c : F.computation) =
         (fun acc (_, c) -> computation_free acc c)
         (value_free acc v) cases
   | F.Call (_, vs) -> List.fold_left value_free acc vs
+  | F.Apply (v1, v2) -> value_free (value_free acc v1) v2
   | F.Delay (_, c) -> computation_free acc c
   | F.Handle (u, c) ->
       computation_free (List.fold_left value_free acc u.arguments) c
@@ -990,6 +1294,15 @@ let perform ctx op v =
         ((frame.captured @ [ expression names v ]) @ captured relevant)
   | None -> Printf.sprintf "%s(%s)" (operation_function op) (expression names v)
 
+(* An application of the closure [f] to [v]: a call of the application of the
+   closures of its type, with the values of the parameters of the relevant
+   handlers. *)
+let apply ctx (f : F.value) v =
+  let names = ctx.names in
+  let key, relevant = dispatch_unit ctx.ops ctx.frames f.ty in
+  unit_call names key
+    ([ expression names f; expression names v ] @ captured relevant)
+
 (* The C++ expression of [c], if [c] is one. *)
 let expression_of ctx (c : F.computation) =
   match c.computation with
@@ -997,6 +1310,7 @@ let expression_of ctx (c : F.computation) =
   | F.Call (((F.Function _ | F.Primitive _) as callee), vs) ->
       Some (call ctx callee vs)
   | F.Perform (op, v) -> Some (perform ctx op v)
+  | F.Apply (f, v) -> Some (apply ctx f v)
   | F.Call (F.Self, _) | F.Bind _ | F.Match _ | F.Delay _ | F.Handle _ -> None
 
 let deliver destination ~pure e =
@@ -1028,7 +1342,7 @@ let rec statements ctx next destination (c : F.computation) =
              ])
         :: rest )
   | F.Handle (u, body), None -> handle ctx next destination u body
-  | (F.Return _ | F.Call _ | F.Perform _), None -> assert false
+  | (F.Return _ | F.Call _ | F.Apply _ | F.Perform _), None -> assert false
 
 (* The binding of the result of [c1] to [p], of which [used] are used. *)
 and bind ctx next used (p : F.pattern) c1 =
@@ -1059,7 +1373,7 @@ and match_cases ctx next destination (v : F.value) cases =
   let next, subject, path =
     match v.value with
     | F.Local _ | F.Global _ | F.Constant _ -> (next, [], expression names v)
-    | F.Tuple_value _ | F.Construct _ ->
+    | F.Tuple_value _ | F.Construct _ | F.Closure _ ->
         let s, next = fresh "s" next in
         (next, [ Cpp.constant (ty_name names v.ty) s (expression names v) ], s)
   in
@@ -1141,6 +1455,17 @@ and tail_call ctx vs =
    are then declared, or left unnamed when their variables are unused; the
    values of the parameters of the handlers of its context follow. A function
    that calls itself runs its body in a loop. *)
+(* The parameters of the handlers of the context of [ctx], with their C++
+   types. *)
+let context_parameters ctx =
+  List.concat_map
+    (fun frame ->
+      List.map2
+        (fun (p : F.pattern) name ->
+          (ty_name ctx.names p.pattern_ty, Some name))
+        frame.code.handler_parameters frame.captured)
+    ctx.frames
+
 let function_definition ctx ~static ~name (parameters : F.pattern list) body
     ~recursive =
   let names = ctx.names in
@@ -1158,13 +1483,7 @@ let function_definition ctx ~static ~name (parameters : F.pattern list) body
       parameters
   in
   let context =
-    List.concat_map
-      (fun frame ->
-        List.map2
-          (fun (p : F.pattern) name ->
-            (ty_name names p.pattern_ty, Some name, []))
-          frame.code.handler_parameters frame.captured)
-      ctx.frames
+    List.map (fun (ty, name) -> (ty, name, [])) (context_parameters ctx)
   in
   let result = ty_name names body.F.result in
   let all = parameters @ context in
@@ -1186,11 +1505,73 @@ let function_definition ctx ~static ~name (parameters : F.pattern list) body
       (List.map (fun (ty, name, _) -> (ty, name)) all)
       (if recursive then [ Cpp.block "for (;;)" stmts ] else stmts) )
 
+(* The application of the closures [lambdas] of the function type [ty]: a
+   function of a closure [tempore_f], an argument [tempore_x] and the values
+   of the parameters of the handlers of its context, which calls the function
+   of the closure whose tag [tempore_f] has, with the variables of its
+   environment, the argument, and the values of the parameters of the
+   handlers relevant to it. The last closure is taken when none before it
+   applies. Without closures of its type, the function is never called. *)
+let dispatch_definition ctx ~name ty lambdas =
+  let names = ctx.names in
+  let argument, result =
+    match ty with
+    | F.Arrow (a, b) -> (a, b)
+    | _ ->
+        invalid_arg "application of a closure of a type other than a function"
+  in
+  let call i lambda =
+    let key, relevant = lambda_unit ctx.ops ctx.frames lambda in
+    unit_call names key
+      (List.mapi
+         (fun j _ -> Printf.sprintf "tempore_f.env.e%d.c%d" i j)
+         lambda.lambda_code.environment
+      @ [ "tempore_x" ] @ captured relevant)
+  in
+  let last = List.length lambdas - 1 in
+  let body =
+    match lambdas with
+    | [] ->
+        [
+          Cpp.statement
+            (Cpp.call "tempore_fault"
+               [
+                 Cpp.string_literal "Application of a function without closures";
+               ]);
+        ]
+    | _ ->
+        List.mapi
+          (fun i lambda ->
+            if i = last then Cpp.return (call i lambda)
+            else
+              Cpp.Line
+                (Printf.sprintf "if (tempore_f.tag == %d) return %s;" i
+                   (call i lambda)))
+          lambdas
+  in
+  let uses_closure =
+    last > 0
+    || List.exists (fun lambda -> lambda.lambda_code.environment <> []) lambdas
+  in
+  let parameters =
+    [
+      (ty_name names ty, if uses_closure then Some "tempore_f" else None);
+      (ty_name names argument, if last >= 0 then Some "tempore_x" else None);
+    ]
+    @ context_parameters ctx
+  in
+  let result = ty_name names result in
+  ( Cpp.prototype ~static:true result name (List.map fst parameters),
+    Cpp.definition ~static:true result name parameters body )
+
 (* Structs: a tuple has the members [c0], [c1], ...; a datatype has a tag, the
    enumeration of its constructors in the order of their labels, the union
    [arg] of the arguments of its constructors, and a function [make_] for
-   each constructor. *)
-let struct_definition names datatypes ty =
+   each constructor; a function type has a tag, the position of a closure
+   among those of the type, the union [env] of the environments [e0], [e1],
+   ... of the closures, and a function [make_e0], [make_e1], ... for each
+   closure. *)
+let struct_definition names datatypes ops ty =
   let name = ty_name names ty in
   let member ty x = Cpp.Line (ty_name names ty ^ " " ^ x ^ ";") in
   match ty with
@@ -1228,6 +1609,53 @@ let struct_definition names datatypes ty =
             | [] -> []
             | _ -> [ Cpp.Block ("union", arguments, "} arg;") ])
           @ List.map make constructors,
+          "};" )
+  | F.Arrow _ ->
+      let lambdas =
+        List.mapi (fun i lambda -> (i, lambda)) (lambdas_of ops ty)
+      in
+      List.iter
+        (fun (i, lambda) ->
+          if i > 255 then
+            Utils.Error.compilation ~loc:lambda.lambda_code.closure_at
+              "The Arduino backend does not support more than 256 functions of \
+               the same type")
+        lambdas;
+      let environments =
+        List.filter_map
+          (fun (i, lambda) ->
+            Option.map (fun env -> (i, env)) (environment_ty lambda.lambda_code))
+          lambdas
+      in
+      let make (i, lambda) =
+        let env = environment_ty lambda.lambda_code in
+        Cpp.definition ~static:true name
+          (Printf.sprintf "make_e%d" i)
+          (Option.fold ~none:[]
+             ~some:(fun ty -> [ (ty_name names ty, Some "a") ])
+             env)
+          ([ Cpp.variable name "v"; Cpp.assign "v.tag" (string_of_int i) ]
+          @ (match env with
+            | Some _ -> [ Cpp.assign (Printf.sprintf "v.env.e%d" i) "a" ]
+            | None -> [])
+          @ [ Cpp.return "v" ])
+      in
+      Cpp.Block
+        ( "struct " ^ name,
+          Cpp.Line "uint8_t tag;"
+          ::
+          (match environments with
+          | [] -> []
+          | _ ->
+              [
+                Cpp.Block
+                  ( "union",
+                    List.map
+                      (fun (i, env) -> member env (Printf.sprintf "e%d" i))
+                      environments,
+                    "} env;" );
+              ])
+          @ List.map make lambdas,
           "};" )
   | _ ->
       Cpp.Block
@@ -1317,6 +1745,10 @@ let print_definition names datatypes ty =
     printf [ Cpp.string_literal "%s"; Cpp.string_literal s ]
   in
   match ty with
+  | F.Arrow _ ->
+      Cpp.definition ~inline:true "void" "tempore_print"
+        [ ("const " ^ name, Some "&"); ("bool", None) ]
+        [ print_string "<fun>" ]
   | F.Data n ->
       let constructors =
         (Ast.TyNameMap.find n datatypes : F.datatype).constructors
@@ -1383,9 +1815,11 @@ type external_operation = {
 (* The C++ definitions of a program, before they are laid out in files. *)
 type definitions = {
   names : names;
+  ops : operations;
   datatypes : F.datatype Ast.TyNameMap.t;
   structs : F.ty list;  (** the struct types, each after its members *)
-  comparable : F.ty list;  (** the structs without strings *)
+  comparable : F.ty list;  (** the structs without strings and functions *)
+  printable : F.ty list;  (** the structs without strings *)
   externals : external_operation list;
   functions : (bool * (Cpp.stmt * Cpp.stmt)) list;
       (** the functions, each with whether it is an entry point, its prototype
@@ -1412,11 +1846,11 @@ let definitions ~host_runs (program : F.program) =
       (fun map (d : F.datatype) -> Ast.TyNameMap.add d.type_name d map)
       Ast.TyNameMap.empty program.datatypes
   in
-  let ops = operations program.definitions in
   let entries = entry_keys program in
   let runs =
     if host_runs then List.map ground_computation program.runs else []
   in
+  let ops = operations program.definitions ~roots:entries ~runs in
   let instances, handlers, external_ops =
     instances ops ~entries ~runs
       (List.map (fun key -> Instance (key, [])) entries)
@@ -1427,22 +1861,26 @@ let definitions ~host_runs (program : F.program) =
       program.operations
   in
   let structs =
-    structs datatypes
+    structs datatypes ops
       (List.fold_left computation_types
          (List.fold_left
-            (fun acc inst -> body_types acc inst.body)
+            (fun acc inst ->
+              match inst.body with
+              | Body body -> body_types acc body
+              | Applications ((F.Arrow (a, b) as ty), _) -> b :: a :: ty :: acc
+              | Applications (ty, _) -> ty :: acc)
             [] instances)
          runs
       @ List.concat_map
           (fun (op : F.operation) -> [ op.argument; op.result_ty ])
           performed)
   in
-  let names = names datatypes instances runs structs in
+  let names = names datatypes ops instances runs structs in
   let context frames = { names; self = None; ops; frames } in
   let function_of inst =
     match inst.body with
-    | F.Function_body _ when UnitMap.mem inst.key names.wrappers -> None
-    | F.Function_body { parameters; body; recursive } ->
+    | Body (F.Function_body _) when UnitMap.mem inst.key names.wrappers -> None
+    | Body (F.Function_body { parameters; body; recursive }) ->
         Some
           ( inst.entry,
             function_definition
@@ -1450,22 +1888,32 @@ let definitions ~host_runs (program : F.program) =
               ~static:(not inst.entry)
               ~name:(instance_name names inst.key)
               parameters body ~recursive )
-    | F.Constant_body _ | F.Handler_body _ -> None
+    | Applications (ty, lambdas) ->
+        Some
+          ( false,
+            dispatch_definition
+              (context (context_frames handlers inst.context))
+              ~name:(instance_name names inst.key)
+              ty lambdas )
+    | Body (F.Constant_body _ | F.Handler_body _) -> None
   in
   let constant_of inst =
     match inst.body with
-    | F.Constant_body v ->
+    | Body (F.Constant_body v) ->
         Some
           (Cpp.constant ~static:true (ty_name names v.ty)
              (instance_name names inst.key)
              (expression names v))
-    | F.Function_body _ | F.Handler_body _ -> None
+    | Body (F.Function_body _ | F.Handler_body _) | Applications _ -> None
   in
   {
     names;
+    ops;
     datatypes;
     structs;
-    comparable = List.filter (fun ty -> not (F.has_string ty)) structs;
+    comparable =
+      List.filter (fun ty -> not (F.has_string ty || F.has_function ty)) structs;
+    printable = List.filter (fun ty -> not (F.has_string ty)) structs;
     externals =
       List.map
         (fun (op : F.operation) ->
@@ -1512,7 +1960,8 @@ let header_text ~source d =
        Cpp.local_include runtime_file;
      ]
     @ section "Types."
-        (separated (List.map (struct_definition d.names d.datatypes) d.structs))
+        (separated
+           (List.map (struct_definition d.names d.datatypes d.ops) d.structs))
     @ section "Comparisons."
         (separated
            (List.map (compare_definition d.names d.datatypes) d.comparable))
@@ -1588,7 +2037,7 @@ let host_main_text ~source d =
         d.externals
     @ List.concat_map
         (fun ty -> [ print_definition d.names d.datatypes ty; Cpp.blank ])
-        d.comparable
+        d.printable
     @ [ host_main_function d ])
 
 let compile ?(host_runs = false) ~source (program : F.program) =

@@ -40,6 +40,9 @@ let rec show_ty metas = function
   | F.Tuple [] -> "unit"
   | F.Tuple tys -> String.concat " * " (List.map (show_atom metas) tys)
   | F.Data n -> Ast.TyName.string_of n
+  | F.Arrow ((F.Arrow _ as a), b) ->
+      "(" ^ show_ty metas a ^ ") -> " ^ show_ty metas b
+  | F.Arrow (a, b) -> show_ty metas a ^ " -> " ^ show_ty metas b
   | F.Meta i ->
       let rec index k = function
         | [] -> 0
@@ -50,7 +53,7 @@ let rec show_ty metas = function
       else Printf.sprintf "'t%d" k
 
 and show_atom metas = function
-  | F.Tuple (_ :: _) as ty -> "(" ^ show_ty metas ty ^ ")"
+  | (F.Tuple (_ :: _) | F.Arrow _) as ty -> "(" ^ show_ty metas ty ^ ")"
   | ty -> show_ty metas ty
 
 let unit_ty = F.Tuple []
