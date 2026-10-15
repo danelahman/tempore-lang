@@ -402,7 +402,7 @@ The bead purification by steps that unbox and rebox the beads: boxes generate
 no actions, so the protocol performs only the operations and the delays of
 the steps, and the binding function of AddBeads returns the beads.
 
-  $ ../../tempore --grades regex-timed-interval-symbolic --emit-opentrons purification.py \
+  $ ../../tempore --grades regex-timed-interval-rational-symbolic --emit-opentrons purification.py \
   >   --bind $examples/purification_bindings.py --time-unit minutes $examples/purification.tpe
   Wrote _opentrons/protocols/purification.py
   $ simulate purification.py
@@ -420,42 +420,42 @@ the steps, and the binding function of AddBeads returns the beads.
   comment: Tempore run 1
   pipette.transfer(50, A1 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 40), new_tip='always')
   comment: Tempore timeline: At 0 s: operation `AddBeads` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore timeline: At 90 s: delay of 300 s
-  delay(seconds=300.0)
+  comment: Tempore timeline: At 90 s: delay of 450 s
+  delay(seconds=450.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
-  comment: Tempore timeline: At 390 s: operation `MagnetOn` took 30 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 420 s: delay of 180 s
-  delay(seconds=180.0)
+  comment: Tempore timeline: At 540 s: operation `MagnetOn` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 570 s: delay of 240 s
+  delay(seconds=240.0)
   pipette.transfer(80, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
-  comment: Tempore timeline: At 600 s: operation `RemoveSupernatant` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 810 s: operation `RemoveSupernatant` took 90 s, within its running-time bounds [60, 120] s
   pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='once')
-  comment: Tempore timeline: At 690 s: operation `AddEthanol` took 45 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 735 s: delay of 60 s
+  comment: Tempore timeline: At 900 s: operation `AddEthanol` took 45 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 945 s: delay of 60 s
   delay(seconds=60.0)
   pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
-  comment: Tempore timeline: At 795 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 1005 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
   pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='once')
-  comment: Tempore timeline: At 885 s: operation `AddEthanol` took 45 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 930 s: delay of 60 s
-  delay(seconds=60.0)
+  comment: Tempore timeline: At 1095 s: operation `AddEthanol` took 45 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1140 s: delay of 45 s
+  delay(seconds=45.0)
   pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
-  comment: Tempore timeline: At 990 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 1185 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
   pipette.transfer(10, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
-  comment: Tempore timeline: At 1080 s: operation `RemoveResidualEthanol` took 45 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 1125 s: delay of 180 s
-  delay(seconds=180.0)
+  comment: Tempore timeline: At 1275 s: operation `RemoveResidualEthanol` took 45 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1320 s: delay of 210 s
+  delay(seconds=210.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, 'D2', use_gripper=True)
-  comment: Tempore timeline: At 1305 s: operation `MagnetOff` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1530 s: operation `MagnetOff` took 30 s, within its running-time bounds [0, 60] s
   pipette.transfer(25, A3 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 20), new_tip='always')
-  comment: Tempore timeline: At 1335 s: operation `EluteDNA` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore timeline: At 1425 s: delay of 120 s
-  delay(seconds=120.0)
+  comment: Tempore timeline: At 1560 s: operation `EluteDNA` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 1650 s: delay of 180 s
+  delay(seconds=180.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
-  comment: Tempore timeline: At 1545 s: operation `MagnetOn` took 30 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 1575 s: delay of 120 s
-  delay(seconds=120.0)
+  comment: Tempore timeline: At 1830 s: operation `MagnetOn` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1860 s: delay of 150 s
+  delay(seconds=150.0)
   pipette.transfer(20, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], new_tip='always')
-  comment: Tempore timeline: At 1695 s: operation `Transfer` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 2010 s: operation `Transfer` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore run 1 returns ()
 
 The rejected variants of the examples.
@@ -466,10 +466,10 @@ The rejected variants of the examples.
   Typing error: Variable `washed` is unboxed with grade `[{Wash; 3; ChangeTip}, {Wash; 3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}, {Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}]`
   $ ../../tempore --grades regex-timed-interval-symbolic --typecheck-only $examples/cleanup_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `k` is unboxed with grade `[{RemoveEthanol; 1; AddEthanol}, {RemoveEthanol; 1; AddEthanol}]` accumulated since it was bound, which is not below its box grade `[{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]`
-  $ ../../tempore --grades regex-timed-interval-symbolic --typecheck-only $examples/purification_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `drying` is unboxed with grade `[{8; MagnetOff}, {8; MagnetOff}]` accumulated since it was bound, which is not below its box grade `[{3; (0 | 1; (0 | 1)); MagnetOff}, {3; (0 | 1; (0 | 1)); MagnetOff}]`
-  Typing error: Variable `warm` is unboxed with grade `[{10; MagnetOn; 5; RemoveSupernatant; AddEthanol; 1; RemoveEthanol; AddEthanol; 1; RemoveEthanol; RemoveResidualEthanol; 5; MagnetOff; EluteDNA; 2; MagnetOn; 2}, {10; MagnetOn; 5; RemoveSupernatant; AddEthanol; 1; RemoveEthanol; AddEthanol; 1; RemoveEthanol; RemoveResidualEthanol; 5; MagnetOff; EluteDNA; 2; MagnetOn; 2}]` accumulated since it was bound, which is not below its box grade `[{0}, {35}]`
-  Typing error: The resource inequality `[{AddEthanol; 1; (0 | 1); RemoveEthanol}, {AddEthanol; 1; (0 | 1); RemoveEthanol}] <= [{AddEthanol; 1; (0 | 1)}, {AddEthanol; 1; (0 | 1)}]` does not hold
+  $ ../../tempore --grades regex-timed-interval-rational-symbolic --typecheck-only $examples/purification_reject.tpe 2>&1 | grep 'Typing error'
+  Typing error: Variable `drying` is unboxed with grade `[{7.5; MagnetOff}, {7.5; MagnetOff}]` accumulated since it was bound, which is not below its box grade `[{[3, 5]; MagnetOff}, {[3, 5]; MagnetOff}]`
+  Typing error: Variable `warm` is unboxed with grade `[{10; MagnetOn; 5; RemoveSupernatant; AddEthanol; 1; RemoveEthanol; AddEthanol; 0.75; RemoveEthanol; RemoveResidualEthanol; 5; MagnetOff; EluteDNA; 3; MagnetOn; 2.5}, {10; MagnetOn; 5; RemoveSupernatant; AddEthanol; 1; RemoveEthanol; AddEthanol; 0.75; RemoveEthanol; RemoveResidualEthanol; 5; MagnetOff; EluteDNA; 3; MagnetOn; 2.5}]` accumulated since it was bound, which is not below its box grade `[{0}, {40}]`
+  Typing error: The resource inequality `[{AddEthanol; [0.5, 1.5]; RemoveEthanol}, {AddEthanol; [0.5, 1.5]; RemoveEthanol}] <= [{AddEthanol; [0.5, 1.5]}, {AddEthanol; [0.5, 1.5]}]` does not hold
   $ ../../tempore --grades time-upper-bound-levels --typecheck-only $examples/contamination_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `article_tip` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(∞, Low)`
   $ for name in reagents staggered beads stopread; do

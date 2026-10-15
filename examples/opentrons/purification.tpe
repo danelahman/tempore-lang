@@ -1,18 +1,19 @@
 (* A bead purification on the Opentrons Flex: the stages of the beads as boxes.
 
-   Run this example with the 'regex-timed-interval-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-interval-symbolic \
+     ./tempore --grades regex-timed-interval-rational-symbolic \
        examples/opentrons/purification.tpe
 
-   Grades [L, U]: a lower and upper regular-language bound on the traces
+   Grades [L, U]: a lower and upper regular-language bound on the traces with
+   rational durations
      - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
      - Top [{0}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
 
 (* A tick is a minute. The protocol for the Flex is written and simulated by
 
-     ./tempore --grades regex-timed-interval-symbolic \
+     ./tempore --grades regex-timed-interval-rational-symbolic \
        --emit-opentrons purification.py \
        --bind examples/opentrons/purification_bindings.py \
        --time-unit minutes \
@@ -35,43 +36,43 @@ type beads = string
    onto and off the magnetic block, the ethanol added from above and the
    residual ethanol removed, in at most a minute. *)
 operation AddBeads : sample ~> beads # {AddBeads} within [1, 2]
-default AddBeads samples = delay 1; "beads"
+default AddBeads samples = delay 3/2; "beads"
 
 operation MagnetOn : unit ~> unit # {MagnetOn} within [0, 1]
-default MagnetOn () = delay 1
+default MagnetOn () = delay 1/2
 
 operation MagnetOff : unit ~> unit # {MagnetOff} within [0, 1]
-default MagnetOff () = delay 1
+default MagnetOff () = delay 1/2
 
 operation RemoveSupernatant : beads ~> unit # {RemoveSupernatant}
   within [1, 2]
-default RemoveSupernatant beads = delay 1
+default RemoveSupernatant beads = delay 3/2
 
 operation AddEthanol : unit ~> unit # {AddEthanol} within [0, 1]
-default AddEthanol () = delay 1
+default AddEthanol () = delay 3/4
 
 operation RemoveEthanol : unit ~> unit # {RemoveEthanol} within [1, 2]
-default RemoveEthanol () = delay 1
+default RemoveEthanol () = delay 3/2
 
 operation RemoveResidualEthanol : beads ~> unit # {RemoveResidualEthanol}
   within [0, 1]
-default RemoveResidualEthanol beads = delay 1
+default RemoveResidualEthanol beads = delay 3/4
 
 operation EluteDNA : beads ~> unit # {EluteDNA} within [1, 2]
-default EluteDNA beads = delay 1
+default EluteDNA beads = delay 3/2
 
 operation Transfer : beads * sample ~> unit # {Transfer} within [1, 2]
-default Transfer (beads, samples) = delay 1
+default Transfer (beads, samples) = delay 3/2
 
 (* The steps. The box a step takes is its argument's annotated type, and the
    box it returns that of the next step:
 
      bind       : sample → [[5, 10]]beads
      separate   : [[5, 10]]beads → [[3, 5]]beads
-     clear      : [[3, 5]]beads → [{AddEthanol; [1, 2]}]beads
-     wash       : [{AddEthanol; [1, 2]}]beads
-                    → [{AddEthanol; [1, 2]; RemoveEthanol}]beads
-     final_wash : [{AddEthanol; [1, 2]; RemoveEthanol}]beads
+     clear      : [[3, 5]]beads → [{AddEthanol; [1/2, 3/2]}]beads
+     wash       : [{AddEthanol; [1/2, 3/2]}]beads
+                    → [{AddEthanol; [1/2, 3/2]; RemoveEthanol}]beads
+     final_wash : [{AddEthanol; [1/2, 3/2]; RemoveEthanol}]beads
                     → [{[3, 5]; MagnetOff}]beads
      elute      : [{[3, 5]; MagnetOff}]beads
                     → [{[2, 5]; MagnetOn; [2, 5]}]beads
@@ -84,36 +85,37 @@ let bind (samples : sample) =
   box [5, 10] beads
 
 let separate (binding : [[5, 10]]beads) =
-  delay 5;
+  delay 15/2;
   unbox binding as beads in
   perform MagnetOn ();
   box [3, 5] beads
 
 (* Once the supernatant is removed, the beads take the ethanol of the first
-   wash at once, which stands for one to two minutes before its removal. *)
+   wash at once, which stands for half a minute to a minute and a half
+   before its removal. *)
 let clear (settling : [[3, 5]]beads) =
-  delay 3;
+  delay 4;
   unbox settling as beads in
   perform RemoveSupernatant beads;
-  box {AddEthanol; [1, 2]} beads
+  box {AddEthanol; [1/2, 3/2]} beads
 
 (* The first wash removes the ethanol and returns the beads boxed for the
    whole of the second wash, whose ethanol is added at once and removed
-   after one to two minutes. The final wash, which only that box licenses,
-   removes the residual ethanol and returns the beads to air-dry on the
-   magnet for three to five minutes, so that they are neither wet nor
-   overdried when the plate is moved off the magnet for the elution
+   after half a minute to a minute and a half. The final wash, which only
+   that box licenses, removes the residual ethanol and returns the beads to
+   air-dry on the magnet for three to five minutes, so that they are neither
+   wet nor overdried when the plate is moved off the magnet for the elution
    buffer. *)
-let wash (soaking : [{AddEthanol; [1, 2]}]beads) =
+let wash (soaking : [{AddEthanol; [1/2, 3/2]}]beads) =
   perform AddEthanol ();
   delay 1;
   unbox soaking as beads in
   perform RemoveEthanol ();
-  box {AddEthanol; [1, 2]; RemoveEthanol} beads
+  box {AddEthanol; [1/2, 3/2]; RemoveEthanol} beads
 
-let final_wash (rinsing : [{AddEthanol; [1, 2]; RemoveEthanol}]beads) =
+let final_wash (rinsing : [{AddEthanol; [1/2, 3/2]; RemoveEthanol}]beads) =
   perform AddEthanol ();
-  delay 1;
+  delay 3/4;
   perform RemoveEthanol ();
   unbox rinsing as beads in
   perform RemoveResidualEthanol beads;
@@ -123,47 +125,46 @@ let final_wash (rinsing : [{AddEthanol; [1, 2]; RemoveEthanol}]beads) =
    minutes, and settle on the magnet for two to five minutes before the
    eluates are taken. *)
 let elute (drying : [{[3, 5]; MagnetOff}]beads) =
-  delay 3;
+  delay 7/2;
   perform MagnetOff ();
   unbox drying as beads in
   perform EluteDNA beads;
   box {[2, 5]; MagnetOn; [2, 5]} beads
 
 let collect (eluting : [{[2, 5]; MagnetOn; [2, 5]}]beads) =
-  delay 2;
+  delay 3;
   perform MagnetOn ();
-  delay 2;
+  delay 5/2;
   unbox eluting as beads in
   beads
 
 (* Correctly accepted by the typechecker: every step is taken within the
-   window of its box, and the eluates reach the cold block 21 to 31 minutes
-   after the beads were added. The samples are boxed for at most 35 minutes
-   at room temperature, a box whose scope encloses the boxes of the steps:
-   the windows of the steps allow up to 48 minutes in all, so the box of the
-   samples bounds their combination. A third wash is rejected as the one
+   window of its box, and the eluates reach the cold block 26.25 to 36.25
+   minutes after the beads were added. The samples are boxed for at most 40
+   minutes at room temperature, a box whose scope encloses the boxes of the
+   steps: the windows of the steps allow up to 47 minutes in all, so the box
+   of the samples bounds their combination. A third wash is rejected as the one
    wash below is, its box not allowing for the removal of the ethanol. *)
 let purification (samples : sample) =
   let binding = bind samples in
-  box [0, 35] samples as warm in
+  box [0, 40] samples as warm in
   let beads =
     collect (elute (final_wash (wash (clear (separate binding)))))
   in
   unbox warm as samples in
   perform Transfer (beads, samples)
 
-(* Correctly rejected by the typechecker: the beads air-dry for eight
-   minutes, and are overdried:
+(* Correctly rejected by the typechecker: the beads air-dry for seven and a
+   half minutes, and are overdried:
 
      Typing error: Variable `drying` is unboxed with grade
-       `[{8; MagnetOff}, {8; MagnetOff}]` accumulated since it was bound,
-       which is not below its box grade
-       `[{3; (0 | 1; (0 | 1)); MagnetOff},
-       {3; (0 | 1; (0 | 1)); MagnetOff}]`
+       `[{7.5; MagnetOff}, {7.5; MagnetOff}]` accumulated since it was
+       bound, which is not below its box grade
+       `[{[3, 5]; MagnetOff}, {[3, 5]; MagnetOff}]`
 *)
 (*
 let elute_overdried (drying : [{[3, 5]; MagnetOff}]beads) =
-  delay 8;
+  delay 15/2;
   perform MagnetOff ();
   unbox drying as beads in
   perform EluteDNA beads
@@ -171,14 +172,14 @@ let elute_overdried (drying : [{[3, 5]; MagnetOff}]beads) =
 
 (* Correctly rejected by the typechecker: the binding, the settling on the
    magnet and the air-dry each take the upper end of their windows, which
-   their boxes accept, but the eluates reach the cold block up to 40 minutes
-   after the beads were added:
+   their boxes accept, but the eluates reach the cold block up to 41.25
+   minutes after the beads were added:
 
      Typing error: Variable `warm` is unboxed with grade
        `[{10; MagnetOn; 5; RemoveSupernatant; AddEthanol; 1; RemoveEthanol;
-       AddEthanol; 1; RemoveEthanol; RemoveResidualEthanol; 5; MagnetOff;
-       EluteDNA; 2; MagnetOn; 2}, ...]` accumulated since it was bound,
-       which is not below its box grade `[{0}, {35}]`
+       AddEthanol; 0.75; RemoveEthanol; RemoveResidualEthanol; 5; MagnetOff;
+       EluteDNA; 3; MagnetOn; 2.5}, ...]` accumulated since it was bound,
+       which is not below its box grade `[{0}, {40}]`
 *)
 (*
 let separate_long (binding : [[5, 10]]beads) =
@@ -191,7 +192,7 @@ let clear_long (settling : [[3, 5]]beads) =
   delay 5;
   unbox settling as beads in
   perform RemoveSupernatant beads;
-  box {AddEthanol; [1, 2]} beads
+  box {AddEthanol; [1/2, 3/2]} beads
 
 let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
   delay 5;
@@ -202,7 +203,7 @@ let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
 
 let purification_generous (samples : sample) =
   let binding = bind samples in
-  box [0, 35] samples as warm in
+  box [0, 40] samples as warm in
   let beads =
     collect
       (elute_long (final_wash (wash (clear_long (separate_long binding)))))
@@ -216,14 +217,14 @@ let purification_generous (samples : sample) =
    for the removal of its ethanol before the box is opened:
 
      Typing error: The resource inequality
-       `[{AddEthanol; 1; (0 | 1); RemoveEthanol},
-       {AddEthanol; 1; (0 | 1); RemoveEthanol}] <=
-       [{AddEthanol; 1; (0 | 1)}, {AddEthanol; 1; (0 | 1)}]` does not hold
+       `[{AddEthanol; [0.5, 1.5]; RemoveEthanol},
+       {AddEthanol; [0.5, 1.5]; RemoveEthanol}] <=
+       [{AddEthanol; [0.5, 1.5]}, {AddEthanol; [0.5, 1.5]}]` does not hold
 *)
 (*
 let purification_one_wash (samples : sample) =
   let binding = bind samples in
-  box [0, 35] samples as warm in
+  box [0, 40] samples as warm in
   let beads = collect (elute (final_wash (clear (separate binding)))) in
   unbox warm as samples in
   perform Transfer (beads, samples)
