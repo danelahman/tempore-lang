@@ -479,15 +479,16 @@ can be used to express such cases instead.
 See
 [`examples/traces_timed_ops/intervals_rational.tpe`](examples/traces_timed_ops/intervals_rational.tpe).
 
-The rigid variants `traces-timed-rigid-upper-bound`,
-`traces-timed-rigid-interval` and their `-rational` variants order the upper
-bounds by the rigid allowance order of
+The rigid variants `traces-timed-rigid-lower-bound`,
+`traces-timed-rigid-upper-bound`, `traces-timed-rigid-interval` and their
+`-rational` variants order the upper bounds by the rigid allowance order of
 [Rigid regular expressions of timed operations](#rigid-regular-expressions-of-timed-operations):
 an upper bound's operations are demanded, in order. With `Heat` and `Cool`
 declared with running-time bounds, `{Heat}` is below `{Heat; Cool}` under
 `traces-timed-upper-bound`, the cooling left out, but not under
-`traces-timed-rigid-upper-bound`. The lower bounds are those of
-`traces-timed-lower-bound`.
+`traces-timed-rigid-upper-bound`. Their literals have the
+[strict delays](#strict-delays) `!d`, and the lower bounds are those of
+`traces-timed-lower-bound` with strict delays.
 
 ### Regular expressions
 
@@ -759,8 +760,10 @@ out. A Kleene star whose round contains a delay then permits every trace: its
 rounds unrolled and their operations left out, the delays add up to any
 duration.
 
-The grading monoids `regex-timed-rigid-upper-bound-symbolic` and
+The grading monoids `regex-timed-rigid-lower-bound-symbolic`,
+`regex-timed-rigid-upper-bound-symbolic` and
 `regex-timed-rigid-interval-symbolic`, and their variants
+`regex-timed-rigid-lower-bound-rational-symbolic`,
 `regex-timed-rigid-upper-bound-rational-symbolic` and
 `regex-timed-rigid-interval-rational-symbolic`, order the upper bounds by the
 *rigid allowance order*:
@@ -771,7 +774,8 @@ The grading monoids `regex-timed-rigid-upper-bound-symbolic` and
   fall in, at their `hi`.
 
 A star then permits its rounds only. The literals, lower bounds, units and tops
-are those of the grades above. Further:
+are those of the grades above, with the [strict delays](#strict-delays) below.
+Further:
 
 - on bounds without delays the order is the inclusion of languages: `{Read}`
   is not below `{Read; Log}`;
@@ -816,12 +820,101 @@ gap of six ticks before `ChangeTip`.
 
 The Arduino packages declare their operations under the rational rigid grades
 too. The implementations kept for benchmarking take the suffixes of the grades
-above.
+above; they have no strict delays.
 
 See
 [`examples/regular_timed_rigid/upper_bounds_rational.tpe`](examples/regular_timed_rigid/upper_bounds_rational.tpe)
 and
 [`examples/regular_timed_rigid/intervals_rational.tpe`](examples/regular_timed_rigid/intervals_rational.tpe).
+
+#### Strict delays
+
+Under the rigid grades a delay is either a *budget* or *strict*:
+
+- a plain delay or set of delays, such as `3`, `[0, 5]` or `(0, ∞)`, is a
+  budget, also inside complements and intersections;
+- a strict delay is written with `!` before a delay or a set of delays, such
+  as `!10`, `!3/2`, `![2, 3]` or `!(0.5, 1)`;
+- `!_` is the strict wildcard: any operation or any positive strict delay,
+  while `_` is any operation or any positive delay of either kind;
+- adjacent budget delays add up, and delays of different kinds stay apart:
+  `{A; !2; 1; B}`;
+- a strict delay written once is one piece: `!2; !3` and `!5` are equivalent
+  as grades but distinct as words, so complements and intersections tell them
+  apart, as complements already tell `{Read | 3}` from `{3}`.
+
+A strict delay admits waiting only:
+
+- as an upper bound, the part of a trace facing a strict delay consists of
+  strict delays of total length at most it, where a budget admits any trace
+  whose weight fits;
+- as a lower bound, a strict delay demands an undisturbed wait of at least its
+  length somewhere in its gap, which operations counting at their `lo` do not
+  cover; it does not forbid other operations around the wait, forbidding
+  being the upper bound's job: `{A; !5; B}` is covered by `A`, a wait of `5`,
+  `C` and `B`;
+- the grade of `delay d` is the strict delay `!d`, a wait; a strict delay is
+  below the budget delay of the same length, not conversely.
+
+Grades without strict delays are ordered as before. A strict delay matters
+where a budget leaves slack: a range of delays, or a delay longer than the
+program's own wait, so that a short operation fits beside it. For periodic
+sampling with a jitter of `δ`, `(![T - δ, T + δ]; Read)*` permits the readings
+and waits only, whereas `([T - δ, T + δ]; Read)*` admits any operation with
+`hi` at most `δ` beside each wait.
+
+For example, under `regex-timed-rigid-upper-bound-rational-symbolic`, the
+program
+
+```
+operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
+operation Beep : unit ~> unit # {Beep} within [0, 0.15]
+
+let sampled () =
+  box {(![9.5, 10.5]; ReadImu)*} () as s in
+  delay 10;
+  let a = perform ReadImu () in
+  perform Beep ();
+  delay 10;
+  let b = perform ReadImu () in
+  unbox s as x in
+  x
+```
+
+is rejected, as the beep falls in a strict delay:
+
+    Variable `s` is unboxed with grade `{!10; ReadImu; Beep; !10; ReadImu}`
+    accumulated since it was bound, which is not below its box grade
+    `{(![9.5, 10.5]; ReadImu)*}`
+
+With the box grade `{([9.5, 10.5]; ReadImu)*}` it is accepted, the beep of at
+most `0.15` fitting beside the wait of `10`.
+
+A bound whose delays are strict admits no operation it does not name, so
+complements of operations exclude them: `{(!_ & ~A)*}`, or
+`{!_* & ~(_*; A; _*)}`, permits every trace without `A` whose delays are
+strict, and `{!_*}` every trace with strict delays only. With `ReadImu` and
+`ConfigureImu` declared, the box grade `{(!_ & ~ConfigureImu)*}` rejects
+
+```
+  let a = perform ReadImu () in
+  delay 2;
+  perform ConfigureImu ();
+  let b = perform ReadImu () in
+```
+
+with
+
+    Variable `w` is unboxed with grade `{ReadImu; !2; ConfigureImu; ReadImu}`
+    accumulated since it was bound, which is not below its box grade
+    `{(!_ & ~ConfigureImu)*}`
+
+With budget delays, `{(_ & ~A)*}` is still `⊤`: an `A` fits in a delay. A
+complement of a delay does not exclude it: `{~!1}` permits `!1`, which is
+shorter than `!2`.
+
+See [`tests/strict_delays_rational_reject.tpe`](tests/strict_delays_rational_reject.tpe)
+and [`tests/strict_delays_lower_reject.tpe`](tests/strict_delays_lower_reject.tpe).
 
 ### Security levels and products
 
