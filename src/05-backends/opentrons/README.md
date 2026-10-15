@@ -195,17 +195,20 @@ each is a minute.
   whose compound operations are performed by a handler through the atomic
   operations, under `regex-timed-rigid-interval-symbolic`.
 - [`purification.tpe`](../../../examples/opentrons/purification.tpe): a
-  bead purification under `regex-timed-interval-rational-symbolic` whose
+  bead purification under `regex-timed-rigid-interval-rational-symbolic` whose
   steps each take the beads in a box and return them in the box of the next
   step, its grade the window of that step, e.g. `{[3, 5]; MagnetOff}` for
   the air-dry before the elution buffer. The box after the first ethanol
   wash spans the whole second wash, so that exactly two washes are accepted.
+  The ethanol soaks are strict delays, `{AddEthanol; ![1/2, 3/2]}`, during
+  which the plate stays on the magnet.
   The eluates are boxed `{Transfer}` with a function whose call creates
   their box `[2, 5]` of the master mix, so that its window starts on the
   cold block. A box `[0, 40]` of the samples, whose scope encloses the
   steps, bounds their time at room temperature, below the 47 minutes the
   windows of the steps allow in all. Its rejected variants overdry the
-  beads, take the upper end of several windows, and wash once.
+  beads, take the upper end of several windows, wash once, and move the
+  plate off the magnet during a soak.
 
 ## Adding an example
 

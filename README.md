@@ -915,8 +915,14 @@ With budget delays, `{(_ & ~A)*}` is still `⊤`: an `A` fits in a delay. A
 complement of a delay does not exclude it: `{~!1}` permits `!1`, which is
 shorter than `!2`.
 
-See [`tests/strict_delays_rational_reject.tpe`](tests/strict_delays_rational_reject.tpe)
-and [`tests/strict_delays_lower_reject.tpe`](tests/strict_delays_lower_reject.tpe).
+See [`tests/strict_delays_rational_reject.tpe`](tests/strict_delays_rational_reject.tpe),
+[`tests/strict_delays_lower_reject.tpe`](tests/strict_delays_lower_reject.tpe)
+and the Opentrons examples
+[`examples/opentrons/washes.tpe`](examples/opentrons/washes.tpe), with a strict
+binding, a strict air-dry and a box excluding a removal of liquid off the
+magnet, and
+[`examples/opentrons/purification.tpe`](examples/opentrons/purification.tpe),
+with strict ethanol soaks.
 
 ### Security levels and products
 

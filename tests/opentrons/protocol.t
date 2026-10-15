@@ -62,7 +62,7 @@ it waits.
   comment: Tempore run 1 returns 0
 
 The bead clean-up example, its operations declaring their running times under
-regex-timed-interval-symbolic, a time unit given in seconds.
+regex-timed-rigid-interval-symbolic, a time unit given in seconds.
 
   $ ../../tempore --grades regex-timed-rigid-interval-symbolic --emit-opentrons washes.py \
   >   --bind $examples/washes_bindings.py --time-unit 60 $examples/washes.tpe
@@ -402,7 +402,7 @@ The bead purification by steps that unbox and rebox the beads: boxes generate
 no actions, so the protocol performs only the operations and the delays of
 the steps, and the binding function of AddBeads returns the beads.
 
-  $ ../../tempore --grades regex-timed-interval-rational-symbolic --emit-opentrons purification.py \
+  $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-opentrons purification.py \
   >   --bind $examples/purification_bindings.py --time-unit minutes $examples/purification.tpe
   Wrote _opentrons/protocols/purification.py
   $ simulate purification.py
