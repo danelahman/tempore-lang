@@ -102,8 +102,8 @@ let () =
       (fun (e : ExampleIndex.entry) -> e.backend = "opentrons")
       entries
   in
-  if List.length opentrons <> 10 then
-    fail "the example index lists %d Opentrons examples, not 10"
+  if List.length opentrons <> 11 then
+    fail "the example index lists %d Opentrons examples, not 11"
       (List.length opentrons);
   List.iter
     (fun (e : ExampleIndex.entry) ->

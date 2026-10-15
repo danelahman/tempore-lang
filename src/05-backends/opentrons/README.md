@@ -189,6 +189,16 @@ each is a minute.
 - [`cleanup.tpe`](../../../examples/opentrons/cleanup.tpe): a bead clean-up
   whose compound operations are performed by a handler through the atomic
   operations, under `regex-timed-interval-symbolic`.
+- [`purification.tpe`](../../../examples/opentrons/purification.tpe): a
+  bead purification under `regex-timed-interval-symbolic` whose steps each
+  take the beads in a box and return them in the box of the next step, its
+  grade the window of that step, e.g. `{[3, 5]; MagnetOff}` for the air-dry
+  before the elution buffer. The box after the first ethanol wash spans the
+  whole second wash, so that exactly two washes are accepted. A box
+  `[0, 35]` of the samples, whose scope encloses the steps, bounds their
+  time at room temperature, below the 48 minutes the windows of the steps
+  allow in all. Its rejected variants overdry the beads, take the upper end
+  of several windows, and wash once.
 
 ## Adding an example
 

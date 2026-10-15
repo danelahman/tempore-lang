@@ -250,6 +250,7 @@ let expected_rejections =
     ("examples/opentrons/contamination_reject.tpe", [ 39 ]);
     ("examples/opentrons/elisa_reject.tpe", [ 31 ]);
     ("examples/opentrons/enzyme_reject.tpe", [ 44 ]);
+    ("examples/opentrons/purification_reject.tpe", [ 98; 131; 149 ]);
     ("examples/opentrons/reagents_reject.tpe", [ 41 ]);
     ("examples/opentrons/staggered_reject.tpe", [ 30 ]);
     ("examples/opentrons/stopread_reject.tpe", [ 41 ]);

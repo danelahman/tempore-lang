@@ -37,14 +37,17 @@ class Labware:
 
 
 class Instrument:
-    """A pipette or a module: each method call is printed."""
+    """A pipette, a module or an adapter: each method call is printed."""
 
     def __init__(self, context, name):
         self._context = context
         self._name = name
 
-    def load_labware(self, load_name):
-        return self._context._load(Labware(load_name, self._name), self._name + ".load_labware", load_name)
+    def load_labware(self, load_name, **kwargs):
+        return self._context._load(Labware(load_name, self._name), self._name + ".load_labware", load_name, **kwargs)
+
+    def load_adapter(self, load_name):
+        return self._context._load(Instrument(self._context, load_name), self._name + ".load_adapter", load_name)
 
     def __getattr__(self, method):
         def command(*args, **kwargs):

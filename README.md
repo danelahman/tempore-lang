@@ -1531,7 +1531,9 @@ binding file and a rejected variant:
 - [`stopread`](examples/opentrons/stopread.tpe), a stop and read with boxed
   plates;
 - [`cleanup`](examples/opentrons/cleanup.tpe), a bead clean-up by compound
-  operations implemented by a handler.
+  operations implemented by a handler;
+- [`purification`](examples/opentrons/purification.tpe), a bead purification
+  whose steps unbox and rebox the beads, within a box of the whole run.
 
 #### Quick start
 <!-- web-skip -->
