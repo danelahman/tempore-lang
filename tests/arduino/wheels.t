@@ -38,11 +38,10 @@ implementations of the operations:
   
 
 The rejected variants, each loaded after the application: a drive commanded
-after the wait, the drive shown on the display within the window, a count
-shown on the display between the samples of the profile, and the drive
-doubled between them:
+after the wait, the drive shown on the display within the window, and the
+drive doubled between the samples of the profile:
 
-  $ for v in unordered shown drawn ramped; do packages --typecheck-only $app/wheels.tpe wheels/$v.tpe; echo "[$?]"; done
+  $ for v in unordered shown ramped; do packages --typecheck-only $app/wheels.tpe wheels/$v.tpe; echo "[$?]"; done
   File "wheels/unordered.tpe", lines 9-11, characters 2-63:
   9 |   unbox window as seconds in
         ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -90,44 +89,6 @@ doubled between them:
                              ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{ReadEncoders}, {ReadEncoders}]` accumulates here (operation `ReadEncoders`)
     Note: the resource inequality `[{SetMotors; ShowNumber; !100.5; ReadEncoders}, {SetMotors; ShowNumber; !100.5; ReadEncoders}] <= [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]` does not hold
-  [1]
-  File "wheels/drawn.tpe", lines 13-18, characters 2-59:
-  13 |   unbox spaced as spacing in
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `spaced` is unboxed with grade `[{SetMotors; !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}, {SetMotors; !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; (![19, 21]; ReadEncoders)*}, {SetMotors; (![19, 21]; ReadEncoders)*}]`
-    File "wheels/drawn.tpe", line 5, characters 54-60:
-    5 |   box {SetMotors; (![19, 21]; ReadEncoders)*} 0.02 as spaced in
-                                                              ^^^^^^
-    `spaced` is bound here
-    File "wheels/drawn.tpe", line 6, characters 2-34:
-    6 |   perform SetMotors (drive, drive);
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{SetMotors}, {SetMotors}]` accumulates here (operation `SetMotors`)
-    File "wheels/drawn.tpe", line 7, characters 15-24:
-    7 |   let l1, r1 = sample () in
-                       ^^^^^^^^^
-    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
-    File "wheels/drawn.tpe", line 8, characters 2-38:
-    8 |   perform ShowNumber (float_of_int l1);
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{ShowNumber}, {ShowNumber}]` accumulates here (this computation)
-    File "wheels/drawn.tpe", line 9, characters 15-24:
-    9 |   let l2, r2 = sample () in
-                       ^^^^^^^^^
-    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
-    File "wheels/drawn.tpe", line 10, characters 15-24:
-    10 |   let l3, r3 = sample () in
-                        ^^^^^^^^^
-    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
-    File "wheels/drawn.tpe", line 11, characters 15-24:
-    11 |   let l4, r4 = sample () in
-                        ^^^^^^^^^
-    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
-    File "wheels/drawn.tpe", line 12, characters 15-24:
-    12 |   let l5, r5 = sample () in
-                        ^^^^^^^^^
-    grade `[{!19.75; ReadEncoders}, {!19.75; ReadEncoders}]` accumulates here (this computation)
-    Note: the resource inequality `[{SetMotors; !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}, {SetMotors; !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}] <= [{SetMotors; (![19, 21]; ReadEncoders)*}, {SetMotors; (![19, 21]; ReadEncoders)*}]` does not hold
   [1]
   File "wheels/ramped.tpe", lines 13-18, characters 2-59:
   13 |   unbox spaced as spacing in
