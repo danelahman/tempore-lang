@@ -5,7 +5,9 @@
      ./tempore --grades event-separation examples/opentrons/binding.tpe
 
    Grades (X, lead, gaps, tail): the times before the first X, between the
-   starts of consecutive Xs and from the start of the last X to the end
+   starts of consecutive Xs and from the start of the last X to the end;
+   (n, X, gaps), (n, X, lead, tail) and (n, X, lead, gaps, tail): the same
+   with exactly n Xs, the counts added by the product
      - Unit 0: no operation, no time spent
      - Top ⊤: any times before, between and after the operations
      - Product: (a, G, b) · (a', G', b') = (a, G ∪ G' ∪ {b + a'}, b') *)
