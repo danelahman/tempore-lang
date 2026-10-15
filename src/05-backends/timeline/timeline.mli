@@ -92,9 +92,12 @@ val shorten_total : keep -> int -> string -> string option
     most [n] characters: [g] if it has at most [n], otherwise every group of
     more than [k] items in all its ends keeps only its first ([Beginning]) or
     last ([End]) [k] items, the others replaced by […], [k] being the largest
-    number for which the grade has at most [n] characters. A grade without a
-    brace group is cut to [n - 1] characters with […]. [None] if no such number
-    exists (at least 1 for a brace group, [n] at least 2 otherwise). *)
+    number for which the grade has at most [n] characters. If there is no such
+    number, an interval keeps only its first ([Beginning]) or last ([End]) end,
+    so reduced to the largest number of items for which it fits, the other ends
+    replaced by […]. A grade without a brace group is cut to [n - 1] characters
+    with […]. [None] if none of these fits (at least 1 item for a brace group,
+    [n] at least 2 otherwise). *)
 
 (** {1 Reports} *)
 

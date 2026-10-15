@@ -155,7 +155,14 @@ let () =
   total Beginning 60 both
     (Some "[{Ethanol; ChangeTip; …}, {Ethanol; ChangeTip; …}]");
   total Beginning 200 both (Some both);
-  total Beginning 20 both None;
+  total Beginning 20 both (Some "[{Ethanol; …}, …]");
+  total End 20 both (Some "[…, {…; (0 | 1)}]");
+  total Beginning 10 both None;
+  let binding = "{AddBeads; ![5, 10]; MagnetOn}" in
+  let bindings = "[" ^ binding ^ ", " ^ binding ^ "]" in
+  total Beginning 27 bindings (Some "[{AddBeads; …}, …]");
+  total Beginning 28 bindings (Some "[{AddBeads; ![5, 10]; …}, …]");
+  total End 27 bindings (Some "[…, {…; MagnetOn}]");
   total Beginning 20 long (Some (String.sub long 0 19 ^ "…"));
   total Beginning 1 long None;
   (* the event cell of a box row fits the limit, or loses its grade *)
