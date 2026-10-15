@@ -13,6 +13,20 @@
  (modules testPrograms)
  (libraries grades testSupport arduinoBackend))
 
+(library
+ (name solvePrograms)
+ (modules solvePrograms)
+ (libraries
+  utils
+  language
+  grades
+  parser
+  desugarer
+  loader
+  inference
+  testSupport
+  testPrograms))
+
 (executable
  (name header_options)
  (modules header_options)
