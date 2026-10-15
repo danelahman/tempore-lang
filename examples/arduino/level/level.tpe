@@ -209,16 +209,16 @@ let take_unchecked () : reference =
    box; the typing does not exclude returning the reference of the state
    unchecked, which is plain data. *)
 let step ((reference, age, rate, touching) : state) : state
-    # {ReadImu; Touched;
+    # {ReadImu; ReadTouch;
        ((ConfigureImu; Beep; DrawButton; ReadImu | 0); DrawLevel;
         ShowNumberAt; ShowNumberAt; ShowTextAt; (ShowTextAt | ShowTimeAt);
         ShowTextAt
        | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; CheckAtRest; Beep;
          (ShowTextAt | ShowTimeAt); ShowTextAt)} =
-  box {(ReadImu | Touched)*} reference as kept in
+  box {(ReadImu | ReadTouch)*} reference as kept in
   let accel, _ = perform ReadImu () in
-  box {Touched} accel as reading in
-  let touched, x, y = perform Touched () in
+  box {ReadTouch} accel as reading in
+  let touched, x, y = perform ReadTouch () in
   let tapped = touched && not touching in
   if tapped && on_sensor x y then (
     let rate = if rate = 100 then 400 else 100 in
@@ -270,21 +270,21 @@ let start () : state =
    to the reading, although it was taken at the former rate:
 
      Typing error: Variable `kept` is unboxed with grade
-       `[{ReadImu; Touched; (0 | ConfigureImu)},
-       {ReadImu; Touched; (0 | ConfigureImu)}]` accumulated since it was
+       `[{ReadImu; ReadTouch; (0 | ConfigureImu)},
+       {ReadImu; ReadTouch; (0 | ConfigureImu)}]` accumulated since it was
        bound, which is not below its box grade
-       `[{(ReadImu | Touched)*}, {(ReadImu | Touched)*}]`
+       `[{(ReadImu | ReadTouch)*}, {(ReadImu | ReadTouch)*}]`
        ...
        Note: the resource inequality
-         `[{ReadImu; Touched; (0 | ConfigureImu)},
-         {ReadImu; Touched; (0 | ConfigureImu)}] <=
-         [{(ReadImu | Touched)*}, {(ReadImu | Touched)*}]` does not hold
+         `[{ReadImu; ReadTouch; (0 | ConfigureImu)},
+         {ReadImu; ReadTouch; (0 | ConfigureImu)}] <=
+         [{(ReadImu | ReadTouch)*}, {(ReadImu | ReadTouch)*}]` does not hold
 *)
 (*
 let step_reconfigured ((reference, age, rate, touching) : state) : state =
-  box {(ReadImu | Touched)*} reference as kept in
+  box {(ReadImu | ReadTouch)*} reference as kept in
   let accel, _ = perform ReadImu () in
-  let touched, x, y = perform Touched () in
+  let touched, x, y = perform ReadTouch () in
   let rate =
     if touched && not touching && on_sensor x y then (
       let rate = if rate = 100 then 400 else 100 in
@@ -301,19 +301,19 @@ let step_reconfigured ((reference, age, rate, touching) : state) : state =
    draws the reading taken before it, in place of a new one:
 
      Typing error: Variable `reading` is unboxed with grade
-       `[{Touched; ConfigureImu; Beep}, {Touched; ConfigureImu; Beep}]`
+       `[{ReadTouch; ConfigureImu; Beep}, {ReadTouch; ConfigureImu; Beep}]`
        accumulated since it was bound, which is not below its box grade
-       `[{Touched}, {Touched}]`
+       `[{ReadTouch}, {ReadTouch}]`
        ...
        Note: the resource inequality
-         `[{Touched; ConfigureImu; Beep}, {Touched; ConfigureImu; Beep}] <=
-         [{Touched}, {Touched}]` does not hold
+         `[{ReadTouch; ConfigureImu; Beep}, {ReadTouch; ConfigureImu; Beep}] <=
+         [{ReadTouch}, {ReadTouch}]` does not hold
 *)
 (*
 let step_stale ((reference, age, rate, touching) : state) : state =
   let accel, _ = perform ReadImu () in
-  box {Touched} accel as reading in
-  let touched, x, y = perform Touched () in
+  box {ReadTouch} accel as reading in
+  let touched, x, y = perform ReadTouch () in
   if touched && not touching && on_sensor x y then (
     let rate = if rate = 100 then 400 else 100 in
     perform ConfigureImu rate;

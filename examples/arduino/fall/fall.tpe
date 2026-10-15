@@ -121,8 +121,8 @@ let search () : float # {[0, 920]} =
 
 (* A poll of the screen, and whether it was touched during the polls so
    far. *)
-let poll (tapped : bool) : bool # {Touched; 50} =
-  let touched, _, _ = perform Touched () in
+let poll (tapped : bool) : bool # {ReadTouch; 50} =
+  let touched, _, _ = perform ReadTouch () in
   delay 50;
   tapped || touched
 

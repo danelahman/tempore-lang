@@ -114,7 +114,7 @@ timed operations over rational delays (`regex-timed-*-rational-symbolic`) and
   - `DrawBar`, a horizontal bar filled to a length;
   - `DrawLevel`, a bubble level, a vial with a bubble at an offset from its
     centre, redrawn only when the bubble moves or changes colour.
-- `m5-touch`: `Touched`, whether the screen is touched and where, read
+- `m5-touch`: `ReadTouch`, whether the screen is touched and where, read
   through `M5.Touch.update` under the I2C lock (the touch screens of the
   CoreS3 and the Core2, capability `touch`).
 - `m5-speaker`: `Beep`, which starts a tone of a frequency and a duration on
@@ -164,7 +164,7 @@ lower bound is the least time measured, rounded down, and the upper bound 1.5
 times the greatest, rounded up. Each declaration states its measurements and
 how the bounds not measured directly, such as those of `i2c`, are derived.
 
-- The bounds of `ConfigureImu`, `CheckAtRest`, `Touched` and `Beep` are
+- The bounds of `ConfigureImu`, `CheckAtRest`, `ReadTouch` and `Beep` are
   measured on the CoreS3 only.
 - The least times of `ShowTextAt` and `ShowNumberAt` depend on the text, so
   their lower bound is that of `ShowText`.

@@ -2,8 +2,8 @@
    the touch screen of an M5Stack core, read through M5Unified. Grades: the
    regular expressions of timed operations over rational delays, in
    milliseconds; the operation is its own trace, within the bounds of its
-   running time. Touched, its bounds and its default implementation are those
+   running time. ReadTouch, its bounds and its default implementation are those
    of m5_touch.tpe. *)
 
-operation Touched : unit ~> bool * nat * nat # {Touched} within [0, 1.45]
-default Touched () = delay 3/10; (false, 0, 0)
+operation ReadTouch : unit ~> bool * nat * nat # {ReadTouch} within [0, 1.45]
+default ReadTouch () = delay 3/10; (false, 0, 0)

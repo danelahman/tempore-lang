@@ -26,10 +26,10 @@ reference with the default implementations of the operations:
     [{0.2}, {0.2}],
     { resource_0 ↦
         NoReference
-        # [{(ReadImu | Touched)*}, {(ReadImu | Touched)*}]
+        # [{(ReadImu | ReadTouch)*}, {(ReadImu | ReadTouch)*}]
     },
     [{0.6}, {0.6}],
-    { resource_1 ↦ (0., 0., 1.) # [{Touched}, {Touched}] },
+    { resource_1 ↦ (0., 0., 1.) # [{ReadTouch}, {ReadTouch}] },
     [{0.3}, {0.3}],
     [{1}, {1}],
     [{3}, {3}],
@@ -81,37 +81,37 @@ reconfiguration:
   File "level/reconfigured.tpe", lines 14-16, characters 2-33:
   14 |   unbox kept as reference in
          ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `kept` is unboxed with grade `[{ReadImu; Touched; (0 | ConfigureImu)}, {ReadImu; Touched; (0 | ConfigureImu)}]` accumulated since it was bound, which is not below its box grade `[{(ReadImu | Touched)*}, {(ReadImu | Touched)*}]`
-    File "level/reconfigured.tpe", line 4, characters 42-46:
-    4 |   box {(ReadImu | Touched)*} reference as kept in
-                                                  ^^^^
+  Typing error: Variable `kept` is unboxed with grade `[{ReadImu; ReadTouch; (0 | ConfigureImu)}, {ReadImu; ReadTouch; (0 | ConfigureImu)}]` accumulated since it was bound, which is not below its box grade `[{(ReadImu | ReadTouch)*}, {(ReadImu | ReadTouch)*}]`
+    File "level/reconfigured.tpe", line 4, characters 44-48:
+    4 |   box {(ReadImu | ReadTouch)*} reference as kept in
+                                                    ^^^^
     `kept` is bound here
     File "level/reconfigured.tpe", line 5, characters 17-35:
     5 |   let accel, _ = perform ReadImu () in
                          ^^^^^^^^^^^^^^^^^^
     grade `[{ReadImu}, {ReadImu}]` accumulates here (operation `ReadImu`)
-    File "level/reconfigured.tpe", line 6, characters 22-40:
-    6 |   let touched, x, y = perform Touched () in
-                              ^^^^^^^^^^^^^^^^^^
-    grade `[{Touched}, {Touched}]` accumulates here (operation `Touched`)
+    File "level/reconfigured.tpe", line 6, characters 22-42:
+    6 |   let touched, x, y = perform ReadTouch () in
+                              ^^^^^^^^^^^^^^^^^^^^
+    grade `[{ReadTouch}, {ReadTouch}]` accumulates here (operation `ReadTouch`)
     File "level/reconfigured.tpe", lines 8-12, characters 4-13:
     8 |     if touched && not touching && on_sensor x y then (
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{0 | ConfigureImu}, {0 | ConfigureImu}]` accumulates here (this computation)
-    Note: the resource inequality `[{ReadImu; Touched; (0 | ConfigureImu)}, {ReadImu; Touched; (0 | ConfigureImu)}] <= [{(ReadImu | Touched)*}, {(ReadImu | Touched)*}]` does not hold
+    Note: the resource inequality `[{ReadImu; ReadTouch; (0 | ConfigureImu)}, {ReadImu; ReadTouch; (0 | ConfigureImu)}] <= [{(ReadImu | ReadTouch)*}, {(ReadImu | ReadTouch)*}]` does not hold
   [1]
   File "level/stale.tpe", lines 11-13, characters 4-41:
   11 |     unbox reading as accel in
            ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `reading` is unboxed with grade `[{Touched; ConfigureImu; Beep}, {Touched; ConfigureImu; Beep}]` accumulated since it was bound, which is not below its box grade `[{Touched}, {Touched}]`
-    File "level/stale.tpe", line 5, characters 25-32:
-    5 |   box {Touched} accel as reading in
-                                 ^^^^^^^
+  Typing error: Variable `reading` is unboxed with grade `[{ReadTouch; ConfigureImu; Beep}, {ReadTouch; ConfigureImu; Beep}]` accumulated since it was bound, which is not below its box grade `[{ReadTouch}, {ReadTouch}]`
+    File "level/stale.tpe", line 5, characters 27-34:
+    5 |   box {ReadTouch} accel as reading in
+                                   ^^^^^^^
     `reading` is bound here
-    File "level/stale.tpe", line 6, characters 22-40:
-    6 |   let touched, x, y = perform Touched () in
-                              ^^^^^^^^^^^^^^^^^^
-    grade `[{Touched}, {Touched}]` accumulates here (operation `Touched`)
+    File "level/stale.tpe", line 6, characters 22-42:
+    6 |   let touched, x, y = perform ReadTouch () in
+                              ^^^^^^^^^^^^^^^^^^^^
+    grade `[{ReadTouch}, {ReadTouch}]` accumulates here (operation `ReadTouch`)
     File "level/stale.tpe", line 9, characters 4-29:
     9 |     perform ConfigureImu rate;
             ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -120,7 +120,7 @@ reconfiguration:
     10 |     perform Beep (600, 50);
              ^^^^^^^^^^^^^^^^^^^^^^
     grade `[{Beep}, {Beep}]` accumulates here (operation `Beep`)
-    Note: the resource inequality `[{Touched; ConfigureImu; Beep}, {Touched; ConfigureImu; Beep}] <= [{Touched}, {Touched}]` does not hold
+    Note: the resource inequality `[{ReadTouch; ConfigureImu; Beep}, {ReadTouch; ConfigureImu; Beep}] <= [{ReadTouch}, {ReadTouch}]` does not hold
   [1]
 
 The project, for the board m5stack-cores3, whose step the typechecker checks
