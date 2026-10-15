@@ -41,7 +41,7 @@ let test () =
 
 let test2 () = 
   box 3 (42) as r in 
-  delay 3; 
+  delay 5; 
   unbox r as y in y
 
 let test3 () = 

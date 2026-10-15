@@ -40,7 +40,7 @@ type plate = string
 
 (* Dispensing the stop solution takes one to two minutes. *)
 operation AddStop : plate ~> [[0, 30]]plate # [1, 2]
-default AddStop plate = delay 1; box [0, 30] plate
+default AddStop plate = delay 2; box [0, 30] plate
 
 (* The operations of a plate reader with an injector for the stop solution:
    stopping a plate takes one to two minutes, and reading it one to two. *)

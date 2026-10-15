@@ -25,7 +25,7 @@ operation Inspect : unit ~> unit # {Inspect} within [1, 1]
 default Inspect () = delay 1
 
 operation Seal : unit ~> unit # {Seal} within [1, 2]
-default Seal () = delay 1
+default Seal () = delay 2
 
 (* Correctly accepted by the typechecker: the part cures for at least four and
    at most eight ticks; a bake and an inspection take between four and six. *)

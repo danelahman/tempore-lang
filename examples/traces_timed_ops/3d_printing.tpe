@@ -25,7 +25,7 @@ default Heat m = delay 1; Heated m
 (* A freshly extruded model is still hot: it may be handed to the cooler, but
    not touched otherwise until it has rested for two ticks. *)
 operation Extrude : heated ~> [2] extruded # [{Extrude}, {Extrude}] within [3, 5]
-default Extrude h = delay 3; box 2 (Extruded h)
+default Extrude h = delay 4; box 2 (Extruded h)
 
 (* The cooler takes the hot extruded model, once it has rested, and cools it
    down to something that can be handled. *)
@@ -84,7 +84,7 @@ run print_sword ()
    ∀ α. Et(α) ⇒ α → (model → α × print # ...) *)
 let label_print tag m =
   let printed = perform PrintModel m in
-  delay 2;
+  delay 4;
   unbox printed as p in
   (tag, p)
 
@@ -94,7 +94,7 @@ run handle label_print "Sword #1" (Model "Sword") with printer
 (* Correctly rejected by the typechecker: epoxy is not,
      Typing error: `epoxy` is not eternal, but `label_print` needs the type
        of `tag` to be eternal
-       Note: the resource inequality `[{Heat; Extrude; Cool; 2}, {Heat; Extrude; Cool; 2}] <= [{0}, {0}]` does not hold
+       Note: the resource inequality `[{Heat; Extrude; Cool; 4}, {Heat; Extrude; Cool; 4}] <= [{0}, {0}]` does not hold
 *)
 (*
 run handle label_print Epoxy (Model "Sword") with printer

@@ -15,10 +15,10 @@ operation Fix : column ~> [[12, 20]]column # [1, 2]
 default Fix column = delay 1; box [12, 20] column
 
 operation Rinse : column ~> unit # [1, 2]
-default Rinse column = delay 1
+default Rinse column = delay 2
 
 (* Correctly rejected by the typechecker: the next column is started five
-   minutes after the rinse instead of ten, so a column is rinsed seven to
+   minutes after the rinse instead of 13, so a column is rinsed seven to
    nine minutes after its fixative was added:
 
      Typing error: Variable `fixing` is unboxed with grade `[7, 9]`
@@ -30,7 +30,7 @@ default Rinse column = delay 1
 let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit # [0, ∞) =
   perform Rinse fixed;
   match columns with
-  | [] -> delay 11; unbox fixing as last in perform Rinse last
+  | [] -> delay 14; unbox fixing as last in perform Rinse last
   | column :: rest ->
       delay 5;
       let started = perform Fix column in

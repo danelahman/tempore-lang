@@ -75,16 +75,16 @@ alarm raised without the prompt:
   File "fall/silent.tpe", lines 6-7, characters 2-12:
   6 |   unbox event as fall in
         ^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `event` is unboxed with grade `[{10000}, {10000}]` accumulated since it was bound, which is not below its box grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
+  Typing error: Variable `event` is unboxed with grade `[{20000}, {20000}]` accumulated since it was bound, which is not below its box grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
     File "fall/silent.tpe", line 4, characters 73-78:
     4 |   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
                                                                                  ^^^^^
     `event` is bound here
     File "fall/silent.tpe", line 5, characters 2-13:
-    5 |   delay 10000;
+    5 |   delay 20000;
           ^^^^^^^^^^^
-    grade `[{10000}, {10000}]` accumulates here (delay)
-    Note: the resource inequality `[{10000}, {10000}] <= [{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]` does not hold
+    grade `[{20000}, {20000}]` accumulates here (delay)
+    Note: the resource inequality `[{20000}, {20000}] <= [{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]` does not hold
   [1]
 
 The project, for the board m5stack-cores3; its sources compile without

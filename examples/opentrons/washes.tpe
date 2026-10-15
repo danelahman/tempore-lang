@@ -42,7 +42,7 @@ type beads = string
 (* Mixing the beads into the samples takes one to two minutes. The plate is
    moved onto and off the magnetic block in at most a minute. *)
 operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
-default AddBeads () = delay 1
+default AddBeads () = delay 2
 
 operation MagnetOn : unit ~> unit # {MagnetOn} within [0, 1]
 default MagnetOn () = delay 1
@@ -54,19 +54,19 @@ default MagnetOff () = delay 1
    ethanol, and the elution each take one to two minutes; changing the tip
    at most one. *)
 operation RemoveLiquid : unit ~> unit # {RemoveLiquid} within [1, 2]
-default RemoveLiquid () = delay 1
+default RemoveLiquid () = delay 2
 
 operation Wash : unit ~> unit # {Wash} within [1, 2]
 default Wash () = delay 1
 
 operation ChangeTip : unit ~> unit # {ChangeTip} within [0, 1]
-default ChangeTip () = delay 0
+default ChangeTip () = delay 1
 
 operation EluteDNA : unit ~> unit # {EluteDNA} within [1, 2]
 default EluteDNA () = delay 1
 
 operation Transfer : unit ~> unit # {Transfer} within [1, 2]
-default Transfer () = delay 1
+default Transfer () = delay 2
 
 (* The beads bind the sample for five to ten minutes before the plate goes on
    the magnet; the upper bound of ten minutes is the example's own. The
@@ -76,7 +76,7 @@ default Transfer () = delay 1
 let cleanup (beads : beads) =
   perform AddBeads ();
   box [5, 10] beads as binding in
-  delay 5;
+  delay 7;
   unbox binding as beads in
   perform MagnetOn ();
   delay 3;

@@ -15,7 +15,7 @@ operation AddEthanol : unit ~> unit # {AddEthanol} within [0, 1]
 default AddEthanol () = delay 1
 
 operation RemoveEthanol : unit ~> unit # {RemoveEthanol} within [1, 2]
-default RemoveEthanol () = delay 1
+default RemoveEthanol () = delay 2
 
 operation EthanolWash : unit ~> unit # {AddEthanol; 1; RemoveEthanol}
 

@@ -36,11 +36,12 @@ let cycle (steady : bool) : sample # {Read; 1/2; Beep | Read; Flag} =
     s)
 
 (* Correctly accepted by the typechecker: the half-second delay is performed
-   as two quarter-second delays, merged into the one the grade lists. *)
+   as delays of a fifth and of three tenths of a second, merged into the one
+   the grade lists. *)
 let cycle_in_steps () : sample # {Read; 1/2; Beep} =
   let s = perform Read () in
-  delay 0.25;
-  delay 0.25;
+  delay 1/5;
+  delay 3/10;
   perform Beep ();
   s
 
