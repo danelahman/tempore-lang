@@ -289,30 +289,6 @@ let fire_cleared (gun : at_gun) (m : float) (w : float) : outcome
   if found then Reaction (lane, warnings, reaction fired at) else NoStart
 *)
 
-(* Correctly rejected by the typechecker: the block is polled for fifty
-   further polls, up to 607.5 ms after the gun, before the athlete is
-   judged:
-
-     Typing error: Variable `gun` is unboxed with grade
-       `[{Beep; ReadClock; (0 | !2.5; ReadImu; ReadClock); …}, …]`
-       accumulated since it was bound, which is not below its box grade
-       `[{Beep; ReadClock; [0, 500]}, {Beep; ReadClock; [0, 500]}]`
-       ...
-*)
-(*
-let fire_late (gun : at_gun) (m : float) (w : float) : outcome
-    # {Beep; ReadClock; [0, 405]} =
-  box {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*} elapsed
-    as window in
-  perform Beep (2500, 300);
-  let fired = perform ReadClock () in
-  let r = react m w in
-  let found, at = fifty_fast m w r in
-  unbox gun as (lane, warnings) in
-  unbox window as reaction in
-  if found then Reaction (lane, warnings, reaction fired at) else NoStart
-*)
-
 (* Correctly rejected by the typechecker: GO is shown on the screen after
    the reading of the time of the gun, before the polls, for up to 33 ms in
    which a push is not seen. The box of the athlete admits it, within its
@@ -415,27 +391,6 @@ let start_once (a : athlete) : outcome
   if stood s then Abandoned else if moved mean move s then Moved else
   unbox set as gun_thunk in
   fire (gun_thunk ()) mean push
-
-(* Correctly rejected by the typechecker: Set is commanded at once after On
-   your marks, without the stillness window:
-
-     Typing error: Variable `mark` is unboxed with grade
-       `[{ShowColourTextAt; ShowColourTextAt; DrawButton; DrawButton},
-       {ShowColourTextAt; ShowColourTextAt; DrawButton; DrawButton}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{ShowColourTextAt; [1000, ∞)}, {ShowColourTextAt; [1000, ∞)}]`
-       ...
-*)
-(*
-let set_at_once (a : athlete) : at_set =
-  let mark = marks a in
-  perform ShowColourTextAt (0, 40, 3, black, white, "ON YOUR MARKS");
-  perform ShowColourTextAt (0, 70, 2, black, white, "Settle for 1 s");
-  perform DrawButton (0, 188, 156, 40, "Stand up");
-  perform DrawButton (164, 188, 156, 40, "");
-  unbox mark as set_thunk in
-  set_thunk ()
-*)
 
 (* Correctly rejected by the typechecker: the gun is fired after sixty slow
    polls of the Set hold, 1182 to 1347 ms after the Set command:
@@ -634,54 +589,6 @@ let rec officiate (n : nat) (t : tally) (a : athlete) (held : bool) : unit
           (t, a, touched))
       in
       officiate m t a held
-
-(* Correctly rejected by the typechecker: a tap on Reset also reconfigures
-   the unit, after the tone:
-
-     Typing error: This function's body has grade `[{ReadTouch; (!50 | Beep;
-       ConfigureImu; ShowColourTextAt; ShowColourTextAt; ShowTextAt; [0, 495]
-       | ShowColourTextAt; [0, 6000]); (ReadTouch; (ShowColourTextAt;
-       [0, 6000] | Beep; ShowColourTextAt; ShowColourTextAt; ShowTextAt;
-       [0, 495] | 50))* | 0}, {ReadTouch; (!50 | Beep; ConfigureImu;
-       ShowColourTextAt; ShowColourTextAt; ShowTextAt; [0, 495] |
-       ShowColourTextAt; [0, 6000]); (ReadTouch; (ShowColourTextAt; [0, 6000]
-       | Beep; ShowColourTextAt; ShowColourTextAt; ShowTextAt; [0, 495] |
-       50))* | 0}]`, which does not match its annotated grade `[{(ReadTouch;
-       (ShowColourTextAt; [0, 6000] | Beep; ShowColourTextAt;
-       ShowColourTextAt; ShowTextAt; [0, 495] | 50))*}, {(ReadTouch;
-       (ShowColourTextAt; [0, 6000] | Beep; ShowColourTextAt;
-       ShowColourTextAt; ShowTextAt; [0, 495] | 50))*}]`
-       ...
-*)
-(*
-let rec officiate_reconfigured (n : nat) (t : tally) (a : athlete)
-    (held : bool) : unit
-    # {(ReadTouch;
-        (ShowColourTextAt; [0, 6000]
-        | Beep; ShowColourTextAt; ShowColourTextAt; ShowTextAt; [0, 495]
-        | 50))*} =
-  match n with
-  | 0 -> ()
-  | m + 1 ->
-      let touched, x, y = perform ReadTouch () in
-      let k = if touched && not held then key x y else Elsewhere in
-      let t, a, held =
-        if k = Start then
-          let t, a = race t a in
-          (t, a, true)
-        else if k = Reset then (
-          perform Beep (3000, 50);
-          perform ConfigureImu 400;
-          let lane, _ = a in
-          say Cleared;
-          board (0, 0, 0, 0, 0) (lane, 0);
-          ((0, 0, 0, 0, 0), (lane, 0), touched))
-        else (
-          delay 50;
-          (t, a, touched))
-      in
-      officiate_reconfigured m t a held
-*)
 
 (* Correctly accepted by the typechecker: the task. The output data rate of
    the accelerometer is set to 400 Hz, at which the fast polls read a new
