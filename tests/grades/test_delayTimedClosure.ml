@@ -877,23 +877,44 @@ let preorders =
    the operations [_ & ~(>0)], the identity elsewhere. Scaling every delay and
    every running time by [1/N] keeps the verdicts: the grades over whole steps
    of a program resolution [N] read a delay [q] as [qN] steps of [1/N], [_] as
-   [1/N | ops] and complements among the traces of steps of [1/N]. *)
+   [1/N | ops] and complements among the traces of steps of [1/N]. Under the
+   rigid grades, with strict delays, [_] also holds the strict delays of whole
+   numbers of steps, and [ops] leaves them out. *)
 
 let ops =
   Grade.Inter
     ( Grade.Any,
       Grade.Compl (Grade.Delays (Grade.Open Rational.zero, Grade.Unbounded)) )
 
-let rec iota n = function
-  | Grade.Any -> Grade.Union (Grade.rational_tick (q 1 n), ops)
-  | Grade.Compl r ->
-      Grade.Inter
-        ( Grade.Compl (iota n r),
-          Grade.Star (Grade.Union (ops, Grade.rational_tick (q 1 n))) )
+(* [steps n] is the strict delays of whole numbers of steps of [1/n]. *)
+let steps n =
+  let step = Grade.rational_tick (q 1 n) in
+  Grade.Strict (Grade.Seq (step, Grade.Star step))
+
+let rec iota ~strict n =
+  let iota = iota ~strict in
+  let symbols =
+    if strict then
+      Grade.Union
+        ( Grade.Union
+            ( Grade.Inter
+                ( ops,
+                  Grade.Compl
+                    (Grade.Strict
+                       (Grade.Delays (Grade.Open Rational.zero, Grade.Unbounded)))
+                ),
+              steps n ),
+          Grade.rational_tick (q 1 n) )
+    else Grade.Union (ops, Grade.rational_tick (q 1 n))
+  in
+  function
+  | Grade.Any -> symbols
+  | Grade.Compl r -> Grade.Inter (Grade.Compl (iota n r), Grade.Star symbols)
   | Grade.Seq (r, s) -> Grade.Seq (iota n r, iota n s)
   | Grade.Union (r, s) -> Grade.Union (iota n r, iota n s)
   | Grade.Inter (r, s) -> Grade.Inter (iota n r, iota n s)
   | Grade.Star r -> Grade.Star (iota n r)
+  | Grade.Strict r -> Grade.Strict (iota n r)
   | Grade.Tick k -> Grade.rational_tick (q k n)
   | (Grade.Letter _ | Grade.Frac _ | Grade.Delays _) as r -> r
 
@@ -921,14 +942,16 @@ let whole_steps =
     | _ -> Grade.Star (sub ())
   in
   let expressions = List.init 36 (fun _ -> whole 3) in
-  let agree order name (module Wg : Grade.S) (module Gg : Grade.S) n =
+  let agree ?(strict = false) order name (module Wg : Grade.S)
+      (module Gg : Grade.S) n =
     let bounds = scaled_bounds n in
     let whole_bounds = scaled_bounds 1 in
     let grades =
       List.filter_map
         (fun r ->
           match
-            (Wg.of_lit (Grade.Braces r), Gg.of_lit (Grade.Braces (iota n r)))
+            ( Wg.of_lit (Grade.Braces r),
+              Gg.of_lit (Grade.Braces (iota ~strict n r)) )
           with
           | w, g when Wg.inhabited whole_bounds w && Gg.inhabited bounds g ->
               Some (r, w, g)
@@ -958,7 +981,7 @@ let whole_steps =
           (module W.Lower : Grade.S)
           (module G.Lower : Grade.S)
           n;
-        agree "rigid upper" "rigid allowance"
+        agree ~strict:true "rigid upper" "rigid allowance"
           (module W.Rigid.Upper : Grade.S)
           (module G.Rigid.Upper : Grade.S)
           n;

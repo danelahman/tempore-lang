@@ -142,6 +142,7 @@ let whole_step_rejections =
            `regex-timed-lower-bound-rational-symbolic`, \
            `regex-timed-upper-bound-rational-symbolic`, \
            `regex-timed-interval-rational-symbolic`, \
+           `regex-timed-rigid-lower-bound-rational-symbolic`, \
            `regex-timed-rigid-upper-bound-rational-symbolic`, \
            `regex-timed-rigid-interval-rational-symbolic` or \
            `event-separation` grading monoids?")
@@ -478,6 +479,7 @@ let matches r w =
     | Grade.Union (r1, r2) -> go r1 s e || go r2 s e
     | Grade.Inter (r1, r2) -> go r1 s e && go r2 s e
     | Grade.Compl r1 -> not (go r1 s e)
+    | Grade.Strict _ -> invalid_arg "eval: a strict delay"
     | Grade.Star r1 ->
         s = e
         || List.exists
@@ -564,6 +566,7 @@ let rec iota = function
   | Grade.Union (r, s) -> Grade.Union (iota r, iota s)
   | Grade.Inter (r, s) -> Grade.Inter (iota r, iota s)
   | Grade.Star r -> Grade.Star (iota r)
+  | Grade.Strict r -> Grade.Strict (iota r)
   | (Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _) as r -> r
 
 let whole_steps =

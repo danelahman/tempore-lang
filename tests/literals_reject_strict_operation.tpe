@@ -1,0 +1,15 @@
+(* Run this test with the 'regex-timed-rigid-upper-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-rigid-upper-bound-rational-symbolic \
+       tests/literals_reject_strict_operation.tpe
+
+   Rejected under the 'regex-timed-rigid-upper-bound-rational-symbolic' grading
+   monoid: a strict delay `!` applies to a delay, a set of delays or `_`, not
+   to an operation. *)
+
+operation Read : unit ~> nat # {Read} within [1, 1]
+
+let read () : nat # {!Read; 3} =
+  let a = perform Read () in
+  delay 3;
+  a

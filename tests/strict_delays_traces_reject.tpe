@@ -1,0 +1,33 @@
+(* Run this test with the 'traces-timed-rigid-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-rigid-upper-bound \
+       tests/strict_delays_traces_reject.tpe
+
+   Rejected under the 'traces-timed-rigid-upper-bound' grading monoid: a
+   strict delay `!d` admits waiting only; the budget form is accepted, the
+   strict form rejected. *)
+
+type token = Token of string
+
+operation Heat : unit ~> unit # {Heat} within [2, 4]
+operation Stir : unit ~> unit # {Stir} within [1, 1]
+operation Cool : unit ~> unit # {Cool} within [1, 3]
+
+(* A stir of one step fits a delay of three beside a wait of two. *)
+let stirred_budget () =
+  box {Heat; 3; Cool} (Token "h") as h in
+  perform Heat ();
+  delay 2;
+  perform Stir ();
+  perform Cool ();
+  unbox h as tok in
+  tok
+
+let stirred_strict () =
+  box {Heat; !3; Cool} (Token "h") as h in
+  perform Heat ();
+  delay 2;
+  perform Stir ();
+  perform Cool ();
+  unbox h as tok in
+  tok

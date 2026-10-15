@@ -98,6 +98,8 @@ let malformed =
     "regex_timed_lower_ticks_reject.tpe";
     "regex_timed_upper_ticks_reject.tpe";
     "rational_traces_intervals_reject_open.tpe";
+    "literals_reject_strict_grade.tpe";
+    "literals_reject_strict_operation.tpe";
   ]
 
 (* ------------------------------------------------------------------ *)

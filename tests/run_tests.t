@@ -775,7 +775,7 @@ it names none:
   File "delay_reject_fraction.tpe", line 8, characters 20-23:
   8 | let wait () = delay 0.5
                           ^^^
-  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `security-levels`, `flow-levels`, `mode-times` or `event-separation` grading monoids?
+  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `security-levels`, `flow-levels`, `mode-times` or `event-separation` grading monoids?
   ======================================================================
   delay_reject_negative.tpe
   ======================================================================
@@ -1649,7 +1649,7 @@ it names none:
   File "levels_reject_literal.tpe", line 7, characters 19-20:
   7 | let claim () = box 3 1
                          ^
-  Syntax error: In the `security-levels` grading monoid, grades are the levels `Low` and `High`, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound`, `traces-upper-bound-rational`, `traces-timed-lower-bound`, `traces-timed-upper-bound`, `traces-timed-interval`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-upper-bound`, `traces-timed-rigid-interval`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `windowed-schedules`, `mode-switch-costs`, `mode-times`, `counts-upper-bound` or `event-separation` grading monoids?
+  Syntax error: In the `security-levels` grading monoid, grades are the levels `Low` and `High`, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound`, `traces-upper-bound-rational`, `traces-timed-lower-bound`, `traces-timed-upper-bound`, `traces-timed-interval`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound`, `traces-timed-rigid-upper-bound`, `traces-timed-rigid-interval`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `windowed-schedules`, `mode-switch-costs`, `mode-times`, `counts-upper-bound` or `event-separation` grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -2056,7 +2056,7 @@ it names none:
   File "literals_reject_complement.tpe", line 9, characters 19-32:
   9 | let claim () = box {Send; ~Read} 1
                          ^^^^^^^^^^^^^
-  Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;` and `|` only, without complement `~`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic` or `regex-timed-rigid-interval-rational-symbolic` grading monoids?
+  Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;` and `|` only, without complement `~`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic` or `regex-timed-rigid-interval-rational-symbolic` grading monoids?
   ======================================================================
   literals_reject_component.tpe
   ======================================================================
@@ -2098,7 +2098,7 @@ it names none:
   File "literals_reject_fraction.tpe", line 8, characters 19-22:
   8 | let claim () = box 3/2 1
                          ^^^
-  Syntax error: In the `time-upper-bound` grading monoid, grades are plain integers or `∞`, not fractions such as `3/2`; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `mode-times` or `event-separation` grading monoids?
+  Syntax error: In the `time-upper-bound` grading monoid, grades are plain integers or `∞`, not fractions such as `3/2`; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `mode-times` or `event-separation` grading monoids?
   ======================================================================
   literals_reject_fraction_operator.tpe
   ======================================================================
@@ -2224,7 +2224,21 @@ it names none:
   File "literals_reject_star.tpe", line 7, characters 19-31:
   7 | let claim () = box {(Send; 2)*} 1
                          ^^^^^^^^^^^^
-  Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;` and `|` only, without repetition `*`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic` or `regex-timed-rigid-interval-rational-symbolic` grading monoids?
+  Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;` and `|` only, without repetition `*`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic` or `regex-timed-rigid-interval-rational-symbolic` grading monoids?
+  ======================================================================
+  literals_reject_strict_grade.tpe
+  ======================================================================
+  File "literals_reject_strict_grade.tpe", line 11, characters 20-30:
+  11 | let read () : nat # {Read; !3} =
+                           ^^^^^^^^^^
+  Syntax error: In the `regex-timed-upper-bound-rational-symbolic` grading monoid, strict delays `!3` are read by the rigid grades of timed operations only, `regex-timed-rigid-…` and `traces-timed-rigid-…`; did you mean to use one of the `traces-timed-rigid-lower-bound`, `traces-timed-rigid-upper-bound`, `traces-timed-rigid-interval`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic` or `regex-timed-rigid-interval-rational-symbolic` grading monoids?
+  ======================================================================
+  literals_reject_strict_operation.tpe
+  ======================================================================
+  File "literals_reject_strict_operation.tpe", line 12, characters 22-26:
+  12 | let read () : nat # {!Read; 3} =
+                             ^^^^
+  Syntax error: A strict delay `!` applies to a delay, a set of delays or `_`, not to `Read`
   ======================================================================
   literals_reject_unknown.tpe
   ======================================================================
@@ -4011,7 +4025,7 @@ it names none:
   File "regex_timed_rigid_interval_reject.tpe", lines 33-34, characters 2-5:
   33 |   unbox l as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `l` is unboxed with grade `[{1; Read; Log; Read}, {1; Read; Log; Read}]` accumulated since it was bound, which is not below its box grade `[{(1; Read)*}, {(2; Read)*}]`
+  Typing error: Variable `l` is unboxed with grade `[{!1; Read; Log; Read}, {!1; Read; Log; Read}]` accumulated since it was bound, which is not below its box grade `[{(1; Read)*}, {(2; Read)*}]`
     File "regex_timed_rigid_interval_reject.tpe", line 28, characters 50-51:
     28 |   box [{(1; Read)*}, {(2; Read)*}] (Token "l") as l in
                                                            ^
@@ -4019,7 +4033,7 @@ it names none:
     File "regex_timed_rigid_interval_reject.tpe", line 29, characters 2-9:
     29 |   delay 1;
            ^^^^^^^
-    grade `[{1}, {1}]` accumulates here (delay)
+    grade `[{!1}, {!1}]` accumulates here (delay)
     File "regex_timed_rigid_interval_reject.tpe", line 30, characters 10-25:
     30 |   let a = perform Read () in
                    ^^^^^^^^^^^^^^^
@@ -4032,7 +4046,7 @@ it names none:
     32 |   let b = perform Read () in
                    ^^^^^^^^^^^^^^^
     grade `[{Read}, {Read}]` accumulates here (operation `Read`)
-    Note: the resource inequality `[{1; Read; Log; Read}, {1; Read; Log; Read}] <= [{(1; Read)*}, {(2; Read)*}]` does not hold
+    Note: the resource inequality `[{!1; Read; Log; Read}, {!1; Read; Log; Read}] <= [{(1; Read)*}, {(2; Read)*}]` does not hold
   ======================================================================
   regex_timed_rigid_rational_upper.tpe
   ======================================================================
@@ -4072,7 +4086,7 @@ it names none:
   File "regex_timed_rigid_rational_upper_reject.tpe", lines 38-39, characters 2-5:
   38 |   unbox p as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `p` is unboxed with grade `{300}` accumulated since it was bound, which is not below its box grade `{(2.5; ReadImu; ReadClock)*}`
+  Typing error: Variable `p` is unboxed with grade `{!300}` accumulated since it was bound, which is not below its box grade `{(2.5; ReadImu; ReadClock)*}`
     File "regex_timed_rigid_rational_upper_reject.tpe", line 36, characters 50-51:
     36 |   box {(2.5; ReadImu; ReadClock)*} (Token "p") as p in
                                                            ^
@@ -4080,8 +4094,8 @@ it names none:
     File "regex_timed_rigid_rational_upper_reject.tpe", line 37, characters 2-11:
     37 |   delay 300;
            ^^^^^^^^^
-    grade `{300}` accumulates here (delay)
-    Note: the resource inequality `{300} <= {(2.5; ReadImu; ReadClock)*}` does not hold
+    grade `{!300}` accumulates here (delay)
+    Note: the resource inequality `{!300} <= {(2.5; ReadImu; ReadClock)*}` does not hold
   
   File "regex_timed_rigid_rational_upper_reject.tpe", lines 48-49, characters 2-5:
   48 |   unbox s as tok in
@@ -4108,7 +4122,7 @@ it names none:
   File "regex_timed_rigid_rational_upper_reject.tpe", lines 59-60, characters 2-5:
   59 |   unbox i as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `i` is unboxed with grade `{ReadTouch; ConfigureImu; 50; ReadTouch}` accumulated since it was bound, which is not below its box grade `{(ReadTouch; 50)*}`
+  Typing error: Variable `i` is unboxed with grade `{ReadTouch; ConfigureImu; !50; ReadTouch}` accumulated since it was bound, which is not below its box grade `{(ReadTouch; 50)*}`
     File "regex_timed_rigid_rational_upper_reject.tpe", line 54, characters 40-41:
     54 |   box {(ReadTouch; 50)*} (Token "i") as i in
                                                  ^
@@ -4124,17 +4138,17 @@ it names none:
     File "regex_timed_rigid_rational_upper_reject.tpe", line 57, characters 2-10:
     57 |   delay 50;
            ^^^^^^^^
-    grade `{50}` accumulates here (delay)
+    grade `{!50}` accumulates here (delay)
     File "regex_timed_rigid_rational_upper_reject.tpe", line 58, characters 10-30:
     58 |   let y = perform ReadTouch () in
                    ^^^^^^^^^^^^^^^^^^^^
     grade `{ReadTouch}` accumulates here (operation `ReadTouch`)
-    Note: the resource inequality `{ReadTouch; ConfigureImu; 50; ReadTouch} <= {(ReadTouch; 50)*}` does not hold
+    Note: the resource inequality `{ReadTouch; ConfigureImu; !50; ReadTouch} <= {(ReadTouch; 50)*}` does not hold
   
   File "regex_timed_rigid_rational_upper_reject.tpe", lines 70-71, characters 2-5:
   70 |   unbox w as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `w` is unboxed with grade `{Wash; ChangeTip; Wash; 6; ChangeTip}` accumulated since it was bound, which is not below its box grade `{_*; Wash; _*; Wash; [2, 5]; ChangeTip}`
+  Typing error: Variable `w` is unboxed with grade `{Wash; ChangeTip; Wash; !6; ChangeTip}` accumulated since it was bound, which is not below its box grade `{_*; Wash; _*; Wash; [2, 5]; ChangeTip}`
     File "regex_timed_rigid_rational_upper_reject.tpe", line 64, characters 61-62:
     64 |   box {_*; Wash; _*; Wash; [2, 5]; ChangeTip} (Token "w") as w in
                                                                       ^
@@ -4154,12 +4168,12 @@ it names none:
     File "regex_timed_rigid_rational_upper_reject.tpe", line 68, characters 2-9:
     68 |   delay 6;
            ^^^^^^^
-    grade `{6}` accumulates here (delay)
+    grade `{!6}` accumulates here (delay)
     File "regex_timed_rigid_rational_upper_reject.tpe", line 69, characters 2-22:
     69 |   perform ChangeTip ();
            ^^^^^^^^^^^^^^^^^^^^
     grade `{ChangeTip}` accumulates here (operation `ChangeTip`)
-    Note: the resource inequality `{Wash; ChangeTip; Wash; 6; ChangeTip} <= {_*; Wash; _*; Wash; [2, 5]; ChangeTip}` does not hold
+    Note: the resource inequality `{Wash; ChangeTip; Wash; !6; ChangeTip} <= {_*; Wash; _*; Wash; [2, 5]; ChangeTip}` does not hold
   
   File "regex_timed_rigid_rational_upper_reject.tpe", lines 77-78, characters 2-5:
   77 |   unbox e as tok in
@@ -4571,6 +4585,174 @@ it names none:
   3 | type cow = Hoof of bool
            ^^^
   Syntax error: Type `cow` defined multiple times
+  ======================================================================
+  strict_delays_lower_reject.tpe
+  ======================================================================
+  File "strict_delays_lower_reject.tpe", lines 33-34, characters 2-5:
+  33 |   unbox w as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `w` is unboxed with grade `{Open; Stir; Stir; Close}` accumulated since it was bound, which is not below its box grade `{Open; !5; Close}`
+    File "strict_delays_lower_reject.tpe", line 28, characters 39-40:
+    28 |   box {Open; !5; Close} (Token "w") as w in
+                                                ^
+    `w` is bound here
+    File "strict_delays_lower_reject.tpe", line 29, characters 2-17:
+    29 |   perform Open ();
+           ^^^^^^^^^^^^^^^
+    grade `{Open}` accumulates here (operation `Open`)
+    File "strict_delays_lower_reject.tpe", line 30, characters 2-17:
+    30 |   perform Stir ();
+           ^^^^^^^^^^^^^^^
+    grade `{Stir}` accumulates here (operation `Stir`)
+    File "strict_delays_lower_reject.tpe", line 31, characters 2-17:
+    31 |   perform Stir ();
+           ^^^^^^^^^^^^^^^
+    grade `{Stir}` accumulates here (operation `Stir`)
+    File "strict_delays_lower_reject.tpe", line 32, characters 2-18:
+    32 |   perform Close ();
+           ^^^^^^^^^^^^^^^^
+    grade `{Close}` accumulates here (operation `Close`)
+    Note: the resource inequality `{Open; Stir; Stir; Close} <= {Open; !5; Close}` does not hold
+  ======================================================================
+  strict_delays_rational_reject.tpe
+  ======================================================================
+  File "strict_delays_rational_reject.tpe", lines 36-37, characters 2-5:
+  36 |   unbox b as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `b` is unboxed with grade `[{AddBeads; !7; ChangeTip; MagnetOn}, {AddBeads; !7; ChangeTip; MagnetOn}]` accumulated since it was bound, which is not below its box grade `[{AddBeads; ![5, 10]; MagnetOn}, {AddBeads; ![5, 10]; MagnetOn}]`
+    File "strict_delays_rational_reject.tpe", line 31, characters 52-53:
+    31 |   box {AddBeads; ![5, 10]; MagnetOn} (Token "b") as b in
+                                                             ^
+    `b` is bound here
+    File "strict_delays_rational_reject.tpe", line 32, characters 2-21:
+    32 |   perform AddBeads ();
+           ^^^^^^^^^^^^^^^^^^^
+    grade `[{AddBeads}, {AddBeads}]` accumulates here (operation `AddBeads`)
+    File "strict_delays_rational_reject.tpe", line 33, characters 2-9:
+    33 |   delay 7;
+           ^^^^^^^
+    grade `[{!7}, {!7}]` accumulates here (delay)
+    File "strict_delays_rational_reject.tpe", line 34, characters 2-22:
+    34 |   perform ChangeTip ();
+           ^^^^^^^^^^^^^^^^^^^^
+    grade `[{ChangeTip}, {ChangeTip}]` accumulates here (operation `ChangeTip`)
+    File "strict_delays_rational_reject.tpe", line 35, characters 2-21:
+    35 |   perform MagnetOn ();
+           ^^^^^^^^^^^^^^^^^^^
+    grade `[{MagnetOn}, {MagnetOn}]` accumulates here (operation `MagnetOn`)
+    Note: the resource inequality `[{AddBeads; !7; ChangeTip; MagnetOn}, {AddBeads; !7; ChangeTip; MagnetOn}] <= [{AddBeads; ![5, 10]; MagnetOn}, {AddBeads; ![5, 10]; MagnetOn}]` does not hold
+  
+  File "strict_delays_rational_reject.tpe", lines 57-58, characters 2-5:
+  57 |   unbox s as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `s` is unboxed with grade `[{!10; Read; Log; !10; Read}, {!10; Read; Log; !10; Read}]` accumulated since it was bound, which is not below its box grade `[{(![9.5, 10.5]; Read)*}, {(![9.5, 10.5]; Read)*}]`
+    File "strict_delays_rational_reject.tpe", line 51, characters 45-46:
+    51 |   box {(![9.5, 10.5]; Read)*} (Token "s") as s in
+                                                      ^
+    `s` is bound here
+    File "strict_delays_rational_reject.tpe", line 52, characters 2-10:
+    52 |   delay 10;
+           ^^^^^^^^
+    grade `[{!10}, {!10}]` accumulates here (delay)
+    File "strict_delays_rational_reject.tpe", line 53, characters 10-25:
+    53 |   let a = perform Read () in
+                   ^^^^^^^^^^^^^^^
+    grade `[{Read}, {Read}]` accumulates here (operation `Read`)
+    File "strict_delays_rational_reject.tpe", line 54, characters 2-16:
+    54 |   perform Log ();
+           ^^^^^^^^^^^^^^
+    grade `[{Log}, {Log}]` accumulates here (operation `Log`)
+    File "strict_delays_rational_reject.tpe", line 55, characters 2-10:
+    55 |   delay 10;
+           ^^^^^^^^
+    grade `[{!10}, {!10}]` accumulates here (delay)
+    File "strict_delays_rational_reject.tpe", line 56, characters 10-25:
+    56 |   let b = perform Read () in
+                   ^^^^^^^^^^^^^^^
+    grade `[{Read}, {Read}]` accumulates here (operation `Read`)
+    Note: the resource inequality `[{!10; Read; Log; !10; Read}, {!10; Read; Log; !10; Read}] <= [{(![9.5, 10.5]; Read)*}, {(![9.5, 10.5]; Read)*}]` does not hold
+  
+  File "strict_delays_rational_reject.tpe", lines 74-75, characters 2-5:
+  74 |   unbox r as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed with grade `[{Read; !2; Reset}, {Read; !2; Reset}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~Reset)*}, {(!_ & ~Reset)*}]`
+    File "strict_delays_rational_reject.tpe", line 70, characters 38-39:
+    70 |   box {(!_ & ~Reset)*} (Token "r") as r in
+                                               ^
+    `r` is bound here
+    File "strict_delays_rational_reject.tpe", line 71, characters 10-25:
+    71 |   let a = perform Read () in
+                   ^^^^^^^^^^^^^^^
+    grade `[{Read}, {Read}]` accumulates here (operation `Read`)
+    File "strict_delays_rational_reject.tpe", line 72, characters 2-9:
+    72 |   delay 2;
+           ^^^^^^^
+    grade `[{!2}, {!2}]` accumulates here (delay)
+    File "strict_delays_rational_reject.tpe", line 73, characters 2-18:
+    73 |   perform Reset ();
+           ^^^^^^^^^^^^^^^^
+    grade `[{Reset}, {Reset}]` accumulates here (operation `Reset`)
+    Note: the resource inequality `[{Read; !2; Reset}, {Read; !2; Reset}] <= [{(!_ & ~Reset)*}, {(!_ & ~Reset)*}]` does not hold
+  ======================================================================
+  strict_delays_traces_reject.tpe
+  ======================================================================
+  File "strict_delays_traces_reject.tpe", lines 32-33, characters 2-5:
+  32 |   unbox h as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `h` is unboxed with grade `{Heat; !2; Stir; Cool}` accumulated since it was bound, which is not below its box grade `{Heat; !3; Cool}`
+    File "strict_delays_traces_reject.tpe", line 27, characters 38-39:
+    27 |   box {Heat; !3; Cool} (Token "h") as h in
+                                               ^
+    `h` is bound here
+    File "strict_delays_traces_reject.tpe", line 28, characters 2-17:
+    28 |   perform Heat ();
+           ^^^^^^^^^^^^^^^
+    grade `{Heat}` accumulates here (operation `Heat`)
+    File "strict_delays_traces_reject.tpe", line 29, characters 2-9:
+    29 |   delay 2;
+           ^^^^^^^
+    grade `{!2}` accumulates here (delay)
+    File "strict_delays_traces_reject.tpe", line 30, characters 2-17:
+    30 |   perform Stir ();
+           ^^^^^^^^^^^^^^^
+    grade `{Stir}` accumulates here (operation `Stir`)
+    File "strict_delays_traces_reject.tpe", line 31, characters 2-17:
+    31 |   perform Cool ();
+           ^^^^^^^^^^^^^^^
+    grade `{Cool}` accumulates here (operation `Cool`)
+    Note: the resource inequality `{Heat; !2; Stir; Cool} <= {Heat; !3; Cool}` does not hold
+  ======================================================================
+  strict_delays_whole_reject.tpe
+  ======================================================================
+  File "strict_delays_whole_reject.tpe", lines 34-35, characters 2-5:
+  34 |   unbox l as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `l` is unboxed with grade `[{!2; Read; Log; !2; Read}, {!2; Read; Log; !2; Read}]` accumulated since it was bound, which is not below its box grade `[{(!(2; (0 | 1); (0 | 1)); Read)*}, {(!(2; (0 | 1); (0 | 1)); Read)*}]`
+    File "strict_delays_whole_reject.tpe", line 28, characters 40-41:
+    28 |   box {(![2, 4]; Read)*} (Token "l") as l in
+                                                 ^
+    `l` is bound here
+    File "strict_delays_whole_reject.tpe", line 29, characters 2-9:
+    29 |   delay 2;
+           ^^^^^^^
+    grade `[{!2}, {!2}]` accumulates here (delay)
+    File "strict_delays_whole_reject.tpe", line 30, characters 10-25:
+    30 |   let a = perform Read () in
+                   ^^^^^^^^^^^^^^^
+    grade `[{Read}, {Read}]` accumulates here (operation `Read`)
+    File "strict_delays_whole_reject.tpe", line 31, characters 2-16:
+    31 |   perform Log ();
+           ^^^^^^^^^^^^^^
+    grade `[{Log}, {Log}]` accumulates here (operation `Log`)
+    File "strict_delays_whole_reject.tpe", line 32, characters 2-9:
+    32 |   delay 2;
+           ^^^^^^^
+    grade `[{!2}, {!2}]` accumulates here (delay)
+    File "strict_delays_whole_reject.tpe", line 33, characters 10-25:
+    33 |   let b = perform Read () in
+                   ^^^^^^^^^^^^^^^
+    grade `[{Read}, {Read}]` accumulates here (operation `Read`)
+    Note: the resource inequality `[{!2; Read; Log; !2; Read}, {!2; Read; Log; !2; Read}] <= [{(!(2; (0 | 1); (0 | 1)); Read)*}, {(!(2; (0 | 1); (0 | 1)); Read)*}]` does not hold
   ======================================================================
   string_reject_newline_location.tpe
   ======================================================================
@@ -5469,7 +5651,7 @@ it names none:
   File "traces_reject_fractional_bound.tpe", line 10, characters 47-50:
   10 | operation Heat : unit ~> unit # {Heat} within [1/2, 1]
                                                       ^^^
-  Syntax error: In the `traces-timed-upper-bound` grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `mode-times` or `event-separation` grading monoids?
+  Syntax error: In the `traces-timed-upper-bound` grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `mode-times` or `event-separation` grading monoids?
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================
@@ -5545,7 +5727,7 @@ it names none:
   File "traces_rigid_upper_reject.tpe", lines 31-32, characters 2-5:
   31 |   unbox u as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `u` is unboxed with grade `{Heat; 3}` accumulated since it was bound, which is not below its box grade `{Heat; 3; Cool}`
+  Typing error: Variable `u` is unboxed with grade `{Heat; !3}` accumulated since it was bound, which is not below its box grade `{Heat; 3; Cool}`
     File "traces_rigid_upper_reject.tpe", line 28, characters 37-38:
     28 |   box {Heat; 3; Cool} (Token "u") as u in
                                               ^
@@ -5557,8 +5739,8 @@ it names none:
     File "traces_rigid_upper_reject.tpe", line 30, characters 2-9:
     30 |   delay 3;
            ^^^^^^^
-    grade `{3}` accumulates here (delay)
-    Note: the resource inequality `{Heat; 3} <= {Heat; 3; Cool}` does not hold
+    grade `{!3}` accumulates here (delay)
+    Note: the resource inequality `{Heat; !3} <= {Heat; 3; Cool}` does not hold
   ======================================================================
   tydef.tpe
   ======================================================================
@@ -7967,8 +8149,10 @@ single-dash form of the help option is not accepted.
           traces-timed-upper-bound-rational               Upper bounds (rational)
           traces-timed-interval-rational                  Intervals (rational)
         Traces of timed operations, rigid:
+          traces-timed-rigid-lower-bound                  Lower bounds
           traces-timed-rigid-upper-bound                  Upper bounds
           traces-timed-rigid-interval                     Intervals
+          traces-timed-rigid-lower-bound-rational         Lower bounds (rational)
           traces-timed-rigid-upper-bound-rational         Upper bounds (rational)
           traces-timed-rigid-interval-rational            Intervals (rational)
         Regular expressions:
@@ -7990,10 +8174,14 @@ single-dash form of the help option is not accepted.
           regex-timed-interval-rational-symbolic          Intervals (rational, symbolic)
               symbolic expressions over letter and delay sets; inclusion by gap derivatives with a closure reader, breadth-first
         Regular expressions of timed operations, rigid:
+          regex-timed-rigid-lower-bound-symbolic          Lower bounds (symbolic)
+              symbolic expressions over letter sets; inclusion by gap derivatives with a closure reader, breadth-first
           regex-timed-rigid-upper-bound-symbolic          Upper bounds (symbolic)
               symbolic expressions over letter sets; inclusion by gap derivatives with a closure reader, breadth-first
           regex-timed-rigid-interval-symbolic             Intervals (symbolic)
               symbolic expressions over letter sets; inclusion by gap derivatives with a closure reader, breadth-first
+          regex-timed-rigid-lower-bound-rational-symbolic Lower bounds (rational, symbolic)
+              symbolic expressions over letter and delay sets; inclusion by gap derivatives with a closure reader, breadth-first
           regex-timed-rigid-upper-bound-rational-symbolic Upper bounds (rational, symbolic)
               symbolic expressions over letter and delay sets; inclusion by gap derivatives with a closure reader, breadth-first
           regex-timed-rigid-interval-rational-symbolic    Intervals (rational, symbolic)
