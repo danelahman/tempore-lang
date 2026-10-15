@@ -12,6 +12,12 @@ let is_zero = function
 
 let add (lo, hi) (lo', hi') = (add_ends lo lo', add_ends hi hi')
 
+let scale k (lo, hi) =
+  if k = 0 then zero
+  else
+    let times = map_end (Rational.mul (Rational.of_int k)) in
+    (times lo, times hi)
+
 (* [compare_upper b b'] orders upper ends by the sets they bound, the infinite
    end last. *)
 let compare_upper b b' =

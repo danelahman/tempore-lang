@@ -22,6 +22,10 @@ val add : t -> t -> t
 (** [add i j] is the Minkowski sum [i + j]: an end of the sum is attained iff
     both ends summed are, and infinite iff either is. *)
 
+val scale : int -> t -> t
+(** [scale k i], for [k >= 0], is the Minkowski sum of [k] copies of [i],
+    [[0, 0]] for [k = 0]: its ends multiplied by [k]. *)
+
 val hull : t -> t -> t
 (** [hull i j] is the least interval containing [i] and [j]. *)
 

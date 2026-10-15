@@ -51,7 +51,17 @@ let boxed () =
   unbox x as n in
   n
 
+(* Accepted: a value boxed with a count, used after exactly two beats, each
+   within 1 of the previous event. *)
+let two_beats () =
+  box (2, Beat, [0, 1]) 7 as x in
+  perform Beat ();
+  perform Beat ();
+  unbox x as n in
+  n
+
 run heartbeat 3
 run beeps 2
 run pair ()
 run boxed ()
+run two_beats ()

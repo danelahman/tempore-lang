@@ -22,24 +22,64 @@ let subset_opt subset a b =
 let compare_opt = Option.compare
 let hash_opt hash = function None -> 0 | Some x -> Hashing.combine 1 (hash x)
 
+(* Intervals of natural numbers, [most] being [None] where unbounded. *)
+module Count = struct
+  type t = { least : int; most : int option }
+
+  let point n = { least = n; most = Some n }
+  let unbounded = { least = 0; most = None }
+
+  let add c c' =
+    { least = c.least + c'.least; most = both ( + ) c.most c'.most }
+
+  let hull c c' =
+    { least = min c.least c'.least; most = both max c.most c'.most }
+
+  let subset c c' =
+    c'.least <= c.least
+    &&
+    match (c.most, c'.most) with
+    | _, None -> true
+    | None, Some _ -> false
+    | Some m, Some m' -> m <= m'
+
+  let compare c c' =
+    match Int.compare c.least c'.least with
+    | 0 -> compare_opt Int.compare c.most c'.most
+    | c -> c
+
+  let hash c = Hashing.combine c.least (hash_opt Fun.id c.most)
+
+  let show c =
+    match c.most with
+    | Some m when m = c.least -> string_of_int m
+    | Some m -> Printf.sprintf "[%d, %d]" c.least m
+    | None -> Printf.sprintf "[%d, ∞)" c.least
+end
+
 module Summary = struct
-  type active = { lead : I.t; gaps : I.t option; tail : I.t }
+  type count = Count.t = { least : int; most : int option }
+  type active = { count : count; lead : I.t; gaps : I.t option; tail : I.t }
   type entry = { silent : I.t option; active : active option }
   type t = { entries : entry Indexed.t; total : I.t }
   type op = unit
 
   let hull_active a a' =
     {
+      count = Count.hull a.count a'.count;
       lead = I.hull a.lead a'.lead;
       gaps = hull_opt I.hull a.gaps a'.gaps;
       tail = I.hull a.tail a'.tail;
     }
 
   let compare_active a a' =
-    match I.compare a.lead a'.lead with
+    match Count.compare a.count a'.count with
     | 0 -> (
-        match compare_opt I.compare a.gaps a'.gaps with
-        | 0 -> I.compare a.tail a'.tail
+        match I.compare a.lead a'.lead with
+        | 0 -> (
+            match compare_opt I.compare a.gaps a'.gaps with
+            | 0 -> I.compare a.tail a'.tail
+            | c -> c)
         | c -> c)
     | c -> c
 
@@ -50,7 +90,9 @@ module Summary = struct
 
   let hash_active a =
     Hashing.combine
-      (Hashing.combine (I.hash a.lead) (hash_opt I.hash a.gaps))
+      (Hashing.combine
+         (Hashing.combine (Count.hash a.count) (I.hash a.lead))
+         (hash_opt I.hash a.gaps))
       (I.hash a.tail)
 
   let hash_entry e =
@@ -58,7 +100,7 @@ module Summary = struct
 
   (* The longest-gap monoid, lifted to the cases of an entry: a stretch without
      the name added to a lead or a tail, and the tail of the first part with
-     the lead of the second part forming a gap. *)
+     the lead of the second part forming a gap, the counts added. *)
   let mul_entry e e' =
     let cases =
       [
@@ -67,6 +109,7 @@ module Summary = struct
         both
           (fun a a' ->
             {
+              count = Count.add a.count a'.count;
               lead = a.lead;
               gaps =
                 hull_opt I.hull
@@ -89,7 +132,8 @@ module Summary = struct
     }
 
   let leq_active a a' =
-    I.subset a.lead a'.lead
+    Count.subset a.count a'.count
+    && I.subset a.lead a'.lead
     && subset_opt I.subset a.gaps a'.gaps
     && I.subset a.tail a'.tail
 
@@ -103,7 +147,13 @@ module Summary = struct
     {
       silent = Some I.unbounded;
       active =
-        Some { lead = I.unbounded; gaps = Some I.unbounded; tail = I.unbounded };
+        Some
+          {
+            count = { least = 1; most = None };
+            lead = I.unbounded;
+            gaps = Some I.unbounded;
+            tail = I.unbounded;
+          };
     }
 
   let delays i = { entries = Indexed.everywhere (silent_entry i); total = i }
@@ -120,7 +170,13 @@ module Summary = struct
               {
                 silent = None;
                 active =
-                  Some { lead = I.zero; gaps = None; tail = running_time };
+                  Some
+                    {
+                      count = Count.point 1;
+                      lead = I.zero;
+                      gaps = None;
+                      tail = running_time;
+                    };
               } );
           ];
       total = running_time;
@@ -153,16 +209,26 @@ module Summary = struct
   let hash_op () = 0
   let duration s = Some s.total
 
-  (* Some silent duration, or the shortest durations of an active case, within
-     the total: the shortest computation with one occurrence has no gap, and
-     gaps only lengthen it. *)
+  (* The durations of the computations of an active case with [k] occurrences
+     lie in [lead + (k - 1) gaps + tail]: their hull over the count. *)
+  let active_durations a =
+    let gaps =
+      match a.gaps with
+      | None -> I.zero
+      | Some gaps -> (
+          let fewest = I.scale (a.count.least - 1) gaps in
+          match a.count.most with
+          | None -> I.from fewest
+          | Some most -> I.hull fewest (I.scale (most - 1) gaps))
+    in
+    I.add (I.add a.lead a.tail) gaps
+
+  (* Some silent duration, or the durations of an active case, within the
+     total. *)
   let entry_inhabited total e =
     Option.fold ~none:false ~some:(I.meets total) e.silent
     || Option.fold ~none:false
-         ~some:(fun a ->
-           let shortest = I.add a.lead a.tail in
-           I.meets total
-             (if Option.is_some a.gaps then I.from shortest else shortest))
+         ~some:(fun a -> I.meets total (active_durations a))
          e.active
 
   let inhabited s = Indexed.for_all (entry_inhabited s.total) s.entries
@@ -238,49 +304,132 @@ let of_braces lit r =
   in
   go r
 
-(* The entry of an operation in a specification: [(X, [s, t])], gaps in
-   [[s, t]] and stretches without [X] at most [t], or
-   [(X, lead, gaps, tail)]. *)
-let entry_of_lit lit =
+(* The entry of a specification of the count [count] of occurrences, the
+   silent computations included where it contains [0], and of the lead, the
+   gaps and the tail of the active ones; there are no gaps where the count of
+   the active ones is [1]. *)
+let make_entry (count : Count.t) ~lead ~gaps ~tail =
   let open Summary in
-  let interval ~context = component_of_lit lit ~context I.of_lit in
+  {
+    silent = (if count.least = 0 then I.inter lead tail else None);
+    active =
+      (if count.most = Some 0 then None
+       else
+         let count = { count with least = max 1 count.least } in
+         Some
+           {
+             count;
+             lead;
+             gaps = (if count.most = Some 1 then None else Some gaps);
+             tail;
+           });
+  }
+
+(* A count: a natural number, or an interval [[n, m]] or [\[n, ∞)] of them,
+   its open ends closed over the integers. *)
+let count_of_lit lit =
+  let natural = function Closed (Int n) when n >= 0 -> Some n | _ -> None in
+  let reject () =
+    invalid_lit lit
+      "counts are natural numbers `n` or intervals `[n, m]` and `[n, ∞)`, not \
+       %s"
+      (describe_lit lit)
+  in
   match lit with
-  | Tuple [ lead; gaps; tail ] ->
-      let lead = interval ~context:"in the lead, " lead
-      and gaps = interval ~context:"in the gaps, " gaps
-      and tail = interval ~context:"in the tail, " tail in
-      {
-        silent = I.inter lead tail;
-        active = Some { lead; gaps = Some gaps; tail };
-      }
-  | lit ->
-      let ((_, hi) as gaps) = interval ~context:"in the gaps, " lit in
-      let stretch = (Closed Rational.zero, hi) in
-      {
-        silent = Some stretch;
-        active = Some { lead = stretch; gaps = Some gaps; tail = stretch };
-      }
+  | Int n when n >= 0 -> Count.point n
+  | Int n -> invalid_lit lit "counts are non-negative, not %d" n
+  | Interval (lo, hi) -> (
+      match integer_ends lit lo hi with
+      | lo, Unbounded -> (
+          match natural lo with
+          | Some n -> { Count.least = n; most = None }
+          | None -> reject ())
+      | lo, hi -> (
+          match (natural lo, natural hi) with
+          | Some n, Some m -> { Count.least = n; most = Some m }
+          | _ -> reject ()))
+  | _ -> reject ()
 
-let is_entry = function Tuple (Name _ :: _ :: _) -> true | _ -> false
+(* The name of an entry literal, [(X, ...)] or [(n, X, ...)]. *)
+let entry_name = function
+  | Tuple (Name x :: _ :: _) -> Some x
+  | Tuple ((Int _ | Rat _ | Interval _) :: Name x :: _) -> Some x
+  | _ -> None
 
-(* An entry of the short or the full form. *)
-let check_entry = function
-  | Tuple (Name name :: _) when String.equal name Indexed.fresh ->
-      invalid_lit (Tuple [ Name name ])
+let is_entry lit = Option.is_some (entry_name lit)
+
+(* The name and the entry of an entry literal: [(X, [s, t])], gaps in
+   [[s, t]] and stretches without [X] at most [t], or
+   [(X, lead, gaps, tail)], any number of [X]s; or [(n, X, [s, t])],
+   [(n, X, lead, tail)], the gaps unconstrained, and
+   [(n, X, lead, gaps, tail)], [n] of them. *)
+let entry_of_lit lit =
+  (match entry_name lit with
+  | Some x when String.equal x Indexed.fresh ->
+      invalid_lit (Tuple [ Name x ])
         "the entries of a specification name operations, the others being \
          unconstrained"
-  | Tuple [ Name _; _ ] | Tuple [ Name _; _; _; _ ] -> ()
-  | lit ->
+  | Some _ | None -> ());
+  let interval x context =
+    component_of_lit lit
+      ~context:(Printf.sprintf "in the entry of `%s`, %s" x context)
+      I.of_lit
+  in
+  let short x count gaps =
+    let gaps = interval x "in the gaps, " gaps in
+    make_entry count ~lead:(I.upto gaps) ~gaps ~tail:(I.upto gaps)
+  in
+  let full x count lead gaps tail =
+    make_entry count
+      ~lead:(interval x "in the lead, " lead)
+      ~gaps:
+        (Option.fold ~none:I.unbounded ~some:(interval x "in the gaps, ") gaps)
+      ~tail:(interval x "in the tail, " tail)
+  in
+  match lit with
+  | Tuple [ Name x; gaps ] -> (x, short x Count.unbounded gaps)
+  | Tuple [ Name x; lead; gaps; tail ] ->
+      (x, full x Count.unbounded lead (Some gaps) tail)
+  | Tuple (Name _ :: _) ->
       invalid_lit lit
         "an entry `(X, ...)` lists one interval, the gaps, or three, the lead, \
          the gaps and the tail"
+  | Tuple (count :: Name x :: rest) -> (
+      let count =
+        component_of_lit lit
+          ~context:(Printf.sprintf "in the entry of `%s`, in the count, " x)
+          count_of_lit count
+      in
+      let entry =
+        match rest with
+        | [ gaps ] -> short x count gaps
+        | [ lead; tail ] -> full x count lead None tail
+        | [ lead; gaps; tail ] -> full x count lead (Some gaps) tail
+        | [] | _ :: _ :: _ :: _ :: _ ->
+            invalid_lit lit
+              "an entry `(n, X, ...)` lists one interval, the gaps, two, the \
+               lead and the tail, or three, the lead, the gaps and the tail"
+      in
+      match entry with
+      | { silent = None; active = None } ->
+          invalid_lit lit
+            "the entry of `%s` admits no computation: a count of 0, and a lead \
+             and a tail that do not meet"
+            x
+      | entry -> (x, entry))
+  | lit ->
+      invalid_lit lit "entries are tuples `(X, ...)`, not %s" (describe_lit lit)
 
 (* [of_specification lit components] is the specification of the tuple
    [lit] of the entries and at most one interval of the total duration
    [components]. *)
 let of_specification lit components =
   let entries, totals = List.partition is_entry components in
-  List.iter (component_of_lit lit ~context:"" check_entry) entries;
+  let entries =
+    Grade.distinct_entries lit ~compare:String.compare
+      ~twice:(Printf.sprintf "the name `%s` is listed twice")
+      (List.map (component_of_lit lit ~context:"" entry_of_lit) entries)
+  in
   let total =
     match totals with
     | [] -> I.unbounded
@@ -294,8 +443,8 @@ let of_specification lit components =
   Terms.fixed
     {
       Summary.entries =
-        Indexed.of_entries_lit ~compare:Summary.compare_entry
-          ~default:Summary.top_entry entry_of_lit lit entries;
+        Indexed.of_list ~compare:Summary.compare_entry ~others:Summary.top_entry
+          entries;
       total;
     }
 
@@ -304,7 +453,7 @@ let of_lit lit =
   | Top -> top
   | Braces r -> of_braces lit r
   | (Int _ | Rat _ | Interval _) as lit -> Terms.delays (I.of_lit lit)
-  | Tuple (Name _ :: _ :: _) -> of_specification lit [ lit ]
+  | lit when is_entry lit -> of_specification lit [ lit ]
   | Tuple components when List.exists is_entry components ->
       of_specification lit components
   | Name name ->
@@ -324,33 +473,69 @@ let accepts = reads_lit of_lit
 (* Printing                                                            *)
 (* ------------------------------------------------------------------ *)
 
-(* The entry [e] of the name [name] as the literal of a specification, if it
-   has one: its silent stretches those its lead and tail permit, and gaps. *)
+(* The entry [e] of the name [name] as the first literal of an entry that
+   denotes it, if one does: the forms without a count, then those with one,
+   each with fewer components first. *)
 let entry_literal (name, (e : Summary.entry)) =
-  match e.active with
-  | Some { lead; gaps = Some gaps; tail }
-    when compare_opt I.compare e.silent (I.inter lead tail) = 0 ->
-      let stretch = (Closed Rational.zero, snd gaps) in
-      if I.compare lead stretch = 0 && I.compare tail stretch = 0 then
-        Some (Printf.sprintf "(%s, %s)" name (I.show gaps))
-      else
+  let parts =
+    match (e.active, e.silent) with
+    | Some a, silent ->
         Some
-          (Printf.sprintf "(%s, %s, %s, %s)" name (I.show lead) (I.show gaps)
-             (I.show tail))
-  | Some _ | None -> None
+          ( {
+              a.count with
+              least = (if Option.is_some silent then 0 else a.count.least);
+            },
+            a.lead,
+            Option.value a.gaps ~default:I.unbounded,
+            a.tail )
+    | None, Some s -> Some (Count.point 0, s, I.unbounded, s)
+    | None, None -> None
+  in
+  Option.bind parts (fun (count, lead, gaps, tail) ->
+      let n = Count.show count and stretch = I.upto gaps in
+      let show = List.map I.show in
+      let form count lead gaps tail components =
+        ( make_entry count ~lead ~gaps ~tail,
+          "(" ^ String.concat ", " components ^ ")" )
+      in
+      List.find_map
+        (fun (e', text) ->
+          if Summary.compare_entry e e' = 0 then Some text else None)
+        [
+          form Count.unbounded stretch gaps stretch (name :: show [ gaps ]);
+          form Count.unbounded lead gaps tail (name :: show [ lead; gaps; tail ]);
+          form count stretch gaps stretch (n :: name :: show [ gaps ]);
+          form count lead I.unbounded tail (n :: name :: show [ lead; tail ]);
+          form count lead gaps tail (n :: name :: show [ lead; gaps; tail ]);
+        ])
 
 (* The cases of the entry [e] of the name [name] in the notation of
-   summaries, an absent case omitted and no gaps written [∅]. *)
+   summaries, an absent case omitted, no gaps written [∅], and the count of an
+   active case written first where it is not [\[1, ∞)] or implied by the
+   absence of gaps. *)
 let show_entry (name, (e : Summary.entry)) =
+  let count (a : Summary.active) =
+    if
+      Option.is_none a.gaps
+      || Count.compare a.count { least = 1; most = None } = 0
+    then []
+    else [ Count.show a.count ]
+  in
   name ^ ": "
   ^ String.concat ", "
       (Option.to_list (Option.map (fun i -> "silent " ^ I.show i) e.silent)
       @ Option.to_list
           (Option.map
              (fun (a : Summary.active) ->
-               Printf.sprintf "active (%s, %s, %s)" (I.show a.lead)
-                 (Option.fold ~none:"∅" ~some:I.show a.gaps)
-                 (I.show a.tail))
+               "active ("
+               ^ String.concat ", "
+                   (count a
+                   @ [
+                       I.show a.lead;
+                       Option.fold ~none:"∅" ~some:I.show a.gaps;
+                       I.show a.tail;
+                     ])
+               ^ ")")
              e.active))
 
 (* A summary as the literal of a specification where it is one, and otherwise

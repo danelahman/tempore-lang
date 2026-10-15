@@ -17,21 +17,21 @@ each round is boxed until the second:
   return ()
   State: [
     0.6,
-    { resource_0 ↦ 1. # (ReadImu, [10, 45], [0, 0], [0, 1.5]) },
+    { resource_0 ↦ 1. # (1, ReadImu, [10, 45], [0, 1.5]) },
     1,
     10,
     0.6,
     1,
     10,
     0.6,
-    { resource_1 ↦ 1. # (ReadImu, [10, 45], [0, 0], [0, 1.5]) },
+    { resource_1 ↦ 1. # (1, ReadImu, [10, 45], [0, 1.5]) },
     1,
     10,
     0.6,
     1,
     10,
     0.6,
-    { resource_2 ↦ 1. # (ReadImu, [10, 45], [0, 0], [0, 1.5]) },
+    { resource_2 ↦ 1. # (1, ReadImu, [10, 45], [0, 1.5]) },
     1,
     10,
     0.6,
@@ -50,7 +50,7 @@ readings:
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `0 ⊔ {ReadImu; DrawBar; 10; ReadImu; (DrawBar | ClearDisplay; ShowTextAt; ShowTextAt; ShowTextAt; ShowNumberAt; ShowTextAt; ShowTextAt); 10} · (ReadImu, [0, 0], [0, 50], [0, 50])`, which does not match its annotated grade `(ReadImu, [0, 0], [0, 50], [0, 50])`
     Note: the effect inequality `0 ⊔ {ReadImu; DrawBar; 10; ReadImu; (DrawBar | ClearDisplay; ShowTextAt; ShowTextAt; ShowTextAt; ShowNumberAt; ShowTextAt; ShowTextAt); 10} · (ReadImu, [0, 0], [0, 50], [0, 50]) <= (ReadImu, [0, 0], [0, 50], [0, 50])` does not hold
-    Note: the grade `⟨ClearDisplay: silent [0, ∞), active ([10.4, ∞), [0, ∞), [0, ∞)); DrawBar: silent [0, 0], active ([0.2, 1.5], [0, ∞), [0, ∞)); ReadImu: active ([0, 0], [0, 257.5], [0, 257.5]); _: silent [0, ∞), active ([20.4, ∞), [0, ∞), [0, ∞))⟩` is below `0 ⊔ {ReadImu; DrawBar; 10; ReadImu; (DrawBar | ClearDisplay; ShowTextAt; ShowTextAt; ShowTextAt; ShowNumberAt; ShowTextAt; ShowTextAt); 10} · (ReadImu, [0, 0], [0, 50], [0, 50])` but not below `(ReadImu, [0, 0], [0, 50], [0, 50])`
+    Note: the grade `⟨ClearDisplay: silent [0, ∞), active ([10.4, ∞), [0, ∞), [0, ∞)); DrawBar: silent [0, 0], active ([0.2, 1.5], [0, ∞), [0, ∞)); ReadImu: active ([2, ∞), [0, 0], [0, 257.5], [0, 257.5]); _: silent [0, ∞), active ([20.4, ∞), [0, ∞), [0, ∞))⟩` is below `0 ⊔ {ReadImu; DrawBar; 10; ReadImu; (DrawBar | ClearDisplay; ShowTextAt; ShowTextAt; ShowTextAt; ShowNumberAt; ShowTextAt; ShowTextAt); 10} · (ReadImu, [0, 0], [0, 50], [0, 50])` but not below `(ReadImu, [0, 0], [0, 50], [0, 50])`
   [1]
 
 The second rejected variant: the second reading follows the first at once,
@@ -60,16 +60,16 @@ and may return the same sample:
   File "steps/at_once.tpe", lines 11-17, characters 6-74:
   11 |       unbox first as a in
              ^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `first` is unboxed with grade `{ReadImu}` accumulated since it was bound, which is not below its box grade `(ReadImu, [10, 45], [0, 0], [0, 1.5])`
-    File "steps/at_once.tpe", line 9, characters 53-58:
-    9 |       box (ReadImu, [10, 45], [0, 0], [0, 1.5]) a as first in
-                                                             ^^^^^
+  Typing error: Variable `first` is unboxed with grade `{ReadImu}` accumulated since it was bound, which is not below its box grade `(1, ReadImu, [10, 45], [0, 1.5])`
+    File "steps/at_once.tpe", line 9, characters 48-53:
+    9 |       box (1, ReadImu, [10, 45], [0, 1.5]) a as first in
+                                                        ^^^^^
     `first` is bound here
     File "steps/at_once.tpe", line 10, characters 14-21:
     10 |       let b = load () in
                        ^^^^^^^
     grade `{ReadImu}` accumulates here (this computation)
-    Note: the resource inequality `{ReadImu} <= (ReadImu, [10, 45], [0, 0], [0, 1.5])` does not hold
+    Note: the resource inequality `{ReadImu} <= (1, ReadImu, [10, 45], [0, 1.5])` does not hold
   [1]
 
 The project, for the board m5stack-cores3; its sources compile without

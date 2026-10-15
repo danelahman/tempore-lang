@@ -1050,6 +1050,11 @@ sequencing joins the tail of one part and the lead of the next into a gap.
   loop whose body starts with `X` and takes at most `t` is
   `(X, [0, 0], [0, t], [0, t])`. The short form is no loop invariant, as two
   stretches of `t` may meet.
+- `(n, X, gaps)`, `(n, X, lead, tail)` and `(n, X, lead, gaps, tail)`: the
+  same with a count, exactly `n` occurrences of `X`, or between `n` and `m`
+  for `[n, m]`; `(1, Read, [10, 45], [0, 1.5])` is one `Read`, started 10 to
+  45 after the start, the end at most 1.5 after it. A form without a count
+  allows any number of occurrences, spaced as stated.
 - A tuple of such entries and at most one interval, the total duration, as in
   `((Read, [0, 20]), (Draw, [0, 50]), [0, 100])`; operations not listed are
   unconstrained.
@@ -1066,7 +1071,15 @@ let rec heartbeat n : unit # (Beat, [0, 0], [0, 5], [0, 5]) =
 ```
 
 is accepted, as a round takes at most 3.5, while a second `perform Work ()`
-would be rejected, as a gap may then be 6.5. See
+would be rejected, as a gap may then be 6.5.
+
+Counts add under sequencing, so they suit bounded stretches, such as a box
+held over exactly one new reading, and not loop invariants, which carry no
+count. The step counter splits the two: its loop invariant bounds the spacing
+of the readings, and the box of a reading the count and the times until its
+use. `counts-upper-bound` bounds the numbers of calls from above, without
+times; `event-separation` bounds counts together with the times before,
+between and after the occurrences. See
 [`examples/opentrons/binding.tpe`](examples/opentrons/binding.tpe) and
 [`examples/arduino/steps/steps.tpe`](examples/arduino/steps/steps.tpe).
 

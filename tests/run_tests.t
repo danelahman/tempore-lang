@@ -1161,6 +1161,14 @@ it names none:
     2
   ]
   
+  === Run 5 ===
+  return 7
+  State: [
+    { resource_0 ↦ 7 # (2, Beat, [0, 1]) },
+    0.2,
+    0.2
+  ]
+  
   ======================================================================
   event_separation_reject.tpe
   ======================================================================
@@ -1169,7 +1177,7 @@ it names none:
                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `0 ⊔ {Beat; Work; Work} · (Beat, [0, 0], [0, 5], [0, 5])`, which does not match its annotated grade `(Beat, [0, 0], [0, 5], [0, 5])`
     Note: the effect inequality `0 ⊔ {Beat; Work; Work} · (Beat, [0, 0], [0, 5], [0, 5]) <= (Beat, [0, 0], [0, 5], [0, 5])` does not hold
-    Note: the grade `⟨Beat: active ([0, 0], [0, 6.5], [0, 6.5]); Work: silent [0, 0], active ([0.1, 0.5], [0, ∞), [0, ∞)); _: silent [0, ∞), active ([2.1, ∞), [0, ∞), [0, ∞))⟩` is below `0 ⊔ {Beat; Work; Work} · (Beat, [0, 0], [0, 5], [0, 5])` but not below `(Beat, [0, 0], [0, 5], [0, 5])`
+    Note: the grade `⟨Beat: active ([0, 0], [0, 6.5], [0, 6.5]); Work: silent [0, 0], active ([2, ∞), [0.1, 0.5], [0, ∞), [0, ∞)); _: silent [0, ∞), active ([2.1, ∞), [0, ∞), [0, ∞))⟩` is below `0 ⊔ {Beat; Work; Work} · (Beat, [0, 0], [0, 5], [0, 5])` but not below `(Beat, [0, 0], [0, 5], [0, 5])`
   
   File "event_separation_reject.tpe", lines 29-35, characters 16-13:
   29 | let rec beeps n : unit # (Beep, [2, ∞)) =
@@ -1184,6 +1192,42 @@ it names none:
   Typing error: This function's body has grade `0 ⊔ {Beat; Work} · (Beat, [0, 5])`, which does not match its annotated grade `(Beat, [0, 5])`
     Note: the effect inequality `0 ⊔ {Beat; Work} · (Beat, [0, 5]) <= (Beat, [0, 5])` does not hold
     Note: the grade `⟨Beat: active ([0, 0], [0, 8.5], [0, 8.5]); Work: silent [0, 0], active ([0.1, 0.5], [0, ∞), [0, ∞)); _: silent [0, ∞), active ([1.1, ∞), [0, ∞), [0, ∞))⟩` is below `0 ⊔ {Beat; Work} · (Beat, [0, 5])` but not below `(Beat, [0, 5])`
+  
+  File "event_separation_reject.tpe", lines 54-55, characters 2-3:
+  54 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `{Beat; Beat; Beat}` accumulated since it was bound, which is not below its box grade `(2, Beat, [0, 1])`
+    File "event_separation_reject.tpe", line 50, characters 29-30:
+    50 |   box (2, Beat, [0, 1]) 7 as x in
+                                      ^
+    `x` is bound here
+    File "event_separation_reject.tpe", line 51, characters 2-17:
+    51 |   perform Beat ();
+           ^^^^^^^^^^^^^^^
+    grade `{Beat}` accumulates here (operation `Beat`)
+    File "event_separation_reject.tpe", line 52, characters 2-17:
+    52 |   perform Beat ();
+           ^^^^^^^^^^^^^^^
+    grade `{Beat}` accumulates here (operation `Beat`)
+    File "event_separation_reject.tpe", line 53, characters 2-17:
+    53 |   perform Beat ();
+           ^^^^^^^^^^^^^^^
+    grade `{Beat}` accumulates here (operation `Beat`)
+    Note: the resource inequality `{Beat; Beat; Beat} <= (2, Beat, [0, 1])` does not hold
+  
+  File "event_separation_reject.tpe", lines 61-62, characters 2-3:
+  61 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `{Beat}` accumulated since it was bound, which is not below its box grade `(2, Beat, [0, 1])`
+    File "event_separation_reject.tpe", line 59, characters 29-30:
+    59 |   box (2, Beat, [0, 1]) 7 as x in
+                                      ^
+    `x` is bound here
+    File "event_separation_reject.tpe", line 60, characters 2-17:
+    60 |   perform Beat ();
+           ^^^^^^^^^^^^^^^
+    grade `{Beat}` accumulates here (operation `Beat`)
+    Note: the resource inequality `{Beat} <= (2, Beat, [0, 1])` does not hold
   ======================================================================
   event_separation_reject_unknown.tpe
   ======================================================================
