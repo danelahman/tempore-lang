@@ -715,6 +715,8 @@ port variable `PORT_M5STACK_GRAY`).
     commands the motors, and uses the reading of the unit only if no command
     of the motors and no delay came between, across any number of reads of
     the encoders and setpoints.
+  - The bias is measured from readings of the attitude at most 10 ms apart,
+    with no other operation between.
   - The supervision disarms, calibrates, arms at least a second after its
     prompt, drives and disarms, in this order.
   - Handlers, which the device does not use, simulate the robot and a fault

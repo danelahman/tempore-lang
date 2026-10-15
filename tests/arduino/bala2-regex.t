@@ -1,5 +1,5 @@
 The BALA2 application of examples/arduino/bala2-regex: the balancing robot
-under the regular expressions of timed operations, with the declarations of
+under the rigid regular expressions of timed operations, with the declarations of
 the packages m5-imu, m5-display and bala2-base under these grades and the
 binding file and host model of examples/arduino/bala2: its runs by the
 interpreter, its rejected variants, and its closed loop with the host model
@@ -19,24 +19,24 @@ implementations of the operations:
   === Run 1 ===
   return (2.8812, 0., 0., 0., 0.)
   State: [
-    [{0.6}, {0.6}],
+    [{!0.6}, {!0.6}],
     { resource_0 ↦
         ((0., 0., 1.), (0., 0., 0.))
         # [{(ReadEncoders | Setpoints)*}, {(ReadEncoders | Setpoints)*}]
     },
-    [{0.5}, {0.5}],
-    [{0.01}, {0.01}],
-    [{0.01}, {0.01}],
-    [{0.2}, {0.2}],
-    [{0.6}, {0.6}],
+    [{!0.5}, {!0.5}],
+    [{!0.01}, {!0.01}],
+    [{!0.01}, {!0.01}],
+    [{!0.2}, {!0.2}],
+    [{!0.6}, {!0.6}],
     { resource_1 ↦
         ((0., 0., 1.), (0., 0., 0.))
         # [{(ReadEncoders | Setpoints)*}, {(ReadEncoders | Setpoints)*}]
     },
-    [{0.5}, {0.5}],
-    [{0.01}, {0.01}],
-    [{0.01}, {0.01}],
-    [{0.2}, {0.2}]
+    [{!0.5}, {!0.5}],
+    [{!0.01}, {!0.01}],
+    [{!0.01}, {!0.01}],
+    [{!0.2}, {!0.2}]
   ]
   
 
@@ -54,9 +54,10 @@ the motors:
 
 The rejected variants, each loaded after the application: a reading of the
 unit used after a command of the motors, a measurement of the bias without
-disarming, and a handler whose case of ReadImu also commands the motors:
+disarming, a handler whose case of ReadImu also commands the motors, and a
+measurement of the bias that shows the rates left between its readings:
 
-  $ for v in stopped armed commanding; do packages --typecheck-only $app/balance_regex.tpe bala2-regex/$v.tpe; echo "[$?]"; done
+  $ for v in stopped armed commanding shown; do packages --typecheck-only $app/balance_regex.tpe bala2-regex/$v.tpe; echo "[$?]"; done
   File "bala2-regex/stopped.tpe", lines 11-19, characters 2-39:
   11 |   unbox fresh as imu in
          ^^^^^^^^^^^^^^^^^^^^^
@@ -78,12 +79,13 @@ disarming, and a handler whose case of ReadImu also commands the motors:
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{SetMotors | 0}, {SetMotors | 0}]` accumulates here (this computation)
     Note: the resource inequality `[{ReadEncoders; Setpoints; (SetMotors | 0)}, {ReadEncoders; Setpoints; (SetMotors | 0)}] <= [{(ReadEncoders | Setpoints)*}, {(ReadEncoders | Setpoints)*}]` does not hold
+    Note: the grade `[{ReadEncoders; Setpoints; (SetMotors | 0)}, {ReadEncoders; Setpoints; SetMotors}]` is below `[{ReadEncoders; Setpoints; (SetMotors | 0)}, {ReadEncoders; Setpoints; (SetMotors | 0)}]` but not below `[{(ReadEncoders | Setpoints)*}, {(ReadEncoders | Setpoints)*}]`
   [1]
   File "bala2-regex/armed.tpe", lines 4-12, characters 26-13:
   4 | let measure_bias_armed () : float
                                 ^^^^^^^
-  Typing error: This function's body has grade `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText}, {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; _*}]`, which does not match its annotated grade `[{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`
-    Note: the effect inequality `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText}, {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; _*}] <= [{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]` does not hold
+  Typing error: This function's body has grade `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`, which does not match its annotated grade `[{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`
+    Note: the effect inequality `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}] <= [{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]` does not hold
   [1]
   File "bala2-regex/commanding.tpe", line 10, characters 6-29:
   10 |       continue k with reading
@@ -103,13 +105,20 @@ disarming, and a handler whose case of ReadImu also commands the motors:
     grade `[{SetMotors}, {SetMotors}]` accumulates here (operation `SetMotors`)
     Note: the resource inequality `[{ReadImu; SetMotors}, {ReadImu; SetMotors}] <= [{ReadImu}, {ReadImu}]` does not hold
   [1]
+  File "bala2-regex/shown.tpe", lines 4-11, characters 47-36:
+  4 | let rec rate_sum_shown (n : nat) (sum : float) : float # {(Attitude; 10)*} =
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `[{Attitude; ShowNumber; !10; (Attitude; 10)* | 0}, {Attitude; ShowNumber; !10; (Attitude; 10)* | 0}]`, which does not match its annotated grade `[{(Attitude; 10)*}, {(Attitude; 10)*}]`
+    Note: the effect inequality `[{Attitude; ShowNumber; !10; (Attitude; 10)* | 0}, {Attitude; ShowNumber; !10; (Attitude; 10)* | 0}] <= [{(Attitude; 10)*}, {(Attitude; 10)*}]` does not hold
+    Note: the grade `[{Attitude; ShowNumber; !10; (Attitude; 10)* | 0}, {Attitude; ShowNumber; !10}]` is below `[{Attitude; ShowNumber; !10; (Attitude; 10)* | 0}, {Attitude; ShowNumber; !10; (Attitude; 10)* | 0}]` but not below `[{(Attitude; 10)*}, {(Attitude; 10)*}]`
+  [1]
 
 The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json $app/balance_regex.tpe | grep -c Wrote
-  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 346, characters 26-27:
-  346 |       let s, _ = continue k with () in
+  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 362, characters 26-27:
+  362 |       let s, _ = continue k with () in
                                   ^
   Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
   33
@@ -149,8 +158,8 @@ bounds, and prints the other events as they are:
   > }
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json --host-simulate 8 $app/balance_regex.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
-  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 346, characters 26-27:
-  346 |       let s, _ = continue k with () in
+  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 362, characters 26-27:
+  362 |       let s, _ = continue k with () in
                                   ^
   Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
   [31.245 ms] Display cleared

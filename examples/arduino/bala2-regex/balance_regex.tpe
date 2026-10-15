@@ -1,17 +1,17 @@
 (* The M5Stack BALA2 balancing robot under timed regular expressions: the
    order and timing of its control step and its supervision
 
-   Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-interval-rational-symbolic \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        --package m5-imu \
        --package m5-display \
        --package bala2-base \
        --board m5stack-gray \
        examples/arduino/bala2-regex/balance_regex.tpe
 
-   Grades [L, U]: a lower and upper regular-language bound on the traces with
-   rational durations
+   Grades [L, U]: a lower bound in the coverage order and an upper bound in
+   the rigid allowance order on the traces with rational durations
      - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
      - Top [{0}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
@@ -200,6 +200,9 @@ let step_stopped
 (* The supervision. The bias of the gyroscope is the mean of 50 rates
    published by the step 10 ms apart, with the robot held still. *)
 
+(* Correctly accepted by the typechecker: the sum of n rates, each read
+   after the last within 10 ms, with no other operation between. *)
+
 let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; 10)*} =
   match n with
   | 0 -> sum
@@ -226,21 +229,13 @@ let measure_bias () : float
 (* Correctly rejected by the typechecker: the measurement does not disarm
    the robot first, so that the motors may move it while the rates are read:
 
-     Typing error: This function's body has grade
-       `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText},
-       {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; _*}]`, which does
-       not match its annotated grade
-       `[{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
-       (Attitude; 10)*},
-       {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
-       (Attitude; 10)*}]`
-       Note: the effect inequality
-         `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText},
-         {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; _*}] <=
-         [{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
-         (Attitude; 10)*},
-         {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
-         (Attitude; 10)*}]` does not hold
+     Typing error: This function's body has grade `[{ClearDisplay;
+       ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {ClearDisplay;
+       ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`, which does not
+       match its annotated grade `[{Disarm; ClearDisplay; ShowTextAt;
+       ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay;
+       ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`
+       ...
 *)
 (*
 let measure_bias_armed () : float
@@ -252,6 +247,27 @@ let measure_bias_armed () : float
   perform ShowText "Calibrating";
   let sum = rate_sum 50 0.0 in
   sum /. 50.0
+*)
+
+(* Correctly rejected by the typechecker: the measurement shows the number
+   of rates left, which stretches the time between two readings to up to
+   22.5 ms:
+
+     Typing error: This function's body has grade `[{Attitude; ShowNumber;
+       !10; (Attitude; 10)* | 0}, {Attitude; ShowNumber; !10; (Attitude; 10)*
+       | 0}]`, which does not match its annotated grade `[{(Attitude; 10)*},
+       {(Attitude; 10)*}]`
+       ...
+*)
+(*
+let rec rate_sum_shown (n : nat) (sum : float) : float # {(Attitude; 10)*} =
+  match n with
+  | 0 -> sum
+  | m + 1 ->
+      let _, rate = perform Attitude () in
+      perform ShowNumber (float_of_nat m);
+      delay 10;
+      rate_sum_shown m (sum +. rate)
 *)
 
 (* The calibration is boxed with a message on the display followed by a
