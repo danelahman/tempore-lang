@@ -170,7 +170,12 @@ each is a minute.
 - [`elisa.tpe`](../../../examples/opentrons/elisa.tpe): an enzyme-linked
   immunosorbent assay under `time-interval`.
 - [`washes.tpe`](../../../examples/opentrons/washes.tpe): a bead clean-up
-  with exactly two ethanol washes, under `regex-timed-interval-symbolic`.
+  with two or more ethanol washes, under `regex-timed-rigid-interval-symbolic`,
+  whose recursion `washes n` has the grade `{(Wash; ChangeTip)*}`: each wash
+  is followed by a fresh tip and nothing else. The binding and the air-dry
+  are strict delays, `{AddBeads; ![5, 10]; MagnetOn}`, waiting only, and a
+  box of the whole run excludes a removal of liquid with the plate off the
+  magnet.
 - [`contamination.tpe`](../../../examples/opentrons/contamination.tpe): a
   ddPCR plate set-up under `time-upper-bound-levels`.
 - [`reagents.tpe`](../../../examples/opentrons/reagents.tpe): a tagmentation
@@ -188,19 +193,22 @@ each is a minute.
   read with plates boxed `[0, 30]`, under `time-interval`.
 - [`cleanup.tpe`](../../../examples/opentrons/cleanup.tpe): a bead clean-up
   whose compound operations are performed by a handler through the atomic
-  operations, under `regex-timed-interval-symbolic`.
+  operations, under `regex-timed-rigid-interval-symbolic`.
 - [`purification.tpe`](../../../examples/opentrons/purification.tpe): a
-  bead purification under `regex-timed-interval-rational-symbolic` whose
+  bead purification under `regex-timed-rigid-interval-rational-symbolic` whose
   steps each take the beads in a box and return them in the box of the next
   step, its grade the window of that step, e.g. `{[3, 5]; MagnetOff}` for
   the air-dry before the elution buffer. The box after the first ethanol
   wash spans the whole second wash, so that exactly two washes are accepted.
+  The ethanol soaks are strict delays, `{AddEthanol; ![1/2, 3/2]}`, during
+  which the plate stays on the magnet.
   The eluates are boxed `{Transfer}` with a function whose call creates
   their box `[2, 5]` of the master mix, so that its window starts on the
   cold block. A box `[0, 40]` of the samples, whose scope encloses the
   steps, bounds their time at room temperature, below the 47 minutes the
   windows of the steps allow in all. Its rejected variants overdry the
-  beads, take the upper end of several windows, and wash once.
+  beads, take the upper end of several windows, wash once, and move the
+  plate off the magnet during a soak.
 
 ## Adding an example
 

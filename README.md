@@ -823,9 +823,11 @@ too. The implementations kept for benchmarking take the suffixes of the grades
 above; they have no strict delays.
 
 See
-[`examples/regular_timed_rigid/upper_bounds_rational.tpe`](examples/regular_timed_rigid/upper_bounds_rational.tpe)
-and
-[`examples/regular_timed_rigid/intervals_rational.tpe`](examples/regular_timed_rigid/intervals_rational.tpe).
+[`examples/regular_timed_rigid/upper_bounds_rational.tpe`](examples/regular_timed_rigid/upper_bounds_rational.tpe),
+[`examples/regular_timed_rigid/intervals_rational.tpe`](examples/regular_timed_rigid/intervals_rational.tpe)
+and the Opentrons example
+[`examples/opentrons/washes.tpe`](examples/opentrons/washes.tpe), whose washes
+are a recursion of grade `{(Wash; ChangeTip)*}`.
 
 #### Strict delays
 
@@ -913,8 +915,14 @@ With budget delays, `{(_ & ~A)*}` is still `⊤`: an `A` fits in a delay. A
 complement of a delay does not exclude it: `{~!1}` permits `!1`, which is
 shorter than `!2`.
 
-See [`tests/strict_delays_rational_reject.tpe`](tests/strict_delays_rational_reject.tpe)
-and [`tests/strict_delays_lower_reject.tpe`](tests/strict_delays_lower_reject.tpe).
+See [`tests/strict_delays_rational_reject.tpe`](tests/strict_delays_rational_reject.tpe),
+[`tests/strict_delays_lower_reject.tpe`](tests/strict_delays_lower_reject.tpe)
+and the Opentrons examples
+[`examples/opentrons/washes.tpe`](examples/opentrons/washes.tpe), with a strict
+binding, a strict air-dry and a box excluding a removal of liquid off the
+magnet, and
+[`examples/opentrons/purification.tpe`](examples/opentrons/purification.tpe),
+with strict ethanol soaks.
 
 ### Security levels and products
 
@@ -1613,11 +1621,11 @@ prints
     Run 1 returned () at (7.1, 11.1).
 
 Grades whose ends exceed 40 characters, such as the traces of the Opentrons
-examples under `regex-timed-interval-symbolic`, are shortened for display at
-the separators `; ` of their events, never inside an event: the grade
-accumulated keeps its last events, `{…; 3; ChangeTip; MagnetOff; EluteDNA}`, a box
-grade its first, `{Wash; ChangeTip; Wash; 2; …}`. The grades themselves
-are unchanged; `--timeline-full` prints them in full.
+examples under `regex-timed-rigid-interval-symbolic`, are shortened for
+display at the separators `; ` of their events, never inside an event: the
+grade accumulated keeps its last events,
+`{…; !3; ChangeTip; MagnetOff; EluteDNA}`, a box grade its first. The grades
+themselves are unchanged; `--timeline-full` prints them in full.
 
 ### Arduino
 
@@ -1694,8 +1702,8 @@ binding file and a rejected variant:
 
 - [`elisa`](examples/opentrons/elisa.tpe), an enzyme-linked immunosorbent
   assay;
-- [`washes`](examples/opentrons/washes.tpe), a bead clean-up with exactly two
-  ethanol washes;
+- [`washes`](examples/opentrons/washes.tpe), a bead clean-up with two or more
+  ethanol washes, each followed by a fresh tip;
 - [`contamination`](examples/opentrons/contamination.tpe), a ddPCR plate
   set-up;
 - [`reagents`](examples/opentrons/reagents.tpe), a tagmentation with boxed

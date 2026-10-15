@@ -241,14 +241,17 @@ let group keep k (c, items) =
   | Some _ | None -> c
 
 (* The interval [s] read as ends and groups of items: [ends] are its ends,
-   [most] the largest number of items in a group, and [ends_at k] and
+   [most] the largest number of items in a group, [ends_at k] and
    [interval_at k] the ends and the interval with every group reduced to [k]
-   items. *)
+   items, and [one_end_at k] the interval with its first ([Beginning]) or last
+   ([End]) end so reduced and the others replaced by […], if it has more than
+   one end. *)
 type reduced = {
   ends : string list;
   most : int;
   ends_at : int -> string list;
   interval_at : int -> string;
+  one_end_at : int -> string option;
 }
 
 let reduced keep s =
@@ -262,7 +265,16 @@ let reduced keep s =
   in
   let ends_at k = List.map (group keep k) groups in
   let at k = opening ^ String.concat ", " (ends_at k) ^ closing in
-  { ends; most; ends_at; interval_at = at }
+  let one_end_at k =
+    match (keep, groups) with
+    | _, ([] | [ _ ]) -> None
+    | Beginning, first :: _ ->
+        Some (opening ^ group keep k first ^ ", " ^ ellipsis ^ closing)
+    | End, groups ->
+        let last = List.nth groups (List.length groups - 1) in
+        Some (opening ^ ellipsis ^ ", " ^ group keep k last ^ closing)
+  in
+  { ends; most; ends_at; interval_at = at; one_end_at }
 
 (* The first or last [n - 1] characters of [s] with the ellipsis. *)
 let cut_ellipsis keep n s =
@@ -282,16 +294,20 @@ let shorten keep s =
 let shorten_total keep n s =
   if length s <= n then Some s
   else
-    let { most; interval_at = at; _ } = reduced keep s in
+    let { most; interval_at = at; one_end_at; _ } = reduced keep s in
     if most = 0 then if n >= 2 then Some (cut_ellipsis keep n s) else None
     else
-      let rec fit k =
+      let rec fit at k =
         if k < 1 then None
         else
-          let candidate = at k in
-          if length candidate <= n then Some candidate else fit (k - 1)
+          match at k with
+          | Some candidate when length candidate <= n -> Some candidate
+          | _ -> fit at (k - 1)
       in
-      fit (max 1 (most - 1))
+      let k = max 1 (most - 1) in
+      match fit (fun k -> Some (at k)) k with
+      | Some _ as fitted -> fitted
+      | None -> fit one_end_at most
 
 let event_limit = 50
 

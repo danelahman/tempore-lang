@@ -101,9 +101,27 @@ let canonical rho =
 (* The printed grades, by the numbers of their normal forms. *)
 let printed : string Memo.Ints.t = Memo.Ints.create 64
 
-(* A grade with strict delays is printed as its normal form, its strict
-   delays as such, and as [⊤] if it is the language of all well-formed
+(* The brace literals with strict delays, by the numbers of the normal forms
+   read from them: the first literal read of each normal form. *)
+let written : string Memo.Ints.t = Memo.Ints.create 16
+
+(* Whether [rho] has strict delays and is not the language of all well-formed
    words. *)
+let has_strict rho =
+  StrictDelays.has_markers (R.names rho)
+  && not (R.equal_form rho Encoding.words)
+
+let record_literal rho = function
+  | Braces r when has_strict rho && Memo.Ints.find_opt written (R.id rho) = None
+    ->
+      let literal = "{" ^ show_regex r ^ "}" in
+      Memo.Ints.replace written (R.id rho) literal;
+      Memo.Ints.replace printed (R.id rho) literal
+  | _ -> ()
+
+(* A grade with strict delays is printed as [⊤] if it is the language of all
+   well-formed words, else as the brace literal it was first read from
+   ({!record_literal}), else as its normal form, its strict delays as such. *)
 let show rho =
   Memo.Ints.find_or_add printed (R.id rho) (fun () ->
       if StrictDelays.has_markers (R.names rho) then
@@ -193,10 +211,16 @@ struct
     let top = Encoding.words
     let of_delay d = Encoding.strict (ticks d)
 
-    let of_lit =
+    let read =
       of_lit_with ~ticks ~top ~of_regex:Encoding.of_regex ~is_empty:D.is_empty
 
-    let accepts = accepts_with of_lit
+    (* A literal with strict delays is recorded for printing. *)
+    let of_lit lit =
+      let rho = read lit in
+      record_literal rho lit;
+      rho
+
+    let accepts = accepts_with read
   end
 
   (** {1 Traces over given names} *)

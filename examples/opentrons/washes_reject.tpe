@@ -1,11 +1,12 @@
-(* As the bead clean-up example, with one ethanol wash in place of two.
+(* As the bead clean-up example, with one ethanol wash in place of two or more.
 
-   Run this example with the 'regex-timed-interval-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-timed-rigid-interval-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-interval-symbolic \
+     ./tempore --grades regex-timed-rigid-interval-symbolic \
        examples/opentrons/washes_reject.tpe
 
-   Grades [L, U]: a lower and upper regular-language bound on the traces
+   Grades [L, U]: a lower bound in the coverage order and an upper bound in
+   the rigid allowance order on the traces
      - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
      - Top [{0}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
@@ -21,14 +22,16 @@ default ChangeTip () = delay 1
 operation EluteDNA : unit ~> unit # {EluteDNA} within [1, 2]
 default EluteDNA () = delay 1
 
-(* Correctly rejected by the typechecker: the beads are washed once only:
+(* Correctly rejected by the typechecker: the beads are washed once only,
+   short of the two washes the lower bound demands:
 
-     Typing error: Variable `washed` is unboxed with grade
-       `[{Wash; 3; ChangeTip}, {Wash; 3; ChangeTip}]` accumulated since
-       it was bound, which is not below its box grade ...
+     Typing error: Variable `washed` is unboxed with grade `[{Wash; !3;
+       ChangeTip}, {Wash; !3; ChangeTip}]` accumulated since it was bound,
+       which is not below its box grade ...
 *)
 let one_wash (beads : beads) =
-  box {Wash; ChangeTip; Wash; [2, 3]; ChangeTip} beads as washed in
+  box [{Wash; ChangeTip; Wash; !2; ChangeTip},
+       {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}] beads as washed in
   perform Wash ();
   delay 3;
   perform ChangeTip ();
