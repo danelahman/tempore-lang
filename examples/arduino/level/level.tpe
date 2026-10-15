@@ -205,7 +205,8 @@ let take_unchecked () : reference =
    followed by a reconfiguration and a check at rest or by nothing, without
    delays: each is used only if no other operation came between, the
    reference after a reconfiguration only after a check at rest, and never
-   after a new reference.
+   after a new reference. After a reconfiguration the first reading is
+   stale, and the step discards it and draws a new one, as its box demands.
 
    A box is checked from its binding to its unboxing, within one function
    body. The reference persists from step to step in the state, as data:

@@ -202,13 +202,16 @@ let rec alarm (n : nat) (seconds : nat) : unit
         alarm m (seconds + 1))
 
 (* Raises the alarm for a fall: the alarm on the screen, in red, with the
-   peak of the impact, and the first tone. *)
-let raise ((Fall (_, peak)) : fall) =
+   peak of the impact and the least magnitude of the free fall, and the
+   first tone. *)
+let raise ((Fall (least, peak)) : fall) =
   frame ();
   perform ShowColourTextAt (0, 44, 3, white, red, "ALARM");
   perform ShowColourTextAt (0, 76, 2, white, red, "Tap to stop");
   perform ShowTextAt (0, 100, 2, "Impact (g)");
   perform ShowNumberAt (160, 100, 2, 1, peak);
+  perform ShowTextAt (0, 122, 2, "Free fall (g)");
+  perform ShowNumberAt (160, 122, 2, 2, least);
   perform ShowTimeAt (0, 146, 2, "Alarm for ", 0);
   perform Beep (2000, 500);
   alarm 4000000000 0
@@ -320,39 +323,6 @@ let rec monitor (n : nat) (falls : nat) (since : nat) : unit # {_*} =
 let watch () =
   idle 0;
   monitor 4000000000 0 0
-
-(* Correctly rejected by the typechecker: the free fall is confirmed after
-   five readings, 51 to 57.5 ms, shorter than 100 ms:
-
-     Typing error: Variable `onset` is unboxed with grade `[{!10; ReadImu;
-       !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {!10;
-       ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{100}, {(![9.5, 10.5]; ReadImu)*}]`
-       ...
-*)
-(*
-let suspect_brief (first : float) =
-  box [{100}, {(![9.5, 10.5]; ReadImu)*}] first as onset in
-  let falling = low (low (low (low (low true)))) in
-  if falling then (unbox onset as least in least) else first
-*)
-
-(* Correctly rejected by the typechecker: the impact is searched for over a
-   hundred readings, up to 1150 ms after the end of the free fall:
-
-     Typing error: Variable `window` is unboxed with grade `[{[0, 920];
-       [0, 115]; [0, 115]}, {[0, 920]; [0, 115]; [0, 115]}]` accumulated
-       since it was bound, which is not below its box grade `[{0}, {1000}]`
-       ...
-*)
-(*
-let suspect_late (least : float) =
-  box [0, 1000] least as window in
-  let peak = strikes (strikes (search ())) in
-  if peak > impact then (unbox window as least in Fall (least, peak))
-  else Fall (least, 0.0)
-*)
 
 (* Correctly rejected by the typechecker: the response waits twenty seconds
    and raises the alarm without the prompt and the tone that ask for a tap:

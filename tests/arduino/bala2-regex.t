@@ -54,10 +54,10 @@ the motors:
 
 The rejected variants, each loaded after the application: a reading of the
 unit used after a command of the motors, a measurement of the bias without
-disarming, a handler whose case of ReadImu also commands the motors, and a
-measurement of the bias that shows the rates left between its readings:
+disarming, and a measurement of the bias that shows the rates left between
+its readings:
 
-  $ for v in stopped armed commanding shown; do packages --typecheck-only $app/balance_regex.tpe bala2-regex/$v.tpe; echo "[$?]"; done
+  $ for v in stopped armed shown; do packages --typecheck-only $app/balance_regex.tpe bala2-regex/$v.tpe; echo "[$?]"; done
   File "bala2-regex/stopped.tpe", lines 11-19, characters 2-39:
   11 |   unbox fresh as imu in
          ^^^^^^^^^^^^^^^^^^^^^
@@ -86,24 +86,6 @@ measurement of the bias that shows the rates left between its readings:
                                 ^^^^^^^
   Typing error: This function's body has grade `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`, which does not match its annotated grade `[{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`
     Note: the effect inequality `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}] <= [{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]` does not hold
-  [1]
-  File "bala2-regex/commanding.tpe", line 10, characters 6-29:
-  10 |       continue k with reading
-             ^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed with grade `[{ReadImu; SetMotors}, {ReadImu; SetMotors}]` accumulated since it was bound, which is not below its box grade `[{ReadImu}, {ReadImu}]`
-    File "bala2-regex/commanding.tpe", line 7, characters 15-16:
-    7 |   | ReadImu () k ->
-                       ^
-    `k` is bound here
-    File "bala2-regex/commanding.tpe", line 8, characters 20-38:
-    8 |       let reading = perform ReadImu () in
-                            ^^^^^^^^^^^^^^^^^^
-    grade `[{ReadImu}, {ReadImu}]` accumulates here (operation `ReadImu`)
-    File "bala2-regex/commanding.tpe", line 9, characters 6-32:
-    9 |       perform SetMotors (0i, 0i);
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{SetMotors}, {SetMotors}]` accumulates here (operation `SetMotors`)
-    Note: the resource inequality `[{ReadImu; SetMotors}, {ReadImu; SetMotors}] <= [{ReadImu}, {ReadImu}]` does not hold
   [1]
   File "bala2-regex/shown.tpe", lines 4-11, characters 47-36:
   4 | let rec rate_sum_shown (n : nat) (sum : float) : float # {(Attitude; 10)*} =

@@ -173,39 +173,6 @@ let profile (drive : int) : float * float =
     rise (speed 0i r1 spacing) (speed r1 r2 spacing) (speed r2 r3 spacing)
       (speed r3 r4 spacing) (speed r4 r5 spacing) spacing )
 
-(* Correctly rejected by the typechecker: the profile shows the first count
-   on the display between two samples, which takes up to 12.5 ms, so that
-   the samples may be up to 33.25 ms of waiting and drawing apart:
-
-     Typing error: Variable `spaced` is unboxed with grade `[{SetMotors;
-       !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75;
-       ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}, {SetMotors;
-       !19.75; ReadEncoders; ShowNumber; !19.75; ReadEncoders; !19.75;
-       ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{SetMotors; (![19, 21]; ReadEncoders)*}, {SetMotors; (![19, 21];
-       ReadEncoders)*}]`
-       ...
-*)
-(*
-let profile_shown (drive : int) : float * float =
-  perform ResetEncoders ();
-  box {SetMotors; (![19, 21]; ReadEncoders)*} 0.02 as spaced in
-  perform SetMotors (drive, drive);
-  let l1, r1 = sample () in
-  perform ShowNumber (float_of_int l1);
-  let l2, r2 = sample () in
-  let l3, r3 = sample () in
-  let l4, r4 = sample () in
-  let l5, r5 = sample () in
-  unbox spaced as spacing in
-  perform SetMotors (0i, 0i);
-  ( rise (speed 0i l1 spacing) (speed l1 l2 spacing) (speed l2 l3 spacing)
-      (speed l3 l4 spacing) (speed l4 l5 spacing) spacing,
-    rise (speed 0i r1 spacing) (speed r1 r2 spacing) (speed r2 r3 spacing)
-      (speed r3 r4 spacing) (speed r4 r5 spacing) spacing )
-*)
-
 (* Correctly rejected by the typechecker: the drive is doubled after the
    first sample, so that the profile is not that of one drive command; with
    budget delays in place of the strict ones, the box would admit the

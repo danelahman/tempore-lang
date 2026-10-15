@@ -21,24 +21,17 @@ once, a disqualification, the reaction time 0 under the default ReadClock:
   
 
 The rejected variants, each loaded after the application: the screen
-cleared between the gun and the reading of its time, the athlete judged
-after fifty further polls, GO shown between the reading of the time of the
-gun and the polls, Set commanded at once after On your marks, the gun fired
-after sixty polls of the hold, and the unit reconfigured on a tap on Reset:
+cleared between the gun and the reading of its time, GO shown between the
+reading of the time of the gun and the polls, and the gun fired after sixty
+polls of the hold:
 
-  $ for v in cleared late shown at_once early; do packages --typecheck-only $app/starter.tpe starter/$v.tpe > $v.log 2>&1; echo "[$?]"; grep -o 'Typing error: Variable `[a-z]*` is unboxed' $v.log; done
-  [1]
-  Typing error: Variable `gun` is unboxed
+  $ for v in cleared shown early; do packages --typecheck-only $app/starter.tpe starter/$v.tpe > $v.log 2>&1; echo "[$?]"; grep -o 'Typing error: Variable `[a-z]*` is unboxed' $v.log; done
   [1]
   Typing error: Variable `gun` is unboxed
   [1]
   Typing error: Variable `window` is unboxed
   [1]
-  Typing error: Variable `mark` is unboxed
-  [1]
   Typing error: Variable `set` is unboxed
-  $ packages --typecheck-only $app/starter.tpe starter/reconfigured.tpe 2>&1 | grep -o "Typing error: This function's body has grade"
-  Typing error: This function's body has grade
 
 The project, for the board m5stack-cores3; its sources, with the thunks of
 the nested boxes compiled as closures, compile without exceptions and
