@@ -1,0 +1,8 @@
+(* A rejected variant of examples/arduino/starter/starter.tpe. *)
+
+let set_at_once (a : athlete) : at_set =
+  let mark = marks a in
+  perform ShowColourTextAt (0, 44, 3, black, white, "ON YOUR MARKS");
+  perform DrawButton (0, 188, 156, 40, "Stand up");
+  unbox mark as set_thunk in
+  set_thunk ()

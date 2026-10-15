@@ -153,9 +153,9 @@ The aggregate targets cover every example:
   $ dry opentrons-simulate-all | grep -c tempore
   11
   $ dry arduino-simulate-all | grep -c tempore
-  9
+  10
   $ dry arduino-build-all | grep -c tempore
-  9
+  10
 
 The help of the examples and that of the diagnostic targets, which are
 listed apart:
@@ -163,7 +163,7 @@ listed apart:
   $ make -s examples-help
   Arduino examples, by board:
   M5Stack CoreS3, port PORT_M5STACK_CORES3 = /dev/cu.usbmodem101:
-    NAME one of: calibrated fall level peak steps tilt
+    NAME one of: calibrated fall level peak starter steps tilt
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
@@ -187,7 +187,7 @@ listed apart:
   $ make -s arduino-diagnostics-help
   Arduino diagnostic targets, by board:
   M5Stack CoreS3, port PORT_M5STACK_CORES3 = /dev/cu.usbmodem101:
-    NAME one of: calibrated fall level peak steps tilt
+    NAME one of: calibrated fall level peak starter steps tilt
     arduino-NAME-profile          uploads the project with the profile and reads the port
     arduino-steps-record          uploads the project with -DSTEPS_RECORD=600 and reads the port
     arduino-steps-capture         reads the recordings from the port into _arduino/recordings/steps-TIME-N.csv
