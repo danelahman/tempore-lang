@@ -9,6 +9,8 @@ module type S = sig
   val concrete : string list -> t -> Dfa.t
   val traces : string list -> t -> t Dfa.automaton
   val canonical : t -> LetterRegex.t option
+
+  module Strict : StrictDelays.GRADE with type grade = t and type delay = int
 end
 
 let ticks = R.ticks
@@ -24,6 +26,25 @@ let rec of_regex = function
   | Inter (r, s) -> R.inter [ of_regex r; of_regex s ]
   | Star r -> R.star (of_regex r)
   | Compl r -> R.compl (of_regex r)
+  | Strict _ as r -> strict_unsupported r
+
+(** The strict delays of the rigid grades of timed operations. *)
+module Encoding = StrictDelays.Make (struct
+  type t = R.t
+
+  let eps = R.eps
+  let name n = R.letters (Letters.name n)
+  let operations = R.letters (Letters.others StrictDelays.markers)
+  let delay = ticks 1
+  let positive = R.concat (ticks 1) (R.star (ticks 1))
+  let of_delays = of_regex
+  let nullable = R.nullable
+  let concat = R.concat
+  let union = R.union
+  let inter = R.inter
+  let compl = R.compl
+  let star = R.star
+end)
 
 (** {1 Shared by the implementations} *)
 
@@ -80,10 +101,17 @@ let canonical rho =
 (* The printed grades, by the numbers of their normal forms. *)
 let printed : string Memo.Ints.t = Memo.Ints.create 64
 
+(* A grade with strict delays is printed as its normal form, its strict
+   delays as such, and as [⊤] if it is the language of all well-formed
+   words. *)
 let show rho =
   Memo.Ints.find_or_add printed (R.id rho) (fun () ->
-      LetterRegex.literal
-        (Option.value (canonical rho) ~default:(LetterRegex.of_symbolic rho)))
+      if StrictDelays.has_markers (R.names rho) then
+        if R.equal_form rho Encoding.words then "⊤"
+        else LetterRegex.literal (LetterRegex.of_symbolic rho)
+      else
+        LetterRegex.literal
+          (Option.value (canonical rho) ~default:(LetterRegex.of_symbolic rho)))
 
 module type DECISIONS = sig
   val is_empty : R.t -> bool
@@ -157,6 +185,19 @@ struct
 
   let of_lit = of_lit_with ~ticks ~top ~of_regex ~is_empty:D.is_empty
   let accepts = accepts_with of_lit
+
+  module Strict = struct
+    type grade = t
+    type delay = int
+
+    let top = Encoding.words
+    let of_delay d = Encoding.strict (ticks d)
+
+    let of_lit =
+      of_lit_with ~ticks ~top ~of_regex:Encoding.of_regex ~is_empty:D.is_empty
+
+    let accepts = accepts_with of_lit
+  end
 
   (** {1 Traces over given names} *)
 

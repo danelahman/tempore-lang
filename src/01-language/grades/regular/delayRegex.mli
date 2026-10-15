@@ -20,9 +20,9 @@
 
 val automaton : GradeLiteral.regex -> DelayAutomaton.t
 (** [automaton r] is the language [r] denotes, built by recursion on [r] with
-    the constructions of {!DelayAutomaton}. A subexpression without names, [_]
-    or complements denotes single delays only, and its automaton is the single
-    transition on its {!delays}. *)
+    the constructions of {!DelayAutomaton}; a strict delay [!r] is rejected. A
+    subexpression without names, [_] or complements denotes single delays only,
+    and its automaton is the single transition on its {!delays}. *)
 
 val delays : GradeLiteral.regex -> DelaySet.t
 (** [delays r] is the set [ν(r)] of the delays that [r] denotes, computed by
@@ -33,4 +33,5 @@ val delays : GradeLiteral.regex -> DelaySet.t
 
 val of_word : DelayAutomaton.symbol list -> GradeLiteral.regex
 (** [of_word w] is the expression of the timed word [w], a concatenation of its
-    non-zero delays and its classes, or [0] if it has neither. *)
+    non-zero delays, its strict delays, encoded as in {!StrictDelays}, and its
+    classes, or [0] if it has none. *)

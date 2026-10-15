@@ -149,6 +149,11 @@ module type S = sig
   val canonical : t -> LetterRegex.t option
   (** [canonical rho] is the canonical expression printed for [rho], or [None]
       if the printing of [rho] falls back to its normal form. *)
+
+  (** The literals, delays and top of the grade under the rigid grades of timed
+      operations, with strict delays ({!StrictDelays}); a grade with strict
+      delays is printed as its normal form. *)
+  module Strict : StrictDelays.GRADE with type grade = t and type delay = int
 end
 
 (** The decisions of a grade by derivatives. *)

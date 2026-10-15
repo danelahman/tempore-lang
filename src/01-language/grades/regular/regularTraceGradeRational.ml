@@ -1,29 +1,29 @@
 open Grade
 
 (* [concatenation r s] is the expression [r; s], the factors of both
-   concatenations listed in turn, the delays [0] left out and adjacent delays
-   added. *)
+   concatenations listed in turn, the delays [0] left out and adjacent budget
+   delays added; adjacent strict delays stay apart, as distinct words. *)
 let concatenation r s =
   let rec factors = function
     | Seq (r, s) -> factors r @ factors s
     | r -> [ r ]
   in
-  let delay = function
-    | Tick n -> Some (Rational.of_int n)
-    | Frac q -> Some q
-    | _ -> None
+  let value = function
+    | Tick n -> Rational.of_int n
+    | Frac q -> q
+    | _ -> invalid_arg "RegularTraceGradeRational.concatenation: no delay"
   in
+  let sum x y = rational_tick (Rational.add (value x) (value y)) in
   let rec merge = function
-    | x :: y :: rest -> (
-        match (delay x, delay y) with
-        | Some d, Some e -> merge (rational_tick (Rational.add d e) :: rest)
-        | _ -> x :: merge (y :: rest))
-    | factors -> factors
+    | ((Tick _ | Frac _) as x) :: ((Tick _ | Frac _) as y) :: rest ->
+        merge (sum x y :: rest)
+    | x :: rest -> x :: merge rest
+    | [] -> []
   in
   match
     merge
       (List.filter
-         (function Tick 0 -> false | _ -> true)
+         (function Tick 0 | Strict (Tick 0) -> false | _ -> true)
          (factors r @ factors s))
   with
   | [] -> Tick 0
@@ -34,6 +34,8 @@ module type LANGUAGE = sig
   type t
 
   val of_regex : regex -> t
+  val of_strict_regex : regex -> t
+  val strict_top : t
   val concat : t -> t -> t
   val union : t -> t -> t
   val is_empty : t -> bool
@@ -121,7 +123,7 @@ struct
     | Top -> top
     | Braces r as lit ->
         check_delays lit r;
-        let rho = of_regex r in
+        let rho = component_of_lit lit ~context:"" of_regex r in
         if L.is_empty rho.language then
           invalid_lit lit
             "this regular expression denotes the empty language, but grades \
@@ -136,7 +138,43 @@ struct
   let accepts = reads_lit of_lit
 
   let show rho =
-    if L.is_top rho.language then "⊤" else "{" ^ show_regex rho.expression ^ "}"
+    if L.is_top rho.language || L.compare rho.language L.strict_top = 0 then "⊤"
+    else "{" ^ show_regex rho.expression ^ "}"
+
+  (** The literals, the delays and the top of the rigid grades of timed
+      operations, with strict delays. *)
+  module Strict = struct
+    type grade = t
+    type delay = Rational.t
+
+    let of_regex expression =
+      { language = L.of_strict_regex expression; expression }
+
+    let top = { language = L.strict_top; expression = Star Any }
+    let of_delay d = of_regex (Strict (rational_tick d))
+
+    let of_lit = function
+      | (Int _ | Rat _) as lit -> (
+          match Delay.read lit with
+          | Some d -> of_regex (rational_tick d)
+          | None -> invalid_lit lit "grades must be non-negative")
+      | Top -> top
+      | Braces r as lit ->
+          check_delays lit r;
+          let rho = of_regex r in
+          if L.is_empty rho.language then
+            invalid_lit lit
+              "this regular expression denotes the empty language, but grades \
+               are non-empty"
+          else rho
+      | lit ->
+          invalid_lit lit
+            "grades are regular expressions `{...}`, non-negative numbers or \
+             `⊤`, not %s"
+            (describe_lit lit)
+
+    let accepts = reads_lit of_lit
+  end
 
   let witnesses ~degree:_ _bounds = Grade.sampled mul
 end
@@ -150,6 +188,8 @@ module Automata = struct
 
         let of_regex = DelayRegex.automaton
         let universal = of_regex (Star Any)
+        let of_strict_regex = of_regex
+        let strict_top = universal
         let is_top a = equal a universal
       end)
       (struct

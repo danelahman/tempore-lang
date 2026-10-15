@@ -787,7 +787,9 @@ minus_infinity:
 
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] and repetition
-   [*]. Braces group as parentheses do. An atom is an operation name, a delay,
+   [*], the strict delay [!] binding as the complement but applying to the
+   operand of a repetition. Braces group as
+   parentheses do. An atom is an operation name, a delay,
    the wildcard [_], or an interval of delays [[a, b]], [(a, b)], [[a, b)],
    [(a, b]], [[a, ∞)] or [(a, ∞)]; a parenthesis followed by a delay and a
    comma opens an interval, and otherwise a group. *)
@@ -807,6 +809,17 @@ regex_unary:
   | r = regex_postfix { r }
   | op = PREFIXOP r = regex_unary
     { if op = "~" then Grade.Compl r
+      else if op = "!" then
+        (* [!] binds to the operand of a repetition: [!_*] is [(!_)*]. *)
+        let rec strict = function
+          | Grade.Star r -> Grade.Star (strict r)
+          | r when r = Grade.Any || Grade.delays_only r -> Grade.Strict r
+          | r ->
+              Error.syntax ~loc:(location $loc(r))
+                "A strict delay `!` applies to a delay, a set of delays or \
+                 `_`, not to `%s`" (Grade.show_regex r)
+        in
+        strict r
       else
         Error.syntax ~loc:(location $loc(op))
           "Unknown operator `%s` in a brace literal" op }

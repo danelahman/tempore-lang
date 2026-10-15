@@ -23,13 +23,24 @@ type regex =
   | Star of regex
   | Inter of regex * regex
   | Compl of regex
+  | Strict of regex
+
+let rec delays_only = function
+  | Tick _ | Frac _ | Delays _ -> true
+  | Seq (r, s) | Union (r, s) | Inter (r, s) -> delays_only r && delays_only s
+  | Star r -> delays_only r
+  | Letter _ | Any | Compl _ | Strict _ -> false
+
+let strict_opening = "!("
+let strict_closing = ")!"
+let is_marker = function "!(" | ")!" -> true | _ -> false
 
 let regex_names r =
   let rec go = function
     | Letter name -> [ name ]
     | Tick _ | Frac _ | Delays _ | Any -> []
     | Seq (r, s) | Union (r, s) | Inter (r, s) -> go r @ go s
-    | Star r | Compl r -> go r
+    | Star r | Compl r | Strict r -> go r
   in
   List.sort_uniq String.compare (go r)
 
@@ -66,6 +77,9 @@ let show_regex r =
         wrap ctx 3 (fun () ->
             add "~";
             go 3 r)
+    | Strict r ->
+        add "!";
+        go 4 r
     | Star r ->
         wrap ctx 4 (fun () ->
             go 5 r;
@@ -116,6 +130,12 @@ let distinct_entries lit ~compare ~twice entries =
     | [ _ ] | [] -> sorted
   in
   check sorted
+
+let strict_unsupported r =
+  invalid_lit (Braces r)
+    "strict delays `%s` are read by the rigid grades of timed operations only, \
+     `regex-timed-rigid-…` and `traces-timed-rigid-…`"
+    (show_regex r)
 
 let rational_lit q =
   match Rational.to_int q with Some n -> Int n | None -> Rat q
