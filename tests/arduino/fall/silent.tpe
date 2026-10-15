@@ -3,5 +3,5 @@
 let respond_silent (fall : fall) =
   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
   delay 20000;
-  unbox event as fall in
-  raise fall
+  unbox event as detected in
+  raise detected
