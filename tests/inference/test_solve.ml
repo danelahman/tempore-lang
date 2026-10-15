@@ -309,6 +309,8 @@ let expected_rejections =
     ("tests/flow_levels_reject.tpe", [ 12; 17; 22; 30 ]);
     ("tests/iterative_unbox.tpe", [ 4 ]);
     ("tests/unbox_annotation_reject.tpe", [ 4 ]);
+    ("tests/unbox_nested_reject_lower.tpe", [ 10; 19 ]);
+    ("tests/unbox_nested_reject_upper.tpe", [ 10; 19 ]);
     ("tests/less_than_function.tpe", [ 1 ]);
     ("tests/levels_reject.tpe", [ 12 ]);
     ("tests/levels_time_lower_reject.tpe", [ 14; 21 ]);
