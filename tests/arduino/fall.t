@@ -15,7 +15,7 @@ the operations, which read a unit at rest:
   === Run 1 ===
   return 0
   State: [
-    { resource_0 ↦ 0.1 # [{100}, {(![9.5, 10.5]; ReadImu)*}] },
+    { resource_0 ↦ 0.1 # [{100}, {(![9.5, 10.5]; ReadImu)^10}] },
     [{!10}, {!10}],
     [{!0.6}, {!0.6}],
     [{!10}, {!10}],
@@ -61,10 +61,10 @@ fall, and an alarm sounding on the even seconds only:
   File "fall/rated.tpe", line 7, characters 18-49:
   7 |   if falling then (unbox onset as least in least) else first
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `onset` is unboxed with grade `[{ConfigureImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {ConfigureImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}]` accumulated since it was bound, which is not below its box grade `[{100}, {(![9.5, 10.5]; ReadImu)*}]`
-    File "fall/rated.tpe", line 4, characters 51-56:
-    4 |   box [{100}, {(![9.5, 10.5]; ReadImu)*}] first as onset in
-                                                           ^^^^^
+  Typing error: Variable `onset` is unboxed with grade `[{ConfigureImu; (!10; ReadImu)^10}, {ConfigureImu; (!10; ReadImu)^10}]` accumulated since it was bound, which is not below its box grade `[{100}, {(![9.5, 10.5]; ReadImu)^10}]`
+    File "fall/rated.tpe", line 4, characters 53-58:
+    4 |   box [{100}, {(![9.5, 10.5]; ReadImu)^10}] first as onset in
+                                                             ^^^^^
     `onset` is bound here
     File "fall/rated.tpe", line 5, characters 2-26:
     5 |   perform ConfigureImu 400;
@@ -73,15 +73,15 @@ fall, and an alarm sounding on the even seconds only:
     File "fall/rated.tpe", line 6, characters 16-26:
     6 |   let falling = confirm () in
                         ^^^^^^^^^^
-    grade `[{!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}]` accumulates here (this computation)
-    Note: the resource inequality `[{ConfigureImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {ConfigureImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}] <= [{100}, {(![9.5, 10.5]; ReadImu)*}]` does not hold
+    grade `[{(!10; ReadImu)^10}, {(!10; ReadImu)^10}]` accumulates here (this computation)
+    Note: the resource inequality `[{ConfigureImu; (!10; ReadImu)^10}, {ConfigureImu; (!10; ReadImu)^10}] <= [{100}, {(![9.5, 10.5]; ReadImu)^10}]` does not hold
   [1]
   File "fall/even.tpe", lines 3-21, characters 45-35:
   3 | let rec alarm_even (n : nat) (seconds : nat) : unit
                                                    ^^^^^^
-  Typing error: This function's body has grade `[{[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt^2; !2000) | 0}, {[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt^2; !2000) | 0}]`, which does not match its annotated grade `[{([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}, {([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}]`
-    Note: the effect inequality `[{[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt^2; !2000) | 0}, {[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt^2; !2000) | 0}] <= [{([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}, {([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}]` does not hold
-    Note: the grade `[{[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt^2; !2000) | 0}, {1030; ShowColourTextAt; ShowTimeAt}]` is below `[{[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt^2; !2000) | 0}, {[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt^2; !2000) | 0}]` but not below `[{([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}, {([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}]`
+  Typing error: This function's body has grade `[{(ReadTouch; !50)^20; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000) | Beep; ShowColourTextAt^2; !2000) | 0}, {(ReadTouch; !50)^20; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000) | Beep; ShowColourTextAt^2; !2000) | 0}]`, which does not match its annotated grade `[{((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)}, {((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)}]`
+    Note: the effect inequality `[{(ReadTouch; !50)^20; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000) | Beep; ShowColourTextAt^2; !2000) | 0}, {(ReadTouch; !50)^20; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000) | Beep; ShowColourTextAt^2; !2000) | 0}] <= [{((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)}, {((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)}]` does not hold
+    Note: the grade `[{(ReadTouch; !50)^20; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000) | Beep; ShowColourTextAt^2; !2000) | 0}, {ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ReadTouch; !50; ShowColourTextAt; ShowTimeAt}]` is below `[{(ReadTouch; !50)^20; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000) | Beep; ShowColourTextAt^2; !2000) | 0}, {(ReadTouch; !50)^20; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000) | Beep; ShowColourTextAt^2; !2000) | 0}]` but not below `[{((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)}, {((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)}]`
   [1]
 
 The project, for the board m5stack-cores3; its sources compile without
