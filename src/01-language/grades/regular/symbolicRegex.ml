@@ -32,6 +32,7 @@ module type S = sig
   val inter : t list -> t
   val compl : t -> t
   val star : t -> t
+  val repeat : t -> Count.t -> t
   val names : t -> string list
   val nullable : t -> bool
   val minterms : t -> Letters.t list
@@ -334,6 +335,17 @@ struct
         star (union (List.filter (fun r -> not (equal_form r eps)) rs))
     | _ when all_letters r -> top
     | _ -> make (Star r)
+
+  (* [r^[m, n]] is [r; …; r; (0 | r)^(n - m)], unrolled, and [r^[m, ∞)] is
+     [r; …; r; r*]. *)
+  let repeat r (c : Count.t) =
+    let power s k =
+      List.fold_left (fun acc _ -> concat s acc) eps (List.init k Fun.id)
+    in
+    concat (power r c.least)
+      (match c.most with
+      | Some n -> power (union [ eps; r ]) (n - c.least)
+      | None -> star r)
 
   (** {1 Traversals} *)
 

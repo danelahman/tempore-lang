@@ -159,6 +159,10 @@ module type S = sig
   val compl : t -> t
   val star : t -> t
 
+  val repeat : t -> Count.t -> t
+  (** [repeat r c] is the bounded repetition [r^c], the concatenations of [k]
+      words of [r], [k ∈ c]. *)
+
   val names : t -> string list
   (** [names r] is the list of the names [r] mentions, in increasing order.
       Memoised by expression. *)

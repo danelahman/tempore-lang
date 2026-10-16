@@ -629,6 +629,64 @@ let printing =
       delays (module Rat.Upper) "{2.5}" (qf 1 2) (q 2);
     ]
 
+(* Bounded repetitions of strict delays: a repetition is its unrolling, under
+   the rigid grades of regular expressions and, for a finite count, of finite
+   sets of traces. *)
+let repetitions =
+  let bounds =
+    bounds_of
+      [
+        ("A", (q 1, q 1));
+        ("Beep", (q 1, q 1));
+        ("ReadClock", (q 0, q 1));
+        ("ReadImu", (q 1, q 2));
+      ]
+  in
+  let both a b = [ (a, b, true); (b, a, true) ] in
+  let regular =
+    both "{(!2; A)^3}" "{!2; A; !2; A; !2; A}"
+    @ both "{(!2; A)^[1, 3]}" "{!2; A | !2; A; !2; A | !2; A; !2; A; !2; A}"
+    @ both "{Beep; ReadClock; (0 | !2; ReadImu; ReadClock)^3}"
+        "{Beep; ReadClock; (0 | !2; ReadImu; ReadClock); (0 | !2; ReadImu; \
+         ReadClock); (0 | !2; ReadImu; ReadClock)}"
+  and allowance =
+    [
+      ( "{Beep; ReadClock; (0 | !2; ReadImu; ReadClock)^3}",
+        "{Beep; ReadClock; (![0, 2]; ReadImu; ReadClock)*}",
+        true );
+      ("{(!2; A)^[1, 3]}", "{(!2; A)^[1, ∞)}", true);
+      ("{(!2; A)^[1, ∞)}", "{(!2; A)^[1, 3]}", false);
+      ("{(!2; A)^2}", "{(!1; A)^2}", false);
+      ("{(!1; A)^2}", "{(2; A)^2}", true);
+    ]
+  in
+  on_all
+    [
+      (module Rat.Rigid.Upper);
+      (module Rat.Rigid.Lower);
+      (module Whole.Symbolic.Rigid.Upper);
+      (module Whole.Symbolic.Rigid.Lower);
+    ]
+    bounds regular
+  @ on_all
+      [ (module Rat.Rigid.Upper); (module Whole.Symbolic.Rigid.Upper) ]
+      bounds allowance
+  @ on_all
+      [
+        (module TimedTraceGrades.Rigid.UpperBound);
+        (module TimedTraceGrades.Rigid.LowerBound);
+      ]
+      bounds
+      (both "{(!2; A)^2}" "{!2; A; !2; A}"
+      @ both "{(!2; A)^[0, 2]}" "{0 | !2; A | !2; A; !2; A}")
+  @
+  let module R = Reader (TimedTraceGrades.Rigid.UpperBound) in
+  [
+    check "traces: an unbounded repetition is rejected"
+      (Result.is_error (R.read "{(!2; A)^[1, ∞)}"))
+      "";
+  ]
+
 (* Strict delays are read by the visible rigid grades only. *)
 let rejections =
   let rejected (module G : Grade.S) text =
@@ -680,7 +738,7 @@ let rejections =
 let () =
   let checks =
     recursions @ grades_agree @ conservative @ kinds @ specifications
-    @ open_sets @ coverage @ complements @ printing @ rejections
+    @ open_sets @ coverage @ complements @ printing @ repetitions @ rejections
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

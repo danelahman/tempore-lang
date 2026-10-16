@@ -96,6 +96,10 @@ val compl : t -> t
 
 val star : t -> t
 
+val repeat : t -> Count.t -> t
+(** [repeat r c] is the bounded repetition [r^c], the concatenations of [k]
+    words of [r], [k ∈ c]. *)
+
 val of_regex : GradeLiteral.regex -> t
 (** [of_regex r] is the expression of the brace literal [r], denoting the
     language {!DelayRegex.automaton}[ r]: a name [A] is [{A}], a delay [q] the

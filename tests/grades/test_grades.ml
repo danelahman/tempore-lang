@@ -541,6 +541,17 @@ let literals =
     reads "times by single ticks" windowed_schedules
       (Tuple [ Int 1; Tuple [ Name "Send"; Braces (seq Any Any) ] ])
       "(1, (Send, {2}))";
+    reads "times by a bounded repetition" windowed_schedules
+      (Tuple
+         [
+           Int 1;
+           Tuple
+             [
+               Name "Send";
+               Braces (Repeat (Tick 2, Grades.Count.make 1 (Some 3)));
+             ];
+         ])
+      "(1, (Send, {2; (0 | 2; (0 | 2))}))";
     reads "top" windowed_schedules Top "⊤";
     rejects "operation in the times" windowed_schedules
       (Tuple [ Int 1; Tuple [ Name "Send"; Braces send ] ])

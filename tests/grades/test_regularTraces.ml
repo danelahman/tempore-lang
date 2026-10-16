@@ -103,6 +103,47 @@ let random_grade ~longest ~names state =
   | 1 -> Grade.Compl (alternatives ())
   | _ -> alternatives ()
 
+(* Random expressions with bounded repetitions of counts up to [4] over the
+   names [names], of depth [depth]. *)
+let random_counted ~names ~depth state =
+  let count () =
+    let m = Random.State.int state 3 in
+    match Random.State.int state 4 with
+    | 0 -> Grades.Count.point m
+    | 1 -> Grades.Count.make m None
+    | _ -> Grades.Count.make m (Some (m + Random.State.int state 3))
+  in
+  let rec go depth =
+    if depth = 0 then random_regex ~names ~depth:0 state
+    else
+      match Random.State.int state 8 with
+      | 0 | 1 | 2 -> Grade.Repeat (go (depth - 1), count ())
+      | 3 -> Grade.Seq (go (depth - 1), go (depth - 1))
+      | 4 -> Grade.Union (go (depth - 1), go (depth - 1))
+      | 5 -> Grade.Inter (go (depth - 1), go (depth - 1))
+      | 6 -> Grade.Compl (go (depth - 1))
+      | _ -> random_regex ~names ~depth:(min depth 2) state
+  in
+  go depth
+
+(* [unroll r] is [r] with every bounded repetition unrolled. *)
+let rec unroll = function
+  | Grade.Repeat (r, c) -> Grade.unrolled (unroll r) c
+  | Grade.Seq (r, s) -> Grade.Seq (unroll r, unroll s)
+  | Grade.Union (r, s) -> Grade.Union (unroll r, unroll s)
+  | Grade.Inter (r, s) -> Grade.Inter (unroll r, unroll s)
+  | Grade.Star r -> Grade.Star (unroll r)
+  | Grade.Compl r -> Grade.Compl (unroll r)
+  | Grade.Strict r -> Grade.Strict (unroll r)
+  | (Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _ | Grade.Any)
+    as r ->
+      r
+
+(* Random expressions with bounded repetitions over the names [A] and [B]. *)
+let counted_samples =
+  let state = Random.State.make [| 1066 |] in
+  List.init 150 (fun _ -> random_counted ~names:[ "A"; "B" ] ~depth:3 state)
+
 (* Random expressions over the names [A], [B] and [C]. *)
 let samples =
   let state = Random.State.make [| 2024 |] in
@@ -146,6 +187,20 @@ let rec matches r w =
       || List.exists
            (fun (u, v) -> u <> [] && matches r' u && matches r v)
            (splits w)
+  | Grade.Repeat (r', c) -> (
+      (* A word of [r'^c] is [k ∈ c] words of [r'], the empty ones among them
+         left out, which needs [ε ∈ r'] if [k] exceeds the others. *)
+      match w with
+      | [] -> Grades.Count.mem 0 c || matches r' []
+      | _ ->
+          List.exists
+            (fun (u, v) ->
+              u <> [] && matches r' u
+              &&
+              match Grades.Count.shift c 1 with
+              | Some c' -> matches (Grade.Repeat (r', c')) v
+              | None -> false)
+            (splits w))
 
 (* The words of length at most 3 over a tick, the names [A], [B] and [C], and a
    name [Z] no expression mentions. *)
@@ -464,6 +519,61 @@ struct
                ])
          samples
 
+  (* Bounded repetition: each random expression with counts is read as the
+     language [matches] decides on short words, and as the grade of its
+     unrolling; an open endpoint of a count abbreviates the closed one next to
+     it. *)
+  let repetitions =
+    let same_lit a b =
+      let rho = lit a and rho' = lit b in
+      check (a ^ " = " ^ b) (same rho rho') (G.show rho ^ " vs " ^ G.show rho')
+    in
+    [
+      same_lit "{A^3}" "{A; A; A}";
+      same_lit "{A^0}" "{0}";
+      same_lit "{A^1}" "{A}";
+      same_lit "{A^[0, ∞)}" "{A*}";
+      same_lit "{A^[2, inf)}" "{A; A; A*}";
+      same_lit "{A^(1, 4)}" "{A; A | A; A; A}";
+      same_lit "{A^[1, 4)}" "{A | A; A | A; A; A}";
+      same_lit "{A^(0, 2]}" "{A | A; A}";
+      same_lit "{(A; 2)^2; B}" "{A; 2; A; 2; B}";
+      same_lit "{A^2*}" "{(A; A)*}";
+      same_lit "{(A | 0)^3}" "{(A | 0); (A | 0); (A | 0)}";
+      same_lit "{(A^2)^[1, 3]}" "{A^[2, 6] & (A; A)*}";
+      same_lit "{1^4; A}" "{4; A}";
+      rejects "{A^(2, 3)}" "holds no natural number";
+      rejects "{A^[3, 2]}" "holds no natural number";
+      rejects "{A^[2, ∞]}" "infinite endpoint";
+    ]
+    @ List.concat
+    @@ List.mapi
+         (fun i r ->
+           let name = "counted sample " ^ string_of_int i in
+           match
+             (G.of_lit (Grade.Braces r), G.of_lit (Grade.Braces (unroll r)))
+           with
+           | rho, rho' ->
+               let wrong =
+                 List.filter
+                   (fun (w, word) -> G.leq bounds word rho <> matches r w)
+                   word_grades
+               in
+               [
+                 check ("membership " ^ name) (wrong = [])
+                   (Printf.sprintf "%d words misclassified by %s"
+                      (List.length wrong) (G.show rho));
+                 check ("unrolling " ^ name) (same rho rho')
+                   (G.show rho ^ " vs " ^ G.show rho');
+               ]
+           | exception Grade.Invalid_literal _ ->
+               [
+                 check ("empty " ^ name)
+                   (not (List.exists (matches r) words))
+                   "rejected as empty, but matches a short word";
+               ])
+         counted_samples
+
   let nonempty =
     List.filter_map
       (fun r ->
@@ -556,7 +666,8 @@ struct
 
   let checks =
     printing @ lexing @ errors @ intervals @ canonicity @ inclusion @ alignment
-    @ properties @ semantics @ canonical_samples @ laws @ bounded_printing
+    @ properties @ semantics @ repetitions @ canonical_samples @ laws
+    @ bounded_printing
 end
 
 module Automata =

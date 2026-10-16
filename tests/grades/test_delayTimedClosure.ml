@@ -914,6 +914,7 @@ let rec iota ~strict n =
   | Grade.Union (r, s) -> Grade.Union (iota n r, iota n s)
   | Grade.Inter (r, s) -> Grade.Inter (iota n r, iota n s)
   | Grade.Star r -> Grade.Star (iota n r)
+  | Grade.Repeat (r, c) -> Grade.Repeat (iota n r, c)
   | Grade.Strict r -> Grade.Strict (iota n r)
   | Grade.Tick k -> Grade.rational_tick (q k n)
   | (Grade.Letter _ | Grade.Frac _ | Grade.Delays _) as r -> r

@@ -17,6 +17,7 @@ let rec delays = function
   | Inter (r, s) -> DelaySet.inter (delays r) (delays s)
   | Compl r -> DelaySet.compl (delays r)
   | Star r -> DelaySet.star (delays r)
+  | Repeat (r, c) -> DelaySet.repeat (delays r) c
   | Strict r -> DelaySet.inter (delays r) DelaySet.zero
 
 (* [letterless r] is whether [r] has no name, [_] or complement: its words are
@@ -24,7 +25,7 @@ let rec delays = function
 let rec letterless = function
   | Tick _ | Frac _ | Delays _ -> true
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> letterless r && letterless s
-  | Star r -> letterless r
+  | Star r | Repeat (r, _) -> letterless r
   | Letter _ | Any | Compl _ | Strict _ -> false
 
 (* A letterless expression is the single transition on its delays. *)
@@ -38,6 +39,7 @@ let rec automaton = function
   | Union (r, s) -> A.union (automaton r) (automaton s)
   | Inter (r, s) -> A.inter (automaton r) (automaton s)
   | Star r -> A.star (automaton r)
+  | Repeat (r, c) -> automaton (unrolled r c)
   | Strict _ as r -> strict_unsupported r
 
 let unions = function

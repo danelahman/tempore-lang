@@ -25,6 +25,7 @@ let rec of_regex = function
   | Union (r, s) -> R.union [ of_regex r; of_regex s ]
   | Inter (r, s) -> R.inter [ of_regex r; of_regex s ]
   | Star r -> R.star (of_regex r)
+  | Repeat (r, c) -> R.repeat (of_regex r) c
   | Compl r -> R.compl (of_regex r)
   | Strict _ as r -> strict_unsupported r
 
@@ -44,6 +45,7 @@ module Encoding = StrictDelays.Make (struct
   let inter = R.inter
   let compl = R.compl
   let star = R.star
+  let repeat = R.repeat
 end)
 
 (** {1 Shared by the implementations} *)

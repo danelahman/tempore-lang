@@ -331,6 +331,17 @@ let rec star r =
   | _ when all_symbols r -> top
   | _ -> make (Star r)
 
+(* [r^[m, n]] is [r; …; r; (0 | r)^(n - m)], unrolled, and [r^[m, ∞)] is
+   [r; …; r; r*]. *)
+let repeat r (c : Count.t) =
+  let power s k =
+    List.fold_left (fun acc _ -> concat s acc) eps (List.init k Fun.id)
+  in
+  concat (power r c.least)
+    (match c.most with
+    | Some n -> power (union [ eps; r ]) (n - c.least)
+    | None -> star r)
+
 let rec of_regex : GradeLiteral.regex -> t = function
   | Letter name -> names_atom (Letters.name name)
   | Tick n -> delays_atom (DelaySet.point (Rational.of_int n))
@@ -342,6 +353,7 @@ let rec of_regex : GradeLiteral.regex -> t = function
   | Inter (r, s) -> inter [ of_regex r; of_regex s ]
   | Compl r -> compl (of_regex r)
   | Star r -> star (of_regex r)
+  | Repeat (r, c) -> repeat (of_regex r) c
   | Strict _ as r -> GradeLiteral.strict_unsupported r
 
 (** The strict delays of the rigid grades. *)
@@ -360,6 +372,7 @@ module Strict = StrictDelays.Make (struct
   let inter = inter
   let compl = compl
   let star = star
+  let repeat = repeat
 end)
 
 let of_strict_regex = Strict.of_regex

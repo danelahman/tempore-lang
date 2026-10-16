@@ -149,14 +149,15 @@ rule token = parse
   | utf8char | _        { Error.syntax ~loc:(Location.of_lexbuf lexbuf)
                             "Unexpected character `%s`" (Lexing.lexeme lexbuf) }
 
-(* Inside a brace literal each of the regular-expression operators [*], [|], [&]
-   and [~] is a token of its own, so that, e.g., [A*|~B] needs no spaces; any
-   other input is lexed as outside. *)
+(* Inside a brace literal each of the regular-expression operators [*], [^],
+   [|], [&] and [~] is a token of its own, so that, e.g., [A*|~B^2] needs no
+   spaces; any other input is lexed as outside. *)
 and brace_token = parse
   | '\n'                { Lexing.new_line lexbuf; brace_token lexbuf }
   | [' ' '\r' '\t']     { brace_token lexbuf }
   | "(*"                { comment brace_token 0 lexbuf }
   | '*'                 { STAR }
+  | '^'                 { CARET }
   | '|'                 { BAR }
   | '&'                 { AMPER }
   | '~'                 { PREFIXOP "~" }

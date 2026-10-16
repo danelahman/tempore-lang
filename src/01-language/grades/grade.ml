@@ -147,7 +147,7 @@ let rec negative_delay = function
   | Letter _ | Tick _ | Frac _ | Delays _ | Any -> None
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> (
       match negative_delay r with Some d -> Some d | None -> negative_delay s)
-  | Star r | Compl r | Strict r -> negative_delay r
+  | Star r | Repeat (r, _) | Compl r | Strict r -> negative_delay r
 
 let check_delays lit r =
   Option.iter
@@ -164,7 +164,7 @@ let rec whole_delays ~names = function
       | exception Invalid_literal _ -> false)
   | Seq (r, s) | Union (r, s) | Inter (r, s) ->
       whole_delays ~names r && whole_delays ~names s
-  | Star r | Compl r | Strict r -> whole_delays ~names r
+  | Star r | Repeat (r, _) | Compl r | Strict r -> whole_delays ~names r
 
 let whole_braces ~names r =
   Option.is_none (negative_delay r) && whole_delays ~names r
@@ -172,7 +172,7 @@ let whole_braces ~names r =
 let rec positive = function
   | Letter _ | Tick _ | Frac _ | Delays _ | Any -> true
   | Seq (r, s) | Union (r, s) -> positive r && positive s
-  | Star r -> positive r
+  | Star r | Repeat (r, _) -> positive r
   | Inter _ | Compl _ | Strict _ -> false
 
 let sampled mul cs =

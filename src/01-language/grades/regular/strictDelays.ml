@@ -15,6 +15,7 @@ module type EXPRESSION = sig
   val inter : t list -> t
   val compl : t -> t
   val star : t -> t
+  val repeat : t -> Count.t -> t
 end
 
 module Make (E : EXPRESSION) = struct
@@ -40,6 +41,7 @@ module Make (E : EXPRESSION) = struct
     | Union (r, s) -> E.union [ of_regex r; of_regex s ]
     | Inter (r, s) -> E.inter [ of_regex r; of_regex s ]
     | Star r -> E.star (of_regex r)
+    | Repeat (r, c) -> E.repeat (of_regex r) c
     | Compl r -> E.inter [ words; E.compl (of_regex r) ]
 end
 

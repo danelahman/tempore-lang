@@ -21,6 +21,7 @@ type regex =
   | Seq of regex * regex
   | Union of regex * regex
   | Star of regex
+  | Repeat of regex * Count.t
   | Inter of regex * regex
   | Compl of regex
   | Strict of regex
@@ -28,8 +29,23 @@ type regex =
 let rec delays_only = function
   | Tick _ | Frac _ | Delays _ -> true
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> delays_only r && delays_only s
-  | Star r -> delays_only r
+  | Star r | Repeat (r, _) -> delays_only r
   | Letter _ | Any | Compl _ | Strict _ -> false
+
+(* [r^[m, n]] is [r; …; r; (0 | r; (0 | r; …))], [m] factors and [n - m]
+   optional ones nested, and [r^[m, ∞)] is [r; …; r; r*]. *)
+let unrolled r (c : Count.t) =
+  let seq a b = match b with Tick 0 -> a | b -> Seq (a, b) in
+  let rest =
+    match c.most with
+    | None -> Star r
+    | Some n ->
+        List.fold_left
+          (fun acc _ -> Union (Tick 0, seq r acc))
+          (Tick 0)
+          (List.init (n - c.least) Fun.id)
+  in
+  List.fold_left (fun acc _ -> seq r acc) rest (List.init c.least Fun.id)
 
 let strict_opening = "!("
 let strict_closing = ")!"
@@ -40,7 +56,7 @@ let regex_names r =
     | Letter name -> [ name ]
     | Tick _ | Frac _ | Delays _ | Any -> []
     | Seq (r, s) | Union (r, s) | Inter (r, s) -> go r @ go s
-    | Star r | Compl r | Strict r -> go r
+    | Star r | Repeat (r, _) | Compl r | Strict r -> go r
   in
   List.sort_uniq String.compare (go r)
 
@@ -82,8 +98,15 @@ let show_regex r =
         go 4 r
     | Star r ->
         wrap ctx 4 (fun () ->
-            go 5 r;
+            operand r;
             add "*")
+    | Repeat (r, c) ->
+        wrap ctx 4 (fun () ->
+            operand r;
+            add "^";
+            add (Count.show c))
+  (* The operand of a repetition, itself a repetition unparenthesised. *)
+  and operand r = match r with Star _ | Repeat _ -> go 4 r | r -> go 5 r
   and chain ctx prec separator split r =
     wrap ctx prec (fun () ->
         List.iteri

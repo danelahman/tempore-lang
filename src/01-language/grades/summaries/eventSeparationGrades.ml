@@ -22,41 +22,6 @@ let subset_opt subset a b =
 let compare_opt = Option.compare
 let hash_opt hash = function None -> 0 | Some x -> Hashing.combine 1 (hash x)
 
-(* Intervals of natural numbers, [most] being [None] where unbounded. *)
-module Count = struct
-  type t = { least : int; most : int option }
-
-  let point n = { least = n; most = Some n }
-  let unbounded = { least = 0; most = None }
-
-  let add c c' =
-    { least = c.least + c'.least; most = both ( + ) c.most c'.most }
-
-  let hull c c' =
-    { least = min c.least c'.least; most = both max c.most c'.most }
-
-  let subset c c' =
-    c'.least <= c.least
-    &&
-    match (c.most, c'.most) with
-    | _, None -> true
-    | None, Some _ -> false
-    | Some m, Some m' -> m <= m'
-
-  let compare c c' =
-    match Int.compare c.least c'.least with
-    | 0 -> compare_opt Int.compare c.most c'.most
-    | c -> c
-
-  let hash c = Hashing.combine c.least (hash_opt Fun.id c.most)
-
-  let show c =
-    match c.most with
-    | Some m when m = c.least -> string_of_int m
-    | Some m -> Printf.sprintf "[%d, %d]" c.least m
-    | None -> Printf.sprintf "[%d, ∞)" c.least
-end
-
 module Summary = struct
   type count = Count.t = { least : int; most : int option }
   type active = { count : count; lead : I.t; gaps : I.t option; tail : I.t }
@@ -284,7 +249,7 @@ let witnesses ~degree:_ _bounds = sampled mul
 
 (* [of_braces lit r] is the term of the expression [r] of the brace literal
    [lit]: operation names, delays and intervals of delays, sequenced and
-   joined. *)
+   joined, a repetition of a finite count unrolled. *)
 let of_braces lit r =
   check_delays lit r;
   let rec go = function
@@ -298,10 +263,12 @@ let of_braces lit r =
     | Seq (r, s) -> mul (go r) (go s)
     | Union (r, s) -> join (go r) (go s)
     | Strict _ as r -> component_of_lit lit ~context:"" strict_unsupported r
-    | Any | Star _ | Inter _ | Compl _ ->
+    | Repeat (r, ({ most = Some _; _ } as c)) -> go (unrolled r c)
+    | Any | Star _ | Repeat _ | Inter _ | Compl _ ->
         invalid_lit lit
-          "the brace literals of event separation are sequences `;` and unions \
-           `|` of operation names and delays, without `*`, `&`, `~` and `_`"
+          "the brace literals of event separation are sequences `;`, unions \
+           `|` and finite counts `^n`, `^[m, n]` of operation names and \
+           delays, without `*`, `^[m, ∞)`, `&`, `~` and `_`"
   in
   go r
 

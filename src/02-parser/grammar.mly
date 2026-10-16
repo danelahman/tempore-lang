@@ -149,6 +149,26 @@
     | Some reason -> Error.syntax ~loc "%s" (String.capitalize_ascii reason)
     | None -> Grade.Delays (lower, upper)
 
+  (* [count ~loc ~lower_open m n ~upper_open] is the count at [loc] of a
+     bounded repetition from [m] to [n], [None] being infinite, open below iff
+     [lower_open] and above iff [upper_open]: an open endpoint abbreviates the
+     closed one next to it over the natural numbers. A syntax error if the
+     interval holds no natural number. *)
+  let count ~loc ~lower_open m n ~upper_open =
+    let least = if lower_open then m + 1 else m in
+    let most =
+      match (n, upper_open) with
+      | None, true -> None
+      | None, false -> infinite_endpoint ~loc
+      | Some n, true -> Some (n - 1)
+      | Some n, false -> Some n
+    in
+    match most with
+    | Some most when most < least ->
+        Error.syntax ~loc
+          "The count of a repetition `^` holds no natural number"
+    | most -> Grades.Count.make least most
+
   (* The name of the operator [op] in parentheses, as in OCaml separated from
      them by spaces if it begins with an asterisk, which would otherwise open a
      comment. *)
@@ -787,8 +807,9 @@ minus_infinity:
 
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] and repetition
-   [*], the strict delay [!] binding as the complement but applying to the
-   operand of a repetition. Braces group as
+   [*] and bounded repetition [r^n], [r^[m, n]] or [r^[m, ∞)], the strict
+   delay [!] binding as the complement but applying to the operand of a
+   repetition. Braces group as
    parentheses do. An atom is an operation name, a delay,
    the wildcard [_], or an interval of delays [[a, b]], [(a, b)], [[a, b)],
    [(a, b]], [[a, ∞)] or [(a, ∞)]; a parenthesis followed by a delay and a
@@ -813,6 +834,7 @@ regex_unary:
         (* [!] binds to the operand of a repetition: [!_*] is [(!_)*]. *)
         let rec strict = function
           | Grade.Star r -> Grade.Star (strict r)
+          | Grade.Repeat (r, c) -> Grade.Repeat (strict r, c)
           | r when r = Grade.Any || Grade.delays_only r -> Grade.Strict r
           | r ->
               Error.syntax ~loc:(location $loc(r))
@@ -827,6 +849,37 @@ regex_unary:
 regex_postfix:
   | r = regex_atom { r }
   | r = regex_postfix STAR { Grade.Star r }
+  | r = regex_postfix CARET c = repeat_count { Grade.Repeat (r, c) }
+
+(* The count of a bounded repetition: a natural number [n], or an interval
+   [[m, n]], [(m, n)], [[m, n)], [(m, n]], [[m, ∞)] or [(m, ∞)] of natural
+   numbers, an open endpoint abbreviating the closed one next to it. *)
+repeat_count:
+  | n = INT
+    { let n = small ~loc:(location $loc) "Count" n in
+      Grades.Count.make n (Some n) }
+  | LBRACK m = count_int COMMA n = count_end RBRACK
+    { count ~loc:(location $loc) ~lower_open:false m n ~upper_open:false }
+  | LBRACK m = count_int COMMA n = count_end RPAREN
+    { count ~loc:(location $loc) ~lower_open:false m n ~upper_open:true }
+  | LPAREN m = count_int COMMA n = count_end RBRACK
+    { count ~loc:(location $loc) ~lower_open:true m n ~upper_open:false }
+  | LPAREN m = count_int COMMA n = count_end RPAREN
+    { count ~loc:(location $loc) ~lower_open:true m n ~upper_open:true }
+
+count_int:
+  | n = INT { small ~loc:(location $loc) "Count" n }
+
+(* The upper endpoint of a count: a natural number, or [∞] (ASCII [inf]),
+   [None]. *)
+count_end:
+  | n = count_int { Some n }
+  | INFINITY { None }
+  | name = LNAME
+    { if name = "inf" then None
+      else
+        Error.syntax ~loc:(location $loc)
+          "`%s` is no count" name }
 
 regex_atom:
   | name = UNAME { Grade.Letter name }
