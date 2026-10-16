@@ -819,7 +819,7 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   - Under `-DSTEPS_RECORD` the readings and the events are recorded in flash
     memory ([Recording the step counter](#recording-the-step-counter)).
 - [`starter`](../../../examples/arduino/starter/starter.tpe): a sprint
-  starter and false-start judge, under the regular expressions of timed
+  start system and false-start judge, under the regular expressions of timed
   operations.
   - The protocol of a start is three boxes nested in each other, each holding
     a closure that creates the next: Set at least a second after On your

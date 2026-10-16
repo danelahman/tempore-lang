@@ -1,5 +1,5 @@
-(* A sprint starter on the M5Stack CoreS3 Lite: the gun 1.5 to 3 s after Set,
-   its time read at once, and the start judged within a second of it
+(* A sprint start system on the M5Stack CoreS3 Lite: the gun 1.5 to 3 s after
+   Set, its time read at once, and the start judged within a second of it
 
    Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
@@ -429,7 +429,7 @@ let start_early (a : athlete) : outcome =
 (* The screen of the session: the title, the guarantee and the footer. *)
 let frame () =
   perform ClearDisplay ();
-  perform ShowTextAt (0, 0, 2, "Sprint starter");
+  perform ShowTextAt (0, 0, 2, "Sprint start system");
   perform ShowTextAt
     (0, 20, 1, "Gun 1.5-3 s after Set; judged within 1 s of the gun");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")

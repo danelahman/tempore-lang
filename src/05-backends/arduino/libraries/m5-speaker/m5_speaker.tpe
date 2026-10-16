@@ -11,8 +11,8 @@
    device (2026-10-14): the lower bound is the least time measured, rounded
    down, and the upper bound 1.5 times the greatest, rounded up. Beep took
    0.055 to 0.082 ms in the digital level, and its monitor reported 0.03 ms
-   in the sprint starter (2026-10-15), whose task has a lower priority than
-   the task of the speaker: [0, 0.15]. They are not measured on other
+   in the sprint start system (2026-10-15), whose task has a lower priority
+   than the task of the speaker: [0, 0.15]. They are not measured on other
    boards. *)
 
 operation Beep : nat * nat ~> unit # [0, 0.15]
