@@ -500,12 +500,13 @@ The implementation provides two variants, described below.
 Under both variants:
 
 - literals are regular expressions, by increasing precedence: union `r | s`,
-  intersection `r & s`, concatenation `r; s`, complement `~r` and Kleene star
-  `r*`;
+  intersection `r & s`, concatenation `r; s`, complement `~r`, Kleene star
+  `r*` and bounded repetition `r^n` (below);
 - an operation name is a letter, and parentheses or braces group:
   `{Open; (Read | Write)*; Close}` is a file session and `{~{_*; Revoke; _*}}`
   the traces that never revoke;
-- a grade is printed as it is written;
+- a grade is printed as it is written, and a grade the typechecker computes
+  with its runs of equal factors folded (below);
 - when an ordering fails, a note names the shortest trace of the lesser grade
   not in the greater one:
 
@@ -604,6 +605,41 @@ The two variants are:
   See
   [`examples/regular/upper_bounds_rational.tpe`](examples/regular/upper_bounds_rational.tpe).
 
+#### Bounded repetition
+
+A repetition with a count is written `r^n`, `r^[m, n]` or `r^[m, ∞)` (ASCII
+`inf`); an open endpoint abbreviates the closed one next to it, so that
+`r^(1, 4)` is `r^[2, 3]`. `^` is postfix like `*`. `r^[m, n]` denotes the
+concatenations of `k` words of `r` for `k` from `m` to `n`; `r^0` is `0`,
+`r^1` is `r` and `r^[0, ∞)` is `r*`. It is notation: a repetition and its
+unrolling are the same grade. It is read by every grade of regular expressions,
+also of timed operations and rigid, with strict delays inside, as in
+`{(!2.5; ReadImu)^3}`; the grades of finite sets of traces read finite counts
+only. A repetition is decided without unrolling, by derivatives with a counter,
+in time linear in its count.
+
+A grade the typechecker computes, an inferred grade, a counterexample or a
+timeline entry, is printed with every run of two or more equal adjacent factors
+as one repetition, as kept in its normal form: three calls of `Ping` print as
+`{Ping^3}`. For example, the annotation of
+
+```
+let pings () : unit # {Ping^[1, 2]; Close} =
+  perform Ping ();
+  perform Ping ();
+  perform Ping ();
+  perform Close ()
+```
+
+admits one or two calls of `Ping` only:
+
+    This function's body has grade `{Ping^3; Close}`, which does not match its
+    annotated grade `{Ping^[1, 2]; Close}`
+
+The sprint start system
+([`examples/arduino/starter/starter.tpe`](examples/arduino/starter/starter.tpe))
+annotates its 200 polls `{(0 | !2.5; ReadImu; ReadClock)^200}`.
+
 Further implementations of `regex-upper-bound-symbolic`, kept for benchmarking,
 are accepted by `--grades` with one of these suffixes in place of `-symbolic`:
 
@@ -618,7 +654,7 @@ Likewise, `regex-upper-bound-rational-automata` and the timed
 `-rational-automata` variants below implement the rational grades by minimal
 deterministic symbolic automata over sets of operations and sets of delays;
 inclusion by a breadth-first search of the product with the complement, or with
-a reader of the closure.
+a reader of the closure. The automata read a bounded repetition by unrolling it.
 
 They can be compared by running
 `dune exec --profile release bench/regular/bench_regular.exe`; see
