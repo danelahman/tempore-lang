@@ -55,125 +55,125 @@ the Reset button is drawn without a label during a start:
 
   $ tempore --emit-arduino starter --device $app/starter.device.json --host-simulate 50 $app/starter.tpe > run.log
   $ grep 'Display at (\(9, 43\|6, 72\|166, 72\|[0-9]*, 200\))\|Display fill at (\(0, 40\|0, 70\|160, 70\))\|Speaker\|simulation' run.log | sed 's/ *$//'
-  [46.038 ms] Display fill at (0, 40), 320 by 30: 0xffffff
-  [47.138 ms] Display at (9, 43): READY
-  [49.698 ms] Display fill at (0, 70), 320 by 20: 0xffffff
-  [50.878 ms] Display at (6, 72): Tap Start
-  [92.910 ms] Display at (48, 200): Start
-  [96.662 ms] Display at (212, 200): Reset
-  [1006.202 ms] Display fill at (0, 40), 320 by 30: 0xffffff
-  [1007.462 ms] Display at (9, 43): ON YOUR MARKS
-  [1010.022 ms] Display fill at (0, 70), 320 by 20: 0xffffff
-  [1011.302 ms] Display at (6, 72): Settle for 1 s
-  [1015.114 ms] Display at (30, 200): Stand up
-  [1018.766 ms] Display at (242, 200):
-  [2246.786 ms] Display fill at (0, 40), 320 by 30: 0xffd000
-  [2247.846 ms] Display at (9, 43): SET
-  [2250.406 ms] Display fill at (0, 70), 320 by 20: 0xffd000
-  [2251.606 ms] Display at (6, 72): Hold still
-  [2251.656 ms] Speaker: 1500 Hz for 80 ms
-  [4006.364 ms] Speaker: 2500 Hz for 300 ms
-  [4171.560 ms] Display fill at (0, 40), 320 by 30: 0x00c000
-  [4172.780 ms] Display at (9, 43): LEGAL START
-  [4175.340 ms] Display fill at (0, 70), 320 by 20: 0x00c000
-  [4176.560 ms] Display at (6, 72): Reaction, s
-  [4177.840 ms] Display fill at (160, 70), 160 by 20: 0x00c000
-  [4178.940 ms] Display at (166, 72): 0.161
-  [4221.052 ms] Display at (48, 200): Start
-  [4224.804 ms] Display at (212, 200): Reset
-  [8051.744 ms] Display fill at (0, 40), 320 by 30: 0xffffff
-  [8053.004 ms] Display at (9, 43): ON YOUR MARKS
-  [8055.564 ms] Display fill at (0, 70), 320 by 20: 0xffffff
-  [8056.844 ms] Display at (6, 72): Settle for 1 s
-  [8060.656 ms] Display at (30, 200): Stand up
-  [8064.308 ms] Display at (242, 200):
-  [9292.328 ms] Display fill at (0, 40), 320 by 30: 0xffd000
-  [9293.388 ms] Display at (9, 43): SET
-  [9295.948 ms] Display fill at (0, 70), 320 by 20: 0xffd000
-  [9297.148 ms] Display at (6, 72): Hold still
-  [9297.198 ms] Speaker: 1500 Hz for 80 ms
-  [10929.488 ms] Speaker: 2500 Hz for 300 ms
-  [10991.598 ms] Speaker: 800 Hz for 80 ms
-  [11101.648 ms] Speaker: 800 Hz for 80 ms
-  [11105.488 ms] Display fill at (0, 40), 320 by 30: 0xe00000
-  [11106.708 ms] Display at (9, 43): FALSE START
-  [11109.268 ms] Display fill at (0, 70), 320 by 20: 0xe00000
-  [11110.668 ms] Display at (6, 72): Warning: under 0.1 s
-  [11152.780 ms] Display at (48, 200): Start
-  [11156.532 ms] Display at (212, 200): Reset
-  [15033.772 ms] Display fill at (0, 40), 320 by 30: 0xffffff
-  [15035.032 ms] Display at (9, 43): ON YOUR MARKS
-  [15037.592 ms] Display fill at (0, 70), 320 by 20: 0xffffff
-  [15038.872 ms] Display at (6, 72): Settle for 1 s
-  [15042.684 ms] Display at (30, 200): Stand up
-  [15046.336 ms] Display at (242, 200):
-  [16274.356 ms] Display fill at (0, 40), 320 by 30: 0xffd000
-  [16275.416 ms] Display at (9, 43): SET
-  [16277.976 ms] Display fill at (0, 70), 320 by 20: 0xffd000
-  [16279.176 ms] Display at (6, 72): Hold still
-  [16279.226 ms] Speaker: 1500 Hz for 80 ms
-  [17095.396 ms] Speaker: 800 Hz for 80 ms
-  [17205.446 ms] Speaker: 800 Hz for 80 ms
-  [17209.286 ms] Display fill at (0, 40), 320 by 30: 0xe00000
-  [17210.526 ms] Display at (9, 43): DISQUALIFIED
-  [17213.086 ms] Display fill at (0, 70), 320 by 20: 0xe00000
-  [17214.326 ms] Display at (6, 72): Moved in Set
-  [17256.438 ms] Display at (48, 200): Start
-  [17260.190 ms] Display at (212, 200): Reset
-  [22042.830 ms] Display fill at (0, 40), 320 by 30: 0xffffff
-  [22044.090 ms] Display at (9, 43): ON YOUR MARKS
-  [22046.650 ms] Display fill at (0, 70), 320 by 20: 0xffffff
-  [22047.930 ms] Display at (6, 72): Settle for 1 s
-  [22051.742 ms] Display at (30, 200): Stand up
-  [22055.394 ms] Display at (242, 200):
-  [23283.414 ms] Display fill at (0, 40), 320 by 30: 0xffd000
-  [23284.474 ms] Display at (9, 43): SET
-  [23287.034 ms] Display fill at (0, 70), 320 by 20: 0xffd000
-  [23288.234 ms] Display at (6, 72): Hold still
-  [23288.284 ms] Speaker: 1500 Hz for 80 ms
-  [24940.977 ms] Speaker: 2500 Hz for 300 ms
-  [25255.117 ms] Display fill at (0, 40), 320 by 30: 0xff8000
-  [25256.277 ms] Display at (9, 43): NO START
-  [25258.837 ms] Display fill at (0, 70), 320 by 20: 0xff8000
-  [25260.077 ms] Display at (6, 72): No push seen
-  [25302.189 ms] Display at (48, 200): Start
-  [25305.941 ms] Display at (212, 200): Reset
-  [29032.281 ms] Display fill at (0, 40), 320 by 30: 0xffffff
-  [29033.541 ms] Display at (9, 43): ON YOUR MARKS
-  [29036.101 ms] Display fill at (0, 70), 320 by 20: 0xffffff
-  [29037.381 ms] Display at (6, 72): Settle for 1 s
-  [29041.193 ms] Display at (30, 200): Stand up
-  [29044.845 ms] Display at (242, 200):
-  [30272.865 ms] Display fill at (0, 40), 320 by 30: 0xffd000
-  [30273.925 ms] Display at (9, 43): SET
-  [30276.485 ms] Display fill at (0, 70), 320 by 20: 0xffd000
-  [30277.685 ms] Display at (6, 72): Hold still
-  [30277.735 ms] Speaker: 1500 Hz for 80 ms
-  [31301.725 ms] Display fill at (0, 40), 320 by 30: 0xffffff
-  [31302.885 ms] Display at (9, 43): STAND UP
-  [31305.445 ms] Display fill at (0, 70), 320 by 20: 0xffffff
-  [31306.745 ms] Display at (6, 72): Start abandoned
-  [31348.857 ms] Display at (48, 200): Start
-  [31352.609 ms] Display at (212, 200): Reset
-  [36030.859 ms] Speaker: 3000 Hz for 50 ms
-  [36034.699 ms] Display fill at (0, 40), 320 by 30: 0xffffff
-  [36035.799 ms] Display at (9, 43): READY
-  [36038.359 ms] Display fill at (0, 70), 320 by 20: 0xffffff
-  [36039.619 ms] Display at (6, 72): Tally cleared
-  [36081.651 ms] Display at (48, 200): Start
-  [36085.403 ms] Display at (212, 200): Reset
-  [43030.943 ms] Display fill at (0, 40), 320 by 30: 0xffffff
-  [43032.203 ms] Display at (9, 43): ON YOUR MARKS
-  [43034.763 ms] Display fill at (0, 70), 320 by 20: 0xffffff
-  [43036.043 ms] Display at (6, 72): Settle for 1 s
-  [43039.855 ms] Display at (30, 200): Stand up
-  [43043.507 ms] Display at (242, 200):
-  [44271.527 ms] Display fill at (0, 40), 320 by 30: 0xff8000
-  [44272.707 ms] Display at (9, 43): NOT STILL
-  [44275.267 ms] Display fill at (0, 70), 320 by 20: 0xff8000
-  [44276.667 ms] Display at (6, 72): Settle and tap Start
-  [44318.699 ms] Display at (48, 200): Start
-  [44322.451 ms] Display at (212, 200): Reset
+  [45.998 ms] Display fill at (0, 40), 320 by 30: 0xffffff
+  [47.098 ms] Display at (9, 43): READY
+  [49.658 ms] Display fill at (0, 70), 320 by 20: 0xffffff
+  [50.838 ms] Display at (6, 72): Tap Start
+  [92.870 ms] Display at (48, 200): Start
+  [96.622 ms] Display at (212, 200): Reset
+  [1006.162 ms] Display fill at (0, 40), 320 by 30: 0xffffff
+  [1007.422 ms] Display at (9, 43): ON YOUR MARKS
+  [1009.982 ms] Display fill at (0, 70), 320 by 20: 0xffffff
+  [1011.262 ms] Display at (6, 72): Settle for 1 s
+  [1015.074 ms] Display at (30, 200): Stand up
+  [1018.726 ms] Display at (242, 200):
+  [2246.746 ms] Display fill at (0, 40), 320 by 30: 0xffd000
+  [2247.806 ms] Display at (9, 43): SET
+  [2250.366 ms] Display fill at (0, 70), 320 by 20: 0xffd000
+  [2251.566 ms] Display at (6, 72): Hold still
+  [2251.616 ms] Speaker: 1500 Hz for 80 ms
+  [4230.757 ms] Speaker: 2500 Hz for 300 ms
+  [4395.953 ms] Display fill at (0, 40), 320 by 30: 0x00c000
+  [4397.173 ms] Display at (9, 43): LEGAL START
+  [4399.733 ms] Display fill at (0, 70), 320 by 20: 0x00c000
+  [4400.953 ms] Display at (6, 72): Reaction, s
+  [4402.233 ms] Display fill at (160, 70), 160 by 20: 0x00c000
+  [4403.333 ms] Display at (166, 72): 0.161
+  [4445.445 ms] Display at (48, 200): Start
+  [4449.197 ms] Display at (212, 200): Reset
+  [8024.637 ms] Display fill at (0, 40), 320 by 30: 0xffffff
+  [8025.897 ms] Display at (9, 43): ON YOUR MARKS
+  [8028.457 ms] Display fill at (0, 70), 320 by 20: 0xffffff
+  [8029.737 ms] Display at (6, 72): Settle for 1 s
+  [8033.549 ms] Display at (30, 200): Stand up
+  [8037.201 ms] Display at (242, 200):
+  [9265.221 ms] Display fill at (0, 40), 320 by 30: 0xffd000
+  [9266.281 ms] Display at (9, 43): SET
+  [9268.841 ms] Display fill at (0, 70), 320 by 20: 0xffd000
+  [9270.041 ms] Display at (6, 72): Hold still
+  [9270.091 ms] Speaker: 1500 Hz for 80 ms
+  [11412.456 ms] Speaker: 2500 Hz for 300 ms
+  [11474.566 ms] Speaker: 800 Hz for 80 ms
+  [11584.616 ms] Speaker: 800 Hz for 80 ms
+  [11588.456 ms] Display fill at (0, 40), 320 by 30: 0xe00000
+  [11589.676 ms] Display at (9, 43): FALSE START
+  [11592.236 ms] Display fill at (0, 70), 320 by 20: 0xe00000
+  [11593.636 ms] Display at (6, 72): Warning: under 0.1 s
+  [11635.748 ms] Display at (48, 200): Start
+  [11639.500 ms] Display at (212, 200): Reset
+  [15013.740 ms] Display fill at (0, 40), 320 by 30: 0xffffff
+  [15015.000 ms] Display at (9, 43): ON YOUR MARKS
+  [15017.560 ms] Display fill at (0, 70), 320 by 20: 0xffffff
+  [15018.840 ms] Display at (6, 72): Settle for 1 s
+  [15022.652 ms] Display at (30, 200): Stand up
+  [15026.304 ms] Display at (242, 200):
+  [16254.324 ms] Display fill at (0, 40), 320 by 30: 0xffd000
+  [16255.384 ms] Display at (9, 43): SET
+  [16257.944 ms] Display fill at (0, 70), 320 by 20: 0xffd000
+  [16259.144 ms] Display at (6, 72): Hold still
+  [16259.194 ms] Speaker: 1500 Hz for 80 ms
+  [17075.364 ms] Speaker: 800 Hz for 80 ms
+  [17185.414 ms] Speaker: 800 Hz for 80 ms
+  [17189.254 ms] Display fill at (0, 40), 320 by 30: 0xe00000
+  [17190.494 ms] Display at (9, 43): DISQUALIFIED
+  [17193.054 ms] Display fill at (0, 70), 320 by 20: 0xe00000
+  [17194.294 ms] Display at (6, 72): Moved in Set
+  [17236.406 ms] Display at (48, 200): Start
+  [17240.158 ms] Display at (212, 200): Reset
+  [22022.798 ms] Display fill at (0, 40), 320 by 30: 0xffffff
+  [22024.058 ms] Display at (9, 43): ON YOUR MARKS
+  [22026.618 ms] Display fill at (0, 70), 320 by 20: 0xffffff
+  [22027.898 ms] Display at (6, 72): Settle for 1 s
+  [22031.710 ms] Display at (30, 200): Stand up
+  [22035.362 ms] Display at (242, 200):
+  [23263.382 ms] Display fill at (0, 40), 320 by 30: 0xffd000
+  [23264.442 ms] Display at (9, 43): SET
+  [23267.002 ms] Display fill at (0, 70), 320 by 20: 0xffd000
+  [23268.202 ms] Display at (6, 72): Hold still
+  [23268.252 ms] Speaker: 1500 Hz for 80 ms
+  [25145.378 ms] Speaker: 2500 Hz for 300 ms
+  [25769.818 ms] Display fill at (0, 40), 320 by 30: 0xff8000
+  [25770.978 ms] Display at (9, 43): NO START
+  [25773.538 ms] Display fill at (0, 70), 320 by 20: 0xff8000
+  [25774.778 ms] Display at (6, 72): No push seen
+  [25816.890 ms] Display at (48, 200): Start
+  [25820.642 ms] Display at (212, 200): Reset
+  [29043.982 ms] Display fill at (0, 40), 320 by 30: 0xffffff
+  [29045.242 ms] Display at (9, 43): ON YOUR MARKS
+  [29047.802 ms] Display fill at (0, 70), 320 by 20: 0xffffff
+  [29049.082 ms] Display at (6, 72): Settle for 1 s
+  [29052.894 ms] Display at (30, 200): Stand up
+  [29056.546 ms] Display at (242, 200):
+  [30284.566 ms] Display fill at (0, 40), 320 by 30: 0xffd000
+  [30285.626 ms] Display at (9, 43): SET
+  [30288.186 ms] Display fill at (0, 70), 320 by 20: 0xffd000
+  [30289.386 ms] Display at (6, 72): Hold still
+  [30289.436 ms] Speaker: 1500 Hz for 80 ms
+  [31313.426 ms] Display fill at (0, 40), 320 by 30: 0xffffff
+  [31314.586 ms] Display at (9, 43): STAND UP
+  [31317.146 ms] Display fill at (0, 70), 320 by 20: 0xffffff
+  [31318.446 ms] Display at (6, 72): Start abandoned
+  [31360.558 ms] Display at (48, 200): Start
+  [31364.310 ms] Display at (212, 200): Reset
+  [36042.560 ms] Speaker: 3000 Hz for 50 ms
+  [36046.400 ms] Display fill at (0, 40), 320 by 30: 0xffffff
+  [36047.500 ms] Display at (9, 43): READY
+  [36050.060 ms] Display fill at (0, 70), 320 by 20: 0xffffff
+  [36051.320 ms] Display at (6, 72): Tally cleared
+  [36093.352 ms] Display at (48, 200): Start
+  [36097.104 ms] Display at (212, 200): Reset
+  [43042.644 ms] Display fill at (0, 40), 320 by 30: 0xffffff
+  [43043.904 ms] Display at (9, 43): ON YOUR MARKS
+  [43046.464 ms] Display fill at (0, 70), 320 by 20: 0xffffff
+  [43047.744 ms] Display at (6, 72): Settle for 1 s
+  [43051.556 ms] Display at (30, 200): Stand up
+  [43055.208 ms] Display at (242, 200):
+  [44283.228 ms] Display fill at (0, 40), 320 by 30: 0xff8000
+  [44284.408 ms] Display at (9, 43): NOT STILL
+  [44286.968 ms] Display fill at (0, 70), 320 by 20: 0xff8000
+  [44288.368 ms] Display at (6, 72): Settle and tap Start
+  [44330.400 ms] Display at (48, 200): Start
+  [44334.152 ms] Display at (212, 200): Reset
   [50000.000 ms] End of the simulation
 
 The gun is fired 1500 to 3000 ms after the Set command, at times drawn from
@@ -182,21 +182,21 @@ start, one warning, one disqualification and one start without a push, each
 row written from left to right, each label before its value:
 
   $ grep 'Speaker: \(1500\|2500\)' run.log | awk '{ t = substr($1, 2) + 0; if ($4 == "1500") set = t; else print int(t - set), (t - set >= 1500 && t - set <= 3000) }'
-  1754 1
-  1632 1
-  1652 1
+  1979 1
+  2142 1
+  1877 1
   $ grep 'Display at ([0-9]*, \(102\|124\|146\|168\))' run.log | sed -n '71,84p'
-  [31310.405 ms] Display at (0, 102): Legal
-  [31313.217 ms] Display at (96, 102): 1
-  [31315.657 ms] Display at (160, 102): Warnings
-  [31316.997 ms] Display at (280, 102): 1
-  [31320.597 ms] Display at (0, 124): DQ
-  [31323.409 ms] Display at (96, 124): 1
-  [31325.869 ms] Display at (160, 124): No starts
-  [31327.209 ms] Display at (280, 124): 1
-  [31330.909 ms] Display at (0, 146): Best, s
-  [31333.801 ms] Display at (96, 146): 0.161
-  [31337.441 ms] Display at (0, 168): Lane
-  [31340.541 ms] Display at (60, 168): 1
-  [31343.573 ms] Display at (96, 168): False starts
-  [31345.105 ms] Display at (256, 168): 2
+  [31322.106 ms] Display at (0, 102): Legal
+  [31324.918 ms] Display at (96, 102): 1
+  [31327.358 ms] Display at (160, 102): Warnings
+  [31328.698 ms] Display at (280, 102): 1
+  [31332.298 ms] Display at (0, 124): DQ
+  [31335.110 ms] Display at (96, 124): 1
+  [31337.570 ms] Display at (160, 124): No starts
+  [31338.910 ms] Display at (280, 124): 1
+  [31342.610 ms] Display at (0, 146): Best, s
+  [31345.502 ms] Display at (96, 146): 0.161
+  [31349.142 ms] Display at (0, 168): Lane
+  [31352.242 ms] Display at (60, 168): 1
+  [31355.274 ms] Display at (96, 168): False starts
+  [31356.806 ms] Display at (256, 168): 2

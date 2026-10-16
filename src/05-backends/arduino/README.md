@@ -823,15 +823,15 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   operations.
   - The protocol of a start is three boxes nested in each other, each holding
     a closure that creates the next: Set at least a second after On your
-    marks, the gun 1.5 to 3 s after Set, and the athlete judged within half
-    a second of the gun.
+    marks, the gun 1.5 to 3 s after Set, and the athlete judged within a
+    second of the gun.
   - The gun follows the Set command after a hold of 80 polls and as many
     further polls as the clock gives, 1576 to 2919 ms; the time of the gun is
     read at once, with no operation between.
   - A box over the reaction window admits the reaction time only after
     nothing but polls, each reading stamped at once and taken at most 2.5 ms
     after the last stamp, so that a push is seen within about 4 ms; no push
-    in 100 polls, 270 to 405 ms, is a start without a push.
+    in 200 polls, 540 to 810 ms, is a start without a push.
   - The session consists of rounds of a poll of the touch screen followed by
     a start, a reset or a wait of 50 ms.
   - A reaction under 100 ms or a movement in Set is a false start: a warning
