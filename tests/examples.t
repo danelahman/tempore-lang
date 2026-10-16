@@ -852,7 +852,7 @@ tests show those runs in detail.
     [{!1}, {!1}],
     { resource_3 ↦
         "beads"
-        # [{AddEthanol; 1; RemoveEthanol; AddEthanol; 1; RemoveEthanol; 2; (0 | 1)}, {AddEthanol; 1; RemoveEthanol; AddEthanol; 1; RemoveEthanol; 2; (0 | 1)}],
+        # [{(AddEthanol; 1; RemoveEthanol)^2; 2; (0 | 1)}, {(AddEthanol; 1; RemoveEthanol)^2; 2; (0 | 1)}],
       resource_5 ↦
         <fun>
         # [{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]
