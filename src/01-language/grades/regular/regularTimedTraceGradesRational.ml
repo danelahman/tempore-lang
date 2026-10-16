@@ -13,6 +13,50 @@ let extremum = function
    [q], closed iff [attained]. *)
 let end_of_extremum (q, attained) = if attained then Closed q else Open q
 
+(* The worlds of comparisons, hash-consed: equal lists of operations with their
+   running times are one world, identified by its number, and equal lists of
+   their names one number. *)
+module World = struct
+  type t = { operations : Closure.world; id : int; names : int }
+
+  (* Lists of names. *)
+  module NameList = struct
+    type t = string list
+
+    let equal = List.equal String.equal
+    let hash = Hashing.list String.hash
+  end
+
+  module Names =
+    NormalForms.HashCons
+      (NameList)
+      (struct
+        type t = int
+
+        let build id _ = id
+      end)
+
+  include
+    NormalForms.HashCons
+      (struct
+        type t = Closure.world
+
+        let equal =
+          List.equal (fun (n, c) (n', c') ->
+              String.equal n n' && DelaySet.equal_extremum c c')
+
+        let hash =
+          Hashing.list (fun (n, c) ->
+              Hashing.combine (String.hash n) (DelaySet.hash_extremum c))
+      end)
+      (struct
+        type nonrec t = t
+
+        let build id operations =
+          { operations; id; names = Names.make (List.map fst operations) }
+      end)
+end
+
 (* The decisions of the orders on the grades [t]: whether every trace of the
    lesser grade is in the closure of the greater one, a trace outside it, the
    extremal weights of the traces of a grade and its inhabitation, over the
@@ -20,13 +64,13 @@ let end_of_extremum (q, attained) = if attained then Closed q else Open q
 module type DECISIONS = sig
   type t
 
-  val in_allowance : rigid:bool -> Closure.world -> t -> t -> bool
-  val in_coverage : Closure.world -> t -> t -> bool
-  val allowance : rigid:bool -> Closure.world -> t -> t -> A.symbol list option
-  val coverage : Closure.world -> t -> t -> A.symbol list option
-  val min_weight : Closure.world -> t -> (Rational.t * bool) option
-  val max_weight : Closure.world -> t -> (Rational.t * bool) option
-  val inhabited : Closure.world -> t -> bool
+  val in_allowance : rigid:bool -> World.t -> t -> t -> bool
+  val in_coverage : World.t -> t -> t -> bool
+  val allowance : rigid:bool -> World.t -> t -> t -> A.symbol list option
+  val coverage : World.t -> t -> t -> A.symbol list option
+  val min_weight : World.t -> t -> (Rational.t * bool) option
+  val max_weight : World.t -> t -> (Rational.t * bool) option
+  val inhabited : World.t -> t -> bool
 end
 
 (* The decisions on the canonical automata of the grades, a verdict being that
@@ -36,8 +80,8 @@ module ByAutomata = struct
 
   type t = L.t
 
-  let on decide world rho rho' =
-    decide world (L.automaton rho) (L.automaton rho')
+  let on decide (world : World.t) rho rho' =
+    decide world.operations (L.automaton rho) (L.automaton rho')
 
   let allowance ~rigid = on (Closure.allowance ~rigid)
   let coverage = on Closure.coverage
@@ -46,9 +90,13 @@ module ByAutomata = struct
     Option.is_none (allowance ~rigid world rho rho')
 
   let in_coverage world rho rho' = Option.is_none (coverage world rho rho')
-  let min_weight world rho = Closure.min_weight world (L.automaton rho)
-  let max_weight world rho = Closure.max_weight world (L.automaton rho)
-  let inhabited world rho = Closure.inhabited world (L.automaton rho)
+
+  let on_one decide (world : World.t) rho =
+    decide world.operations (L.automaton rho)
+
+  let min_weight = on_one Closure.min_weight
+  let max_weight = on_one Closure.max_weight
+  let inhabited = on_one Closure.inhabited
 end
 
 (* The decisions on the graphs of the gap derivatives of the expressions of the
@@ -58,57 +106,29 @@ module ByGaps = struct
 
   type t = L.t
 
-  (* Tables by lists of names and normal forms. *)
-  module Graphs = Memo.Make (struct
-    type t = string list * RationalRegex.t
-
-    let equal (names, r) (names', r') =
-      List.equal String.equal names names' && RationalRegex.equal_form r r'
-
-    let hash (names, r) =
-      Hashing.combine (Hashing.list String.hash names) (RationalRegex.hash r)
-  end)
-
-  (* [graph names rho] is {!RationalRegex.graph}, tabulated by its arguments. *)
+  (* [graph world rho] is {!RationalRegex.graph} over the names of [world],
+     tabulated by the number of the names and that of the normal form. *)
   let graph =
-    let graph =
-      Graphs.memoise (fun (names, r) -> RationalRegex.graph names r)
-    in
-    fun names rho -> graph (names, L.form rho)
+    let table = Memo.Pairs.create 64 in
+    fun (world : World.t) rho ->
+      let r = L.form rho in
+      Memo.Pairs.find_or_add table
+        (world.names, RationalRegex.hash r)
+        (fun () -> RationalRegex.graph (List.map fst world.operations) r)
 
-  let names world = List.map fst world
-  let on decide world rho = decide world (graph (names world) rho)
+  let on decide (world : World.t) rho =
+    decide world.operations (graph world rho)
 
-  let on_pair decide world rho rho' =
-    decide world (graph (names world) rho) (graph (names world) rho')
+  let on_pair decide (world : World.t) rho rho' =
+    decide world.operations (graph world rho) (graph world rho')
 
-  (* The verdicts and searches decided, by the world and the grades. *)
-  module Comparisons = Memo.Make (struct
-    type t = Closure.world * int * int
-
-    let equal (w, i, j) (w', i', j') =
-      Int.equal i i' && Int.equal j j'
-      && List.equal
-           (fun (n, c) (n', c') ->
-             String.equal n n' && DelaySet.equal_extremum c c')
-           w w'
-
-    let hash (w, i, j) =
-      Hashing.combine
-        (Hashing.list
-           (fun (n, c) ->
-             Hashing.combine (String.hash n) (DelaySet.hash_extremum c))
-           w)
-        (Hashing.combine i j)
-  end)
-
-  (* [tabulated f] is [f], its results tabulated by its arguments in a table of
-     its own. *)
+  (* [tabulated f] is [f], its results tabulated by the numbers of the world and
+     of the normal forms of the grades in a table of its own. *)
   let tabulated f =
-    let table = Comparisons.create 64 in
-    fun world rho rho' ->
-      Comparisons.find_or_add table
-        ( world,
+    let table = Memo.Triples.create 64 in
+    fun (world : World.t) rho rho' ->
+      Memo.Triples.find_or_add table
+        ( world.id,
           RationalRegex.hash (L.form rho),
           RationalRegex.hash (L.form rho') )
         (fun () -> f world rho rho')
@@ -126,7 +146,7 @@ module ByGaps = struct
   let coverage = tabulated (on_pair Closure.Graph.coverage)
   let min_weight = on Closure.Graph.min_weight
   let max_weight = on Closure.Graph.max_weight
-  let inhabited world rho = Closure.Graph.inhabited (graph (names world) rho)
+  let inhabited world rho = Closure.Graph.inhabited (graph world rho)
 end
 
 (* The grades over the languages [L], decided by [D], their names ending in
@@ -142,44 +162,78 @@ module Make
     (struct
       type grade = L.t
       type delay = L.Delay.t
-      type world = Closure.world
+      type world = World.t
       type word = A.symbol list
 
       let suffix = "-rational" ^ N.suffix
 
-      (* [world endpoint bounds rhos] is the operations of a comparison of the
-         grades [rhos], each with the extremal value of the [endpoint] of its
-         running-time bounds as its running time: the names [rhos] mention, and
-         of the other declared operations, which [rhos] do not tell apart, the
-         least name of each running time; the names that encode strict delays
-         take no time. *)
-      let world endpoint bounds rhos =
-        let mentioned =
-          List.sort_uniq String.compare (List.concat_map L.events rhos)
-        in
-        let running_time name =
-          if GradeLiteral.is_marker name then
-            DelaySet.Finite (Rational.zero, true)
-          else extremum (endpoint (bounds.running_time name))
-        in
-        let others =
-          List.filter
-            (fun name -> not (List.mem name mentioned))
-            (List.sort_uniq String.compare bounds.operations)
-        in
+      (* [running_time endpoint bounds name] is the extremal value of the
+         [endpoint] of the running-time bounds of the operation [name]; the
+         names that encode strict delays take no time. *)
+      let running_time endpoint bounds name =
+        if GradeLiteral.is_marker name then DelaySet.Finite (Rational.zero, true)
+        else extremum (endpoint (bounds.running_time name))
+
+      (* [classes running_time names] is the classes of the names [names] of
+         equal running times, each with its running time and its names in
+         increasing order. *)
+      let classes running_time names =
+        List.fold_right
+          (fun name classes ->
+            let c = running_time name in
+            let rec add = function
+              | [] -> [ (c, [ name ]) ]
+              | (c', names) :: classes when DelaySet.equal_extremum c c' ->
+                  (c', name :: names) :: classes
+              | class_ :: classes -> class_ :: add classes
+            in
+            add classes)
+          (List.sort_uniq String.compare names)
+          []
+
+      (* [operations running_time classes mentioned] is the operations of a
+         comparison of grades that mention the names [mentioned], in increasing
+         order, each with its running time: the names [mentioned], and of the
+         other declared operations, of the [classes] of their running times,
+         which the grades do not tell apart, the least name of each class. *)
+      let operations running_time classes mentioned =
         let representatives =
-          List.fold_left
-            (fun reps name ->
-              let c = running_time name in
-              if List.exists (fun (_, c') -> DelaySet.equal_extremum c c') reps
-              then reps
-              else (name, c) :: reps)
-            [] others
+          List.filter_map
+            (fun (c, names) ->
+              Option.map
+                (fun name -> (name, c))
+                (List.find_opt
+                   (fun name -> not (List.mem name mentioned))
+                   names))
+            classes
         in
         List.sort
           (fun (n, _) (n', _) -> String.compare n n')
           (List.map (fun name -> (name, running_time name)) mentioned
           @ representatives)
+
+      (* The worlds of the comparisons of a program at an endpoint, by the names
+         the grades compared mention: the classes of the declared operations
+         are computed once per running times of a program, by their physical
+         identity, and endpoint. *)
+      let worlds =
+        Memo.last (fun bounds ->
+            Memo.by_identity (fun endpoint ->
+                let running_time = running_time endpoint bounds in
+                let classes = classes running_time bounds.operations in
+                let module Worlds = Memo.Make (World.NameList) in
+                Worlds.memoise (fun mentioned ->
+                    World.make (operations running_time classes mentioned))))
+
+      (* [world endpoint bounds rhos] is the world of a comparison of the
+         grades [rhos]: its operations, each with the extremal value of the
+         [endpoint] of its running-time bounds as its running time, are the
+         names [rhos] mention, and of the other declared operations, which
+         [rhos] do not tell apart, the least name of each running time; the
+         names that encode strict delays take no time. *)
+      let world endpoint bounds rhos =
+        worlds bounds endpoint
+          (List.sort_uniq String.compare (List.concat_map L.events rhos))
 
       let in_allowance = D.in_allowance
       let in_coverage = D.in_coverage
@@ -192,11 +246,10 @@ module Make
       let max_weight world rho =
         Option.map end_of_extremum (D.max_weight world rho)
 
-      let inhabited bounds rho =
-        D.inhabited
-          (world (Fun.const (Closed Rational.zero)) bounds [ rho ])
-          rho
-
+      (* The endpoint of running-time bounds at which every operation takes no
+         time. *)
+      let no_time (_ : running_time) = Closed Rational.zero
+      let inhabited bounds rho = D.inhabited (world no_time bounds [ rho ]) rho
       let literal_of_word word = Braces (DelayRegex.of_word word)
       let single = function Int _ | Rat _ | Braces _ -> true | _ -> false
       let number = L.Delay.read
