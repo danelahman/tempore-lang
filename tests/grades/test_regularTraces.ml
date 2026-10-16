@@ -308,9 +308,12 @@ struct
         ~expected:"{Open; {Read* | Write*}; Close}";
       reads "{(Open; (Read | Write)*; Close | 1)*}"
         ~expected:"{(1 | Open; (Read | Write)*; Close)*}";
-      reads "{(A; A)* & (A; A; A)*}" ~expected:"{(A; A)* & (A; A; A)*}";
+      reads "{(A; A)* & (A; A; A)*}" ~expected:"{A^6*}";
       reads "{(A; A)* & (A; A; A)* | A; A; A; A; A; A; A; A; A; A; A; A}"
-        ~expected:"{(A; A; A; A; A; A)*}";
+        ~expected:
+          (match I.implementation with
+          | Automata -> "{A^6*}"
+          | Symbolic | Concrete | Plain -> "{A^12 | A^2* & A^3*}");
       reads "{~(A*; (_ & ~A))*}" ~expected:"{_*; A}";
       reads "{_ & ~(1 | Read)}" ~expected:"{_ & ~(1 | Read)}";
       reads "{3; _*}" ~expected:"{3; _*}";
@@ -542,6 +545,16 @@ struct
       same_lit "{(A | 0)^3}" "{(A | 0); (A | 0); (A | 0)}";
       same_lit "{(A^2)^[1, 3]}" "{A^[2, 6] & (A; A)*}";
       same_lit "{1^4; A}" "{4; A}";
+      reads "{A; A; A}" ~expected:"{A^3}";
+      reads "{A^2; A; B; B}" ~expected:"{A^3; B^2}";
+      reads "{(A; B)^3}" ~expected:"{(A; B)^3}";
+      reads "{(A | 0)^3}" ~expected:"{(0 | A)^3}";
+      reads "{(A | 0)^[1, 3]}" ~expected:"{(0 | A)^3}";
+      reads "{A^[2, ∞)}" ~expected:"{A^[2, ∞)}";
+      reads "{A^2 | A^3}" ~expected:"{A^[2, 3]}";
+      reads "{A^2 | A^4}" ~expected:"{A^2 | A^4}";
+      reads "{(A*; B)^2}" ~expected:"{(A*; B)^2}";
+      reads "{(B; A*)^2}" ~expected:"{{B; A*}^2}";
       rejects "{A^(2, 3)}" "holds no natural number";
       rejects "{A^[3, 2]}" "holds no natural number";
       rejects "{A^[2, ∞]}" "infinite endpoint";
@@ -643,7 +656,7 @@ struct
 
   let bounded_printing =
     let from_end a n =
-      String.concat "; " ("_*" :: a :: List.init n (Fun.const "_"))
+      "_*; " ^ a ^ if n = 1 then "; _" else "; _^" ^ string_of_int n
     in
     let slow = "~(" ^ from_end "A" 12 ^ ") & ~(" ^ from_end "B" 12 ^ ")" in
     let texts =

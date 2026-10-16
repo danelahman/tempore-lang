@@ -37,4 +37,5 @@ val delays : GradeLiteral.regex -> DelaySet.t
 val of_word : DelayAutomaton.symbol list -> GradeLiteral.regex
 (** [of_word w] is the expression of the timed word [w], a concatenation of its
     non-zero delays, its strict delays, encoded as in {!StrictDelays}, and its
-    classes, or [0] if it has none. *)
+    classes, or [0] if it has none, its runs of equal factors joined into
+    bounded repetitions ({!GradeLiteral.sequence}). *)

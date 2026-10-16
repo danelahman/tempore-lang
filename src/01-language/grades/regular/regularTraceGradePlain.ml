@@ -62,6 +62,7 @@ module Rebuild (T : SymbolicRegex.S) = struct
       | Inter rs -> T.inter (List.map go rs)
       | Compl r -> T.compl (go r)
       | Star r -> T.star (go r)
+      | Repeat (r, c) -> T.repeat (go r) c
     in
     go r
 end

@@ -551,7 +551,7 @@ let literals =
                Braces (Repeat (Tick 2, Grades.Count.make 1 (Some 3)));
              ];
          ])
-      "(1, (Send, {2; (0 | 2; (0 | 2))}))";
+      "(1, (Send, {2^[1, 3]}))";
     reads "top" windowed_schedules Top "⊤";
     rejects "operation in the times" windowed_schedules
       (Tuple [ Int 1; Tuple [ Name "Send"; Braces send ] ])
@@ -2346,6 +2346,86 @@ let registered_laws =
              @ of_bounds_laws (module G) running_times)
        GradeRegistry.grade_modules
 
+(* Bounded repetition in every registered grade: a brace literal with
+   repetitions and its unrolling are read alike, as equal grades, or both
+   rejected; and the laws hold on the samples with repetitions a grade reads,
+   with their products and joins, but for the finite sets of traces, whose
+   products of these samples are large. *)
+let registered_repetitions =
+  let open Grade in
+  let count m n = Grades.Count.make m n in
+  let rec unroll = function
+    | Repeat (r, c) -> unrolled (unroll r) c
+    | Seq (r, s) -> Seq (unroll r, unroll s)
+    | Union (r, s) -> Union (unroll r, unroll s)
+    | Inter (r, s) -> Inter (unroll r, unroll s)
+    | Star r -> Star (unroll r)
+    | Compl r -> Compl (unroll r)
+    | Strict r -> Strict (unroll r)
+    | (Letter _ | Tick _ | Frac _ | Delays _ | Any) as r -> r
+  in
+  let a = Letter "A" and b = Letter "B" and c = Letter "C" in
+  let literals =
+    [
+      Repeat (a, count 3 (Some 3));
+      Repeat (Seq (a, Tick 1), count 0 (Some 2));
+      Seq (Repeat (Union (a, Seq (b, Tick 2)), count 1 (Some 3)), c);
+      Repeat (a, count 2 None);
+      Repeat (Seq (Strict (Tick 1), a), count 2 (Some 2));
+      Repeat (Seq (Repeat (a, count 2 (Some 2)), b), count 2 (Some 2));
+      Repeat (Union (Tick 0, Seq (a, b)), count 4 (Some 4));
+      Repeat (Seq (Frac (Rational.make 1 2), a), count 3 (Some 3));
+      Seq (Repeat (Union (Tick 1, a), count 0 (Some 3)), Tick 2);
+      Repeat
+        ( Seq
+            (Delays (Closed (Rational.of_int 1), Closed (Rational.of_int 2)), b),
+          count 1 (Some 2) );
+    ]
+  in
+  List.concat_map
+    (fun (name, (module G : Grade.S)) ->
+      let read r = read_lit G.of_lit (Braces r) in
+      let pairs = List.map (fun r -> (r, read r, read (unroll r))) literals in
+      let agree =
+        List.map
+          (fun (r, rho, rho') ->
+            let text = show_regex r in
+            match (rho, rho') with
+            | Ok rho, Ok rho' ->
+                check
+                  (name ^ ": {" ^ text ^ "} is its unrolling")
+                  (G.equal running_times rho rho')
+                  (G.show rho ^ " vs " ^ G.show rho')
+            | Error _, Error _ -> check (name ^ ": {" ^ text ^ "}") true ""
+            | Ok _, Error _ | Error _, Ok _ ->
+                check
+                  (name ^ ": {" ^ text ^ "} read as its unrolling")
+                  false "one of them is rejected")
+          pairs
+      in
+      let samples =
+        List.filter_map
+          (fun (_, rho, _) ->
+            match rho with
+            | Ok rho when G.inhabited running_times rho -> Some rho
+            | _ -> None)
+          pairs
+      in
+      let samples =
+        match samples with
+        | x :: y :: z :: _ -> samples @ [ G.mul x y; G.join y z; G.mul z x ]
+        | _ -> samples
+      in
+      let context = "A:(1, 3), B:(2, 2), C:(0, 5), repetitions" in
+      agree
+      @
+      if List.length samples < 2 || String.starts_with ~prefix:"traces-" name
+      then []
+      else
+        order_laws ~thirds:8 (module G) ~context running_times samples
+        @ algebra_laws ~width:8 (module G) ~context running_times samples)
+    GradeRegistry.grade_modules
+
 (* The running times of the operations [A], [B] and [C], with fractional
    running-time bounds. *)
 let fractional_running_times =
@@ -3400,10 +3480,10 @@ let () =
   let checks =
     delay_laws @ levels @ products @ counterexamples
     @ semidirect_counterexamples @ witnesses @ literals @ negative_delays @ tops
-    @ registry @ registered_laws @ fractional_laws @ inclusion_laws @ indexed
-    @ mode_laws @ resource_laws @ interval_read_back @ schedule_laws
-    @ resource_construction_laws @ finite_laws @ ranges @ flow_tops
-    @ duration_bounds @ mode_time_laws
+    @ registry @ registered_laws @ registered_repetitions @ fractional_laws
+    @ inclusion_laws @ indexed @ mode_laws @ resource_laws @ interval_read_back
+    @ schedule_laws @ resource_construction_laws @ finite_laws @ ranges
+    @ flow_tops @ duration_bounds @ mode_time_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

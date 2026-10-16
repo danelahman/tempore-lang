@@ -809,7 +809,8 @@ minus_infinity:
    [|], intersection [&], concatenation [;], complement [~] and repetition
    [*] and bounded repetition [r^n], [r^[m, n]] or [r^[m, ∞)], the strict
    delay [!] binding as the complement but applying to the operand of a
-   repetition. Braces group as
+   repetition [*]; [!r^c] is the strict delay of the delays of [r^c], and
+   [(!r)^c] a repetition of strict delays. Braces group as
    parentheses do. An atom is an operation name, a delay,
    the wildcard [_], or an interval of delays [[a, b]], [(a, b)], [[a, b)],
    [(a, b]], [[a, ∞)] or [(a, ∞)]; a parenthesis followed by a delay and a
@@ -834,7 +835,6 @@ regex_unary:
         (* [!] binds to the operand of a repetition: [!_*] is [(!_)*]. *)
         let rec strict = function
           | Grade.Star r -> Grade.Star (strict r)
-          | Grade.Repeat (r, c) -> Grade.Repeat (strict r, c)
           | r when r = Grade.Any || Grade.delays_only r -> Grade.Strict r
           | r ->
               Error.syntax ~loc:(location $loc(r))

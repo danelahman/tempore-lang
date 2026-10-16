@@ -842,7 +842,7 @@ tests show those runs in detail.
   State: [
     { resource_1 ↦
         <fun>
-        # [{AddBeads; 5; (0 | 1; (0 | 1; (0 | 1; (0 | 1; (0 | 1))))); MagnetOn}, {AddBeads; 5; (0 | 1; (0 | 1; (0 | 1; (0 | 1; (0 | 1))))); MagnetOn}]
+        # [{AddBeads; 5; (0 | 1)^5; MagnetOn}, {AddBeads; 5; (0 | 1)^5; MagnetOn}]
     },
     [{!2}, {!2}],
     [{!7}, {!7}],
@@ -870,7 +870,7 @@ tests show those runs in detail.
     [{!3}, {!3}],
     { resource_9 ↦
         <fun>
-        # [{MagnetOff; AddBuffer; 2; (0 | 1; (0 | 1; (0 | 1))); MagnetOn; 3; (0 | 1; (0 | 1)); Transfer}, {MagnetOff; AddBuffer; 2; (0 | 1; (0 | 1; (0 | 1))); MagnetOn; 3; (0 | 1; (0 | 1)); Transfer}]
+        # [{MagnetOff; AddBuffer; 2; (0 | 1)^3; MagnetOn; 3; (0 | 1)^2; Transfer}, {MagnetOff; AddBuffer; 2; (0 | 1)^3; MagnetOn; 3; (0 | 1)^2; Transfer}]
     },
     [{!1}, {!1}],
     [{!1}, {!1}],

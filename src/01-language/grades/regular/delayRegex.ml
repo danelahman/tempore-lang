@@ -79,7 +79,4 @@ let of_word word =
     | A.Delay d :: word -> rational_tick d :: atoms word
     | A.Operation c :: word -> of_class c :: atoms word
   in
-  let atoms = atoms word in
-  match atoms with
-  | [] -> Tick 0
-  | r :: rs -> List.fold_left (fun r s -> Seq (r, s)) r rs
+  sequence (atoms word)

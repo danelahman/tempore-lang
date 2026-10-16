@@ -13,6 +13,7 @@ and view =
   | Inter of t list
   | Compl of t
   | Star of t
+  | Repeat of t * Count.t
 
 let view r = r.view
 let equal_form r s = r.id = s.id
@@ -28,6 +29,7 @@ let nullable_view = function
   | Union rs -> List.exists nullable rs
   | Inter rs -> List.for_all nullable rs
   | Compl r -> not r.nullable
+  | Repeat (r, c) -> r.nullable || Count.mem 0 c
 
 (** The table of normal forms, each view built of normal forms identified by
     their numbers. *)
@@ -45,6 +47,7 @@ module Forms =
         | Union rs, Union rs' | Inter rs, Inter rs' ->
             List.equal equal_form rs rs'
         | Compl r, Compl r' | Star r, Star r' -> equal_form r r'
+        | Repeat (r, c), Repeat (r', c') -> equal_form r r' && Count.equal c c'
         | _ -> false
 
       let combine = NormalForms.combine_ids (fun r -> r.id)
@@ -59,6 +62,7 @@ module Forms =
         | Inter rs -> combine 4 rs
         | Compl r -> combine 5 [ r ]
         | Star r -> combine 6 [ r ]
+        | Repeat (r, c) -> Hashing.combine (combine 8 [ r ]) (Count.hash c)
     end)
     (struct
       type nonrec t = t
@@ -123,25 +127,6 @@ let top =
 let is_top r = equal_form r top
 let is_empty_form r = equal_form r empty
 
-(* Adjacent atoms are summed: [⟨S⟩; ⟨T⟩ = ⟨S + T⟩], alone or leading a
-   concatenation. *)
-let rec concat r s =
-  match (r.view, s.view) with
-  | Empty, _ | _, Empty -> empty
-  | Eps, _ -> s
-  | _, Eps -> r
-  | Concat (r1, r2), _ -> concat r1 (concat r2 s)
-  | Star _, Star _ when equal_form r s -> r
-  | Star _, Concat (s1, _) when equal_form r s1 -> s
-  | _ -> (
-      match (atom r, atom s, s.view) with
-      | Some a, Some b, _ -> delays_atom (DelaySet.sum a b)
-      | Some a, None, Concat (s1, s2) -> (
-          match atom s1 with
-          | Some b -> concat (delays_atom (DelaySet.sum a b)) s2
-          | None -> make (Concat (r, s)))
-      | _ -> make (Concat (r, s)))
-
 (** [one_name_part r] is the set of the names of the one-operation words of [r],
     when [r] is a set of names, the complement of one or the repetition of one.
 *)
@@ -153,9 +138,43 @@ let one_name_part r =
   | Star { view = Names p; _ } -> Some p
   | _ -> None
 
+(** [all_symbols r] is whether [r] is an atom, a set of names, or a union of
+    these, that holds every name and every positive delay: the one-symbol words
+    [Σ], whose repetition is [Σ*]. *)
+let all_symbols r =
+  let operands = match r.view with Union rs -> rs | _ -> [ r ] in
+  let delay_part =
+    List.fold_left
+      (fun n r ->
+        DelaySet.union n (Option.value (atom r) ~default:DelaySet.empty))
+      DelaySet.empty operands
+  and name_part =
+    List.fold_left
+      (fun p r ->
+        Letters.union p (Option.value (names_set r) ~default:Letters.empty))
+      Letters.empty operands
+  in
+  List.for_all
+    (fun r -> Option.is_some (atom r) || Option.is_some (names_set r))
+    operands
+  && DelaySet.subset DelaySet.positive delay_part
+  && Letters.equal name_part all_names
+
+(** [holds_zero r] is whether [r] is an atom holding the delay [0]. *)
+let holds_zero r =
+  match atom r with Some s -> DelaySet.mem Rational.zero s | None -> false
+
+(** [repetition r] is [Some (x, c)] if [r] is the repetition [x^c]. *)
+let repetition r = match r.view with Repeat (x, c) -> Some (x, c) | _ -> None
+
+(** [power r] is [(x, c)] if [r] is the repetition [x^c], and [(r, 1)]
+    otherwise. *)
+let power r = Option.value (repetition r) ~default:(r, Count.point 1)
+
 (* The atoms of a union are merged into the atom of the union of their sets,
-   and the sets of names into their union. *)
-let union rs =
+   the sets of names into their union, and the repetitions of a base where
+   their counts overlap or touch: [x^c | x^c' = x^(c ∪ c')]. *)
+let rec union rs =
   let split r =
     match r.view with Union rs -> Some rs | Empty -> Some [] | _ -> None
   in
@@ -168,11 +187,83 @@ let union rs =
     in
     let rs =
       List.sort_uniq compare_form
-        (List.filter (fun r -> not (is_empty_form r)) rs)
+        (List.filter
+           (fun r -> not (is_empty_form r))
+           (repetitions repetition repeat rs))
     in
     let rs = unsubsumed rs in
     if complementary split rs then top
     else match rs with [] -> empty | [ r ] -> r | rs -> make (Union rs)
+
+(* The delay [0] of an atom of a repetition is left out: [(0 | r)* = r*]; and
+   [(r^c)* = r*] where [1 ∈ c]. *)
+and star r =
+  match r.view with
+  | Empty | Eps -> eps
+  | Star _ -> r
+  | Repeat (s, c) when Count.mem 1 c -> star s
+  | Delays s -> delays_atom (DelaySet.star s)
+  | Union rs when List.exists holds_zero rs ->
+      star
+        (union
+           (List.map
+              (fun r ->
+                match atom r with
+                | Some s -> delays_atom (DelaySet.diff s DelaySet.zero)
+                | None -> r)
+              rs))
+  | _ when all_symbols r -> top
+  | _ -> make (Star r)
+
+(* The laws of bounded repetition over intervals of counts: [r^0 = 0],
+   [r^1 = r], [r^[0, ∞) = r*], an atom [⟨S⟩^c] is the atom of
+   [⋃ {k·S : k ∈ c}] ({!DelaySet.repeat}), the empty word and language among
+   them, [(s* )^c = s*] for [c ≠ {0}], [(s^c)^c' = s^(c ⊛ c')] where [c ⊛ c']
+   is an interval ({!Count.nest}), and a nullable [r] has [r^c = r^n] for
+   [c = [m, n]] and [r^c = r*] for [c = [m, ∞)], every word of [r^k] being one
+   of [r^(k + 1)]. *)
+and repeat r (c : Count.t) =
+  if Count.is_point 0 c then eps
+  else if Count.is_point 1 c then r
+  else
+    match (atom r, r.view, c.most) with
+    | Some s, _, _ -> delays_atom (DelaySet.repeat s c)
+    | None, Star _, _ -> r
+    | None, _, None when r.nullable || c.least = 0 -> star r
+    | None, _, Some n when r.nullable && c.least < n -> repeat r (Count.point n)
+    | None, Repeat (s, c0), _ -> (
+        match Count.nest c0 c with
+        | Some d -> repeat s d
+        | None -> make (Repeat (r, c)))
+    | None, _, _ -> make (Repeat (r, c))
+
+(* Adjacent atoms are summed: [⟨S⟩; ⟨T⟩ = ⟨S + T⟩], alone or leading a
+   concatenation; and a repetition followed by one of the same base, alone or
+   leading a concatenation, is joined with it: [x^c; x^c' = x^(c + c')], a
+   factor [x] counting as [x^1]. *)
+let rec concat r s =
+  match (r.view, s.view) with
+  | Empty, _ | _, Empty -> empty
+  | Eps, _ -> s
+  | _, Eps -> r
+  | Concat (r1, r2), _ -> concat r1 (concat r2 s)
+  | Star _, Star _ when equal_form r s -> r
+  | Star _, Concat (s1, _) when equal_form r s1 -> s
+  | _ -> (
+      match (atom r, atom s, s.view) with
+      | Some a, Some b, _ -> delays_atom (DelaySet.sum a b)
+      | Some a, None, Concat (s1, s2) when Option.is_some (atom s1) ->
+          concat (delays_atom (DelaySet.sum a (Option.get (atom s1)))) s2
+      | _ -> (
+          let x, c = power r in
+          let head, rest =
+            match s.view with Concat (s1, s2) -> (s1, Some s2) | _ -> (s, None)
+          in
+          let y, c' = power head in
+          if not (equal_form x y) then make (Concat (r, s))
+          else
+            let joined = repeat x (Count.add c c') in
+            match rest with None -> joined | Some rest -> concat joined rest))
 
 (** [node r] is the top operation of [r], its atoms being its sets of delays and
     of names. *)
@@ -186,6 +277,7 @@ let node r : t NormalForms.node =
   | Inter rs -> Inter rs
   | Compl r -> Compl r
   | Star r -> Star r
+  | Repeat (r, c) -> Repeat (r, c)
 
 (* The set of the delays [d] such that the word [d] is in the expression, the
    complement taken in [ℚ≥0]. *)
@@ -287,61 +379,6 @@ let compl r =
   | _ when is_top r -> empty
   | _ -> make (Compl r)
 
-(** [all_symbols r] is whether [r] is an atom, a set of names, or a union of
-    these, that holds every name and every positive delay: the one-symbol words
-    [Σ], whose repetition is [Σ*]. *)
-let all_symbols r =
-  let operands = match r.view with Union rs -> rs | _ -> [ r ] in
-  let delay_part =
-    List.fold_left
-      (fun n r ->
-        DelaySet.union n (Option.value (atom r) ~default:DelaySet.empty))
-      DelaySet.empty operands
-  and name_part =
-    List.fold_left
-      (fun p r ->
-        Letters.union p (Option.value (names_set r) ~default:Letters.empty))
-      Letters.empty operands
-  in
-  List.for_all
-    (fun r -> Option.is_some (atom r) || Option.is_some (names_set r))
-    operands
-  && DelaySet.subset DelaySet.positive delay_part
-  && Letters.equal name_part all_names
-
-(** [holds_zero r] is whether [r] is an atom holding the delay [0]. *)
-let holds_zero r =
-  match atom r with Some s -> DelaySet.mem Rational.zero s | None -> false
-
-(* The delay [0] of an atom of a repetition is left out: [(0 | r)* = r*]. *)
-let rec star r =
-  match r.view with
-  | Empty | Eps -> eps
-  | Star _ -> r
-  | Delays s -> delays_atom (DelaySet.star s)
-  | Union rs when List.exists holds_zero rs ->
-      star
-        (union
-           (List.map
-              (fun r ->
-                match atom r with
-                | Some s -> delays_atom (DelaySet.diff s DelaySet.zero)
-                | None -> r)
-              rs))
-  | _ when all_symbols r -> top
-  | _ -> make (Star r)
-
-(* [r^[m, n]] is [r; …; r; (0 | r)^(n - m)], unrolled, and [r^[m, ∞)] is
-   [r; …; r; r*]. *)
-let repeat r (c : Count.t) =
-  let power s k =
-    List.fold_left (fun acc _ -> concat s acc) eps (List.init k Fun.id)
-  in
-  concat (power r c.least)
-    (match c.most with
-    | Some n -> power (union [ eps; r ]) (n - c.least)
-    | None -> star r)
-
 let rec of_regex : GradeLiteral.regex -> t = function
   | Letter name -> names_atom (Letters.name name)
   | Tick n -> delays_atom (DelaySet.point (Rational.of_int n))
@@ -385,7 +422,7 @@ let children r =
   | Empty | Eps | Delays _ | Names _ -> []
   | Concat (r, s) -> [ r; s ]
   | Union rs | Inter rs -> rs
-  | Compl r | Star r -> [ r ]
+  | Compl r | Star r | Repeat (r, _) -> [ r ]
 
 (** [name_sets roots] is the list of the sets of names occurring in [roots],
     each once. *)
@@ -446,6 +483,7 @@ include NormalForms.Gaps (struct
 
   let eps = eps
   let concat = concat
+  let repeat = repeat
   let delays = delays
 end)
 

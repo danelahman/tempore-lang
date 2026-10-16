@@ -827,6 +827,17 @@ let repetitions =
     reads "{A^[1, ∞)}" ~expected:"{A^[1, ∞)}";
     reads "{(A | 0)^2*}" ~expected:"{(A | 0)^2*}";
     rejects "{A^(1, 2)}" "holds no natural number";
+    expect "repetitions: a product prints folded" Fun.id ~expected:"{A^3; B}"
+      (G.show (G.mul (lit "{A}") (G.mul (lit "{A}") (lit "{A; B}"))));
+    expect "repetitions: products of repetitions print folded" Fun.id
+      ~expected:"{(0 | A; 0.5)^20}"
+      (let p = lit "{(0 | A; 1/2)^10}" in
+       G.show (G.mul p p));
+    expect "repetitions: a counterexample prints folded" Fun.id
+      ~expected:"{A^3; B}"
+      (match G.counterexample bounds (lit "{A; A; A; B}") (lit "{A*}") with
+      | Some c -> G.show c
+      | None -> "none");
     every "repetitions: delays of bounded counts against the multiples"
       (fun (s, c) -> DelaySet.show s ^ "^" ^ Grades.Count.show c)
       (fun (s, (c : Grades.Count.t)) ->
@@ -887,16 +898,12 @@ let grade_pairs =
 let show_grades ((r, _, _), (s, _, _)) = show_regex r ^ ", " ^ show_regex s
 
 (* [operations e] is the number of operations of the word expression [e], a
-   concatenation of delays and classes of operations. *)
-let operations e =
-  let rec factors = function
-    | Grade.Seq (r, s) -> factors r @ factors s
-    | r -> [ r ]
-  in
-  List.length
-    (List.filter
-       (function Grade.Tick _ | Grade.Frac _ -> false | _ -> true)
-       (factors e))
+   concatenation of delays, classes of operations and repetitions of these. *)
+let rec operations = function
+  | Grade.Seq (r, s) -> operations r + operations s
+  | Grade.Repeat (r, c) -> c.least * operations r
+  | Grade.Tick _ | Grade.Frac _ -> 0
+  | _ -> 1
 
 let grade_agreement =
   [

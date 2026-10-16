@@ -86,6 +86,41 @@ module Boolean (E : FORM) = struct
           (Hashtbl.mem stars (E.id r) || (nullable_other && equal_form r E.eps)))
       rs
 
+  (* The counts of each base are swept in increasing order of their least
+     numbers, each merged into the last interval it overlaps or touches. *)
+  let repetitions repetition repeat rs =
+    if not (List.exists (fun r -> Option.is_some (repetition r)) rs) then rs
+    else
+      let power r = Option.value (repetition r) ~default:(r, Count.point 1) in
+      let bases = Hashtbl.create 8 in
+      List.iter
+        (fun r ->
+          let x, c = power r in
+          let counts =
+            match Hashtbl.find_opt bases (E.id x) with
+            | Some (_, cs) -> cs
+            | None -> []
+          in
+          Hashtbl.replace bases (E.id x) (x, c :: counts))
+        rs;
+      if Hashtbl.length bases = List.length rs then rs
+      else
+        let sweep cs =
+          List.fold_left
+            (fun acc c ->
+              match acc with
+              | c' :: rest -> (
+                  match Count.union c' c with
+                  | Some u -> u :: rest
+                  | None -> c :: acc)
+              | [] -> [ c ])
+            []
+            (List.sort Count.compare cs)
+        in
+        Hashtbl.fold
+          (fun _ (x, cs) acc -> List.map (repeat x) (sweep cs) @ acc)
+          bases []
+
   let collect children leaves roots =
     let seen = Hashtbl.create 64 in
     let rec visit acc r =
@@ -107,6 +142,7 @@ type 't node =
   | Inter of 't list
   | Compl of 't
   | Star of 't
+  | Repeat of 't * Count.t
 
 module type STRUCTURE = sig
   type t
@@ -157,6 +193,7 @@ struct
               complemented)
     | Compl r -> E.complement (delays r)
     | Star r -> DelaySet.star (delays r)
+    | Repeat (r, c) -> DelaySet.repeat (delays r) c
 end
 
 module Gaps (E : sig
@@ -176,6 +213,7 @@ module Gaps (E : sig
   val meets : block -> t -> bool
   val eps : t
   val concat : t -> t -> t
+  val repeat : t -> Count.t -> t
   val delays : t -> DelaySet.t
 end) =
 struct
@@ -226,4 +264,20 @@ struct
         shift
           (DelaySet.star (E.delays r'))
           (List.map (fun (n, e) -> (n, E.concat e r)) (gap m r'))
+    | Repeat (r', c) ->
+        (* [r'^c] is [r'; r'^(c ⊖ 1)] but for the empty word: the derivative
+           of a concatenation. Where the delays of [r'] are at most [{0}], the
+           derivative of [r'^(c ⊖ 1)] is contained in the first part, [r'] being
+           nullable and its count a single number if they are [{0}]. *)
+        let rest =
+          match Count.shift c 1 with
+          | Some c' -> E.repeat r' c'
+          | None -> E.empty
+        in
+        let first =
+          normalise (List.map (fun (n, e) -> (n, E.concat e rest)) (gap m r'))
+        in
+        let n = E.delays r' in
+        if DelaySet.subset n DelaySet.zero then first
+        else join first (shift n (gap m rest))
 end
