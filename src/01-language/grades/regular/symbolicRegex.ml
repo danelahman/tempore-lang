@@ -362,7 +362,9 @@ struct
     List.sort_uniq String.compare
       (List.concat_map Letters.mentioned (letter_sets roots))
 
-  let names r = mentioned [ r ]
+  let names =
+    let table = Memo.Ints.create 1024 in
+    fun r -> Memo.Ints.find_or_add table r.id (fun () -> mentioned [ r ])
 
   (** {1 Derivatives} *)
 

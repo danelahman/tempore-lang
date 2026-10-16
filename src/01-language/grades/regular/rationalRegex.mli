@@ -125,7 +125,7 @@ val delays : t -> DelaySet.t
 
 val names : t -> string list
 (** [names r] is the names the sets of names of [r] mention, in increasing
-    order. *)
+    order. Memoised by expression. *)
 
 val blocks : t list -> SymbolicRegex.Letters.t list
 (** [blocks roots] is the minterms of the sets of names of [roots], the coarsest

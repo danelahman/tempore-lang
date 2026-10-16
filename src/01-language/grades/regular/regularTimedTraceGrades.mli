@@ -114,21 +114,22 @@ end
     automaton of the closure of the automaton {!LANGUAGE.traces} of [ρ'], over
     these letters, {!TimedClosure.Allowance} under the upper order and
     {!TimedClosure.Coverage} under the lower order, both explored only as far as
-    the search needs. The searches are tabulated by the least names of the
-    classes, their running times and the representations of the grades compared
+    the search needs. The least names of the classes and their running times are
+    hash-consed into a numbered world; the searches are tabulated by the number
+    of the world and the representations of the grades compared
     ({!Grade.S.compare} and {!Grade.S.hash} of [L]), and the automata
-    {!LANGUAGE.traces} by the least names and the representation of the grade,
-    in module-level tables that only ever grow. A grade is the top if its
-    representation is that of the top and otherwise iff the search decides
-    [⊤ ≾ ρ], since grades of other representations may be equivalent to the top;
-    [compare] and [hash] are those of [L], componentwise for the intervals. A
-    grade is {!Grade.S.inhabited} iff {!LANGUAGE.traces} accepts some word, over
-    the classes of its names of any running time, and its running-time bounds
-    are read off {!LANGUAGE.traces} over the classes of the running times read
-    ({!TimedClosure.Weights}). The searches, the closures and the weights take
-    the runs of ticks of the automata {!LANGUAGE.traces} of the derivatives in
-    one step each ({!Dfa.type-automaton}); over {!Automata}, every tick is a
-    transition. *)
+    {!LANGUAGE.traces} by the number of the least names and the representation
+    of the grade, in module-level tables that only ever grow. A grade is the top
+    if its representation is that of the top and otherwise iff the search
+    decides [⊤ ≾ ρ], since grades of other representations may be equivalent to
+    the top; [compare] and [hash] are those of [L], componentwise for the
+    intervals. A grade is {!Grade.S.inhabited} iff {!LANGUAGE.traces} accepts
+    some word, over the classes of its names of any running time, and its
+    running-time bounds are read off {!LANGUAGE.traces} over the classes of the
+    running times read ({!TimedClosure.Weights}). The searches, the closures and
+    the weights take the runs of ticks of the automata {!LANGUAGE.traces} of the
+    derivatives in one step each ({!Dfa.type-automaton}); over {!Automata},
+    every tick is a transition. *)
 module Make
     (L : LANGUAGE)
     (Variant : sig

@@ -382,11 +382,15 @@ let name_sets roots =
        (fun r -> match r.view with Names p -> [ p ] | _ -> [])
        roots)
 
-let names r =
-  List.sort_uniq String.compare
-    (List.concat_map
-       (fun (p : Letters.t) -> match p.names with Only a | Except a -> a)
-       (name_sets [ r ]))
+let names =
+  let table = Memo.Ints.create 1024 in
+  fun r ->
+    Memo.Ints.find_or_add table r.id (fun () ->
+        List.sort_uniq String.compare
+          (List.concat_map
+             (fun (p : Letters.t) ->
+               match p.names with Only a | Except a -> a)
+             (name_sets [ r ])))
 
 let blocks roots =
   List.filter_map
