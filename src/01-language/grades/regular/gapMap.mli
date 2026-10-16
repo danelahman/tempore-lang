@@ -30,8 +30,13 @@ module type EXPRESSION = sig
 
   val empty : t
   val top : t
-  val union : t list -> t
-  val inter : t list -> t
+
+  val union : t -> t -> t
+  (** [union e e'] is the union of [e] and [e']. *)
+
+  val inter : t -> t -> t
+  (** [inter e e'] is the intersection of [e] and [e']. *)
+
   val compl : t -> t
 
   val compare_form : t -> t -> int

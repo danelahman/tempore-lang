@@ -269,7 +269,7 @@ struct
     if List.exists is_top rs then top
     else
       let rs = List.sort_uniq by_id (merge_union rs) in
-      let rs = List.filter (fun r -> not (subsumed rs r)) rs in
+      let rs = unsubsumed rs in
       if complementary split rs then top
       else match rs with [] -> empty | [ r ] -> r | rs -> make (Union rs)
 

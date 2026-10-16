@@ -170,7 +170,7 @@ let union rs =
       List.sort_uniq compare_form
         (List.filter (fun r -> not (is_empty_form r)) rs)
     in
-    let rs = List.filter (fun r -> not (subsumed rs r)) rs in
+    let rs = unsubsumed rs in
     if complementary split rs then top
     else match rs with [] -> empty | [ r ] -> r | rs -> make (Union rs)
 
