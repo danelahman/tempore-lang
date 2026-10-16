@@ -31,7 +31,7 @@ default Redraw () = delay 21.5
    another operation between them. *)
 let window () =
   let first = perform ReadImu () in
-  box [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock},
+  box [{(ReadImu; ReadClock)^3},
        {(2.5; ReadImu; ReadClock)*}] first as w in
   delay 1.75;
   let a = perform ReadImu () in
@@ -52,17 +52,17 @@ let window () =
        `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock},
          {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}]` accumulated
        since it was bound, which is not below its box grade
-       `[{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock},
+       `[{(ReadImu; ReadClock)^3},
          {(2.5; ReadImu; ReadClock)*}]`
        ...
        Note: the resource inequality
-         `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}, {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}] <= [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock}, {(2.5; ReadImu; ReadClock)*}]`
+         `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}, {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}] <= [{(ReadImu; ReadClock)^3}, {(2.5; ReadImu; ReadClock)*}]`
          does not hold
 *)
 (*
 let window_short () =
   let first = perform ReadImu () in
-  box [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock},
+  box [{(ReadImu; ReadClock)^3},
        {(2.5; ReadImu; ReadClock)*}] first as w in
   delay 1.75;
   let a = perform ReadImu () in
@@ -85,17 +85,17 @@ let window_short () =
          {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu;
           ReadClock}]` accumulated since it was bound, which is not below its
        box grade
-       `[{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock},
+       `[{(ReadImu; ReadClock)^3},
          {(2.5; ReadImu; ReadClock)*}]`
        ...
        Note: the resource inequality
-         `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock}, {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock}] <= [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock}, {(2.5; ReadImu; ReadClock)*}]`
+         `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock}, {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock}] <= [{(ReadImu; ReadClock)^3}, {(2.5; ReadImu; ReadClock)*}]`
          does not hold
 *)
 (*
 let window_redrawn () =
   let first = perform ReadImu () in
-  box [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock},
+  box [{(ReadImu; ReadClock)^3},
        {(2.5; ReadImu; ReadClock)*}] first as w in
   delay 1.75;
   let a = perform ReadImu () in

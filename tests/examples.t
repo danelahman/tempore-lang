@@ -1434,9 +1434,7 @@ tests show those runs in detail.
   return (Sample 3)
   State: [
     [{!0.6}, {!0.6}],
-    { resource_0 ↦
-        3
-        # [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock}, {(2.5; ReadImu; ReadClock)*}]
+    { resource_0 ↦ 3 # [{(ReadImu; ReadClock)^3}, {(2.5; ReadImu; ReadClock)*}]
     },
     [{!1.75}, {!1.75}],
     [{!0.6}, {!0.6}],
