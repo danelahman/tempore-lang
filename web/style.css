@@ -1573,8 +1573,13 @@ code.diag-code {
   background: rgba(0, 0, 0, 0.05);
   padding: 0.05em 0.3em;
   border-radius: 3px;
-  /* a fragment reads as one token, so it never breaks inside */
-  white-space: nowrap;
+  /* a long fragment, such as an inequality of grades, wraps at its spaces,
+     and inside a token only where one alone is wider than the panel; its
+     background and padding continue on each line */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 /* Inline code on the documentation page is treated as the diagnostics'
