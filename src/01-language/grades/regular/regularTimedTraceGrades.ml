@@ -9,56 +9,98 @@ module type LANGUAGE = sig
   val representatives : t list -> (string * int) list -> (string * int) list
 end
 
+(** The worlds of comparisons, hash-consed: the least names of the classes of
+    the names of a comparison and their running times, equal lists being one
+    world, identified by its number, and equal lists of names one number. *)
+module World = struct
+  type t = {
+    names : string list;
+    running_times : int list;
+    id : int;
+    names_id : int;
+  }
+
+  module Names =
+    NormalForms.HashCons
+      (struct
+        type t = string list
+
+        let equal = List.equal String.equal
+        let hash = Hashing.list String.hash
+      end)
+      (struct
+        type t = int
+
+        let build id _ = id
+      end)
+
+  include
+    NormalForms.HashCons
+      (struct
+        type t = string list * int list
+
+        let equal (names, running_times) (names', running_times') =
+          List.equal String.equal names names'
+          && List.equal Int.equal running_times running_times'
+
+        let hash (names, running_times) =
+          Hashing.combine
+            (Hashing.list String.hash names)
+            (Hashing.list Int.hash running_times)
+      end)
+      (struct
+        type nonrec t = t
+
+        let build id (names, running_times) =
+          { names; running_times; id; names_id = Names.make names }
+      end)
+end
+
 module type DECISIONS = sig
   type t
 
-  val in_allowance : rigid:bool -> string list -> int list -> t -> t -> bool
-  val in_coverage : string list -> int list -> t -> t -> bool
-
-  val allowance :
-    rigid:bool -> string list -> int list -> t -> t -> regex list option
-
-  val coverage : string list -> int list -> t -> t -> regex list option
-  val min_weight : string list -> int list -> t -> int option
-  val max_weight : string list -> int list -> t -> int option
-  val inhabited : string list -> t -> bool
+  val in_allowance : rigid:bool -> World.t -> t -> t -> bool
+  val in_coverage : World.t -> t -> t -> bool
+  val allowance : rigid:bool -> World.t -> t -> t -> regex list option
+  val coverage : World.t -> t -> t -> regex list option
+  val min_weight : World.t -> t -> int option
+  val max_weight : World.t -> t -> int option
+  val inhabited : World.t -> t -> bool
 end
 
-(** Tables of the results of comparisons, by the least names of the classes,
-    their running times, and the grades compared, by their representations. *)
-module Tabulate (G : sig
+(** Tables by a number and grades, by their representations. *)
+module Numbered (G : sig
   type t
 
   val compare : t -> t -> int
   val hash : t -> int
 end) =
 struct
-  module Search = Memo.Make (struct
-    type t = string list * int list * G.t * G.t
+  (** Tables by a number and a grade. *)
+  module One = Memo.Make (struct
+    type t = int * G.t
 
-    let equal (names, running_times, rho, sigma)
-        (names', running_times', rho', sigma') =
-      List.equal String.equal names names'
-      && List.equal Int.equal running_times running_times'
-      && G.compare rho rho' = 0
-      && G.compare sigma sigma' = 0
-
-    let hash (names, running_times, rho, sigma) =
-      Hashing.combine
-        (Hashing.combine
-           (Hashing.list String.hash names)
-           (Hashing.list Int.hash running_times))
-        (Hashing.combine (G.hash rho) (G.hash sigma))
+    let equal (i, rho) (i', rho') = Int.equal i i' && G.compare rho rho' = 0
+    let hash (i, rho) = Hashing.combine i (G.hash rho)
   end)
 
-  (** [tabulated f] is [f], its results tabulated by its arguments in a table of
-      its own. *)
+  (** Tables by a number and two grades. *)
+  module Two = Memo.Make (struct
+    type t = int * G.t * G.t
+
+    let equal (i, rho, sigma) (i', rho', sigma') =
+      Int.equal i i' && G.compare rho rho' = 0 && G.compare sigma sigma' = 0
+
+    let hash (i, rho, sigma) =
+      Hashing.combine i (Hashing.combine (G.hash rho) (G.hash sigma))
+  end)
+
+  (** [tabulated f] is [f], its results tabulated by the number of the world and
+      the grades compared in a table of its own. *)
   let tabulated f =
-    let f =
-      Search.memoise (fun (names, running_times, rho, rho') ->
-          f names running_times rho rho')
-    in
-    fun names running_times rho rho' -> f (names, running_times, rho, rho')
+    let table = Two.create 64 in
+    fun (world : World.t) rho rho' ->
+      Two.find_or_add table (world.id, rho, rho') (fun () -> f world rho rho')
 end
 
 (** The decisions by the automata of traces of [L] and their closures, a verdict
@@ -66,7 +108,7 @@ end
 module ByLetters (L : LANGUAGE) = struct
   type t = L.t
 
-  include Tabulate (L)
+  include Numbered (L)
   module Traces = Dfa.Implicit (L.State)
   module Allowance = TimedClosure.Allowance (L.State)
   module Coverage = TimedClosure.Coverage (L.State)
@@ -89,21 +131,13 @@ module ByLetters (L : LANGUAGE) = struct
     let running_times = Array.of_list running_times in
     fun a -> running_times.(a - 1)
 
-  (** The grades over given least names, by their representations. *)
-  module Tables = Memo.Make (struct
-    type t = string list * L.t
-
-    let equal (names, rho) (names', rho') =
-      List.equal String.equal names names' && L.compare rho rho' = 0
-
-    let hash (names, rho) =
-      Hashing.combine (Hashing.list String.hash names) (L.hash rho)
-  end)
-
-  (* [L.traces names rho], tabulated by its arguments. *)
+  (* [traces world rho] is [L.traces] over the names of [world], tabulated by
+     the number of the names and the representation of [rho]. *)
   let traces =
-    let traces = Tables.memoise (fun (names, rho) -> L.traces names rho) in
-    fun names rho -> traces (names, rho)
+    let table = One.create 64 in
+    fun (world : World.t) rho ->
+      One.find_or_add table (world.names_id, rho) (fun () ->
+          L.traces world.names rho)
 
   let letters names = List.length names + 1
 
@@ -122,41 +156,40 @@ module ByLetters (L : LANGUAGE) = struct
 
   let allowance =
     let decide rigid =
-      tabulated (fun names running_times rho rho' ->
-          let running_time = letter_running_time running_times
-          and letters = letters names in
-          Option.map (symbols names)
-            (Closed.counterexample letters (traces names rho)
+      tabulated (fun (world : World.t) rho rho' ->
+          let running_time = letter_running_time world.running_times
+          and letters = letters world.names in
+          Option.map (symbols world.names)
+            (Closed.counterexample letters (traces world rho)
                (Allowance.closure ~rigid ~running_time ~letters
-                  (traces names rho'))))
+                  (traces world rho'))))
     in
     let loose = decide false and rigid = decide true in
     fun ~rigid:r -> if r then rigid else loose
 
   let coverage =
-    tabulated (fun names running_times rho rho' ->
-        Option.map (symbols names)
-          (Closed.counterexample (letters names) (traces names rho)
+    tabulated (fun (world : World.t) rho rho' ->
+        Option.map (symbols world.names)
+          (Closed.counterexample (letters world.names) (traces world rho)
              (Coverage.closure
-                ~running_time:(letter_running_time running_times)
-                (traces names rho'))))
+                ~running_time:(letter_running_time world.running_times)
+                (traces world rho'))))
 
-  let in_allowance ~rigid names running_times rho rho' =
-    Option.is_none (allowance ~rigid names running_times rho rho')
+  let in_allowance ~rigid world rho rho' =
+    Option.is_none (allowance ~rigid world rho rho')
 
-  let in_coverage names running_times rho rho' =
-    Option.is_none (coverage names running_times rho rho')
+  let in_coverage world rho rho' = Option.is_none (coverage world rho rho')
 
-  let weight extreme names running_times rho =
+  let weight extreme (world : World.t) rho =
     extreme
-      ~running_time:(letter_running_time running_times)
-      ~letters:(letters names) (traces names rho)
+      ~running_time:(letter_running_time world.running_times)
+      ~letters:(letters world.names) (traces world rho)
 
   let min_weight = weight Weights.min_weight
   let max_weight = weight Weights.max_weight
 
-  let inhabited names rho =
-    not (Traces.is_empty (letters names) (traces names rho))
+  let inhabited (world : World.t) rho =
+    not (Traces.is_empty (letters world.names) (traces world rho))
 end
 
 (** The decisions by the graphs of the gap derivatives of the symbolic regular
@@ -165,38 +198,33 @@ end
 module ByGaps = struct
   type t = SymbolicRegex.t
 
-  include Tabulate (struct
+  include Numbered (struct
     type t = SymbolicRegex.t
 
     let compare = SymbolicRegex.compare_form
     let hash = SymbolicRegex.hash
   end)
 
-  let world names running_times =
+  (** [operations world] is the operations of [world] with their running times,
+      attained. *)
+  let operations (world : World.t) =
     List.map2
       (fun name c -> (name, DelaySet.Finite (Rational.of_int c, true)))
-      names running_times
+      world.names world.running_times
 
-  (** Tables by lists of names and normal forms. *)
-  module Graphs = Memo.Make (struct
-    type t = string list * SymbolicRegex.t
-
-    let equal (names, rho) (names', rho') =
-      List.equal String.equal names names' && SymbolicRegex.equal_form rho rho'
-
-    let hash (names, rho) =
-      Hashing.combine (Hashing.list String.hash names) (SymbolicRegex.hash rho)
-  end)
-
-  (** [graph names rho] is {!GapGraph.graph}, tabulated by its arguments. *)
+  (** [graph world rho] is {!GapGraph.graph} over the names of [world],
+      tabulated by the number of the names and that of the normal form. *)
   let graph =
-    let graph = Graphs.memoise (fun (names, rho) -> GapGraph.graph names rho) in
-    fun names rho -> graph (names, rho)
+    let table = Memo.Pairs.create 64 in
+    fun (world : World.t) rho ->
+      Memo.Pairs.find_or_add table
+        (world.names_id, SymbolicRegex.hash rho)
+        (fun () -> GapGraph.graph world.names rho)
 
-  (** [on_graphs decide names running_times rho rho'] is [decide] on the graphs
-      of [rho] and [rho'] over [names] at [running_times]. *)
-  let on_graphs decide names running_times rho rho' =
-    decide (world names running_times) (graph names rho) (graph names rho')
+  (** [on_graphs decide world rho rho'] is [decide] on the graphs of [rho] and
+      [rho'] over [world]. *)
+  let on_graphs decide world rho rho' =
+    decide (operations world) (graph world rho) (graph world rho')
 
   (** [integer q] is the rational [q], an integer at integer running times. *)
   let integer q =
@@ -237,26 +265,25 @@ module ByGaps = struct
 
   let allowance =
     by_order (fun ~rigid ->
-        tabulated (fun names running_times rho rho' ->
+        tabulated (fun world rho rho' ->
             Option.map symbols
               (on_graphs
                  (DelayTimedClosure.Graph.allowance ~rigid)
-                 names running_times rho rho')))
+                 world rho rho')))
 
   let coverage =
-    tabulated (fun names running_times rho rho' ->
+    tabulated (fun world rho rho' ->
         Option.map symbols
-          (on_graphs DelayTimedClosure.Graph.coverage names running_times rho
-             rho'))
+          (on_graphs DelayTimedClosure.Graph.coverage world rho rho'))
 
-  let weight extreme names running_times rho =
+  let weight extreme world rho =
     Option.map
       (fun (q, _) -> integer q)
-      (extreme (world names running_times) (graph names rho))
+      (extreme (operations world) (graph world rho))
 
   let min_weight = weight DelayTimedClosure.Graph.min_weight
   let max_weight = weight DelayTimedClosure.Graph.max_weight
-  let inhabited names rho = DelayTimedClosure.Graph.inhabited (graph names rho)
+  let inhabited world rho = DelayTimedClosure.Graph.inhabited (graph world rho)
 end
 
 (** The grades over [L], decided by [D] over the least names of the classes of
@@ -273,56 +300,87 @@ module Over
     (struct
       type grade = L.t
       type delay = L.Delay.t
-      type world = string list * int list
+      type world = World.t
       type word = regex list
 
       let suffix = Variant.suffix
 
-      (** [alphabet bounds rhos] is the names of the operations of a comparison
-          of the grades [rhos]: the declared operations and the names [rhos]
-          mention. *)
-      let alphabet bounds rhos =
-        List.sort_uniq String.compare
-          (bounds.operations @ List.concat_map L.events rhos)
+      (** [letters running_time declared mentioned] is the names of the
+          operations of a comparison of grades that mention the names
+          [mentioned], each with its running time: the union, merged in
+          increasing order, of the declared operations [declared], in increasing
+          order with their running times, and of the names [mentioned], in
+          increasing order, at the running times [running_time]. *)
+      let rec letters running_time declared mentioned =
+        match (declared, mentioned) with
+        | [], _ -> List.map (fun name -> (name, running_time name)) mentioned
+        | _, [] -> declared
+        | ((name, _) as letter) :: declared', name' :: mentioned' -> (
+            match String.compare name name' with
+            | 0 -> letter :: letters running_time declared' mentioned'
+            | c when c < 0 -> letter :: letters running_time declared' mentioned
+            | _ ->
+                (name', running_time name')
+                :: letters running_time declared mentioned')
 
-      (** [classes running_time bounds rhos] is the least names of the classes
-          of the names of a comparison of the grades [rhos] at the running times
-          [running_time], in increasing order, and their running times. *)
-      let classes running_time bounds rhos =
-        List.split
-          (L.representatives rhos
-             (List.map
-                (fun name -> (name, running_time name))
-                (alphabet bounds rhos)))
+      (** [classes running_time declared rhos] is the world of a comparison of
+          the grades [rhos] at the running times [running_time]: the least names
+          of the classes of its names, in increasing order, and their running
+          times, the declared operations being [declared] with their running
+          times. *)
+      let classes running_time declared rhos =
+        World.make
+          (List.split
+             (L.representatives rhos
+                (letters running_time declared
+                   (List.sort_uniq String.compare
+                      (List.concat_map L.events rhos)))))
 
       (* The running time of an operation is the value of the [endpoint] of
          its running-time bounds, in time steps; over whole time steps, the ends
          are closed where the bounds are declared ({!Grade.close_running_time}).
          The names that encode strict delays take no time. *)
-      let world endpoint bounds =
-        classes
-          (fun name ->
-            if GradeLiteral.is_marker name then 0
-            else
-              Delay.Nat.to_int
-                (read_bound L.Delay.read
-                   (end_value (endpoint (bounds.running_time name)))))
-          bounds
+      let running_time endpoint bounds name =
+        if GradeLiteral.is_marker name then 0
+        else
+          Delay.Nat.to_int
+            (read_bound L.Delay.read
+               (end_value (endpoint (bounds.running_time name))))
 
-      let in_allowance ~rigid (names, running_times) =
-        D.in_allowance ~rigid names running_times
+      (** [declared running_time bounds] is the operations [bounds] declares, in
+          increasing order, each with its running time [running_time]. *)
+      let declared running_time bounds =
+        List.map
+          (fun name -> (name, running_time name))
+          (List.sort_uniq String.compare bounds.operations)
 
-      let in_coverage (names, running_times) = D.in_coverage names running_times
+      (** Lists of grades, by their representations. *)
+      module Grades = Memo.Make (struct
+        type t = L.t list
 
-      let allowance ~rigid (names, running_times) =
-        D.allowance ~rigid names running_times
+        let equal = List.equal (fun rho rho' -> L.compare rho rho' = 0)
+        let hash = Hashing.list L.hash
+      end)
 
-      let coverage (names, running_times) = D.coverage names running_times
+      (* The worlds of the comparisons of a program at an endpoint, by the
+         grades compared: the declared operations with their running times are
+         computed once per running times of a program, by their physical
+         identity, and endpoint. *)
+      let worlds =
+        Memo.last (fun bounds ->
+            Memo.by_identity (fun endpoint ->
+                let running_time = running_time endpoint bounds in
+                let declared = declared running_time bounds in
+                Grades.memoise (classes running_time declared)))
 
-      let weight extreme (names, running_times) rho =
-        Option.map
-          (fun w -> Closed (Rational.of_int w))
-          (extreme names running_times rho)
+      let world endpoint bounds rhos = worlds bounds endpoint rhos
+      let in_allowance = D.in_allowance
+      let in_coverage = D.in_coverage
+      let allowance = D.allowance
+      let coverage = D.coverage
+
+      let weight extreme world rho =
+        Option.map (fun w -> Closed (Rational.of_int w)) (extreme world rho)
 
       let min_weight = weight D.min_weight
       let max_weight = weight D.max_weight
@@ -330,7 +388,8 @@ module Over
       (* Inhabitation is decided over the classes of the names of any
          running time. *)
       let inhabited bounds rho =
-        D.inhabited (fst (classes (Fun.const 0) bounds [ rho ])) rho
+        let no_time = Fun.const 0 in
+        D.inhabited (classes no_time (declared no_time bounds) [ rho ]) rho
 
       (* The literal of the single trace of the delays and names [word], the
          delays between the names that encode a strict delay written as one. *)
