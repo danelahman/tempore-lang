@@ -78,9 +78,9 @@ reconfiguration:
     grade `[{Beep}, {Beep}]` accumulates here (operation `Beep`)
     Note: the resource inequality `[{Beep}, {Beep}] <= [{CheckAtRest; Beep}, {CheckAtRest; Beep}]` does not hold
   [1]
-  File "level/reconfigured.tpe", lines 15-17, characters 2-33:
-  15 |   unbox kept as reference in
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "level/reconfigured.tpe", lines 15-17, characters 2-38:
+  15 |   unbox kept as kept_reference in
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `kept` is unboxed with grade `[{ReadImu; ReadTouch; (0 | ConfigureImu)}, {ReadImu; ReadTouch; (0 | ConfigureImu)}]` accumulated since it was bound, which is not below its box grade `[{(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | 0)}, {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | 0)}]`
     File "level/reconfigured.tpe", line 5, characters 7-11:
     5 |     as kept in
@@ -102,8 +102,8 @@ reconfiguration:
     Note: the grade `[{ReadImu; ReadTouch; (0 | ConfigureImu)}, {ReadImu; ReadTouch; ConfigureImu}]` is below `[{ReadImu; ReadTouch; (0 | ConfigureImu)}, {ReadImu; ReadTouch; (0 | ConfigureImu)}]` but not below `[{(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | 0)}, {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | 0)}]`
   [1]
   File "level/stale.tpe", lines 11-13, characters 4-41:
-  11 |     unbox reading as accel in
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  11 |     unbox reading as kept_accel in
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `reading` is unboxed with grade `[{ReadTouch; ConfigureImu; Beep}, {ReadTouch; ConfigureImu; Beep}]` accumulated since it was bound, which is not below its box grade `[{ReadTouch}, {ReadTouch}]`
     File "level/stale.tpe", line 5, characters 27-34:
     5 |   box {ReadTouch} accel as reading in

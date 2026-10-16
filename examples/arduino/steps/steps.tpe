@@ -238,9 +238,9 @@ let sense (f : filter) =
   box (1, ReadImu, [10, 45], [0, 1.5]) first as boxed in
   perform DrawBar (0, 146, 320, 10, bar level, blue);
   delay 10;
-  let x = reading () in
-  unbox boxed as first in
-  let second, late = filter first x in
+  let next = reading () in
+  unbox boxed as after_first in
+  let second, late = filter after_first next in
   box (1, ReadClock, [0, 0.1], [0, 0.05]) (early || late, along_line second)
   as decision in
   let t = perform ReadClock () in
@@ -543,8 +543,8 @@ let respond (c : counter) (k : key) =
   if second = first then (
     let confirmed = reset c in
     perform Beep (3000, 50);
-    unbox confirmed as c in
-    c)
+    unbox confirmed as cleared in
+    cleared)
   else prompt c false
 
 (* Correctly accepted by the typechecker: at most n rounds of a session,

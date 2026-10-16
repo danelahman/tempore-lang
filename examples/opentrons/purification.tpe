@@ -166,8 +166,8 @@ let purification (samples : sample) =
   let collected =
     collect (elute (final_wash (wash (clear (separate binding)))))
   in
-  unbox warm as samples in
-  perform Transfer samples;
+  unbox warm as warm_samples in
+  perform Transfer warm_samples;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
@@ -220,8 +220,8 @@ let purification_generous (samples : sample) =
     collect
       (elute_long (final_wash (wash (clear_long (separate_long binding)))))
   in
-  unbox warm as samples in
-  perform Transfer samples;
+  unbox warm as warm_samples in
+  perform Transfer warm_samples;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
@@ -243,8 +243,8 @@ let purification_one_wash (samples : sample) =
   let binding = bind samples in
   box [0, 40] samples as warm in
   let collected = collect (elute (final_wash (clear (separate binding)))) in
-  unbox warm as samples in
-  perform Transfer samples;
+  unbox warm as warm_samples in
+  perform Transfer warm_samples;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;

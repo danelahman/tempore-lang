@@ -33,7 +33,7 @@ let overdried (beads : beads) =
   let drying = perform FinalWash beads in
   delay 4;
   perform MagnetOff beads;
-  unbox drying as beads in
-  perform EluteDNA beads
+  unbox drying as dried in
+  perform EluteDNA dried
 
 run overdried "beads"

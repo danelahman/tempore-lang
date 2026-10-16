@@ -233,37 +233,39 @@ let step ((reference, age, rate, touching) : state) : state
     let rate = if rate = 100 then 400 else 100 in
     perform ConfigureImu rate;
     let rest = perform CheckAtRest () in
-    unbox kept as reference in
+    unbox kept as kept_reference in
     let next, age =
-      match reference with
-      | Offsets _ -> if rest then (reference, age) else (Reconfigured rate, 0)
+      match kept_reference with
+      | Offsets _ ->
+          if rest then (kept_reference, age) else (Reconfigured rate, 0)
       | _ -> (Reconfigured rate, 0)
     in
     perform Beep (600, 50);
     (if rate = 100 then perform DrawButton (148, 194, 172, 24, "Sensor 100->400Hz")
      else perform DrawButton (148, 194, 172, 24, "Sensor 400->100Hz"));
-    let accel, _ = perform ReadImu () in
-    display next (angles accel next) age (if rest then rate else 0);
+    let fresh_accel, _ = perform ReadImu () in
+    display next (angles fresh_accel next) age (if rest then rate else 0);
     (next, age, rate, touched))
   else
     match reference with
     | Holding 0 ->
-        let reference = take () in
-        status reference 0 0;
-        (reference, 0, rate, touched)
+        let taken = take () in
+        status taken 0 0;
+        (taken, 0, rate, touched)
     | _ ->
-        unbox kept as reference in
-        unbox reading as accel in
+        unbox kept as kept_reference in
+        unbox reading as kept_accel in
         let next, age =
           if tapped && on_set x y then (Holding hold, 0)
           else
-            match reference with
+            match kept_reference with
             | Holding (n + 1) -> (Holding n, 0)
             | Offsets _ ->
-                if age + 1 >= expiry then (Expired, 0) else (reference, age + 1)
-            | _ -> (reference, 0)
+                if age + 1 >= expiry then (Expired, 0)
+                else (kept_reference, age + 1)
+            | _ -> (kept_reference, 0)
         in
-        display next (angles accel next) age 0;
+        display next (angles kept_accel next) age 0;
         (next, age, rate, touched)
 
 (* The initial state: the screen cleared, with its title, guarantee, labels,
@@ -305,9 +307,9 @@ let step_reconfigured ((reference, age, rate, touching) : state) : state =
       rate)
     else rate
   in
-  unbox kept as reference in
-  display reference (angles accel reference) age 0;
-  (reference, age, rate, touched)
+  unbox kept as kept_reference in
+  display kept_reference (angles accel kept_reference) age 0;
+  (kept_reference, age, rate, touched)
 *)
 
 (* Correctly rejected by the typechecker: after a reconfiguration the step
@@ -331,8 +333,8 @@ let step_stale ((reference, age, rate, touching) : state) : state =
     let rate = if rate = 100 then 400 else 100 in
     perform ConfigureImu rate;
     perform Beep (600, 50);
-    unbox reading as accel in
-    display (Reconfigured rate) (angles accel (Reconfigured rate)) 0 0;
+    unbox reading as kept_accel in
+    display (Reconfigured rate) (angles kept_accel (Reconfigured rate)) 0 0;
     (Reconfigured rate, 0, rate, touched))
   else (reference, age, rate, touched)
 *)

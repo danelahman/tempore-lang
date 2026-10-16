@@ -789,7 +789,7 @@ tests show those runs in detail.
   ../examples/opentrons/beads_reject.tpe
   ======================================================================
   File "../examples/opentrons/beads_reject.tpe", lines 36-37, characters 2-24:
-  36 |   unbox drying as beads in
+  36 |   unbox drying as dried in
          ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `drying` is unboxed with grade `[4, 5]` accumulated since it was bound, which is not below its box grade `[2, 3]`
     File "../examples/opentrons/beads_reject.tpe", line 33, characters 6-12:
@@ -994,9 +994,9 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/elisa_reject.tpe
   ======================================================================
-  File "../examples/opentrons/elisa_reject.tpe", lines 34-35, characters 2-20:
-  34 |   unbox incubating as plate in
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "../examples/opentrons/elisa_reject.tpe", lines 34-35, characters 2-24:
+  34 |   unbox incubating as incubated in
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `incubating` is unboxed with grade `[30, 30]` accumulated since it was bound, which is not below its box grade `[60, ∞)`
     File "../examples/opentrons/elisa_reject.tpe", line 32, characters 6-16:
     32 |   let incubating = perform Detect (plate, antibody) in
@@ -1102,8 +1102,8 @@ tests show those runs in detail.
   ../examples/opentrons/purification_reject.tpe
   ======================================================================
   File "../examples/opentrons/purification_reject.tpe", lines 129-135, characters 2-30:
-  129 |   unbox warm as samples in
-          ^^^^^^^^^^^^^^^^^^^^^^^^
+  129 |   unbox warm as warm_samples in
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `warm` is unboxed with grade `[{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}, {!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}]` accumulated since it was bound, which is not below its box grade `[{0}, {40}]`
     File "../examples/opentrons/purification_reject.tpe", line 124, characters 25-29:
     124 |   box [0, 40] samples as warm in

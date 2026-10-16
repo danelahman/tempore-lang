@@ -83,19 +83,19 @@ let cleanup (beads : beads) =
   delay 5;
   let settling = perform MagnetOn beads in
   delay 4;
-  unbox settling as beads in
-  perform RemoveLiquid beads;
-  perform Wash beads;
-  let drying = perform FinalWash beads in
+  unbox settling as settled in
+  perform RemoveLiquid settled;
+  perform Wash settled;
+  let drying = perform FinalWash settled in
   delay 2;
-  perform MagnetOff beads;
-  unbox drying as beads in
-  perform EluteDNA beads;
+  perform MagnetOff settled;
+  unbox drying as dried in
+  perform EluteDNA dried;
   delay 2;
-  let settling = perform MagnetOn beads in
+  let resettling = perform MagnetOn dried in
   delay 3;
-  unbox settling as beads in
-  perform Transfer beads
+  unbox resettling as resettled in
+  perform Transfer resettled
 
 (* Correctly rejected by the typechecker: the elution buffer is added four to
    five minutes after the last ethanol wash, when the beads are overdried:
@@ -110,8 +110,8 @@ let cleanup_overdried (beads : beads) =
   let drying = perform FinalWash beads in
   delay 4;
   perform MagnetOff beads;
-  unbox drying as beads in
-  perform EluteDNA beads
+  unbox drying as dried in
+  perform EluteDNA dried
 *)
 
 run cleanup "beads"

@@ -144,12 +144,12 @@ let step ((tilt, speed, integral, position, heading) : state) : state
       (tilt_gain *. (tilt -. balance_point -. reference)) +. (rate_gain *. rate)
     in
     let heading = if magnitude turn > 0.0 then difference else heading in
-    let turn =
+    let command_turn =
       turn +. clamp heading_limit (~-.(heading_gain *. (difference -. heading)))
     in
     perform SetMotors
-      ( bala2_drive (compensated left_dead_band (drive +. turn)),
-        bala2_drive (compensated right_dead_band (drive -. turn)) );
+      ( bala2_drive (compensated left_dead_band (drive +. command_turn)),
+        bala2_drive (compensated right_dead_band (drive -. command_turn)) );
     (tilt, speed, integral, now, heading)
   else (
     perform SetMotors (0i, 0i);
@@ -291,10 +291,10 @@ let rec drive (n : nat) (tilt : float) (command : [[0, 200)](float * float))
   | m + 1 ->
       (if m mod 10 = 0 then perform ShowNumber tilt else ());
       delay 100;
-      let tilt, _ = perform Attitude () in
+      let latest_tilt, _ = perform Attitude () in
       unbox command as setpoints in
       perform Command setpoints;
-      drive m tilt (box [0, 200) setpoints)
+      drive m latest_tilt (box [0, 200) setpoints)
 
 (* Correctly accepted by the typechecker: the robot is calibrated, held
    upright for a second, armed with a calibration 1000.05 to 1012.5 ms old,
@@ -374,10 +374,14 @@ let rec balance (n : nat) (tilt : float) (rate : float) (position : float)
   match n with
   | 0 -> (s, tilt)
   | m + 1 ->
-      let s, drive = handle step s with simulated_robot tilt rate position in
-      let rate = rate +. (period *. ((100.0 *. tilt) -. (150.0 *. drive))) in
+      let s, mean_drive =
+        handle step s with simulated_robot tilt rate position
+      in
+      let rate =
+        rate +. (period *. ((100.0 *. tilt) -. (150.0 *. mean_drive)))
+      in
       let tilt = tilt +. (period *. rate) in
-      balance m tilt rate (position +. (2.0 *. period *. drive)) s
+      balance m tilt rate (position +. (2.0 *. period *. mean_drive)) s
 
 (* Correctly accepted by the typechecker: the injection of a fault, a
    gyroscope stuck at its full-scale rate of 2000 degrees per second. The
@@ -393,16 +397,16 @@ let stuck_gyroscope =
 (* 'n' control steps of the robot held upright at rest, with the gyroscope
    stuck. The result is the state of the step and the mean drive of the
    motors in the last step. *)
-let rec held (n : nat) (s : state) (drive : float) : state * float
+let rec held (n : nat) (s : state) (mean_drive : float) : state * float
     # {(ReadImu; ReadEncoders; Setpoints; Publish; SetMotors)*} =
   match n with
-  | 0 -> (s, drive)
+  | 0 -> (s, mean_drive)
   | m + 1 ->
-      let s, drive =
+      let s, mean_drive =
         handle (handle step s with stuck_gyroscope)
         with simulated_robot 0.0 0.0 0.0
       in
-      held m s drive
+      held m s mean_drive
 
 (* The closed loop of 20 control steps, 100 ms, from a tilt of 3 degrees:
    the step brings the tilt of the model to 0.3 degrees. *)

@@ -31,7 +31,7 @@ default Wash plate = delay 3; plate
 let early_wash (plate : plate) (antibody : reagent) =
   let incubating = perform Detect (plate, antibody) in
   delay 30;
-  unbox incubating as plate in
-  perform Wash plate
+  unbox incubating as incubated in
+  perform Wash incubated
 
 run early_wash "plate" "detection antibody"
