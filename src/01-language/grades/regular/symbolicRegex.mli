@@ -160,7 +160,8 @@ module type S = sig
   val star : t -> t
 
   val names : t -> string list
-  (** [names r] is the list of the names [r] mentions, in increasing order. *)
+  (** [names r] is the list of the names [r] mentions, in increasing order.
+      Memoised by expression. *)
 
   (** {1 Derivatives} *)
 
