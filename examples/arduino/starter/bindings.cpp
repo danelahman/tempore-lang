@@ -11,4 +11,4 @@ tempore_result_ReadClock binding_ReadClock(tempore_argument_ReadClock) {
   return static_cast<uint32_t>(esp_timer_get_time());
 }
 
-void starter_safe_state() { tempore_log("Sprint starter stopped"); }
+void starter_safe_state() { tempore_log("Sprint start system stopped"); }
