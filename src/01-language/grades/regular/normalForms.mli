@@ -132,7 +132,18 @@ end
 *)
 module Gaps (E : sig
   include STRUCTURE
-  include GapMap.EXPRESSION with type t := t
+
+  val universe : DelaySet.t
+  (** The set of all delays. *)
+
+  val empty : t
+  val top : t
+  val union : t list -> t
+  val inter : t list -> t
+  val compl : t -> t
+
+  val compare_form : t -> t -> int
+  (** The order of the expressions by their numbers. *)
 
   type block
 

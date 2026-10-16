@@ -161,7 +161,14 @@ end
 
 module Gaps (E : sig
   include STRUCTURE
-  include GapMap.EXPRESSION with type t := t
+
+  val universe : DelaySet.t
+  val empty : t
+  val top : t
+  val union : t list -> t
+  val inter : t list -> t
+  val compl : t -> t
+  val compare_form : t -> t -> int
 
   type block
 
@@ -172,10 +179,27 @@ module Gaps (E : sig
   val delays : t -> DelaySet.t
 end) =
 struct
-  include GapMap.Make (struct
-    include E
+  (* The unions and intersections of two expressions, memoised by their
+     numbers, in increasing order: both operations are commutative on normal
+     forms. *)
+  let binary operation =
+    let table : E.t Memo.Pairs.t = Memo.Pairs.create 1024 in
+    fun e e' ->
+      let i = E.id e and i' = E.id e' in
+      Memo.Pairs.find_or_add table
+        (min i i', max i i')
+        (fun () -> operation [ e; e' ])
 
-    type nonrec t = t
+  include GapMap.Make (struct
+    type t = E.t
+
+    let universe = E.universe
+    let empty = E.empty
+    let top = E.top
+    let union = binary E.union
+    let inter = binary E.inter
+    let compl = E.compl
+    let compare_form = E.compare_form
   end)
 
   (* The gap derivatives computed, by the key of the block and the number of

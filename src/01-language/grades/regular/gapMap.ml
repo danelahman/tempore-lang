@@ -26,8 +26,8 @@ module type EXPRESSION = sig
   val universe : DelaySet.t
   val empty : t
   val top : t
-  val union : t list -> t
-  val inter : t list -> t
+  val union : t -> t -> t
+  val inter : t -> t -> t
   val compl : t -> t
   val compare_form : t -> t -> int
 end
@@ -58,7 +58,7 @@ module Make (E : EXPRESSION) = struct
     normalise
       (List.concat_map
          (fun (n, e) ->
-           List.map (fun (n', e') -> (DelaySet.inter n n', E.union [ e; e' ])) g)
+           List.map (fun (n', e') -> (DelaySet.inter n n', E.union e e')) g)
          f
       @ List.map (fun (n, e) -> (DelaySet.diff n sg, e)) f
       @ List.map (fun (n, e) -> (DelaySet.diff n sf, e)) g)
@@ -67,7 +67,7 @@ module Make (E : EXPRESSION) = struct
     normalise
       (List.concat_map
          (fun (n, e) ->
-           List.map (fun (n', e') -> (DelaySet.inter n n', E.inter [ e; e' ])) g)
+           List.map (fun (n', e') -> (DelaySet.inter n n', E.inter e e')) g)
          f)
 
   let complement f =
