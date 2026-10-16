@@ -11,7 +11,15 @@
 
     The tables of {!Weak} and {!Weak2} are the one exception: they hold an entry
     only while its keys are reachable (ephemerons), for keys that are values
-    retained by nothing else, such as sets of delays. *)
+    retained by nothing else, such as sets of delays.
+
+    {2 Identity}
+
+    {!last} and {!by_identity} record results by the physical identity of their
+    arguments, for arguments that are immutable values whose functions are pure,
+    such as the running times of a program ({!Grade.bounds}): physically equal
+    arguments give equal results, and an argument equal to a recorded one but
+    not physically equal is computed anew. *)
 
 (** A table from keys to values. *)
 module type S = sig
@@ -60,3 +68,13 @@ module Pairs : S with type key = int * int
 
 module Triples : S with type key = int * int * int
 (** Tables by triples of numbers. *)
+
+val last : ('a -> 'b) -> 'a -> 'b
+(** [last f] is [f], its result for the last argument recorded, by the physical
+    identity of the argument: a table of one entry, replaced by each argument
+    not physically equal to the recorded one. *)
+
+val by_identity : ('a -> 'b) -> 'a -> 'b
+(** [by_identity f] is [f], its results recorded by the physical identity of
+    their arguments in an association list of its own, for functions of few
+    distinct arguments. *)

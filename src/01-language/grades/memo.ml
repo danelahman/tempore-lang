@@ -78,3 +78,23 @@ module Triples = Make (struct
 
   let hash (i, j, k) = Hashing.combine (Hashing.combine i j) k
 end)
+
+let last f =
+  let recorded = ref None in
+  fun x ->
+    match !recorded with
+    | Some (x', y) when x' == x -> y
+    | _ ->
+        let y = f x in
+        recorded := Some (x, y);
+        y
+
+let by_identity f =
+  let recorded = ref [] in
+  fun x ->
+    match List.assq_opt x !recorded with
+    | Some y -> y
+    | None ->
+        let y = f x in
+        recorded := (x, y) :: !recorded;
+        y
