@@ -62,13 +62,29 @@ module Boolean (E : FORM) = struct
         match E.compl_operand r with Some s -> among s | None -> false)
       rs
 
-  let subsumed rs r =
-    let contains s =
-      match E.star_operand s with
-      | Some s' -> equal_form r s'
-      | None -> E.nullable s && equal_form r E.eps && not (equal_form s E.eps)
+  (* The operands of repetitions are collected by their numbers in one pass,
+     so that the filter is linear in the number of operands. *)
+  let unsubsumed rs =
+    let stars = Hashtbl.create 16 in
+    List.iter
+      (fun s ->
+        Option.iter
+          (fun s' -> Hashtbl.replace stars (E.id s') ())
+          (E.star_operand s))
+      rs;
+    let nullable_other =
+      List.exists
+        (fun s ->
+          Option.is_none (E.star_operand s)
+          && E.nullable s
+          && not (equal_form s E.eps))
+        rs
     in
-    List.exists contains rs
+    List.filter
+      (fun r ->
+        not
+          (Hashtbl.mem stars (E.id r) || (nullable_other && equal_form r E.eps)))
+      rs
 
   let collect children leaves roots =
     let seen = Hashtbl.create 64 in

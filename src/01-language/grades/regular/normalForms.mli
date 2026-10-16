@@ -72,10 +72,10 @@ module Boolean (E : FORM) : sig
       of another, or of the operation that [split] splits into operands, all of
       them among [rs]: the operands of a flattened union or intersection. *)
 
-  val subsumed : E.t list -> E.t -> bool
-  (** [subsumed rs r] is whether the operand [r] of a union is contained in
-      another operand [s] of [rs] by one of the laws [0 ⊆ s] for a nullable [s]
-      and [r ⊆ r*]. *)
+  val unsubsumed : E.t list -> E.t list
+  (** [unsubsumed rs] is the operands [r] of the union of [rs] that are not
+      contained in another operand [s] of [rs] by one of the laws [0 ⊆ s] for a
+      nullable [s] and [r ⊆ r*], in their order. *)
 
   val collect : (E.t -> E.t list) -> (E.t -> 'a list) -> E.t list -> 'a list
   (** [collect children leaves roots] is the values [leaves r] of the
