@@ -1,7 +1,7 @@
 (* A rejected variant of examples/arduino/fall/fall.tpe. *)
 
 let suspect_rated (first : float) =
-  box [{100}, {(![9.5, 10.5]; ReadImu)*}] first as onset in
+  box [{100}, {(![9.5, 10.5]; ReadImu)^10}] first as onset in
   perform ConfigureImu 400;
   let falling = confirm () in
   if falling then (unbox onset as least in least) else first
