@@ -480,6 +480,7 @@ let matches r w =
     | Grade.Inter (r1, r2) -> go r1 s e && go r2 s e
     | Grade.Compl r1 -> not (go r1 s e)
     | Grade.Strict _ -> invalid_arg "eval: a strict delay"
+    | Grade.Repeat (r1, c) -> go (Grade.unrolled r1 c) s e
     | Grade.Star r1 ->
         s = e
         || List.exists
@@ -566,6 +567,7 @@ let rec iota = function
   | Grade.Union (r, s) -> Grade.Union (iota r, iota s)
   | Grade.Inter (r, s) -> Grade.Inter (iota r, iota s)
   | Grade.Star r -> Grade.Star (iota r)
+  | Grade.Repeat (r, c) -> Grade.Repeat (iota r, c)
   | Grade.Strict r -> Grade.Strict (iota r)
   | (Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _) as r -> r
 
@@ -756,6 +758,123 @@ let gap_letterless =
       pairs;
   ]
 
+(* {1 Bounded repetition}
+
+   The expressions with bounded repetitions against their unrollings: the
+   normal forms and the automata decide them equal, their delays agree, and so
+   does membership; the delays of a repetition against the union of the
+   multiples of the delays; and the literals of repetitions. *)
+
+(* [unroll r] is [r] with every bounded repetition unrolled. *)
+let rec unroll = function
+  | Grade.Repeat (r, c) -> Grade.unrolled (unroll r) c
+  | Grade.Seq (r, s) -> Grade.Seq (unroll r, unroll s)
+  | Grade.Union (r, s) -> Grade.Union (unroll r, unroll s)
+  | Grade.Inter (r, s) -> Grade.Inter (unroll r, unroll s)
+  | Grade.Star r -> Grade.Star (unroll r)
+  | Grade.Compl r -> Grade.Compl (unroll r)
+  | Grade.Strict r -> Grade.Strict (unroll r)
+  | (Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _ | Grade.Any)
+    as r ->
+      r
+
+(* [random_count st] is a count of at most [4]. *)
+let random_count st =
+  let m = Random.State.int st 3 in
+  match Random.State.int st 4 with
+  | 0 -> Grades.Count.point m
+  | 1 -> Grades.Count.make m None
+  | _ -> Grades.Count.make m (Some (m + Random.State.int st 3))
+
+let counted_expressions =
+  let st = Random.State.make [| 71 |] in
+  let rec counted depth =
+    if depth = 0 then random_regex st ~depth:1 ~constant:(halves_or_thirds st)
+    else
+      match Random.State.int st 6 with
+      | 0 | 1 | 2 -> Grade.Repeat (counted (depth - 1), random_count st)
+      | 3 -> Grade.Seq (counted (depth - 1), counted (depth - 1))
+      | 4 -> Grade.Union (counted (depth - 1), counted (depth - 1))
+      | _ -> Grade.Compl (counted (depth - 1))
+  in
+  List.init 120 (fun _ ->
+      let r = counted 2 in
+      (r, X.of_regex r, R.automaton (unroll r)))
+
+let repetitions =
+  let st = Random.State.make [| 73 |] in
+  let sets =
+    List.init 40 (fun _ ->
+        R.delays (random_regex st ~depth:2 ~constant:(halves_or_thirds st)))
+  in
+  let multiple k s =
+    List.fold_left
+      (fun acc _ -> DelaySet.sum acc s)
+      DelaySet.zero (List.init k Fun.id)
+  in
+  let bounded =
+    List.concat_map
+      (fun s ->
+        List.map
+          (fun (m, n) -> (s, Grades.Count.make m (Some n)))
+          [ (0, 0); (0, 3); (1, 1); (2, 4); (3, 3) ])
+      sets
+  in
+  [
+    reads "{(A; 1/2)^3}" ~expected:"{(A; 0.5)^3}";
+    reads "{(1/2)^3}" ~expected:"{(0.5)^3}";
+    reads "{A^(1, 4); B}" ~expected:"{A^[2, 3]; B}";
+    reads "{A^[1, ∞)}" ~expected:"{A^[1, ∞)}";
+    reads "{(A | 0)^2*}" ~expected:"{(A | 0)^2*}";
+    rejects "{A^(1, 2)}" "holds no natural number";
+    expect "repetitions: a product prints folded" Fun.id ~expected:"{A^3; B}"
+      (G.show (G.mul (lit "{A}") (G.mul (lit "{A}") (lit "{A; B}"))));
+    expect "repetitions: products of repetitions print folded" Fun.id
+      ~expected:"{(0 | A; 0.5)^20}"
+      (let p = lit "{(0 | A; 1/2)^10}" in
+       G.show (G.mul p p));
+    expect "repetitions: a counterexample prints folded" Fun.id
+      ~expected:"{A^3; B}"
+      (match G.counterexample bounds (lit "{A; A; A; B}") (lit "{A*}") with
+      | Some c -> G.show c
+      | None -> "none");
+    every "repetitions: delays of bounded counts against the multiples"
+      (fun (s, c) -> DelaySet.show s ^ "^" ^ Grades.Count.show c)
+      (fun (s, (c : Grades.Count.t)) ->
+        let n = Option.get c.most in
+        DelaySet.equal (DelaySet.repeat s c)
+          (List.fold_left
+             (fun acc k -> DelaySet.union acc (multiple k s))
+             DelaySet.empty
+             (List.init (n - c.least + 1) (fun i -> c.least + i))))
+      bounded;
+    every "repetitions: delays of unbounded counts" DelaySet.show
+      (fun s ->
+        DelaySet.equal
+          (DelaySet.repeat s (Grades.Count.make 2 None))
+          (DelaySet.sum (multiple 2 s) (DelaySet.star s)))
+      sets;
+    every "repetitions: delays against the unrolling" show_triple
+      (fun (r, x, a) ->
+        DelaySet.equal (X.delays x) (A.delay_part a)
+        && DelaySet.equal (R.delays r) (A.delay_part a))
+      counted_expressions;
+    every "repetitions: the normal form of the unrolling" show_triple
+      (fun (r, x, _) -> X.equal x (X.of_regex (unroll r)))
+      counted_expressions;
+    every "repetitions: the automaton of the unrolling" show_triple
+      (fun (r, _, a) -> A.equal (R.automaton r) a)
+      counted_expressions;
+    every "repetitions: membership against the unrolling"
+      (fun ((r, _, _), w) -> show_regex r ^ " on " ^ show_word w)
+      (fun ((_, x, a), w) ->
+        let w = to_symbols w in
+        X.mem w x = A.mem w a)
+      (List.concat_map
+         (fun e -> List.map (fun w -> (e, w)) gap_words)
+         counted_expressions);
+  ]
+
 (* {1 The grade by gap derivatives against the grade by automata}
 
    The verdicts, the printing of products and joins, and the counterexamples of
@@ -779,16 +898,12 @@ let grade_pairs =
 let show_grades ((r, _, _), (s, _, _)) = show_regex r ^ ", " ^ show_regex s
 
 (* [operations e] is the number of operations of the word expression [e], a
-   concatenation of delays and classes of operations. *)
-let operations e =
-  let rec factors = function
-    | Grade.Seq (r, s) -> factors r @ factors s
-    | r -> [ r ]
-  in
-  List.length
-    (List.filter
-       (function Grade.Tick _ | Grade.Frac _ -> false | _ -> true)
-       (factors e))
+   concatenation of delays, classes of operations and repetitions of these. *)
+let rec operations = function
+  | Grade.Seq (r, s) -> operations r + operations s
+  | Grade.Repeat (r, c) -> c.least * operations r
+  | Grade.Tick _ | Grade.Frac _ -> 0
+  | _ -> 1
 
 let grade_agreement =
   [
@@ -846,7 +961,7 @@ let () =
     literals @ whole_step_rejections @ examples @ laws @ delay_parts
     @ canonical_forms @ letterless @ delay_printing @ grade_printing
     @ membership @ inclusion @ whole_steps @ gap_decisions @ gap_letterless
-    @ grade_agreement @ timing
+    @ repetitions @ grade_agreement @ timing
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

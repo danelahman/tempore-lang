@@ -907,6 +907,22 @@ let sum =
   let sum = Pairs.memoise (fun (s, r) -> minkowski s r) in
   fun s r -> sum (s, r)
 
+(* [multiple k s] is the [k]-fold sum [k·s], by binary exponentiation. *)
+let rec multiple k s =
+  if k = 0 then zero
+  else
+    let half = multiple (k / 2) s in
+    let double = sum half half in
+    if k mod 2 = 0 then double else sum double s
+
+(* [⋃ {k·s : m ≤ k ≤ n} = m·s + (n - m)·(s ∪ {0})], the multiples of
+   [s ∪ {0}] holding those of [s] below them, and [m·s + s*] for [n = ∞]. *)
+let repeat s (c : Count.t) =
+  sum (multiple c.least s)
+    (match c.most with
+    | Some n -> multiple (n - c.least) (union s zero)
+    | None -> star s)
+
 (* {1 Queries} *)
 
 type extremum = Finite of Rational.t * bool | Infinite

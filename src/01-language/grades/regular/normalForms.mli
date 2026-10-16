@@ -77,6 +77,18 @@ module Boolean (E : FORM) : sig
       contained in another operand [s] of [rs] by one of the laws [0 ⊆ s] for a
       nullable [s] and [r ⊆ r*], in their order. *)
 
+  val repetitions :
+    (E.t -> (E.t * Count.t) option) ->
+    (E.t -> Count.t -> E.t) ->
+    E.t list ->
+    E.t list
+  (** [repetitions repetition repeat rs] is the operands [rs] of a union with
+      the repetitions of a base [x] merged where their counts overlap or touch:
+      [x^c | x^c'] is [x^(c ∪ c')] by [repeat], [repetition r] being
+      [Some (x, c)] for [r = x^c], and an operand [x] counting as [x^1]. The
+      operands are [rs] if no base occurs twice, and otherwise in no particular
+      order. *)
+
   val collect : (E.t -> E.t list) -> (E.t -> 'a list) -> E.t list -> 'a list
   (** [collect children leaves roots] is the values [leaves r] of the
       expressions [r] reachable from [roots] by [children], each expression
@@ -99,6 +111,7 @@ type 't node =
   | Inter of 't list
   | Compl of 't
   | Star of 't
+  | Repeat of 't * Count.t  (** Bounded repetition [r^c] *)
 
 (** Expressions in normal form, as the structural recursions read them. *)
 module type STRUCTURE = sig
@@ -125,7 +138,8 @@ end) : sig
   val delays : E.t -> DelaySet.t
   (** [delays r] is the set of the delays [d] such that the word [d] is in [r],
       by structural recursion, memoised by expression: [N(r & ~s)] is
-      [N(r) ∖ N(s)], and [N(~r)] the complement of [N(r)]. *)
+      [N(r) ∖ N(s)], [N(~r)] the complement of [N(r)], and [N(r^c)] the union of
+      the multiples [k·N(r)], [k ∈ c] ({!DelaySet.repeat}). *)
 end
 
 (** The gap derivatives of the expressions [E] by the blocks of names [E.block].
@@ -157,6 +171,9 @@ module Gaps (E : sig
   val eps : t
   val concat : t -> t -> t
 
+  val repeat : t -> Count.t -> t
+  (** [repeat r c] is the bounded repetition [r^c]. *)
+
   val delays : t -> DelaySet.t
   (** [delays r] is the set of the delays [d] such that the word [d] is in [r].
   *)
@@ -167,5 +184,10 @@ end) : sig
       algebra of the finite unions of products of sets of delays and blocks of
       names (D'Antoni and Veanes, POPL 2014), with the derivatives of
       concatenation and repetition of Brzozowski (JACM 1964), the delays before
-      the name read by [E.delays]. Memoised by block and expression. *)
+      the name read by [E.delays]. A bounded repetition [r^c] is derived as
+      [r; r^(c ⊖ 1)], its residuals a residual of [r] followed by [r] with a
+      shifted count, as for counted repetitions (Moseley et al., PLDI 2023):
+      [D(r^c)(d) = D(r)(d); r^(c ⊖ 1) | ⋃ {D(r^(c ⊖ 1))(d - i) : i ∈ N(r)}], the
+      second part left out where [N(r) ⊆ {0}]. Memoised by block and expression.
+  *)
 end

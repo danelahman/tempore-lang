@@ -2023,7 +2023,7 @@ it names none:
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 1; (0 | 1; (0 | 1)); Send} }
+    { resource_0 ↦ 1 # {Read; 1; (0 | 1)^2; Send} }
   ]
   
   === Run 13 ===
@@ -2056,7 +2056,7 @@ it names none:
   File "literals_reject_complement.tpe", line 9, characters 19-32:
   9 | let claim () = box {Send; ~Read} 1
                          ^^^^^^^^^^^^^
-  Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;` and `|` only, without complement `~`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic` or `regex-timed-rigid-interval-rational-symbolic` grading monoids?
+  Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;`, `|` and finite counts `^n`, `^[m, n]` only, without complement `~`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic` or `regex-timed-rigid-interval-rational-symbolic` grading monoids?
   ======================================================================
   literals_reject_component.tpe
   ======================================================================
@@ -2224,7 +2224,7 @@ it names none:
   File "literals_reject_star.tpe", line 7, characters 19-31:
   7 | let claim () = box {(Send; 2)*} 1
                          ^^^^^^^^^^^^
-  Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;` and `|` only, without repetition `*`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic` or `regex-timed-rigid-interval-rational-symbolic` grading monoids?
+  Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;`, `|` and finite counts `^n`, `^[m, n]` only, without repetition `*`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic` or `regex-timed-rigid-interval-rational-symbolic` grading monoids?
   ======================================================================
   literals_reject_strict_grade.tpe
   ======================================================================
@@ -4017,8 +4017,8 @@ it names none:
   File "regex_timed_rational_upper_reject.tpe", lines 56-58, characters 19-19:
   56 | let two_samples () : nat # {5/2} =
                           ^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{Sample; Sample}`, which does not match its annotated grade `{2.5}`
-    Note: the effect inequality `{Sample; Sample} <= {2.5}` does not hold
+  Typing error: This function's body has grade `{Sample^2}`, which does not match its annotated grade `{2.5}`
+    Note: the effect inequality `{Sample^2} <= {2.5}` does not hold
   ======================================================================
   regex_timed_rigid_interval_reject.tpe
   ======================================================================
@@ -4286,8 +4286,8 @@ it names none:
   File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
   39 | let two_pings () : unit # {3} =
                         ^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
-    Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
+  Typing error: This function's body has grade `{Ping^2}`, which does not match its annotated grade `{3}`
+    Note: the effect inequality `{Ping^2} <= {3}` does not hold
   ======================================================================
   regex_timed_upper_ticks.tpe
   ======================================================================
@@ -4591,7 +4591,7 @@ it names none:
   File "strict_delays_lower_reject.tpe", lines 33-34, characters 2-5:
   33 |   unbox w as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `w` is unboxed with grade `{Open; Stir; Stir; Close}` accumulated since it was bound, which is not below its box grade `{Open; !5; Close}`
+  Typing error: Variable `w` is unboxed with grade `{Open; Stir^2; Close}` accumulated since it was bound, which is not below its box grade `{Open; !5; Close}`
     File "strict_delays_lower_reject.tpe", line 28, characters 39-40:
     28 |   box {Open; !5; Close} (Token "w") as w in
                                                 ^
@@ -4612,7 +4612,7 @@ it names none:
     32 |   perform Close ();
            ^^^^^^^^^^^^^^^^
     grade `{Close}` accumulates here (operation `Close`)
-    Note: the resource inequality `{Open; Stir; Stir; Close} <= {Open; !5; Close}` does not hold
+    Note: the resource inequality `{Open; Stir^2; Close} <= {Open; !5; Close}` does not hold
   ======================================================================
   strict_delays_rational_reject.tpe
   ======================================================================
@@ -6066,7 +6066,7 @@ automata, 'regex-upper-bound-letter-automata':
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 1; (0 | 1; (0 | 1)); Send} }
+    { resource_0 ↦ 1 # {Read; 1; (0 | 1)^2; Send} }
   ]
   
   === Run 13 ===
@@ -6487,8 +6487,8 @@ automata, the programs over rational delays excepted:
   File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
   39 | let two_pings () : unit # {3} =
                         ^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
-    Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
+  Typing error: This function's body has grade `{Ping^2}`, which does not match its annotated grade `{3}`
+    Note: the effect inequality `{Ping^2} <= {3}` does not hold
   ======================================================================
   regex_timed_upper_ticks.tpe (regex-timed-upper-bound-letter-automata)
   ======================================================================
@@ -6870,8 +6870,8 @@ their visible implementations, under their implementations by automata
   File "regex_timed_rational_upper_reject.tpe", lines 56-58, characters 19-19:
   56 | let two_samples () : nat # {5/2} =
                           ^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{Sample; Sample}`, which does not match its annotated grade `{2.5}`
-    Note: the effect inequality `{Sample; Sample} <= {2.5}` does not hold
+  Typing error: This function's body has grade `{Sample^2}`, which does not match its annotated grade `{2.5}`
+    Note: the effect inequality `{Sample^2} <= {2.5}` does not hold
 
 The examples and programs of the regular trace grades under two further
 implementations, by derivatives by letters instead of minterms
@@ -7166,7 +7166,7 @@ implementations above, the examples over rational delays excepted:
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 1; (0 | 1; (0 | 1)); Send} }
+    { resource_0 ↦ 1 # {Read; 1; (0 | 1)^2; Send} }
   ]
   
   === Run 13 ===
@@ -7265,7 +7265,7 @@ implementations above, the examples over rational delays excepted:
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 1; (0 | 1; (0 | 1)); Send} }
+    { resource_0 ↦ 1 # {Read; 1; (0 | 1)^2; Send} }
   ]
   
   === Run 13 ===
@@ -7995,8 +7995,8 @@ implementations above, the examples over rational delays excepted:
   File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
   39 | let two_pings () : unit # {3} =
                         ^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
-    Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
+  Typing error: This function's body has grade `{Ping^2}`, which does not match its annotated grade `{3}`
+    Note: the effect inequality `{Ping^2} <= {3}` does not hold
   ======================================================================
   regex_timed_upper_reject.tpe (regex-timed-upper-bound-letter-derivatives)
   ======================================================================
@@ -8050,8 +8050,8 @@ implementations above, the examples over rational delays excepted:
   File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
   39 | let two_pings () : unit # {3} =
                         ^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
-    Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
+  Typing error: This function's body has grade `{Ping^2}`, which does not match its annotated grade `{3}`
+    Note: the effect inequality `{Ping^2} <= {3}` does not hold
   ======================================================================
   regex_timed_upper_ticks.tpe (regex-timed-upper-bound-symbolic-by-letters)
   ======================================================================

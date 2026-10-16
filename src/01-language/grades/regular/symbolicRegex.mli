@@ -29,10 +29,14 @@
     intersection, whose operands are flattened among those of the other; [0 | r]
     is [r] for a nullable [r] and [r | r*] is [r*]; [r**], [(0 | r)*] and
     [r*; r*] are [r*], and the repetition of the empty word or language is the
-    empty word. Brzozowski's similarity is thus decided syntactically, and every
-    expression has finitely many derivatives up to it, as symbolic derivatives
-    over an effective Boolean algebra do (Zhuchko, Maarand, Veanes and Ebner,
-    ITP 2025).
+    empty word. A bounded repetition [r^c] has an interval of counts ({!Count});
+    the laws of repetition over intervals apply ({!S.repeat}), and adjacent
+    factors of the same base are joined, [x^c; x^c'] being [x^(c + c')], so that
+    a word of [n] equal factors is one repetition. A union joins the repetitions
+    of a base whose counts overlap or touch. Brzozowski's similarity is thus
+    decided syntactically, and every expression has finitely many derivatives up
+    to it, as symbolic derivatives over an effective Boolean algebra do
+    (Zhuchko, Maarand, Veanes and Ebner, ITP 2025).
 
     A word of [n ≥ 2] ticks is one expression, a {e run} [tickⁿ], and
     concatenation joins adjacent runs: [tickᵐ; tickⁿ] is [tickᵐ⁺ⁿ] and
@@ -104,12 +108,17 @@ module type S = sig
     | Ticks of int  (** The word [tickⁿ], a run of [n ≥ 2] ticks *)
     | Concat of t * t
         (** Concatenation, the first operand neither a concatenation, the empty
-            word nor the empty language, and the second not led by a run of
-            ticks if the first is one *)
+            word nor the empty language, the second not led by a run of ticks if
+            the first is one, and not led by a repetition of the same base as
+            the first, nor by that base: [x; x^c] is [x^(c + 1)] *)
     | Union of t list  (** Union of at least two operands *)
     | Inter of t list  (** Intersection of at least two operands *)
     | Compl of t  (** Complement *)
     | Star of t  (** Repetition *)
+    | Repeat of t * Count.t
+        (** Bounded repetition [r^c]: the count [c] neither [{0}], [{1}] nor
+            [[0, ∞)], a single number [n ≥ 2] if [r] is nullable, the operand
+            neither the empty word or language nor a repetition [s*] *)
 
   val view : t -> view
   (** [view r] is the top-level form of [r]. *)
@@ -158,6 +167,14 @@ module type S = sig
   val inter : t list -> t
   val compl : t -> t
   val star : t -> t
+
+  val repeat : t -> Count.t -> t
+  (** [repeat r c] is the bounded repetition [r^c], the concatenations of [k]
+      words of [r], [k ∈ c], in normal form: [r^0] is the empty word, [r^1] is
+      [r] and [r^\[0, ∞)] is [r*]; [(s^c)^c'] is [s^(c ⊛ c')] where that is an
+      interval ({!Count.nest}); a nullable [r] has [r^c = r^n] for [c = [m, n]]
+      and [r^c = r*] for an unbounded [c]; and a run of [k] ticks repeated [n]
+      times is a run of [k·n] ticks. *)
 
   val names : t -> string list
   (** [names r] is the list of the names [r] mentions, in increasing order.
@@ -224,9 +241,10 @@ module type S = sig
   (** [delays r] is the set [N(r)] of the [n ∈ ℕ] such that [tickⁿ ∈ r], by
       structural recursion: [N(∅) = ∅], [N(ε) = {0}], [N(p)] is [{1}] if
       [tick ∈ p] and [∅] otherwise, [N(tickⁿ) = {n}], [N(r; s) = N(r) + N(s)],
-      [N(r* ) = N(r)*], [N] commutes with union and intersection, and
-      [N(~r) = ℕ ∖ N(r)], an intersection with complements being taken as a
-      difference, [N(r & ~s) = N(r) ∖ N(s)]. Memoised by expression. *)
+      [N(r* ) = N(r)*], [N(r^c) = ⋃ {k·N(r) : k ∈ c}], [N] commutes with union
+      and intersection, and [N(~r) = ℕ ∖ N(r)], an intersection with complements
+      being taken as a difference, [N(r & ~s) = N(r) ∖ N(s)]. Memoised by
+      expression. *)
 
   type gaps = (DelaySet.t * t) list
   (** A map from delays to expressions: pairs [(S, e)], the sets [S] non-empty
@@ -241,9 +259,11 @@ module type S = sig
       [D(r)(n)] for it: [D(∅)], [D(ε)] and [D(tickⁿ)] are empty, [D(p)] maps [0]
       to [ε] if [m ⊆ p] and is empty otherwise,
       [D(r; s)(n) = D(r)(n); s | ⋃ {D(s)(n - i) : i ∈ N(r), i ≤ n}],
-      [D(r* )(n) = ⋃ {D(r)(n - i); r* : i ∈ N(r)*, i ≤ n}], and [D] commutes
-      with union, intersection and complement, the complement of the empty
-      language being [Σ*]. Memoised by block and expression.
+      [D(r* )(n) = ⋃ {D(r)(n - i); r* : i ∈ N(r)*, i ≤ n}],
+      [D(r^c)(n) = D(r)(n); r^(c ⊖ 1) | ⋃ {D(r^(c ⊖ 1))(n - i) : i ∈ N(r)}], the
+      second part left out where [N(r) ⊆ {0}], and [D] commutes with union,
+      intersection and complement, the complement of the empty language being
+      [Σ*]. Memoised by block and expression.
 
       Raises [Invalid_argument] if [m] contains [tick]. *)
 

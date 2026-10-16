@@ -39,8 +39,9 @@
     concatenations of their members. A delay [d] abbreviates [{d}], and [⊤]
     (ASCII [top]) is the greatest grade. The delays of a literal are read by
     those of the grades ({!Delay.S.read}): integers over {!Delay.Nat}, integers
-    and fractions over {!Delay.Rational}. The other regular-expression forms,
-    [*], [&], [~] and [_], are rejected.
+    and fractions over {!Delay.Rational}. A bounded repetition of a finite
+    count, [r^n] or [r^[m, n]], abbreviates its unrolling. The other
+    regular-expression forms, [*], [r^\[m, ∞)], [&], [~] and [_], are rejected.
 
     {2 Witnesses}
 

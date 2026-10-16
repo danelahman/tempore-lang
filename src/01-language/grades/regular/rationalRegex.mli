@@ -25,22 +25,27 @@
     names and their unions), their complements and repetitions of sets of names,
     one of them of single symbols, is the expression of the single symbols
     common to all, as [_ & ~A] is [⟨ℚ>0⟩ | (Σ_names ∖ A)]; and [⟨S⟩*] is [⟨S*⟩],
-    the delay [0] of an atom under a repetition being left out. Each rule is a
-    semantic identity, an atom's words being delays, so that every expression
-    whose words are all delays is an atom, equal in form to another iff their
-    sets of delays are equal.
+    the delay [0] of an atom under a repetition being left out; a bounded
+    repetition [⟨S⟩^c] of an atom is the atom of [⋃ {k·S : k ∈ c}]; and the
+    rules of bounded repetition and of the joining of adjacent factors of the
+    same base are those of {!SymbolicRegex}. Each rule is a semantic identity,
+    an atom's words being delays, so that every expression whose words are all
+    delays is an atom, equal in form to another iff their sets of delays are
+    equal.
 
     {2 Gap derivatives}
 
     The gap derivative of [r] by a block [m] of names maps each delay [d] to an
     expression of the derivative [(d a)⁻¹r], [a ∈ m]:
     [D(r; s)(d) = D(r)(d); s | ⋃ {D(s)(d - i) : i ∈ N(r), i ≤ d}],
-    [D(r* )(d) = ⋃ {D(r)(d - i); r* : i ∈ N(r)*, i ≤ d}], [D] commuting with the
-    Boolean operations, the complement taken relative to [ℚ≥0] ({!GapMap}). Then
-    [d₀ a₁ ⋯ aₖ dₖ ∈ r] iff [dₖ] is in the delays of the derivative of [r] by
-    [d₀ a₁], …, [dₖ₋₁ aₖ] in turn (Brzozowski, JACM 1964, on the alphabet
-    [ℚ≥0 × Names]), a symbolic derivative over the finite unions of products of
-    sets of delays and blocks of names (D'Antoni and Veanes, POPL 2014).
+    [D(r* )(d) = ⋃ {D(r)(d - i); r* : i ∈ N(r)*, i ≤ d}],
+    [D(r^c)(d) = D(r)(d); r^(c ⊖ 1) | ⋃ {D(r^(c ⊖ 1))(d - i) : i ∈ N(r)}], [D]
+    commuting with the Boolean operations, the complement taken relative to
+    [ℚ≥0] ({!GapMap}). Then [d₀ a₁ ⋯ aₖ dₖ ∈ r] iff [dₖ] is in the delays of the
+    derivative of [r] by [d₀ a₁], …, [dₖ₋₁ aₖ] in turn (Brzozowski, JACM 1964,
+    on the alphabet [ℚ≥0 × Names]), a symbolic derivative over the finite unions
+    of products of sets of delays and blocks of names (D'Antoni and Veanes, POPL
+    2014).
 
     {2 Interning}
 
@@ -64,6 +69,9 @@ type view =
   | Inter of t list
   | Compl of t
   | Star of t
+  | Repeat of t * Count.t
+      (** Bounded repetition [r^c], as in {!SymbolicRegex.S.view}, [r] no atom
+      *)
 
 val view : t -> view
 
@@ -96,6 +104,10 @@ val compl : t -> t
 
 val star : t -> t
 
+val repeat : t -> Count.t -> t
+(** [repeat r c] is the bounded repetition [r^c], the concatenations of [k]
+    words of [r], [k ∈ c], in normal form ({!SymbolicRegex.S.repeat}). *)
+
 val of_regex : GradeLiteral.regex -> t
 (** [of_regex r] is the expression of the brace literal [r], denoting the
     language {!DelayRegex.automaton}[ r]: a name [A] is [{A}], a delay [q] the
@@ -118,10 +130,10 @@ val nullable : t -> bool
 val delays : t -> DelaySet.t
 (** [delays r] is the set [N(r)] of the delays [d] such that the word [d] is in
     [r], by structural recursion: [N(∅) = N(p) = ∅], [N(ε) = {0}], [N(⟨S⟩) = S],
-    [N(r; s) = N(r) + N(s)], [N(r* ) = N(r)*], [N] commutes with union and
-    intersection, and [N(~r) = ℚ≥0 ∖ N(r)], an intersection with complements
-    being taken as a difference, [N(r & ~s) = N(r) ∖ N(s)]. Memoised by
-    expression. *)
+    [N(r; s) = N(r) + N(s)], [N(r* ) = N(r)*], [N(r^c) = ⋃ {k·N(r) : k ∈ c}],
+    [N] commutes with union and intersection, and [N(~r) = ℚ≥0 ∖ N(r)], an
+    intersection with complements being taken as a difference,
+    [N(r & ~s) = N(r) ∖ N(s)]. Memoised by expression. *)
 
 val names : t -> string list
 (** [names r] is the names the sets of names of [r] mention, in increasing

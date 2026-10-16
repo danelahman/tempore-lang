@@ -9,16 +9,18 @@ type t =
   | Inter of t list
   | Compl of t
   | Star of t
+  | Repeat of t * Count.t
 
 let rank = function
   | Eps -> 0
   | Letters _ -> 1
   | Seq _ -> 2
-  | Star _ -> 3
-  | Compl _ -> 4
-  | Inter _ -> 5
-  | Union _ -> 6
-  | Empty -> 7
+  | Repeat _ -> 3
+  | Star _ -> 4
+  | Compl _ -> 5
+  | Inter _ -> 6
+  | Union _ -> 7
+  | Empty -> 8
 
 let rec compare r s =
   match (r, s) with
@@ -26,6 +28,8 @@ let rec compare r s =
   | Seq rs, Seq ss | Union rs, Union ss | Inter rs, Inter ss ->
       List.compare compare rs ss
   | Star r, Star s | Compl r, Compl s -> compare r s
+  | Repeat (r, c), Repeat (s, c') -> (
+      match compare r s with 0 -> Count.compare c c' | d -> d)
   | _ -> Int.compare (rank r) (rank s)
 
 let equal r s = compare r s = 0
@@ -37,6 +41,7 @@ let rec nullable = function
   | Seq rs | Inter rs -> List.for_all nullable rs
   | Union rs -> List.exists nullable rs
   | Compl r -> not (nullable r)
+  | Repeat (r, c) -> nullable r || Count.mem 0 c
 
 (** {1 Constructions}
 
@@ -58,17 +63,34 @@ let merge_letters combine rs =
   | [] -> others
   | p :: ps -> letters (List.fold_left combine p ps) :: others
 
-(** [collapse rs] rewrites [x*; x*] to [x*] in the factors [rs]. *)
-let rec collapse = function
-  | (Star _ as x) :: (Star _ as y) :: rest when equal x y -> collapse (x :: rest)
-  | r :: rest -> r :: collapse rest
+let is_tick = function Letters p -> Letters.equal p Letters.tick | _ -> false
+
+(** [power r] is [(x, c)] if [r] is the repetition [x^c], and [(r, 1)]
+    otherwise. *)
+let power = function Repeat (x, c) -> (x, c) | r -> (r, Count.point 1)
+
+(** [join rs] rewrites [x^c; x^c'] to [x^(c + c')] in the factors [rs], a factor
+    [x] counting as [x^1], and [x*; x*] to [x*], but for the ticks, whose runs
+    are printed as numbers. The counts of a nullable [x] in normal form are
+    single numbers, as is their sum. *)
+let rec join = function
+  | x :: y :: rest
+    when (not (is_tick x)) && equal (fst (power x)) (fst (power y)) ->
+      let base, c = power x in
+      let joined =
+        match base with
+        | Star _ -> base
+        | _ -> Repeat (base, Count.add c (snd (power y)))
+      in
+      join (joined :: rest)
+  | r :: rest -> r :: join rest
   | [] -> []
 
 let seq rs =
   let factors = function Seq rs -> rs | Eps -> [] | r -> [ r ] in
   if mem Empty rs then Empty
   else
-    match collapse (List.concat_map factors rs) with
+    match join (List.concat_map factors rs) with
     | [] -> Eps
     | [ r ] -> r
     | rs -> Seq rs
@@ -103,8 +125,6 @@ let group key rs =
   List.rev_map
     (fun (k, members) -> (k, List.rev members))
     (List.fold_left add [] rs)
-
-let is_tick = function Letters p -> Letters.equal p Letters.tick | _ -> false
 
 (** [is_marker r] is whether [r] is the one-letter word of a name that encodes a
     strict delay ({!StrictDelays}). *)
@@ -202,11 +222,36 @@ and star r =
   match r with
   | Empty | Eps -> Eps
   | Star _ -> r
+  | Repeat (x, c) when Count.mem 1 c -> star x
   | Union rs ->
       let rs' = List.map unstar (List.filter (fun r -> not (equal r Eps)) rs) in
       if List.equal equal rs rs' then Star r else star (union rs')
   | Seq rs when List.for_all nullable rs -> star (union rs)
   | r -> ( match plus r with Some x -> Star x | None -> Star r)
+
+(** [repeat r c] is [r^c] by the laws of {!SymbolicRegex.S.repeat}, a word of
+    ticks repeated a single number of times being the word of their product. *)
+let rec repeat r (c : Count.t) =
+  let ticks = function
+    | Letters _ as r when is_tick r -> Some 1
+    | Seq rs when List.for_all is_tick rs -> Some (List.length rs)
+    | _ -> None
+  in
+  if Count.is_point 0 c then Eps
+  else if Count.is_point 1 c then r
+  else
+    match (r, c.most) with
+    | Empty, _ -> if Count.mem 0 c then Eps else Empty
+    | (Eps | Star _), _ -> r
+    | _, None when nullable r || c.least = 0 -> star r
+    | _, Some n when nullable r && c.least < n -> repeat r (Count.point n)
+    | Repeat (s, c0), _ -> (
+        match Count.nest c0 c with Some d -> repeat s d | None -> Repeat (r, c))
+    | _, Some n when n = c.least -> (
+        match ticks r with
+        | Some k -> seq (List.init (k * n) (Fun.const (Letters Letters.tick)))
+        | None -> Repeat (r, c))
+    | _ -> Repeat (r, c)
 
 let inter rs =
   let operands = function
@@ -244,6 +289,7 @@ let rec of_symbolic r =
   | Inter rs -> inter (List.map of_symbolic rs)
   | Compl r -> compl (of_symbolic r)
   | Star r -> star (of_symbolic r)
+  | Repeat (r, c) -> repeat (of_symbolic r) c
 
 let rec reverse = function
   | (Empty | Eps | Letters _) as r -> r
@@ -252,6 +298,7 @@ let rec reverse = function
   | Inter rs -> inter (List.map reverse rs)
   | Compl r -> compl (reverse r)
   | Star r -> star (reverse r)
+  | Repeat (r, c) -> repeat (reverse r) c
 
 (** {1 Printing} *)
 
@@ -290,7 +337,7 @@ let rec size = function
       List.fold_left (fun n p -> n + part p) (List.length parts - 1) parts
   | Union rs | Inter rs ->
       List.fold_left (fun n r -> n + size r) (List.length rs - 1) rs
-  | Compl r | Star r -> 1 + size r
+  | Compl r | Star r | Repeat (r, _) -> 1 + size r
 
 type printed = { text : string; level : int }
 (* The level of the outermost operator of [text]: [0] union, [1]
@@ -411,6 +458,7 @@ let rec print = function
   | Inter rs -> nary " & " 1 rs
   | Compl r -> { text = "~" ^ at 3 (print r); level = 3 }
   | Star r -> { text = at 4 (print r) ^ "*"; level = 4 }
+  | Repeat (r, c) -> { text = at 4 (print r) ^ "^" ^ Count.show c; level = 4 }
 
 and nary separator level rs =
   {

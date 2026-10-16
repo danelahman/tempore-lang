@@ -66,6 +66,7 @@ let dfa_of_regex names =
     | Union (r, s) -> Dfa.union (go r) (go s)
     | Inter (r, s) -> Dfa.inter (go r) (go s)
     | Star r -> Dfa.star (go r)
+    | Repeat (r, c) -> go (unrolled r c)
     | Compl r -> Dfa.complement (go r)
     | Strict _ as r -> strict_unsupported r
   in

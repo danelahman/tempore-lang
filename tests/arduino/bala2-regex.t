@@ -84,8 +84,8 @@ its readings:
   File "bala2-regex/armed.tpe", lines 4-12, characters 26-13:
   4 | let measure_bias_armed () : float
                                 ^^^^^^^
-  Typing error: This function's body has grade `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`, which does not match its annotated grade `[{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`
-    Note: the effect inequality `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}] <= [{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]` does not hold
+  Typing error: This function's body has grade `[{ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}, {ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}]`, which does not match its annotated grade `[{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`
+    Note: the effect inequality `[{ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}, {ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}] <= [{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]` does not hold
   [1]
   File "bala2-regex/shown.tpe", lines 4-11, characters 47-36:
   4 | let rec rate_sum_shown (n : nat) (sum : float) : float # {(Attitude; 10)*} =

@@ -15,6 +15,7 @@ module type S = sig
     | Inter of t list
     | Compl of t
     | Star of t
+    | Repeat of t * Count.t
 
   val view : t -> view
   val equal_form : t -> t -> bool
@@ -32,6 +33,7 @@ module type S = sig
   val inter : t list -> t
   val compl : t -> t
   val star : t -> t
+  val repeat : t -> Count.t -> t
   val names : t -> string list
   val nullable : t -> bool
   val minterms : t -> Letters.t list
@@ -92,6 +94,7 @@ struct
     | Inter of t list
     | Compl of t
     | Star of t
+    | Repeat of t * Count.t
 
   let view r = r.view
   let equal_form r s = r.id = s.id
@@ -107,6 +110,7 @@ struct
     | Union rs -> List.exists (fun r -> r.nullable) rs
     | Inter rs -> List.for_all (fun r -> r.nullable) rs
     | Compl r -> not r.nullable
+    | Repeat (r, c) -> r.nullable || Count.mem 0 c
 
   (** [run_view view] is [Some n] if [view] is the word [tickⁿ], [n ≥ 1]: the
       letter set [{tick}] or a run of ticks. *)
@@ -136,6 +140,7 @@ struct
         | None -> r.lead)
     | Union rs, None -> List.fold_left (fun k r -> min k r.lead) unbounded rs
     | Inter rs, None -> List.fold_left (fun k r -> max k r.lead) 0 rs
+    | Repeat (r, c), None -> if c.least >= 1 then r.lead else 0
 
   (** The table of normal forms, each view built of normal forms identified by
       their numbers. *)
@@ -153,6 +158,8 @@ struct
           | Union rs, Union rs' | Inter rs, Inter rs' ->
               List.equal equal_form rs rs'
           | Compl r, Compl r' | Star r, Star r' -> equal_form r r'
+          | Repeat (r, c), Repeat (r', c') ->
+              equal_form r r' && Count.equal c c'
           | _ -> false
 
         let combine = NormalForms.combine_ids id
@@ -167,6 +174,7 @@ struct
           | Inter rs -> combine 4 rs
           | Compl r -> combine 5 [ r ]
           | Star r -> combine 6 [ r ]
+          | Repeat (r, c) -> Hashing.combine (combine 8 [ r ]) (Count.hash c)
       end)
       (struct
         type nonrec t = t
@@ -223,22 +231,6 @@ struct
         match run r1 with Some n -> (n, r2) | None -> (0, r))
     | None, _ -> (0, r)
 
-  (* A run of ticks followed by a run of ticks, alone or leading a
-     concatenation, is joined with it: [tickᵐ; tickⁿ = tickᵐ⁺ⁿ]. *)
-  let rec concat r s =
-    match (r.view, s.view) with
-    | Empty, _ | _, Empty -> empty
-    | Eps, _ -> s
-    | _, Eps -> r
-    | Concat (r1, r2), _ -> concat r1 (concat r2 s)
-    | Star _, Star _ when equal_form r s -> r
-    | Star _, Concat (s1, _) when equal_form r s1 -> s
-    | _ -> (
-        match (run r, split_run s) with
-        | Some m, (n, s') when n > 0 ->
-            concat (ticks (Delay.checked_add ~quantity:"duration" m n)) s'
-        | _ -> make (Concat (r, s)))
-
   let letter_set r = match r.view with Letters p -> Some p | _ -> None
 
   (** [one_letter_part r] is the set of the letters of the one-letter words of
@@ -261,17 +253,89 @@ struct
     | Sets -> merge letter_set Letters.union letters rs
     | Atoms -> rs
 
-  let union rs =
+  (** [all_letters r] is whether [r] is a letter set, or a union of letters,
+      that holds every letter: the one-letter words [Σ], whose repetition is
+      [Σ*]. *)
+  let all_letters r =
+    let sets =
+      match r.view with
+      | Letters p -> Some [ p ]
+      | Union rs ->
+          List.fold_left
+            (fun acc r ->
+              Option.bind acc (fun ps ->
+                  Option.map (fun p -> p :: ps) (letter_set r)))
+            (Some []) rs
+      | _ -> None
+    in
+    match sets with
+    | Some (p :: ps) ->
+        Letters.equal (List.fold_left Letters.union p ps) Letters.any
+    | Some [] | None -> false
+
+  (** [repetition r] is [Some (x, c)] if [r] is the repetition [x^c]. *)
+  let repetition r =
+    match r.view with Repeat (x, c) -> Some (x, c) | _ -> None
+
+  (** [power r] is [(x, c)] if [r] is the repetition [x^c], and [(r, 1)]
+      otherwise. *)
+  let power r = Option.value (repetition r) ~default:(r, Count.point 1)
+
+  (* The repetitions of a base in a union are merged where their counts
+     overlap or touch: [x^c | x^c' = x^(c ∪ c')]. *)
+  let rec union rs =
     let split r =
       match r.view with Union rs -> Some rs | Empty -> Some [] | _ -> None
     in
     let rs = flatten split rs in
     if List.exists is_top rs then top
     else
-      let rs = List.sort_uniq by_id (merge_union rs) in
+      let rs =
+        List.sort_uniq by_id (repetitions repetition repeat (merge_union rs))
+      in
       let rs = unsubsumed rs in
       if complementary split rs then top
       else match rs with [] -> empty | [ r ] -> r | rs -> make (Union rs)
+
+  (* [(r^c)* = r*] where [1 ∈ c]. *)
+  and star r =
+    match r.view with
+    | Empty | Eps -> eps
+    | Star _ -> r
+    | Repeat (s, c) when Count.mem 1 c -> star s
+    | Union rs when mem_form eps rs ->
+        star (union (List.filter (fun r -> not (equal_form r eps)) rs))
+    | _ when all_letters r -> top
+    | _ -> make (Star r)
+
+  (* The laws of bounded repetition over intervals of counts: [r^0 = 0],
+     [r^1 = r], [r^[0, ∞) = r*], [0^c] and [∅^c] are the empty word or
+     language, [(s* )^c = s*] for [c ≠ {0}], [(s^c)^c' = s^(c ⊛ c')] where
+     [c ⊛ c'] is an interval ({!Count.nest}), a nullable [r] has [r^c = r^n]
+     for [c = [m, n]] and [r^c = r*] for [c = [m, ∞)], every word of [r^k]
+     being one of [r^(k + 1)], and a run of [k] ticks repeated [n] times is a
+     run of [k·n] ticks. *)
+  and repeat r (c : Count.t) =
+    if Count.is_point 0 c then eps
+    else if Count.is_point 1 c then r
+    else
+      match (r.view, c.most) with
+      | Empty, _ -> if Count.mem 0 c then eps else empty
+      | (Eps | Star _), _ -> r
+      | _, None when r.nullable || c.least = 0 -> star r
+      | _, Some n when r.nullable && c.least < n -> repeat r (Count.point n)
+      | Repeat (s, c0), _ -> (
+          match Count.nest c0 c with
+          | Some d -> repeat s d
+          | None -> make (Repeat (r, c)))
+      | _, Some n when n = c.least -> (
+          match run r with
+          | Some k ->
+              ticks
+                (Delay.checked_to_int ~quantity:"duration"
+                   (Z.mul (Z.of_int k) (Z.of_int n)))
+          | None -> make (Repeat (r, c)))
+      | _ -> make (Repeat (r, c))
 
   let inter rs =
     let split r =
@@ -306,34 +370,35 @@ struct
   let runs lo hi =
     union (List.init (max 1 (hi - lo + 1)) (fun k -> ticks (lo + k)))
 
-  (** [all_letters r] is whether [r] is a letter set, or a union of letters,
-      that holds every letter: the one-letter words [Σ], whose repetition is
-      [Σ*]. *)
-  let all_letters r =
-    let sets =
-      match r.view with
-      | Letters p -> Some [ p ]
-      | Union rs ->
-          List.fold_left
-            (fun acc r ->
-              Option.bind acc (fun ps ->
-                  Option.map (fun p -> p :: ps) (letter_set r)))
-            (Some []) rs
-      | _ -> None
-    in
-    match sets with
-    | Some (p :: ps) ->
-        Letters.equal (List.fold_left Letters.union p ps) Letters.any
-    | Some [] | None -> false
-
-  let rec star r =
-    match r.view with
-    | Empty | Eps -> eps
-    | Star _ -> r
-    | Union rs when mem_form eps rs ->
-        star (union (List.filter (fun r -> not (equal_form r eps)) rs))
-    | _ when all_letters r -> top
-    | _ -> make (Star r)
+  (* A run of ticks followed by a run of ticks, alone or leading a
+     concatenation, is joined with it: [tickᵐ; tickⁿ = tickᵐ⁺ⁿ]; and a
+     repetition followed by one of the same base, alone or leading a
+     concatenation, is joined with it: [x^c; x^c' = x^(c + c')], a factor [x]
+     counting as [x^1]. *)
+  let rec concat r s =
+    match (r.view, s.view) with
+    | Empty, _ | _, Empty -> empty
+    | Eps, _ -> s
+    | _, Eps -> r
+    | Concat (r1, r2), _ -> concat r1 (concat r2 s)
+    | Star _, Star _ when equal_form r s -> r
+    | Star _, Concat (s1, _) when equal_form r s1 -> s
+    | _ -> (
+        match (run r, split_run s) with
+        | Some m, (n, s') when n > 0 ->
+            concat (ticks (Delay.checked_add ~quantity:"duration" m n)) s'
+        | _ -> (
+            let x, c = power r in
+            let head, rest =
+              match s.view with
+              | Concat (s1, s2) -> (s1, Some s2)
+              | _ -> (s, None)
+            in
+            let y, c' = power head in
+            if not (equal_form x y) then make (Concat (r, s))
+            else
+              let joined = repeat x (Count.add c c') in
+              match rest with None -> joined | Some rest -> concat joined rest))
 
   (** {1 Traversals} *)
 
@@ -342,7 +407,7 @@ struct
     | Empty | Eps | Letters _ | Ticks _ -> []
     | Concat (r, s) -> [ r; s ]
     | Union rs | Inter rs -> rs
-    | Compl r | Star r -> [ r ]
+    | Compl r | Star r | Repeat (r, _) -> [ r ]
 
   (** [letter_sets roots] is the list of the letter sets occurring in [roots],
       each once, a run of ticks being made of the letter set [{tick}]. *)
@@ -398,6 +463,14 @@ struct
     | Inter rs -> inter (List.map (derive m) rs)
     | Compl r -> compl (derive m r)
     | Star r' -> concat (derive m r') r
+    | Repeat (r', c) -> concat (derive m r') (repeat_rest r' c)
+
+  (** [repeat_rest r c] is [r^(c ⊖ 1)], the repetition after the first iteration
+      of [r^c], [c ≠ {0}]: every word of [r^c] beginning with a letter is the
+      word of a first iteration beginning with it followed by one of
+      [r^(c ⊖ 1)], the count of a nullable [r] being a single number. *)
+  and repeat_rest r c =
+    match Count.shift c 1 with Some c' -> repeat r c' | None -> empty
 
   let derivative set r = derive (minterm set) r
 
@@ -461,6 +534,9 @@ struct
         | Some c when k mod c = 0 -> r
         | Some c -> concat (ticks (c - (k mod c))) r
         | None -> steps m k r)
+    | Repeat (r', c) when c.least >= 1 && k <= r'.lead ->
+        concat (leap_by m k r') (repeat_rest r' c)
+    | Repeat _ -> steps m k r
 
   (** [steps m k r] is the derivative of [r] by [mᵏ] read off the orbit of [r]
       ({!orbit}), [k] reduced modulo its period once its cycle is found. [k]
@@ -531,6 +607,7 @@ struct
     | Inter rs -> Inter rs
     | Compl r -> Compl r
     | Star r -> Star r
+    | Repeat (r, c) -> Repeat (r, c)
 
   (* The set of the [n] such that [tickⁿ] is in the expression, the complement
      taken in the natural numbers. *)
@@ -577,6 +654,7 @@ struct
 
     let eps = eps
     let concat = concat
+    let repeat = repeat
     let delays = delays
   end)
 

@@ -21,6 +21,7 @@ type regex =
   | Seq of regex * regex
   | Union of regex * regex
   | Star of regex
+  | Repeat of regex * Count.t
   | Inter of regex * regex
   | Compl of regex
   | Strict of regex
@@ -28,8 +29,62 @@ type regex =
 let rec delays_only = function
   | Tick _ | Frac _ | Delays _ -> true
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> delays_only r && delays_only s
-  | Star r -> delays_only r
+  | Star r | Repeat (r, _) -> delays_only r
   | Letter _ | Any | Compl _ | Strict _ -> false
+
+(* [r^[m, n]] is [r; …; r; (0 | r; (0 | r; …))], [m] factors and [n - m]
+   optional ones nested, and [r^[m, ∞)] is [r; …; r; r*]. *)
+let unrolled r (c : Count.t) =
+  let seq a b = match b with Tick 0 -> a | b -> Seq (a, b) in
+  let rest =
+    match c.most with
+    | None -> Star r
+    | Some n ->
+        List.fold_left
+          (fun acc _ -> Union (Tick 0, seq r acc))
+          (Tick 0)
+          (List.init (n - c.least) Fun.id)
+  in
+  List.fold_left (fun acc _ -> seq r acc) rest (List.init c.least Fun.id)
+
+let rec equal_regex r s =
+  match (r, s) with
+  | Letter a, Letter b -> String.equal a b
+  | Tick m, Tick n -> Int.equal m n
+  | Frac p, Frac q -> Rational.equal p q
+  | Delays (lo, hi), Delays (lo', hi') ->
+      let equal_bound b b' =
+        match (b, b') with
+        | Closed p, Closed q | Open p, Open q -> Rational.equal p q
+        | Unbounded, Unbounded -> true
+        | _ -> false
+      in
+      equal_bound lo lo' && equal_bound hi hi'
+  | Any, Any -> true
+  | Seq (r, s), Seq (r', s')
+  | Union (r, s), Union (r', s')
+  | Inter (r, s), Inter (r', s') ->
+      equal_regex r r' && equal_regex s s'
+  | Star r, Star r' | Compl r, Compl r' | Strict r, Strict r' ->
+      equal_regex r r'
+  | Repeat (r, c), Repeat (r', c') -> equal_regex r r' && Count.equal c c'
+  | _ -> false
+
+(* A factor [x^c] has the base [x] and the count [c], any other factor [x]
+   the base [x] and the count [1]; adjacent factors of equal bases are joined
+   from the right. *)
+let sequence factors =
+  let power = function Repeat (x, c) -> (x, c) | x -> (x, Count.point 1) in
+  let join r acc =
+    match acc with
+    | s :: rest ->
+        let x, c = power r and y, c' = power s in
+        if equal_regex x y then Repeat (x, Count.add c c') :: rest else r :: acc
+    | [] -> [ r ]
+  in
+  match List.fold_right join factors [] with
+  | [] -> Tick 0
+  | r :: rs -> List.fold_left (fun r s -> Seq (r, s)) r rs
 
 let strict_opening = "!("
 let strict_closing = ")!"
@@ -40,7 +95,7 @@ let regex_names r =
     | Letter name -> [ name ]
     | Tick _ | Frac _ | Delays _ | Any -> []
     | Seq (r, s) | Union (r, s) | Inter (r, s) -> go r @ go s
-    | Star r | Compl r | Strict r -> go r
+    | Star r | Repeat (r, _) | Compl r | Strict r -> go r
   in
   List.sort_uniq String.compare (go r)
 
@@ -82,8 +137,21 @@ let show_regex r =
         go 4 r
     | Star r ->
         wrap ctx 4 (fun () ->
-            go 5 r;
+            operand r;
             add "*")
+    | Repeat (r, c) ->
+        wrap ctx 4 (fun () ->
+            operand ~bounded:true r;
+            add "^";
+            add (Count.show c))
+  (* The operand of a repetition, itself a repetition unparenthesised and a
+     strict delay parenthesised under a bounded repetition, which [!] does not
+     enter. *)
+  and operand ?(bounded = false) r =
+    match r with
+    | Star _ | Repeat _ -> go 4 r
+    | Strict _ when bounded -> wrap 5 4 (fun () -> go 4 r)
+    | r -> go 5 r
   and chain ctx prec separator split r =
     wrap ctx prec (fun () ->
         List.iteri

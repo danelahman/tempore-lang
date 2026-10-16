@@ -1,8 +1,10 @@
 open Grade
 
 (* [concatenation r s] is the expression [r; s], the factors of both
-   concatenations listed in turn, the delays [0] left out and adjacent budget
-   delays added; adjacent strict delays stay apart, as distinct words. *)
+   concatenations listed in turn, the delays [0] left out, adjacent budget
+   delays added and runs of factors of the same base joined into bounded
+   repetitions ({!Grade.sequence}); adjacent strict delays stay apart, as
+   distinct words. *)
 let concatenation r s =
   let rec factors = function
     | Seq (r, s) -> factors r @ factors s
@@ -20,14 +22,11 @@ let concatenation r s =
     | x :: rest -> x :: merge rest
     | [] -> []
   in
-  match
-    merge
-      (List.filter
-         (function Tick 0 | Strict (Tick 0) -> false | _ -> true)
-         (factors r @ factors s))
-  with
-  | [] -> Tick 0
-  | r :: rs -> List.fold_left (fun r s -> Seq (r, s)) r rs
+  sequence
+    (merge
+       (List.filter
+          (function Tick 0 | Strict (Tick 0) -> false | _ -> true)
+          (factors r @ factors s)))
 
 (* The languages of the grades. *)
 module type LANGUAGE = sig

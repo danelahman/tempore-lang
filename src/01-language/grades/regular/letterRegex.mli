@@ -15,6 +15,9 @@
       intersection are sorted by {!compare} without duplicates;
     - letter sets: [p | q] is the union and [p & q] the intersection of [p] and
       [q] in the Boolean algebra of letter sets;
+    - bounded repetition: [x^c; x^c' = x^(c + c')], a factor [x] counting as
+      [x^1] but for the ticks, the laws of {!SymbolicRegex.S.repeat}, and
+      [(x^c)* = x*] where [1 ∈ c];
     - repetition: [x*; x* = x*], [{x*}* = x*], [(ε | x)* = x*],
       [{x | y*}* = (x | y)*], [{x; x*}* = x*], and [(x; y)* = (x | y)*] for
       nullable [x] and [y], braces grouping as in the literal syntax;
@@ -43,6 +46,7 @@ type t = private
   | Inter of t list  (** Intersection of at least two operands *)
   | Compl of t  (** Complement *)
   | Star of t  (** Repetition *)
+  | Repeat of t * Count.t  (** Bounded repetition [r^c] *)
 
 val compare : t -> t -> int
 (** A total order on normal forms, independent of any numbering of expressions:
@@ -65,6 +69,9 @@ val inter : t list -> t
 val compl : t -> t
 val star : t -> t
 
+val repeat : t -> Count.t -> t
+(** [repeat r c] is the bounded repetition [r^c] in normal form. *)
+
 val of_symbolic : SymbolicRegex.t -> t
 (** [of_symbolic r] is the normal form of the expression [r], a run of [n] ticks
     being the concatenation of [n] letters [tick]. *)
@@ -83,11 +90,12 @@ val size : t -> int
 val to_string : t -> string
 (** [to_string r] prints [r] in the literal syntax, without the enclosing
     braces: runs of ticks as integers, the empty word as [0], the empty language
-    as [~_*], and letter sets as unions of letters, as [_] or as [_ & ~(…)]. A
-    group ending with a repetition is printed in braces rather than parentheses,
-    e.g. [~{_*; Revoke; _*}], so that no printed expression contains a
-    repetition followed by a closing parenthesis, which would close a comment
-    quoting it. *)
+    as [~_*], letter sets as unions of letters, as [_] or as [_ & ~(…)], and a
+    bounded repetition as [x^n], [x^[m, n]] or [x^\[m, ∞)]. A group ending with
+    a repetition is printed in braces rather than parentheses, e.g.
+    [~{_*; Revoke; _*}], so that no printed expression contains a repetition
+    followed by a closing parenthesis, which would close a comment quoting it.
+*)
 
 val literal : t -> string
 (** [literal r] is the literal of the regular trace grade [r]: [⊤] if [r] is

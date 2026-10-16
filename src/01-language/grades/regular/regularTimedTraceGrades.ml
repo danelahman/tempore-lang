@@ -392,7 +392,8 @@ module Over
         D.inhabited (classes no_time (declared no_time bounds) [ rho ]) rho
 
       (* The literal of the single trace of the delays and names [word], the
-         delays between the names that encode a strict delay written as one. *)
+         delays between the names that encode a strict delay written as one,
+         runs of equal factors joined into bounded repetitions. *)
       let literal_of_word word =
         let rec atoms = function
           | Letter o :: (Tick _ as d) :: Letter c :: word
@@ -402,9 +403,7 @@ module Over
           | r :: word -> r :: atoms word
           | [] -> []
         in
-        match atoms word with
-        | [] -> Braces (Tick 0)
-        | r :: rs -> Braces (List.fold_left (fun r s -> Seq (r, s)) r rs)
+        Braces (sequence (atoms word))
 
       let single = function Int _ | Braces _ -> true | _ -> false
       let number = function Int n -> Some (Rational.of_int n) | _ -> None

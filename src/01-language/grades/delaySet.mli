@@ -115,6 +115,12 @@ val star : t -> t
     [μ] by Dijkstra's algorithm (Nijenhuis, "A minimal-path algorithm for the
     money changing problem", Amer. Math. Monthly 86, 1979). *)
 
+val repeat : t -> Count.t -> t
+(** [repeat s c] is [⋃ {k·s : k ∈ c}], [k·s] the [k]-fold sum of [s] and
+    [0·s = {0}]: the delays of a bounded repetition. It is computed as
+    [m·s + (n - m)·(s ∪ {0})] for [c = [m, n]] and [m·s + s*] for [c = \[m, ∞)],
+    each multiple by binary exponentiation. *)
+
 (** {1 Queries} *)
 
 type interval = {

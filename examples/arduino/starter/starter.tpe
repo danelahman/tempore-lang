@@ -125,8 +125,9 @@ type sense = float * float * float * float * bool * bool
    to its unboxing. A recursion has a grade whose repetitions it includes,
    which bounds no duration; the polls are therefore written out as fixed
    sequences. The slow ones are annotated with the interval of their
-   durations; the grades of the fast ones are their exact traces, so that
-   the box of the reaction window sees each of their operations. *)
+   durations; the fast ones with their exact traces, a poll repeated a
+   number of times, so that the box of the reaction window sees each of
+   their operations and the box of the gun their number. *)
 
 (* A reading of the unit and of the touch screen 19.5 ms after the last,
    19.7 to 22.45 ms. A touch begins where the screen is touched and was not
@@ -203,7 +204,8 @@ let poll_fast (m : float) (w : float) ((found, at) : bool * nat) : bool * nat
     if absolute (reading -. m) > w then (true, t) else (false, at))
 
 (* Ten fast polls, until the push: up to 40.5 ms. *)
-let ten_fast (m : float) (w : float) (r : bool * nat) : bool * nat =
+let ten_fast (m : float) (w : float) (r : bool * nat) : bool * nat
+    # {(0 | !2.5; ReadImu; ReadClock)^10} =
   let r = poll_fast m w r in
   let r = poll_fast m w r in
   let r = poll_fast m w r in
@@ -217,7 +219,8 @@ let ten_fast (m : float) (w : float) (r : bool * nat) : bool * nat =
   r
 
 (* Fifty fast polls, until the push: up to 202.5 ms. *)
-let fifty_fast (m : float) (w : float) (r : bool * nat) : bool * nat =
+let fifty_fast (m : float) (w : float) (r : bool * nat) : bool * nat
+    # {(0 | !2.5; ReadImu; ReadClock)^50} =
   let r = ten_fast m w r in
   let r = ten_fast m w r in
   let r = ten_fast m w r in
@@ -227,7 +230,8 @@ let fifty_fast (m : float) (w : float) (r : bool * nat) : bool * nat =
 
 (* Two hundred fast polls, until the push: a push is found within 4.05 ms of
    its start, and no push declared 540 to 810 ms after the first poll. *)
-let react (m : float) (w : float) : bool * nat =
+let react (m : float) (w : float) : bool * nat
+    # {(0 | !2.5; ReadImu; ReadClock)^200} =
   let r = fifty_fast m w (false, 0) in
   let r = fifty_fast m w r in
   let r = fifty_fast m w r in
@@ -272,8 +276,9 @@ let fire (gun : at_gun) (m : float) (w : float) : outcome
    48 ms:
 
      Typing error: Variable `gun` is unboxed with grade
-       `[{Beep; ClearDisplay; ReadClock; (0 | !2.5; ReadImu; ReadClock); …},
-       …]` accumulated since it was bound, which is not below its box grade
+       `[{Beep; ClearDisplay; ReadClock; (0 | !2.5; ReadImu; ReadClock)^200},
+       {Beep; ClearDisplay; ReadClock; (0 | !2.5; ReadImu; ReadClock)^200}]`
+       accumulated since it was bound, which is not below its box grade
        `[{Beep; ReadClock; [0, 1000]}, {Beep; ReadClock; [0, 1000]}]`
        ...
 *)
@@ -297,10 +302,11 @@ let fire_cleared (gun : at_gun) (m : float) (w : float) : outcome
    second:
 
      Typing error: Variable `window` is unboxed with grade
-       `[{Beep; ReadClock; ShowColourTextAt; (0 | !2.5; ReadImu; ReadClock);
-       …}, …]` accumulated since it was bound, which is not below its box
-       grade `[{Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*}, {Beep;
-       ReadClock; (![0, 2.5]; ReadImu; ReadClock)*}]`
+       `[{Beep; ReadClock; ShowColourTextAt; (0 | !2.5; ReadImu;
+       ReadClock)^200}, {Beep; ReadClock; ShowColourTextAt; (0 | !2.5;
+       ReadImu; ReadClock)^200}]` accumulated since it was bound, which is
+       not below its box grade `[{Beep; ReadClock; (![0, 2.5]; ReadImu;
+       ReadClock)*}, {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*}]`
        ...
 *)
 (*
@@ -398,11 +404,9 @@ let start_once (a : athlete) : outcome
    polls of the Set hold, 1182 to 1347 ms after the Set command:
 
      Typing error: Variable `set` is unboxed with grade
-       `[{ShowColourTextAt; ShowColourTextAt; Beep; [197, 224.5];
-       [197, 224.5]; [197, 224.5]; [197, 224.5]; [197, 224.5]; [197, 224.5]},
-       {ShowColourTextAt; ShowColourTextAt; Beep; [197, 224.5];
-       [197, 224.5]; [197, 224.5]; [197, 224.5]; [197, 224.5]; [197, 224.5]}]`
-       accumulated since it was bound, which is not below its box grade
+       `[{ShowColourTextAt^2; Beep; [197, 224.5]^6}, {ShowColourTextAt^2;
+       Beep; [197, 224.5]^6}]` accumulated since it was bound, which is not
+       below its box grade
        `[{ShowColourTextAt; [1500, 3000]}, {ShowColourTextAt; [1500, 3000]}]`
        ...
 *)

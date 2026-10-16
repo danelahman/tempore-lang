@@ -52,6 +52,9 @@ module type EXPRESSION = sig
   val inter : t list -> t
   val compl : t -> t
   val star : t -> t
+
+  val repeat : t -> Count.t -> t
+  (** [repeat r c] is the bounded repetition [r^c]. *)
 end
 
 (** The strict delays in the expressions [E]. *)

@@ -511,6 +511,9 @@ let examples =
             (E.mul (parse "{Beat; Work; Work}") (parse invariant))
             (parse invariant)));
     rejected "a repetition" "{Beat*}" "without `*`";
+    holds "a finite count is its unrolling" "{(1; Beep)^2}" "{1; Beep; 1; Beep}";
+    holds "an unrolling is a finite count" "{1; Beep; 1; Beep}" "{(1; Beep)^2}";
+    rejected "an unbounded count" "{Beat^[1, ∞)}" "without `*`, `^[m, ∞)`";
     rejected "an empty interval" "(Beat, [3, 2])" "n <= m";
     rejected "two totals" "((Beat, [0, 1]), [0, 1], [0, 2])"
       "at most one interval";

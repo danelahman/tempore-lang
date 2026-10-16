@@ -100,8 +100,9 @@ module Base (D : Delay.S) = struct
     | None -> invalid_lit lit "%s" (D.rejection tick)
 
   (** [of_regex ~strict lit r] is the set of traces the star-free regular
-      expression [r], without [&], [~] or [_], denotes; [lit] is the literal it
-      is part of. Its strict delays [!d] are read if [strict]. *)
+      expression [r], without [&], [~] or [_], denotes, its bounded repetitions
+      of finite counts unrolled; [lit] is the literal it is part of. Its strict
+      delays [!d] are read if [strict]. *)
   let rec of_regex ~strict lit = function
     | Letter name -> [ [ Ev name ] ]
     | Tick n -> of_delay (delay_of_lit lit (Int n))
@@ -114,6 +115,10 @@ module Base (D : Delay.S) = struct
     | Seq (r, s) -> binary ~strict lit product r s
     | Union (r, s) -> binary ~strict lit union r s
     | Star _ -> unsupported lit "repetition `*`"
+    | Repeat (r, ({ most = Some _; _ } as c)) ->
+        of_regex ~strict lit (unrolled r c)
+    | Repeat (_, c) ->
+        unsupported lit ("the unbounded repetition `^" ^ Count.show c ^ "`")
     | Inter _ -> unsupported lit "intersection `&`"
     | Compl _ -> unsupported lit "complement `~`"
     | Any -> unsupported lit "the wildcard `_`"
@@ -130,8 +135,8 @@ module Base (D : Delay.S) = struct
 
   and unsupported lit form =
     invalid_lit lit
-      "sets of traces are built from operation names and delays with `;` and \
-       `|` only, without %s"
+      "sets of traces are built from operation names and delays with `;`, `|` \
+       and finite counts `^n`, `^[m, n]` only, without %s"
       form
 
   let number lit =

@@ -36,6 +36,7 @@ let of_regex r =
     | Union (r, s) -> Regex.union [ go r; go s ]
     | Inter (r, s) -> Regex.inter [ go r; go s ]
     | Star r -> Regex.star (go r)
+    | Repeat (r, c) -> Regex.repeat (go r) c
     | Compl r -> Regex.compl (go r)
     | Strict _ as r -> strict_unsupported r
   in
@@ -61,6 +62,7 @@ module Rebuild (T : SymbolicRegex.S) = struct
       | Inter rs -> T.inter (List.map go rs)
       | Compl r -> T.compl (go r)
       | Star r -> T.star (go r)
+      | Repeat (r, c) -> T.repeat (go r) c
     in
     go r
 end

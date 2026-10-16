@@ -28,6 +28,9 @@ type regex =
   | Seq of regex * regex  (** Concatenation, [r; s] *)
   | Union of regex * regex  (** Union, [r | s] *)
   | Star of regex  (** Repetition, [r*] *)
+  | Repeat of regex * Count.t
+      (** Bounded repetition, [r^n], [r^[m, n]] or [r^\[m, ∞)]: the
+          concatenations of [k] words of [r], [k] in the count *)
   | Inter of regex * regex  (** Intersection, [r & s] *)
   | Compl of regex  (** Complement, [~r] *)
   | Strict of regex
@@ -37,6 +40,20 @@ type regex =
 val delays_only : regex -> bool
 (** [delays_only r] is whether [r] is built from delays and intervals of delays
     by [;], [|], [&] and [*] alone, so that its words are delays. *)
+
+val unrolled : regex -> Count.t -> regex
+(** [unrolled r c] is an expression of [r^c] without bounded repetition:
+    [r; …; r; (0 | r; (0 | r; …))] for [c = [m, n]], with [m] factors [r] and
+    [n - m] optional ones, and [r; …; r; r*] for [c = \[m, ∞)]. *)
+
+val equal_regex : regex -> regex -> bool
+(** [equal_regex r s] is whether [r] and [s] are the same expression. *)
+
+val sequence : regex list -> regex
+(** [sequence factors] is the concatenation of [factors], [0] if there are none,
+    every run of two or more adjacent factors of the same base joined into one
+    bounded repetition: [x; x; x] is [x^3], and [x^c; x] is [x^(c + 1)]. The
+    factors are not split into further factors. *)
 
 val strict_opening : string
 (** The name that opens a strict delay in the languages of the rigid grades of
@@ -56,10 +73,10 @@ val regex_names : regex -> string list
 val show_regex : regex -> string
 (** [show_regex r] prints [r] as the contents of a brace literal, with the
     parentheses the precedences require: union [|], intersection [&],
-    concatenation [;], complement [~] and repetition [*], by increasing
-    precedence, a strict delay [!r] as an atom. The three binary operators are
-    printed as associative, and a fraction under a repetition is parenthesised.
-*)
+    concatenation [;], complement [~] and repetition [*] and [^], by increasing
+    precedence, a strict delay [!r] as an atom, parenthesised under a bounded
+    repetition. The three binary operators are printed as associative, and a
+    fraction under a repetition is parenthesised. *)
 
 (** Grade literals as they appear in source. *)
 type lit =
