@@ -170,41 +170,73 @@ let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; 10)*} =
       delay 10;
       rate_sum m (sum +. rate)
 
-(* The calibration. The bias is valid while the robot stands still, so the
-   calibration is boxed with [{[1000, ∞)}, {(!_ & ~Command)*}]: it arms the
-   robot only at least a second later, in which the robot is held upright,
-   and only if no motion has been commanded since, the upper bound admitting
-   any operation but Command and strict delays only. *)
-type token = [[{[1000, ∞)}, {(!_ & ~Command)*}]]calibration
+(* The calibration. The bias of the gyroscope drifts with the temperature,
+   and is valid while the robot stands still, so the calibration is boxed
+   twice: with [{[1000, ∞)}, {[0, 600000]}], so that it arms the robot at
+   least a second later, in which the robot is held upright, and at most 10
+   minutes later; and with {(!_ & ~Command)*}, so that no motion has been
+   commanded since. A grade has a single upper bound, and a time bound over
+   operations is a budget, which admits any operation that fits, a
+   Command among them, so the two conditions are two boxes; a box of a box
+   is refused. Both are unboxed before the arming, and span the hold of a
+   second, two display calls and the wait for Arm, its Receives and
+   waits. *)
+type aged = [[{[1000, ∞)}, {[0, 600000]}]]calibration
+type still = [{(!_ & ~Command)*}]calibration
 
-let calibrate () : token
-    # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
-       (Attitude; 10)*} =
+let calibrate () : aged * still
+    # {Disarm; ShowTextAt; (Attitude; 10)*} =
   perform Disarm ();
-  perform ClearDisplay ();
-  perform ShowTextAt (0, 0, 2, "Remote robot");
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
-  perform ShowText "Calibrating";
+  perform ShowTextAt (0, 100, 2, "Calibrating");
   let sum = rate_sum 50 0.0 in
-  box [{[1000, ∞)}, {(!_ & ~Command)*}] (Calibration (sum /. 50.0))
+  let calibration = Calibration (sum /. 50.0) in
+  box [{[1000, ∞)}, {[0, 600000]}] calibration as aged in
+  box {(!_ & ~Command)*} calibration as still in
+  (aged, still)
 
 (* The number of consecutive iterations of the drive without a message, about
    2 s, after which the link is reported lost. *)
 let silence_limit = 160
 
-(* Waits for an Arm message of the controller, ignoring the others, each
-   poll 12.5 ms after the last; false if none comes in n polls. *)
-let rec wait_arm (n : nat) : bool # {(Receive; !12.5)*; (Receive | 0)} =
-  match n with
-  | 0 -> false
-  | m + 1 -> (
-      let latest, _ = remote_receive () in
-      unbox latest as r in
-      match r with
-      | Got Arm -> true
-      | _ ->
-          delay 25/2;
-          wait_arm m)
+(* The wait for Arm, bounded so that the calibration stays within its 10
+   minutes: a poll waits 100 ms, under half of the 250 ms in which the
+   controller repeats Arm, and is true at an Arm message of the controller;
+   wait5, wait25 and wait125 repeat it up to 5, 25 and 125 times, and
+   wait_arm up to 625 times, about 63 s, without a recursion, whose grade
+   would be a star. *)
+let poll_arm () : bool # {Receive; !100} =
+  let latest, _ = remote_receive () in
+  delay 100;
+  unbox latest as r in
+  match r with Got Arm -> true | _ -> false
+
+let wait5 () : bool # {(Receive; !100)^[1, 5]} =
+  if poll_arm () then true
+  else if poll_arm () then true
+  else if poll_arm () then true
+  else if poll_arm () then true
+  else poll_arm ()
+
+let wait25 () : bool # {(Receive; !100)^[1, 25]} =
+  if wait5 () then true
+  else if wait5 () then true
+  else if wait5 () then true
+  else if wait5 () then true
+  else wait5 ()
+
+let wait125 () : bool # {(Receive; !100)^[1, 125]} =
+  if wait25 () then true
+  else if wait25 () then true
+  else if wait25 () then true
+  else if wait25 () then true
+  else wait25 ()
+
+let wait_arm () : bool # {(Receive; !100)^[1, 625]} =
+  if wait125 () then true
+  else if wait125 () then true
+  else if wait125 () then true
+  else if wait125 () then true
+  else wait125 ()
 
 (* Correctly accepted by the typechecker: the drive. Each iteration receives
    a message and applies it at once, before any further Receive: a Drive
@@ -246,48 +278,82 @@ let rec drive (n : nat) (silent : nat) : unit
           delay 25/2;
           drive m (min (silent + 1) silence_limit))
 
-(* Correctly accepted by the typechecker: a session holds the robot upright
-   for a second, waits for Arm, arms the robot, drives it until Disarm, and
-   boxes the calibration again for the next session; its grade is the
-   protocol of the robot, Arm, commands and Disarm, in this order. *)
-let rec session (n : nat) (token : token) : unit
-    # {(ShowTextAt; !1000; ShowTextAt; (Receive; !12.5)*; (Receive | 0);
-        Arm; ShowTextAt; (Receive; Command; (ShowTextAt; Beep | 0); !12.5)*;
-        (Receive; Disarm; !12.5 | 0); ShowTextAt)*;
-       (ShowTextAt; !1000; ShowTextAt; (Receive; !12.5)*; (Receive | 0) | 0)} =
+(* Correctly accepted by the typechecker: a session calibrates the robot,
+   holds it upright for a second and waits for Arm; at Arm it unboxes the
+   calibration, at least a second and at most about 64 s old, with
+   no Command since, arms the robot and drives it until Disarm, and
+   otherwise ends; the next session calibrates anew. Its grade is the
+   protocol of the robot: calibration, Arm, commands and Disarm, in this
+   order. *)
+let rec session (n : nat) : unit
+    # {(Disarm; ShowTextAt; (Attitude; 10)*; ShowTextAt; !1000; ShowTextAt;
+        (Receive; !100)^[1, 625];
+        (0 | Arm; ShowTextAt;
+         (Receive; Command; (ShowTextAt; Beep | 0); !12.5)*;
+         (Receive; Disarm; !12.5 | 0); ShowTextAt))*} =
   match n with
   | 0 -> ()
   | m + 1 ->
+      let aged, still = calibrate () in
       perform ShowTextAt (0, 100, 2, "Hold upright");
       delay 1000;
       perform ShowTextAt (0, 100, 2, "Waiting for Arm");
-      if wait_arm 4000000000 then (
-        unbox token as calibration in
-        perform Arm calibration;
-        perform ShowTextAt (0, 100, 2, "Armed");
-        drive 4000000000 0;
-        perform ShowTextAt (0, 100, 2, "Disarmed");
-        session m (box [{[1000, ∞)}, {(!_ & ~Command)*}] calibration))
-      else ()
+      (if wait_arm () then (
+         unbox aged as calibration in
+         unbox still as _ in
+         perform Arm calibration;
+         perform ShowTextAt (0, 100, 2, "Armed");
+         drive 4000000000 0;
+         perform ShowTextAt (0, 100, 2, "Disarmed"))
+       else ());
+      session m
 
+(* The supervision draws the name and the footer once, and repeats the
+   sessions. *)
 let supervise () =
-  let token = calibrate () in
-  session 4000000000 token;
+  perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Remote robot");
+  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  session 4000000000;
   perform Disarm ()
 
 (* Correctly rejected by the typechecker: a session that commands zero
-   setpoints while it waits for Arm, to keep the setpoints fresh, arms the
+   setpoints before it waits for Arm, to keep the setpoints fresh, arms the
    robot with a calibration after which a motion may have been commanded:
 
-     Typing error: Variable `token` is unboxed with grade `[{ShowTextAt;
-       !1000; (Receive; Command; !12.5)*; (Receive | 0)}, ...]` accumulated
-       since it was bound, which is not below its box grade `[{[1000, ∞)},
+     Typing error: Variable `still` is unboxed with grade `[{ShowTextAt;
+       !1000; Command; (Receive; !100)^[1, 625]}, ...]` accumulated since it
+       was bound, which is not below its box grade `[{(!_ & ~Command)*},
        {(!_ & ~Command)*}]`
        ...
 *)
 (*
-let rec wait_arm_commanding (n : nat) : bool
-    # {(Receive; Command; !12.5)*; (Receive | 0)} =
+let session_commanding () =
+  let aged, still = calibrate () in
+  perform ShowTextAt (0, 100, 2, "Hold upright");
+  delay 1000;
+  perform Command (0.0, 0.0);
+  if wait_arm () then (
+    unbox aged as calibration in
+    unbox still as _ in
+    perform Arm calibration;
+    drive 4000000000 0)
+  else ()
+*)
+
+(* Correctly rejected by the typechecker: a session that waits for Arm
+   without a bound, by a recursion, arms the robot with a calibration that
+   may be older than 10 minutes:
+
+     Typing error: Variable `aged` is unboxed with grade `[{ShowTextAt;
+       !1000; (Receive; !100)*; (Receive | 0)}, ...]` accumulated since it
+       was bound, which is not below its box grade `[{[1000, ∞)},
+       {[0, 600000]}]`
+       ...
+*)
+(*
+let rec wait_arm_unbounded (n : nat) : bool # {(Receive; !100)*; (Receive | 0)}
+    =
   match n with
   | 0 -> false
   | m + 1 -> (
@@ -296,15 +362,16 @@ let rec wait_arm_commanding (n : nat) : bool
       match r with
       | Got Arm -> true
       | _ ->
-          perform Command (0.0, 0.0);
-          delay 25/2;
-          wait_arm_commanding m)
+          delay 100;
+          wait_arm_unbounded m)
 
-let session_commanding (token : token) =
+let session_waited () =
+  let aged, still = calibrate () in
   perform ShowTextAt (0, 100, 2, "Hold upright");
   delay 1000;
-  if wait_arm_commanding 4000000000 then (
-    unbox token as calibration in
+  if wait_arm_unbounded 4000000000 then (
+    unbox aged as calibration in
+    unbox still as _ in
     perform Arm calibration;
     drive 4000000000 0)
   else ()
@@ -326,32 +393,6 @@ let drive_polled () =
   let newer, _ = remote_receive () in
   unbox newer as n in
   (match n with Got Disarm -> perform Disarm () | _ -> ());
-  unbox latest as r in
-  match r with
-  | Got (Drive _) ->
-      unbox fresh as setpoints in
-      perform Command setpoints
-  | _ -> perform Command (0.0, 0.0)
-*)
-
-(* Correctly rejected by the typechecker: an iteration of the drive that
-   redraws the whole screen between receiving a message and applying it,
-   whose setpoints may then be older than 150 ms:
-
-     Typing error: Variable `fresh` is unboxed with grade `[{ClearDisplay;
-       ShowTextAt^3; ShowText}, {ClearDisplay; ShowTextAt^3; ShowText}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{0}, {[0, 150)}]`
-       ...
-*)
-(*
-let drive_redrawn () =
-  let latest, fresh = remote_receive () in
-  perform ClearDisplay ();
-  perform ShowTextAt (0, 0, 2, "Remote robot");
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
-  perform ShowTextAt (0, 100, 2, "Armed");
-  perform ShowText "Link up";
   unbox latest as r in
   match r with
   | Got (Drive _) ->

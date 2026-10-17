@@ -765,9 +765,13 @@ port variable `PORT_M5STACK_GRAY`).
   rigid regular expressions of timed operations, with the packages
   `esp-now` and `bala2-remote`, sharing the binding file and host model of
   `bala2`.
-  - The calibration is boxed with `[{[1000, ∞)}, {(!_ & ~Command)*}]`: the
-    robot is armed at least a second after it, and only if no motion was
-    commanded since.
+  - The calibration is boxed twice: with `[{[1000, ∞)}, {[0, 600000]}]`,
+    so that the robot is armed at least a second and at most 10 minutes
+    after it, the bias drifting with the temperature; and with
+    `{(!_ & ~Command)*}`, so that no motion was commanded since. The wait
+    for Arm is therefore bounded, 625 polls 100 ms apart, written without a
+    recursion so that its grade is a bounded repetition, and each session
+    calibrates anew.
   - Each iteration of the drive applies the message it receives before any
     further `Receive`, and its setpoints within 150 ms: a Drive command,
     Disarm, which returns to waiting for Arm, or zero setpoints.
