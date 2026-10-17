@@ -239,6 +239,11 @@ let calibrate () : aged * still
    2 s, after which the link is reported lost. *)
 let silence_limit = 160
 
+(* The greatest distance, in degrees, of the published tilt from the balance
+   point at which the robot is armed: a robot further from upright, fallen
+   or held askew, is not armed. To be checked on the device. *)
+let upright_limit = 10.0
+
 (* The wait for Arm, bounded so that the calibration stays within its 10
    minutes: a poll reports the status of the disarmed robot, waits 400 ms,
    and is true at an Arm message of the controller, which repeats Arm for
@@ -339,22 +344,25 @@ let rec drive (n : nat) (silent : nat) : unit
           drive m (min (silent + 1) silence_limit))
 
 (* Correctly accepted by the typechecker: a session calibrates the robot at
-   rest,
-   holds it upright for a second and waits for Arm; at Arm it unboxes the
-   calibration, at least a second and at most about 202 s old, with
-   no Command since, arms the robot and drives it until Disarm, and
-   otherwise ends; the next session calibrates anew. Its grade is the
-   protocol of the robot: calibration, Arm, commands and Disarm, in this
-   order. *)
+   rest, holds it upright for a second and waits for Arm. At Arm it reads
+   the published tilt and unboxes the calibration, at least a second and at
+   most about 202 s old, with no Command since; if the tilt lies within
+   upright_limit of the balance point it arms the robot and drives it until
+   Disarm, and else shows "Not upright". The next session calibrates anew.
+   Its grade is the protocol of the robot: calibration, the reading of the
+   tilt immediately before Arm, commands and Disarm, in this order. *)
 let rec session (n : nat) : unit
     # {(Disarm; ShowTextAt;
         (CheckAtRest; (Attitude; !10)*; ShowTextAt; !500; ShowTextAt)*;
         CheckAtRest; (Attitude; !10)*; ShowTextAt; !1000; ShowTextAt;
         (Receive; Report; !400)^[1, 500];
-        (0 | Arm; ShowTextAt;
-         (Receive; Command; (ShowTextAt; Beep | ShowTextAt | 0); Report;
-          !12.5)*;
-         (Receive; Disarm; !12.5 | 0); ShowTextAt))*} =
+        (0
+         | Attitude;
+           (Arm; ShowTextAt;
+            (Receive; Command; (ShowTextAt; Beep | ShowTextAt | 0); Report;
+             !12.5)*;
+            (Receive; Disarm; !12.5 | 0); ShowTextAt
+           | ShowTextAt)))*} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -363,12 +371,15 @@ let rec session (n : nat) : unit
       delay 1000;
       perform ShowTextAt (0, 100, 2, "Waiting for Arm");
       (if wait_arm () then (
+         let tilt, _ = perform Attitude () in
          unbox aged as calibration in
          unbox still as _ in
-         perform Arm calibration;
-         perform ShowTextAt (0, 100, 2, "Armed");
-         drive 4000000000 0;
-         perform ShowTextAt (0, 100, 2, "Disarmed"))
+         if magnitude (tilt -. balance_point) <= upright_limit then (
+           perform Arm calibration;
+           perform ShowTextAt (0, 100, 2, "Armed");
+           drive 4000000000 0;
+           perform ShowTextAt (0, 100, 2, "Disarmed"))
+         else perform ShowTextAt (0, 100, 2, "Not upright"))
        else ());
       session m
 

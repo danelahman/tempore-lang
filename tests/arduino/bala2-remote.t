@@ -71,3 +71,21 @@ not shown:
   [10017.832 ms] Display at (0, 102): Armed
   [12000.000 ms] End of the simulation
   [12000.000 ms] Plant: released at 6882.0 ms
+
+Held askew at 0.5 rad (28.6 degrees) from the start, the robot is
+calibrated, since it is held still, but not armed at the Arm of 1.5 s: the
+published tilt lies beyond the 10 degrees of upright_limit, and the session
+shows "Not upright" and calibrates anew; the motors are not driven:
+
+  $ cd _arduino/projects/balance_remote
+  $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_TILT=0.5 -pthread -I host -I src src/*.cpp host/*.cpp -o askew
+  $ ./askew 3000000 | grep 'Display at (0, 102)\|motors were never'
+  [41.585 ms] Display at (0, 102): Calibrating
+  [563.988 ms] Display at (0, 102): Hold upright
+  [1567.848 ms] Display at (0, 102): Waiting for Arm
+  [1971.728 ms] Display at (0, 102): Not upright
+  [1975.508 ms] Display at (0, 102): Calibrating
+  [2497.911 ms] Display at (0, 102): Hold upright
+  [3000.000 ms] Plant: the motors were never driven
+  $ cd ../../..
+
