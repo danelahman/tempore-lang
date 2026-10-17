@@ -922,8 +922,14 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     it is the latest and at most 2 ms old, measured from the neutral tilt
     recorded at the tap on Arm, boxed with `{(!_ & ~SendDisarm)*}` so that
     it is used only within its session.
-  - An armed iteration redraws at most one band: the state when it changes,
-    or else the speed, the turn or the tilt of the robot, in turn.
+  - A bubble level, `DrawLevel`, shows the tilt beyond the neutral tilt,
+    pitch forwards moving the bubble up and roll to the right moving it
+    right: the dead zone fills the inner circle and the bounds of the speed
+    and the turn reach the edge; green while the robot confirms, grey
+    without a link, dark grey while disarmed. The buttons Arm and Disarm
+    stay below it.
+  - An armed iteration redraws at most one item: the state when it
+    changes, or else the bubble or the tilt of the robot, in turn.
   - The make variable `REMOTE_PEER`, the address of the robot, sets the
     peer; the host model `world.cpp` tilts and taps the device.
 

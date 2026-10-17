@@ -7,9 +7,9 @@ let session_stale () =
   let _, fresh = confirm 40 in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Robot remote");
-  perform ShowTextAt (0, 60, 2, "Armed");
-  perform ShowTextAt (0, 100, 2, "Speed");
-  perform ShowTextAt (0, 140, 2, "Turn");
+  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (0, 30, 2, "Armed");
+  perform ShowTextAt (130, 80, 2, "Robot tilt");
   perform DrawButton (0, 188, 156, 40, "Arm");
   perform DrawButton (164, 188, 156, 40, "Disarm");
   unbox fresh as status in

@@ -16,7 +16,7 @@ confirmation, which may then be older than 200 ms:
 
   $ for v in once kept stale; do packages --typecheck-only $app/controller.tpe bala2-controller/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out | cut -c 1-160; done
   [1]
-  Typing error: This function's body has grade `[{(ReadTouch; SendBeat; !10.5)*; (ReadTouch | 0); (0 | ReadImu; SendArm; !12.5; SendArm; !12.5; Receive; (SendArm;
+  Typing error: This function's body has grade `[{(ReadTouch; SendBeat; (DrawLevel | 0); !10.5)*; (ReadTouch | 0); (0 | ReadImu; SendArm; !12.5; SendArm; !12.5; R
   [1]
   Typing error: Variable `zero` is unboxed with grade `[{(SendArm; !12.5)^80; SendArm; !12.5; Receive; (SendArm; !12.5; Receive)*; (ReadImu; ReadTouch; (SendDrive
   [1]
@@ -35,12 +35,16 @@ controller sends Beat; held pitched forwards by 10 degrees, a tap on Arm
 at 1 s records that tilt as neutral and starts the arming, Arm 80 times,
 for 1 s, and once more until the status of the robot, scripted armed from
 1.5 s at a tilt of 2.5 degrees, confirms. It then drives, measured from the
-neutral tilt, and shows "Armed" and the tilt of the robot: zero at first;
-from 2.2 s, pitched forwards by 30 degrees, a speed of 240 counts per
-second; from 3 s, flat and rolled by 15 degrees, -80 and a turn of 40; from
-3.5 s, zero. From 3.8 s the robot sends nothing for 400 ms: once its last
-status is older than 50 ms, the controller sends Beat and shows "No link",
-and drives again when the status returns, at a tilt of 1.5 degrees. A tap
+neutral tilt, and shows "Armed", the tilt of the robot and a green bubble
+in the vial centred at (62, 122): zero at first, the bubble centred; from
+2.2 s, pitched forwards by 30 degrees, 20 beyond the neutral tilt, a speed
+of 240 counts per second, the bubble 33 pixels up (14 for the dead zone and
+15 / 25 of the remaining 32); from 3 s, flat and rolled by 15 degrees, -80
+and a turn of 40, the bubble 20 pixels down and 27 right; from 3.5 s, zero,
+the bubble centred. From 3.8 s the robot sends nothing for 400 ms: once its last
+status is older than 50 ms, the controller sends Beat and shows "No link"
+and a grey bubble, and drives again when the status returns, at a tilt of
+1.5 degrees. While disarmed the bubble is centred and dark grey. A tap
 on Disarm at 4.6 s sends Disarm 20 times, then Beat. An iteration redraws
 at most one band:
 
@@ -51,39 +55,38 @@ at most one band:
   [131.000 ms] Display cleared
   [134.800 ms] Display at (0, 2): Robot remote
   [137.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [141.280 ms] Display at (0, 62): Disarmed
-  [144.940 ms] Display at (0, 102): Speed
-  [147.560 ms] Display at (120, 102): 0
-  [151.200 ms] Display at (0, 142): Turn
-  [153.820 ms] Display at (120, 142): 0
-  [157.480 ms] Display at (0, 172): Robot
-  [160.140 ms] Display at (120, 172): 0.0
-  [162.636 ms] Display fill at (0, 188), 156 by 40: 0x303030
-  [163.852 ms] Display at (60, 200): Arm
-  [166.348 ms] Display fill at (164, 188), 156 by 40: 0x303030
-  [167.624 ms] Display at (206, 200): Disarm
-  [168.024 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [168.882 ms] Display at (254, 0): Battery 87%
-  [1007.927 ms] ESP-NOW: sent tag 1, 0.000, 0.000
-  [2029.430 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [2033.090 ms] Display at (0, 62): Armed
-  [2070.259 ms] Display at (120, 172): 2.5
-  [2208.295 ms] ESP-NOW: sent tag 2, 240.000, 0.000
-  [2222.458 ms] Display at (120, 102): 240
-  [3004.662 ms] ESP-NOW: sent tag 2, -80.000, 40.000
-  [3018.825 ms] Display at (120, 102): -80
-  [3032.968 ms] Display at (120, 142): 40
-  [3504.591 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [3507.211 ms] Display at (120, 102): 0
-  [3521.334 ms] Display at (120, 142): 0
-  [3843.418 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [3847.118 ms] Display at (0, 62): No link
-  [4203.711 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [4207.371 ms] Display at (0, 62): Armed
-  [4221.534 ms] Display at (120, 172): 1.5
-  [4601.133 ms] ESP-NOW: sent tag 3, 0.000, 0.000
-  [4856.753 ms] Display at (0, 62): Disarmed
-  [4857.153 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [141.280 ms] Display at (0, 32): Disarmed
+  [144.000 ms] Display at (130, 82): Robot tilt
+  [147.340 ms] Display at (130, 113): 0.0
+  [149.836 ms] Display fill at (0, 188), 156 by 40: 0x303030
+  [151.052 ms] Display at (60, 200): Arm
+  [153.548 ms] Display fill at (164, 188), 156 by 40: 0x303030
+  [154.824 ms] Display at (206, 200): Disarm
+  [155.224 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [156.082 ms] Display at (254, 0): Battery 87%
+  [156.358 ms] Display disc at (62, 122), radius 9: 0x404040
+  [1007.161 ms] ESP-NOW: sent tag 1, 0.000, 0.000
+  [2028.664 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [2032.324 ms] Display at (0, 32): Armed
+  [2044.204 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [2059.047 ms] Display at (130, 113): 2.5
+  [2208.586 ms] ESP-NOW: sent tag 2, 240.000, 0.000
+  [2208.963 ms] Display disc at (62, 89), radius 9: 0x00c000
+  [3002.670 ms] ESP-NOW: sent tag 2, -80.000, 40.000
+  [3014.550 ms] Display disc at (89, 142), radius 9: 0x00c000
+  [3509.179 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [3521.059 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [3843.143 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [3846.843 ms] Display at (0, 32): No link
+  [3858.723 ms] Display disc at (62, 122), radius 9: 0x808080
+  [4203.813 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [4207.473 ms] Display at (0, 32): Armed
+  [4219.353 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [4234.196 ms] Display at (130, 113): 1.5
+  [4602.292 ms] ESP-NOW: sent tag 3, 0.000, 0.000
+  [4857.912 ms] Display at (0, 32): Disarmed
+  [4858.312 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [4858.689 ms] Display disc at (62, 122), radius 9: 0x404040
 
 The packets are sent at most 50 ms apart, here 10.9 to 16.6 ms, Arm 81
 times and Disarm 20 times:
