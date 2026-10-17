@@ -90,22 +90,32 @@ type graph = {
    the opening name, whose delays are strict; it is empty otherwise. *)
 
 let graph ~gaps ~ops ~final =
-  let ng = Array.length gaps in
-  (* The least fixpoint of liveness from the final states. *)
-  let step (live_gap, live_op) =
-    ( Array.map (List.exists (fun (_, o) -> live_op.(o))) gaps,
-      Array.mapi
-        (fun o row -> final.(o) || List.exists (fun (_, g) -> live_gap.(g)) row)
-        ops )
+  let ng = Array.length gaps and no = Array.length ops in
+  (* The least fixpoint of liveness from the final states, by a search of the
+     reversed transitions, linear in the size of the automaton. *)
+  let into_op = Array.make no [] and into_gap = Array.make ng [] in
+  Array.iteri
+    (fun g row -> List.iter (fun (_, o) -> into_op.(o) <- g :: into_op.(o)) row)
+    gaps;
+  Array.iteri
+    (fun o row ->
+      List.iter (fun (_, g) -> into_gap.(g) <- o :: into_gap.(g)) row)
+    ops;
+  let live_gap = Array.make ng false and live_op = Array.make no false in
+  let rec search = function
+    | [] -> ()
+    | `Op o :: rest when not live_op.(o) ->
+        live_op.(o) <- true;
+        search (List.rev_map (fun g -> `Gap g) into_op.(o) @ rest)
+    | `Gap g :: rest when not live_gap.(g) ->
+        live_gap.(g) <- true;
+        search (List.rev_map (fun o -> `Op o) into_gap.(g) @ rest)
+    | _ :: rest -> search rest
   in
-  let same (g, o) (g', o') =
-    Array.for_all2 Bool.equal g g' && Array.for_all2 Bool.equal o o'
-  in
-  let rec fix states =
-    let states' = step states in
-    if same states' states then states else fix states'
-  in
-  let live_gap, live_op = fix (Array.make ng false, final) in
+  search
+    (List.filter_map
+       (fun o -> if final.(o) then Some (`Op o) else None)
+       (List.init no Fun.id));
   let keep live' live row =
     if live then List.filter (fun (_, q) -> live'.(q)) row else []
   in
