@@ -1,0 +1,20 @@
+(* The package bala2-remote under the upper-bound grades of the regular
+   expressions of timed operations over rational delays, in milliseconds:
+   sending and receiving the messages of bala2_remote_protocol.tpe through
+   the operations Send and Receive of the package esp-now, which a program
+   using this package also names, before it.
+
+   A message received is boxed with {[0, 150)}: it is used within 150 ms of
+   its reception. *)
+
+(* A message received, to be used within 150 ms. *)
+type fresh = [{[0, 150)}]received
+
+(* Sends a message to the peer. *)
+let remote_send (m : message) = perform Send (remote_encode m)
+
+(* The latest message from the peer, received at most remote_age_limit ms
+   ago, or Nothing, boxed for its use. *)
+let remote_receive () : fresh =
+  let r = remote_decode (perform Receive remote_age_limit) in
+  box {[0, 150)} r

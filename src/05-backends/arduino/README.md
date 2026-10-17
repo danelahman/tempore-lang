@@ -154,6 +154,17 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   - its host model logs the packets sent and delivers those of
     `esp_now_model_peer`, which the host model of an application may define,
     after a latency and with a loss set by build flags.
+- `bala2-remote`: the messages of the remote control of the BALA2, shared by
+  the robot and the controller, over `esp-now`, listed before it:
+  - the type `message`, `Arm`, `Drive (speed, turn)`, `Disarm` or `Beat`,
+    each a tag of a packet;
+  - `remote_send`, which sends a message;
+  - `remote_receive`, which returns the latest message received at most
+    50 ms ago, or `Nothing` for none or an unknown tag, boxed with
+    `[0, 150)`, the type `fresh`, so that a command is applied at most 200 ms
+    after it was sent;
+  - declared under `time-interval-rational` and the regular expressions of
+    timed operations with intervals or upper bounds.
 
 ### Bounds per board
 
@@ -891,8 +902,10 @@ The name and the footer are drawn after each clearing in `tilt`, `peak`,
 - A board is a profile `boards/NAME.json`.
 - A package is a directory `libraries/NAME/` with a descriptor
   `package.json`, which maps each grade system to a file of declarations and
-  may name a file of definitions and give running-time bounds per board, and
-  the declarations, C++ sources and host models.
+  may name a file of definitions, give running-time bounds per board and
+  name, by `packages`, the packages whose operations it performs, which a
+  program lists before it, and the declarations, C++ sources and host
+  models.
 - An example is a directory under `examples/arduino/` with a program
   `PROGRAM.tpe`, its manifest `PROGRAM.device.json`, a binding file, host
   models for the simulation if needed, and a fragment `example.mk`

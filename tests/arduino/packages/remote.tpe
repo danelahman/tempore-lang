@@ -1,0 +1,27 @@
+(* The messages of the package bala2-remote over the package esp-now on an
+   M5Stack Gray, with the package m5-display: the initial function starts the
+   link and sends one message of each kind, and every 20 ms the step shows
+   the message received, unboxed within its 150 ms window. Time is in
+   milliseconds, under the grades time-interval-rational. *)
+
+let show (r : received) =
+  match r with
+  | Got Arm -> perform ShowText "Arm"
+  | Got (Drive (speed, _)) -> perform ShowNumber speed
+  | Got Disarm -> perform ShowText "Disarm"
+  | Got Beat -> perform ShowText "Beat"
+  | Nothing -> perform ShowText "Nothing"
+
+let start () =
+  perform LinkStart 1;
+  remote_send Arm;
+  remote_send (Drive (0.5, -0.25));
+  remote_send Disarm;
+  remote_send Beat;
+  0
+
+let step (n : nat) =
+  let fresh = remote_receive () in
+  unbox fresh as r in
+  show r;
+  n + 1

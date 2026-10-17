@@ -20,6 +20,8 @@
       systems under which it is read;
     - ["requires"]: the capabilities of the board the package needs
       ({!ArduinoBoard.t.capabilities}, default none);
+    - ["packages"]: the other packages whose operations its files perform, which
+      a program lists before it (default none);
     - ["sources"]: C++ files of the package, copied to [src/] of a project;
     - ["host_models"]: C++ files of the package compiled only by the host
       simulation, copied to [host/];
@@ -82,6 +84,8 @@ type t = {
       (** the declarations under each grade system, by its name, in the order of
           the descriptor *)
   requires : string list;
+  packages : string list;
+      (** the packages it needs, listed before it ({!missing_package}) *)
   sources : (string * string) list;
       (** the C++ files for the device, each with its text *)
   host_models : (string * string) list;
@@ -123,6 +127,10 @@ val source : string -> string option
 val shared_binding : t -> t -> string option
 (** [shared_binding p q] is the first operation that [p] binds and [q] binds, if
     any. *)
+
+val missing_package : before:t list -> t -> string option
+(** [missing_package ~before package] is the first package that [package] needs
+    and [before] lacks, if any. *)
 
 val running_times :
   ?board:string -> t -> (string * Grades.Grade.running_time) list

@@ -1,0 +1,12 @@
+{
+  "description": "The messages of the remote control of the M5Stack BALA2 over the package esp-now, shared by the robot and the controller",
+  "packages": ["esp-now"],
+  "definitions": "bala2_remote_protocol.tpe",
+  "declarations": {
+    "time-interval-rational": "bala2_remote.tpe",
+    "regex-timed-upper-bound-rational-symbolic": "bala2_remote_upper.tpe",
+    "regex-timed-interval-rational-symbolic": "bala2_remote.tpe",
+    "regex-timed-rigid-upper-bound-rational-symbolic": "bala2_remote_upper.tpe",
+    "regex-timed-rigid-interval-rational-symbolic": "bala2_remote.tpe"
+  }
+}
