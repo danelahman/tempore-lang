@@ -175,7 +175,8 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   - under the rigid grades, `remote_receive` returns two boxes, as a grade
     has a single upper bound and a box of a box is refused: the message, its
     setpoints zero, boxed with `{(!_ & ~Receive)*}`, usable only before the
-    next `Receive`, and its setpoints, boxed with `[0, 150)`;
+    next `Receive`, and its setpoints, of the non-eternal type `setpoints`,
+    boxed with `[0, 150)`, so that once unboxed they are matched at once;
   - the status of the robot, `Status (armed, tilt)` or `NoStatus`, tag 5:
     `SendStatus` sends it, and `bala2_remote_send_status` of the header
     `bala2_remote.h` for the bindings of an application; `remote_status`
@@ -773,7 +774,14 @@ port variable `PORT_M5STACK_GRAY`).
   - The calibration is boxed twice: with `[{[1000, ∞)}, {[0, 600000]}]`,
     so that the robot is armed at least a second and at most 10 minutes
     after it, the bias drifting with the temperature; and with
-    `{(!_ & ~Command)*}`, so that no motion was commanded since. The wait
+    `{(!_ & ~Command)*}`, so that no motion was commanded since. The
+    calibration is of a non-eternal type, built inside each box, so that
+    once unboxed it is used at once, not after the wait for Arm. The bias
+    is measured only after `CheckAtRest` finds the robot at rest, its
+    verdict boxed with `{(Attitude; !10)*}` over the samples, and else the
+    robot shows "Hold still" and measures again. At Arm the robot reads its
+    tilt immediately before arming and is armed only within 10 degrees of
+    the balance point, and else shows "Not upright". The wait
     for Arm is therefore bounded, 500 polls 400 ms apart, about 200 s,
     written without a recursion so that its grade is a bounded repetition,
     and each session calibrates anew.

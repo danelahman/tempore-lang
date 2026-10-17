@@ -1,10 +1,12 @@
 // The host model of the controller of balance_remote.tpe: the peer of the
 // host model of the package esp-now, which sends a message every 20 ms of
 // simulated time. It sends Beat until 1.5 s, Arm for 1 s, Drive (100, 0)
-// until 3.5 s, Disarm until 3.6 s, Beat until 5 s, Arm for 1 s,
-// Drive (-100, 0) until 6.3 s, nothing until 8.8 s, a loss of the link, and
+// until 3.5 s, Disarm until 3.6 s, Beat until 6.2 s, Arm for 1 s,
+// Drive (-100, 0) until 7.6 s, nothing until 10 s, a loss of the link, and
 // then Beat again. The tags are those of the package bala2-remote. The
-// status packets of the robot are logged by the host model of esp-now.
+// status packets of the robot are logged by the host model of esp-now. The
+// user stands the robot up again at 3.8 s, after it fell at the Disarm, and
+// holds it still until it is armed and driven.
 
 #include <esp_now.h>
 
@@ -19,8 +21,8 @@ struct phase {
 
 const phase script[] = {{1500, beat, 0},  {2500, arm, 0},
                         {3500, drive, 100}, {3600, disarm, 0},
-                        {5000, beat, 0},  {6000, arm, 0},
-                        {6300, drive, -100}, {8800, none, 0},
+                        {6200, beat, 0},  {7200, arm, 0},
+                        {7600, drive, -100}, {10000, none, 0},
                         {UINT32_MAX, beat, 0}};
 
 }  // namespace
@@ -37,3 +39,5 @@ bool esp_now_model_peer(uint32_t time_ms, uint32_t *tag, float *first,
     }
   return false;
 }
+
+bool plant_stand_up(double time) { return time >= 3.8 && time < 3.9; }

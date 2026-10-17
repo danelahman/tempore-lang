@@ -10,5 +10,5 @@ let drive_polled () =
   match r with
   | Got (Drive _) ->
       unbox fresh as setpoints in
-      perform Command setpoints
+      match setpoints with Setpoints (speed, turn) -> perform Command (speed, turn)
   | _ -> perform Command (0.0, 0.0)

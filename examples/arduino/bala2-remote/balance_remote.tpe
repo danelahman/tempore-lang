@@ -40,7 +40,9 @@
    without commands. The bounds of their running times are those of
    balance.tpe. *)
 
-type calibration = Calibration of float
+(* A calibration, the bias of the gyroscope, non-eternal: it is kept only
+   in its boxes, and once unboxed it is used at once, not after a wait. *)
+noneternal type calibration = Calibration of float
 
 operation Publish : float * float * float * float ~> unit # {Publish} within [0, 0.05]
 default Publish _ = delay 1/100
@@ -169,7 +171,7 @@ let start () : state =
 (* The supervision. The bias of the gyroscope is the mean of 50 rates
    published by the step 10 ms apart, with the robot held still. *)
 
-let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; 10)*} =
+let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; !10)*} =
   match n with
   | 0 -> sum
   | m + 1 ->
@@ -191,19 +193,56 @@ let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; 10)*} =
 type aged = [[{[1000, ∞)}, {[0, 600000]}]]calibration
 type still = [{(!_ & ~Command)*}]calibration
 
+(* The measurement of the bias, only at rest: CheckAtRest of the package
+   m5-imu checks that the robot is still, and the rates are sampled at once
+   after it. The verdict of the check is boxed with {(Attitude; !10)*}, so
+   that it is used only after the samples and waits alone, with no other
+   operation, such as a Disarm or a Command, between the check and the
+   samples; the box spans the 50 samples. If the robot is not at rest, the
+   calibration shows "Hold still" and is repeated after 500 ms; after n
+   repetitions it ends with the last measurement. The bounds of CheckAtRest,
+   [17.95, 28.5] ms, are measured on the CoreS3 only, and provisional on the
+   Gray. *)
+let rec measure (n : nat) : aged * still
+    # {(CheckAtRest; (Attitude; !10)*; ShowTextAt; !500; ShowTextAt)*;
+       CheckAtRest; (Attitude; !10)*} =
+  let rest = perform CheckAtRest () in
+  box {(Attitude; !10)*} rest as checked in
+  let sum = rate_sum 50 0.0 in
+  unbox checked as at_rest in
+  let bias = sum /. 50.0 in
+  match n with
+  | 0 ->
+      box [{[1000, ∞)}, {[0, 600000]}] (Calibration bias) as aged in
+      box {(!_ & ~Command)*} (Calibration bias) as still in
+      (aged, still)
+  | m + 1 ->
+      if at_rest then (
+        box [{[1000, ∞)}, {[0, 600000]}] (Calibration bias) as aged in
+        box {(!_ & ~Command)*} (Calibration bias) as still in
+        (aged, still))
+      else (
+        perform ShowTextAt (0, 100, 2, "Hold still");
+        delay 500;
+        perform ShowTextAt (0, 100, 2, "Calibrating");
+        measure m)
+
 let calibrate () : aged * still
-    # {Disarm; ShowTextAt; (Attitude; 10)*} =
+    # {Disarm; ShowTextAt;
+       (CheckAtRest; (Attitude; !10)*; ShowTextAt; !500; ShowTextAt)*;
+       CheckAtRest; (Attitude; !10)*} =
   perform Disarm ();
   perform ShowTextAt (0, 100, 2, "Calibrating");
-  let sum = rate_sum 50 0.0 in
-  let calibration = Calibration (sum /. 50.0) in
-  box [{[1000, ∞)}, {[0, 600000]}] calibration as aged in
-  box {(!_ & ~Command)*} calibration as still in
-  (aged, still)
+  measure 4000000000
 
 (* The number of consecutive iterations of the drive without a message, about
    2 s, after which the link is reported lost. *)
 let silence_limit = 160
+
+(* The greatest distance, in degrees, of the published tilt from the balance
+   point at which the robot is armed: a robot further from upright, fallen
+   or held askew, is not armed. To be checked on the device. *)
+let upright_limit = 10.0
 
 (* The wait for Arm, bounded so that the calibration stays within its 10
    minutes: a poll reports the status of the disarmed robot, waits 400 ms,
@@ -282,7 +321,8 @@ let rec drive (n : nat) (silent : nat) : unit
           delay 25/2
       | Got (Drive _) ->
           unbox fresh as setpoints in
-          perform Command setpoints;
+          (match setpoints with
+           | Setpoints (speed, turn) -> perform Command (speed, turn));
           restored silent;
           perform Report true;
           delay 25/2;
@@ -303,20 +343,26 @@ let rec drive (n : nat) (silent : nat) : unit
           delay 25/2;
           drive m (min (silent + 1) silence_limit))
 
-(* Correctly accepted by the typechecker: a session calibrates the robot,
-   holds it upright for a second and waits for Arm; at Arm it unboxes the
-   calibration, at least a second and at most about 202 s old, with
-   no Command since, arms the robot and drives it until Disarm, and
-   otherwise ends; the next session calibrates anew. Its grade is the
-   protocol of the robot: calibration, Arm, commands and Disarm, in this
-   order. *)
+(* Correctly accepted by the typechecker: a session calibrates the robot at
+   rest, holds it upright for a second and waits for Arm. At Arm it reads
+   the published tilt and unboxes the calibration, at least a second and at
+   most about 202 s old, with no Command since; if the tilt lies within
+   upright_limit of the balance point it arms the robot and drives it until
+   Disarm, and else shows "Not upright". The next session calibrates anew.
+   Its grade is the protocol of the robot: calibration, the reading of the
+   tilt immediately before Arm, commands and Disarm, in this order. *)
 let rec session (n : nat) : unit
-    # {(Disarm; ShowTextAt; (Attitude; 10)*; ShowTextAt; !1000; ShowTextAt;
+    # {(Disarm; ShowTextAt;
+        (CheckAtRest; (Attitude; !10)*; ShowTextAt; !500; ShowTextAt)*;
+        CheckAtRest; (Attitude; !10)*; ShowTextAt; !1000; ShowTextAt;
         (Receive; Report; !400)^[1, 500];
-        (0 | Arm; ShowTextAt;
-         (Receive; Command; (ShowTextAt; Beep | ShowTextAt | 0); Report;
-          !12.5)*;
-         (Receive; Disarm; !12.5 | 0); ShowTextAt))*} =
+        (0
+         | Attitude;
+           (Arm; ShowTextAt;
+            (Receive; Command; (ShowTextAt; Beep | ShowTextAt | 0); Report;
+             !12.5)*;
+            (Receive; Disarm; !12.5 | 0); ShowTextAt
+           | ShowTextAt)))*} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -325,12 +371,15 @@ let rec session (n : nat) : unit
       delay 1000;
       perform ShowTextAt (0, 100, 2, "Waiting for Arm");
       (if wait_arm () then (
+         let tilt, _ = perform Attitude () in
          unbox aged as calibration in
          unbox still as _ in
-         perform Arm calibration;
-         perform ShowTextAt (0, 100, 2, "Armed");
-         drive 4000000000 0;
-         perform ShowTextAt (0, 100, 2, "Disarmed"))
+         if magnitude (tilt -. balance_point) <= upright_limit then (
+           perform Arm calibration;
+           perform ShowTextAt (0, 100, 2, "Armed");
+           drive 4000000000 0;
+           perform ShowTextAt (0, 100, 2, "Disarmed"))
+         else perform ShowTextAt (0, 100, 2, "Not upright"))
        else ());
       session m
 
@@ -343,65 +392,47 @@ let supervise () =
   session 4000000000;
   perform Disarm ()
 
-(* Correctly rejected by the typechecker: a session that commands zero
-   setpoints before it waits for Arm, to keep the setpoints fresh, arms the
-   robot with a calibration after which a motion may have been commanded:
+(* Correctly rejected by the typechecker: a session that unboxes the
+   calibration right after the hold, when its age is checked, and arms the
+   robot with it after the wait for Arm, which may take 200 s; the
+   calibration is non-eternal, and may not be used after the wait:
 
-     Typing error: Variable `still` is unboxed with grade `[{ShowTextAt;
-       !1000; Command; (Receive; Report; !400)^[1, 500]}, ...]` accumulated
-       since it was bound, which is not below its box grade
-       `[{(!_ & ~Command)*}, {(!_ & ~Command)*}]`
+     Typing error: Variable `calibration` is used with grade
+       `[{(Receive; Report; !400)^[1, 500]}, ...]` accumulated since it was
+       bound, but its type `calibration` is not eternal
        ...
 *)
 (*
-let session_commanding () =
+let session_early () =
   let aged, still = calibrate () in
   perform ShowTextAt (0, 100, 2, "Hold upright");
   delay 1000;
-  perform Command (0.0, 0.0);
+  unbox aged as calibration in
   if wait_arm () then (
-    unbox aged as calibration in
     unbox still as _ in
     perform Arm calibration;
     drive 4000000000 0)
   else ()
 *)
 
-(* Correctly rejected by the typechecker: a session that waits for Arm
-   without a bound, by a recursion, arms the robot with a calibration that
-   may be older than 10 minutes:
+(* Correctly rejected by the typechecker: a measurement that checks the
+   robot at rest before it disarms it, and samples the rates after the
+   Disarm, when the motors may just have stopped and the robot moves:
 
-     Typing error: Variable `aged` is unboxed with grade `[{ShowTextAt;
-       !1000; (Receive; Report; !400)*; (Receive | 0)}, ...]` accumulated
-       since it was bound, which is not below its box grade
-       `[{[1000, ∞)}, {[0, 600000]}]`
+     Typing error: Variable `checked` is unboxed with grade `[{Disarm;
+       (Attitude; !10)*}, {Disarm; (Attitude; !10)*}]` accumulated since it
+       was bound, which is not below its box grade `[{(Attitude; !10)*},
+       {(Attitude; !10)*}]`
        ...
 *)
 (*
-let rec wait_arm_unbounded (n : nat) : bool
-    # {(Receive; Report; !400)*; (Receive | 0)} =
-  match n with
-  | 0 -> false
-  | m + 1 -> (
-      let latest, _ = remote_receive () in
-      unbox latest as r in
-      match r with
-      | Got Arm -> true
-      | _ ->
-          perform Report false;
-          delay 400;
-          wait_arm_unbounded m)
-
-let session_waited () =
-  let aged, still = calibrate () in
-  perform ShowTextAt (0, 100, 2, "Hold upright");
-  delay 1000;
-  if wait_arm_unbounded 4000000000 then (
-    unbox aged as calibration in
-    unbox still as _ in
-    perform Arm calibration;
-    drive 4000000000 0)
-  else ()
+let measure_unsettled () =
+  let rest = perform CheckAtRest () in
+  box {(Attitude; !10)*} rest as checked in
+  perform Disarm ();
+  let sum = rate_sum 50 0.0 in
+  unbox checked as at_rest in
+  if at_rest then sum /. 50.0 else 0.0
 *)
 
 (* Correctly rejected by the typechecker: an iteration of the drive that
@@ -424,7 +455,7 @@ let drive_polled () =
   match r with
   | Got (Drive _) ->
       unbox fresh as setpoints in
-      perform Command setpoints
+      match setpoints with Setpoints (speed, turn) -> perform Command (speed, turn)
   | _ -> perform Command (0.0, 0.0)
 *)
 

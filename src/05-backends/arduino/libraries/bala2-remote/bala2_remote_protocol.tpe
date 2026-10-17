@@ -22,6 +22,10 @@
 type message = Arm | Drive of float * float | Disarm | Beat
 type received = Got of message | Nothing
 
+(* The setpoints of a Drive command, the speed and the turn, non-eternal:
+   once unboxed, they are used at once, by a match right at the command. *)
+noneternal type setpoints = Setpoints of float * float
+
 (* The status of the robot: whether it is armed, and its tilt. *)
 type status = Status of bool * float | NoStatus
 

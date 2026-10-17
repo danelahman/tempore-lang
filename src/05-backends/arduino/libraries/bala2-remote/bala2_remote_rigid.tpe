@@ -7,7 +7,7 @@
    A message received is returned in two boxes: the message, with the
    setpoints of Drive set to zero, boxed with {(!_ & ~Receive)*}, usable only
    while no further Receive has come, so that it is the latest; and its
-   setpoints, boxed with [0, 150), usable within 150 ms of the reception. A
+   setpoints, of the non-eternal type setpoints, boxed with [0, 150), usable within 150 ms of the reception. A
    grade has a single upper bound, and a box of a box is refused, so the two
    conditions are two boxes; the setpoints of the first are zero, so that a
    program that takes them from it alone commands no motion. *)
@@ -39,7 +39,7 @@ default SendBeat _ = delay 1/10
 type latest = [{(!_ & ~Receive)*}]received
 
 (* The setpoints of a message received, to be used within 150 ms. *)
-type fresh = [[0, 150)](float * float)
+type fresh = [[0, 150)]setpoints
 
 (* Sends a message to the peer. *)
 let remote_send (m : message) = perform Send (remote_encode m)
@@ -49,7 +49,7 @@ let remote_send (m : message) = perform Send (remote_encode m)
 let remote_receive () : latest * fresh =
   let r = remote_decode (perform Receive remote_age_limit) in
   box {(!_ & ~Receive)*} (remote_without_setpoints r) as latest in
-  box [0, 150) (remote_setpoints r) as fresh in
+  box [0, 150) (Setpoints (remote_setpoints r)) as fresh in
   (latest, fresh)
 
 (* A status received, to be used before the next Receive, and within 200 ms

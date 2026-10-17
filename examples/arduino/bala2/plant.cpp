@@ -45,7 +45,11 @@
 // The body is held at the initial tilt PLANT_TILT, in radians, as by a hand,
 // and released when a motor is first driven or at PLANT_RELEASE_MS
 // milliseconds, whichever comes first, turning at PLANT_RELEASE_RATE radians
-// per second (0 unless the build flag sets it). At the end
+// per second (0 unless the build flag sets it). A hand stands the released
+// body up again at the initial tilt and holds it still, until a motor is
+// driven again, when plant_stand_up of the time returns true; it is defined
+// weakly to return false, for the host model of an application to define.
+// At the end
 // of the simulation the model logs the time of the release, the final tilt,
 // the largest tilt from one second after the release on, and the largest
 // drive of the motors.
@@ -135,9 +139,17 @@ double torque(int i, double d, double w) {
 
 }  // namespace
 
+__attribute__((weak)) bool plant_stand_up(double) { return false; }
+
 void world_start(tempore_world &w) { w.tilt = PLANT_TILT; }
 
 void world_advance(tempore_world &w, double dt) {
+  if (released && plant_stand_up(w.time)) {
+    w.tilt = PLANT_TILT;
+    w.tilt_rate = 0;
+    release = INFINITY;
+    released = false;
+  }
   const double phi_rate = (w.wheel_rate[0] + w.wheel_rate[1]) / 2;
   const double psi_rate = (w.wheel_rate[0] - w.wheel_rate[1]) / 2;
   const double tau0 = torque(0, w.drive[0], w.wheel_rate[0] - w.tilt_rate);
