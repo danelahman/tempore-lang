@@ -176,44 +176,109 @@ let edges ~gap ~op (a : graph) =
     (Array.map (List.map (fun (s, o) -> (ng + o, gap s))) a.gaps)
     (Array.map (List.map (fun (name, g) -> (g, op name))) a.ops)
 
-(* [paths ~add ~better ~cycle zero edges source] is the best weight of a path
-   from the node [source] to each node, [None] if there is none, over the graph
-   of the weighted edges [edges], the weight of a path the sum by [add] of the
-   weights of its edges from [zero]. It is the label-correcting form of
-   Bellman–Ford with a queue (Moore, "The shortest path through a maze",
-   1959): a node whose weight becomes [better] is queued to relax its edges; a
-   weight [x] reached along a path of as many edges as the graph has nodes,
-   which then goes round a cycle that improves it, is replaced by [cycle x]. *)
-let paths ~add ~better ~cycle zero edges source =
+(* [paths ~add ~better ~through zero edges source] is the best weight of a
+   path from the node [source] to each node, [None] if there is none, over the
+   graph of the weighted edges [edges], the weight of a path the sum by [add]
+   of the weights of its edges from [zero], a weight [x] reached at a node [v]
+   replaced by [through v x]. It is the label-correcting form of Bellman–Ford
+   with a queue (Moore, "The shortest path through a maze", 1959): a node whose
+   weight becomes [better] is queued to relax its edges. It terminates where
+   [through] removes every cycle that improves a weight. *)
+let paths ~add ~better ~through zero edges source =
   let n = Array.length edges in
-  let improve (weights, fifo) (v, x, length) =
-    let x = if length >= n then cycle x else x in
+  let improve (weights, fifo) (v, x) =
+    let x = through v x in
     match IntMap.find_opt v weights with
-    | Some (y, _) when not (better x y) -> (weights, fifo)
-    | _ -> (IntMap.add v (x, length) weights, Fifo.push v fifo)
+    | Some y when not (better x y) -> (weights, fifo)
+    | _ -> (IntMap.add v x weights, Fifo.push v fifo)
   in
   let rec relax (weights, fifo) =
     match Fifo.pop fifo with
     | None -> weights
     | Some (u, fifo) ->
-        let x, length = IntMap.find u weights in
+        let x = IntMap.find u weights in
         relax
           (List.fold_left
-             (fun acc (v, w) -> improve acc (v, add x w, length + 1))
+             (fun acc (v, w) -> improve acc (v, add x w))
              (weights, fifo) edges.(u))
   in
-  let weights =
-    relax (IntMap.singleton source (zero, 0), Fifo.push source Fifo.empty)
+  let weights = relax (improve (IntMap.empty, Fifo.empty) (source, zero)) in
+  Array.init n (fun v -> IntMap.find_opt v weights)
+
+(* [components edges] is the number of the strongly connected component of
+   each node of the graph of the edges [edges], by Tarjan's algorithm (Tarjan,
+   "Depth-first search and linear graph algorithms", 1972), its depth-first
+   search kept on an explicit stack of the nodes entered with their edges not
+   yet followed. *)
+let components edges =
+  let n = Array.length edges in
+  let index = Array.make n (-1)
+  and low = Array.make n 0
+  and on_stack = Array.make n false
+  and component = Array.make n (-1) in
+  let stack = ref [] and entered = ref 0 and found = ref 0 in
+  let enter v =
+    index.(v) <- !entered;
+    low.(v) <- !entered;
+    incr entered;
+    stack := v :: !stack;
+    on_stack.(v) <- true
   in
-  Array.init n (fun v -> Option.map fst (IntMap.find_opt v weights))
+  (* Pops the nodes of the component of the root [r] off the stack [nodes]. *)
+  let rec pop r = function
+    | v :: nodes ->
+        on_stack.(v) <- false;
+        component.(v) <- !found;
+        if v = r then nodes else pop r nodes
+    | [] -> []
+  in
+  let rec search = function
+    | [] -> ()
+    | (v, []) :: calls ->
+        if low.(v) = index.(v) then begin
+          stack := pop v !stack;
+          incr found
+        end;
+        (match calls with
+        | (u, _) :: _ -> low.(u) <- min low.(u) low.(v)
+        | [] -> ());
+        search calls
+    | (v, (w, _) :: rest) :: calls ->
+        if index.(w) < 0 then begin
+          enter w;
+          search ((w, edges.(w)) :: (v, rest) :: calls)
+        end
+        else begin
+          if on_stack.(w) then low.(v) <- min low.(v) index.(w);
+          search ((v, rest) :: calls)
+        end
+  in
+  for v = 0 to n - 1 do
+    if index.(v) < 0 then begin
+      enter v;
+      search [ (v, edges.(v)) ]
+    end
+  done;
+  component
 
 (* [longest edges source] is the greatest weight in the domain of suprema of a
    path from [source] to each node, the weights of the edges at least [0], and
-   infinity where a cycle of positive weight is on the way. *)
-let longest =
+   infinity where a cycle of positive weight is on the way: at the nodes of the
+   strongly connected components with an edge of positive weight between two
+   of their nodes. The components are computed once, for every [source]. *)
+let longest edges =
+  let component = components edges in
+  let pumped = Array.make (Array.length edges) false in
+  Array.iteri
+    (fun u ->
+      List.iter (fun (v, w) ->
+          if component.(u) = component.(v) && down.compare w zero > 0 then
+            pumped.(component.(u)) <- true))
+    edges;
   paths ~add
     ~better:(fun x y -> down.compare x y > 0)
-    ~cycle:(Fun.const Infinite) zero
+    ~through:(fun v x -> if pumped.(component.(v)) then Infinite else x)
+    zero edges
 
 let finite_part = function Finite (q, f) -> Some (q, f) | Infinite -> None
 
@@ -265,7 +330,8 @@ let min_weight world (a : graph) =
     let d =
       paths ~add
         ~better:(fun x y -> up.compare x y < 0)
-        ~cycle:Fun.id zero edges 0
+        ~through:(fun _ x -> x)
+        zero edges 0
     in
     List.fold_left pick None
       (List.mapi
@@ -355,10 +421,11 @@ let allowance_reader ~rigid world (a : graph) =
           ~gap:(fun s -> Option.value (DelaySet.sup s) ~default:zero)
           ~op:(Fun.const zero) a
       in
+      let longest = longest edges in
       Array.init ng (fun q ->
           if List.is_empty a.gaps.(q) then []
           else
-            let d = longest edges q in
+            let d = longest q in
             List.filter_map
               (fun o -> Option.map (fun t -> (t, o)) d.(ng + o))
               (List.init (Array.length a.ops) Fun.id))
