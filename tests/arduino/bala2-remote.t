@@ -11,14 +11,15 @@ controller.
   $ packages --typecheck-only $app/balance_remote.tpe
 
 The rejected variants, each loaded after the application: a session that
-commands zero setpoints before it waits for Arm, a motion after the
-calibration; a session that waits for Arm without a bound, so that the
-calibration may be older than 10 minutes; and an iteration that polls again
-before it applies the message received first, no longer the latest:
+unboxes the calibration right after the hold and arms the robot with it
+after the wait for Arm, the calibration being non-eternal; a session that
+waits for Arm without a bound, so that the calibration may be older than 10
+minutes; and an iteration that polls again before it applies the message
+received first, no longer the latest:
 
-  $ for v in commanding waited polled; do packages --typecheck-only $app/balance_remote.tpe bala2-remote/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out; done
+  $ for v in early waited polled; do packages --typecheck-only $app/balance_remote.tpe bala2-remote/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out; done
   [1]
-  Typing error: Variable `still` is unboxed with grade `[{ShowTextAt; !1000; Command; (Receive; Report; !400)^[1, 500]}, {ShowTextAt; !1000; Command; (Receive; Report; !400)^[1, 500]}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~Command)*}, {(!_ & ~Command)*}]`
+  Typing error: Variable `calibration` is used with grade `[{(Receive; Report; !400)^[1, 500]}, {(Receive; Report; !400)^[1, 500]}]` accumulated since it was bound, but its type `calibration` is not eternal
   [1]
   Typing error: Variable `aged` is unboxed with grade `[{ShowTextAt; !1000; (Receive; Report; !400)*; (Receive | 0)}, {ShowTextAt; !1000; (Receive; Report; !400)*; (Receive | 0)}]` accumulated since it was bound, which is not below its box grade `[{[1000, ∞)}, {[0, 600000]}]`
   [1]

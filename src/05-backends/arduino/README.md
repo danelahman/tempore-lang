@@ -773,7 +773,9 @@ port variable `PORT_M5STACK_GRAY`).
   - The calibration is boxed twice: with `[{[1000, ∞)}, {[0, 600000]}]`,
     so that the robot is armed at least a second and at most 10 minutes
     after it, the bias drifting with the temperature; and with
-    `{(!_ & ~Command)*}`, so that no motion was commanded since. The wait
+    `{(!_ & ~Command)*}`, so that no motion was commanded since. The
+    calibration is of a non-eternal type, built inside each box, so that
+    once unboxed it is used at once, not after the wait for Arm. The wait
     for Arm is therefore bounded, 500 polls 400 ms apart, about 200 s,
     written without a recursion so that its grade is a bounded repetition,
     and each session calibrates anew.

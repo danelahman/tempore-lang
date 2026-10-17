@@ -40,7 +40,9 @@
    without commands. The bounds of their running times are those of
    balance.tpe. *)
 
-type calibration = Calibration of float
+(* A calibration, the bias of the gyroscope, non-eternal: it is kept only
+   in its boxes, and once unboxed it is used at once, not after a wait. *)
+noneternal type calibration = Calibration of float
 
 operation Publish : float * float * float * float ~> unit # {Publish} within [0, 0.05]
 default Publish _ = delay 1/100
@@ -196,9 +198,9 @@ let calibrate () : aged * still
   perform Disarm ();
   perform ShowTextAt (0, 100, 2, "Calibrating");
   let sum = rate_sum 50 0.0 in
-  let calibration = Calibration (sum /. 50.0) in
-  box [{[1000, ∞)}, {[0, 600000]}] calibration as aged in
-  box {(!_ & ~Command)*} calibration as still in
+  let bias = sum /. 50.0 in
+  box [{[1000, ∞)}, {[0, 600000]}] (Calibration bias) as aged in
+  box {(!_ & ~Command)*} (Calibration bias) as still in
   (aged, still)
 
 (* The number of consecutive iterations of the drive without a message, about
@@ -343,24 +345,23 @@ let supervise () =
   session 4000000000;
   perform Disarm ()
 
-(* Correctly rejected by the typechecker: a session that commands zero
-   setpoints before it waits for Arm, to keep the setpoints fresh, arms the
-   robot with a calibration after which a motion may have been commanded:
+(* Correctly rejected by the typechecker: a session that unboxes the
+   calibration right after the hold, when its age is checked, and arms the
+   robot with it after the wait for Arm, which may take 200 s; the
+   calibration is non-eternal, and may not be used after the wait:
 
-     Typing error: Variable `still` is unboxed with grade `[{ShowTextAt;
-       !1000; Command; (Receive; Report; !400)^[1, 500]}, ...]` accumulated
-       since it was bound, which is not below its box grade
-       `[{(!_ & ~Command)*}, {(!_ & ~Command)*}]`
+     Typing error: Variable `calibration` is used with grade
+       `[{(Receive; Report; !400)^[1, 500]}, ...]` accumulated since it was
+       bound, but its type `calibration` is not eternal
        ...
 *)
 (*
-let session_commanding () =
+let session_early () =
   let aged, still = calibrate () in
   perform ShowTextAt (0, 100, 2, "Hold upright");
   delay 1000;
-  perform Command (0.0, 0.0);
+  unbox aged as calibration in
   if wait_arm () then (
-    unbox aged as calibration in
     unbox still as _ in
     perform Arm calibration;
     drive 4000000000 0)

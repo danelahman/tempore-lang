@@ -1,13 +1,13 @@
-(* A session that commands zero setpoints before it waits for Arm, after
+(* A session that unboxes the calibration right after the hold, when its age
+   is checked, and arms the robot with it after the wait for Arm, after
    balance_remote.tpe. *)
 
-let session_commanding () =
+let session_early () =
   let aged, still = calibrate () in
   perform ShowTextAt (0, 100, 2, "Hold upright");
   delay 1000;
-  perform Command (0.0, 0.0);
+  unbox aged as calibration in
   if wait_arm () then (
-    unbox aged as calibration in
     unbox still as _ in
     perform Arm calibration;
     drive 4000000000 0)
