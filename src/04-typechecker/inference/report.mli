@@ -46,6 +46,8 @@
     Steps are taken one at a time, each at the first unknown, by creation, where
     its test succeeds, the first test that succeeds for some unknown being
     taken:
+    + merging: lowering, as below, where the join of the lower bounds is a
+      single unknown; the unknown is replaced by it;
     + equality of grades: an ordering sets the unknown against an expression
       that is an earlier unknown or free of it, and the hypotheses entail both
       directions; the unknown is replaced by the expression, and the orderings

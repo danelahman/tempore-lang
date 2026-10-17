@@ -673,6 +673,21 @@ it names none:
     operation `Get` is declared here
     Note: the effect inequality `2 >= 3` does not hold
   ======================================================================
+  default_reject_closure.tpe
+  ======================================================================
+  File "default_reject_closure.tpe", line 19, characters 16-20:
+  19 | default Op () = loop 20
+                       ^^^^
+  Typing error: The effect inequality `∞ <= 3` does not hold
+    File "default_reject_closure.tpe", lines 11-12, characters 0-51:
+    11 | let rec loop (n : nat) : unit # 'e =
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `loop` is defined here
+    File "default_reject_closure.tpe", line 19, characters 0-23:
+    19 | default Op () = loop 20
+         ^^^^^^^^^^^^^^^^^^^^^^^
+    the inequality goes through the default implementation of `Op` here
+  ======================================================================
   default_reject_cycle.tpe
   ======================================================================
   File "default_reject_cycle.tpe", line 9, characters 0-31:
@@ -737,18 +752,23 @@ it names none:
   ======================================================================
   default_reject_unestablished.tpe
   ======================================================================
-  File "default_reject_unestablished.tpe", line 18, characters 16-20:
-  18 | default Op () = loop 20
-                       ^^^^
-  Typing error: The effect inequality `∞ <= 3` does not hold
-    File "default_reject_unestablished.tpe", lines 10-11, characters 0-51:
+  File "default_reject_unestablished.tpe", line 18, characters 0-22:
+  18 | default Op () = loop 2
+       ^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The conditions of this default implementation could not be established: `ε₀ <= 3` and `1 · ε₀ · ε₀ <= ε₀`
+    File "default_reject_unestablished.tpe", line 13, characters 0-31:
+    13 | operation Op : unit ~> unit # 3
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Op` is declared here
+    File "default_reject_unestablished.tpe", lines 10-11, characters 0-59:
     10 | let rec loop (n : nat) : unit # 'e =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `loop` is defined here
-    File "default_reject_unestablished.tpe", line 18, characters 0-23:
-    18 | default Op () = loop 20
-         ^^^^^^^^^^^^^^^^^^^^^^^
-    the inequality goes through the default implementation of `Op` here
+    File "default_reject_unestablished.tpe", line 18, characters 16-20:
+    18 | default Op () = loop 2
+                         ^^^^
+    the inequality goes through the type of `loop` here
+    Note: this default implementation requires grades for its unknowns at which every one of these holds; none of the grades tried does, although the definitions they come from were accepted
   ======================================================================
   default_reject_unknown.tpe
   ======================================================================
@@ -3625,6 +3645,37 @@ it names none:
     1,
     1
   ]
+  
+  ======================================================================
+  recursion_invariant_reject_upper.tpe
+  ======================================================================
+  File "recursion_invariant_reject_upper.tpe", line 15, characters 22-23:
+  15 | let g () : unit # 1 = w 2
+                             ^
+  Typing error: The effect inequality `∞ <= 1` does not hold
+    File "recursion_invariant_reject_upper.tpe", lines 10-11, characters 0-49:
+    10 | let rec w (n : nat) : unit # 'e =
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `w` is defined here
+    File "recursion_invariant_reject_upper.tpe", line 15, characters 9-25:
+    15 | let g () : unit # 1 = w 2
+                  ^^^^^^^^^^^^^^^^
+    the inequality goes through the annotation here
+  ======================================================================
+  recursion_invariant_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    1,
+    1,
+    1,
+    1
+  ]
+  
+  === Run 2 ===
+  return ()
+  State: []
   
   ======================================================================
   recursion_lock.tpe

@@ -1,0 +1,21 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/recursion_invariant_upper.tpe
+
+   Recursive functions whose recursive case calls them twice: their annotated
+   grade ε satisfies ε · ε ≾ ε, so it is the closure of the grade of the base
+   case: ∞ for a tick, the unit for none. *)
+
+let rec w (n : nat) : unit # 'e =
+  match n with 0 -> delay 1 | m + 1 -> (w m; w m)
+
+let rec pure (n : nat) : unit # 'e =
+  match n with 0 -> () | m + 1 -> (pure m; pure m)
+
+let g () : unit # top = w 2
+
+let h () : unit # 0 = pure 2
+
+run g ()
+
+run h ()

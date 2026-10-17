@@ -111,6 +111,7 @@ let expected_rejections =
     ("tests/default_reject_global.tpe", [ 11 ]);
     ("tests/default_reject_loop.tpe", [ 6 ]);
     ("tests/default_reject_type.tpe", [ 7 ]);
+    ("tests/default_reject_closure.tpe", [ 19 ]);
     ("tests/default_reject_unestablished.tpe", [ 18 ]);
     ("tests/delay_reject_overflow.tpe", [ 8 ]);
     ("tests/error_apply_arg.tpe", [ 8 ]);
@@ -168,6 +169,7 @@ let expected_rejections =
     ("tests/recursion_closure_reject_interval.tpe", [ 13 ]);
     ("tests/recursion_closure_reject_upper.tpe", [ 15; 19 ]);
     ("tests/recursion_effect_reject_invariant.tpe", [ 8 ]);
+    ("tests/recursion_invariant_reject_upper.tpe", [ 15 ]);
     ("tests/recursion_effect_reject_lower.tpe", [ 7 ]);
     ("tests/recursion_effect_reject_unannotated.tpe", [ 8 ]);
     ("tests/recursion_effect_reject_unannotated_regular.tpe", [ 16 ]);
