@@ -29,7 +29,8 @@
     The search for a closed instance of the qualifier
     ({!Solver.Make.satisfiable}) decides them also through chains that pass from
     a factor of a product to the product when the other factors are above the
-    unit, by the grade or along the hypotheses. *)
+    unit, by the grade or along the hypotheses. The orderings of the reported
+    qualifier are decided again ({!Solver.Make.generalise}). *)
 
 module Make (C : Constraint.S) : sig
   type context = Residual.Make(C).context
@@ -120,22 +121,31 @@ module Make (C : Constraint.S) : sig
       condition [d] without unknowns neither discharged nor refuted, and
       otherwise the search for grades of the unknowns left at which the
       remaining orderings and conditions hold ({!RigidScope.Make.instance}):
-      [Error (Unestablished _)] when none of the grades tried meets them. It is
-      the check of a run, whose program is closed: there no later use may refute
-      an obligation. *)
+      [Error (Unestablished _)] when none of the grades tried meets them. Where
+      it finds no closed instance, the qualifier reported against a type free of
+      unknowns is checked as by {!generalise}, a failure of that check taking
+      precedence. It is the check of a run, whose program is closed: there no
+      later use may refute an obligation. *)
 
   val qualifier : solution -> C.t
   (** [qualifier solution] is [Q ∧ R] as a constraint, each obligation under the
       rigid scopes of its rigids. *)
 
-  val generalise : ?fixed:C.free -> C.ty -> solution -> C.scheme
+  val generalise :
+    ?fixed:C.free -> C.ty -> solution -> (C.scheme, failure) result
   (** [generalise ~fixed ty solution] is the reported scheme of [ty] under
       [solution] ({!Report}): the solved type and the hypotheses simplified, the
       unknowns not needed by the type or the obligations eliminated, and the
       scheme quantified over the unknowns that remain other than those of
       [fixed]. The unknowns of [fixed], those free in the environment, are never
       eliminated nor quantified. It is the generalisation of a top-level
-      definition. *)
+      definition.
+
+      Elimination may make an ordering of the hypotheses variable-free; the
+      orderings between variable-free sides of the reported hypotheses, directly
+      or through chains of them, are decided by the grades' order
+      ({!Residual.Make.check_closed}), and the result is [Error] with the
+      failure of the first decided false. *)
 
   val unsimplified : ?fixed:C.free -> C.ty -> solution -> C.scheme
   (** [unsimplified ~fixed ty solution] is the scheme of [ty] under [solution]

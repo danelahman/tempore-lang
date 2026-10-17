@@ -134,21 +134,23 @@ module Programs (G : Grade.S) = struct
     | S.Solved solution ->
         List.map
           (fun (label, fixed) ->
-            let scheme = S.generalise ~fixed:(fixing fixed) ty solution in
-            let names = C.names () in
-            let fixed_name =
-              List.map
-                (fun p ->
-                  Format.asprintf "%t" (C.print_ty ~names (Ast.TyParam p)))
-                fixed
-            in
-            ( label,
-              String.concat " "
-                (fixed_name
-                @ [
-                    flatten
-                      (Format.asprintf "%t" (C.print_scheme ~names scheme));
-                  ]) ))
+            match S.generalise ~fixed:(fixing fixed) ty solution with
+            | Error _ -> (label, "refuted")
+            | Ok scheme ->
+                let names = C.names () in
+                let fixed_name =
+                  List.map
+                    (fun p ->
+                      Format.asprintf "%t" (C.print_ty ~names (Ast.TyParam p)))
+                    fixed
+                in
+                ( label,
+                  String.concat " "
+                    (fixed_name
+                    @ [
+                        flatten
+                          (Format.asprintf "%t" (C.print_scheme ~names scheme));
+                      ]) ))
           [ ("none", []); ("argument", [ a ]); ("result", [ b ]) ]
     | S.Refuted _ | S.Stuck _ -> [ ("solved", "no solution") ]
 end

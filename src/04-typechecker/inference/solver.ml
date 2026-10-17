@@ -480,11 +480,35 @@ module Make (C : Constraint.S) = struct
     let free = R.free_vars_deferred d in
     Rho_set.is_empty free.free_rhos && Eps_set.is_empty free.free_eps
 
+  (* ------------------------------------------------------------------ *)
+  (* Reports                                                             *)
+  (* ------------------------------------------------------------------ *)
+
+  (* The report of [ty] under [solution], or the failure of the first
+     ordering between variable-free sides of its hypotheses, directly or
+     through chains of them, decided false. *)
+  let reported ~fixed ty solution =
+    let report =
+      Rep.report solution.context ~fixed
+        (C.subst_ty solution.subst ty)
+        solution.hyps solution.obligations
+    in
+    Result.map
+      (fun _ -> report)
+      (R.check_closed ~factors:false solution.context report.hyps)
+
   let established context solution =
     Result.bind (search context solution) (fun (residual : R.t) ->
-        match List.find_opt closed residual.deferred with
-        | Some d -> Error (R.Undecided_condition d)
-        | None -> Result.map ignore (RS.instance context residual))
+        let found =
+          match List.find_opt closed residual.deferred with
+          | Some d -> Error (R.Undecided_condition d)
+          | None -> Result.map ignore (RS.instance context residual)
+        in
+        match found with
+        | Ok () -> Ok ()
+        | Error failure ->
+            Result.bind (reported ~fixed:C.no_free (Ast.TyTuple []) solution)
+              (fun _ -> Error failure))
 
   (* ------------------------------------------------------------------ *)
   (* Generalisation                                                      *)
@@ -493,10 +517,7 @@ module Make (C : Constraint.S) = struct
   let qualifier solution = R.qualifier solution.hyps solution.obligations
 
   let generalise ?(fixed = C.no_free) ty solution =
-    Rep.scheme ~fixed
-      (Rep.report solution.context ~fixed
-         (C.subst_ty solution.subst ty)
-         solution.hyps solution.obligations)
+    Result.map (Rep.scheme ~fixed) (reported ~fixed ty solution)
 
   let unsimplified ?(fixed = C.no_free) ty solution =
     C.close ~fixed (C.subst_ty solution.subst ty) (qualifier solution)

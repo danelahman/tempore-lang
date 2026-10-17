@@ -169,6 +169,7 @@ let expected_rejections =
     ("tests/recursion_effect_reject_lower.tpe", [ 7 ]);
     ("tests/recursion_effect_reject_unannotated.tpe", [ 8 ]);
     ("tests/recursion_effect_reject_unannotated_regular.tpe", [ 16 ]);
+    ("tests/recursion_handler_reject_upper.tpe", [ 13; 23 ]);
     ("tests/recursion_lock_reject.tpe", [ 8 ]);
     ("tests/regex_timed_compound_named_later_reject.tpe", [ 10 ]);
     ("tests/regex_timed_interval_reject.tpe", [ 15; 22 ]);

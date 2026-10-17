@@ -1,0 +1,18 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/recursion_handler_upper.tpe
+
+   A recursive function local to a handler clause, whose recursive case calls
+   it twice: under an operation of unbounded running time, the effect of the
+   function is unbounded, and the handler is accepted. *)
+
+operation Read : unit ~> unit # top
+
+let h = handler
+  | x -> x
+  | Read p k ->
+      let rec w (n : nat) : unit # 'e =
+        match n with 0 -> delay 1 | m + 1 -> (w m; w m) in
+      w 2
+
+run handle (perform Read ()) with h

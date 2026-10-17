@@ -46,20 +46,27 @@ module Make (C : Constraint.S) = struct
     let a = Ast.TyParamModule.fresh "assumed" in
     { (C.monomorphic (Ast.TyParam a)) with C.ty_params = [ a ] }
 
-  let check (cmd : command) =
-    match cmd.it with
-    | Ast.TopDo _ | Ast.OpDefault _ -> S.established
-    | Ast.TyDef _ | Ast.OpSig _ | Ast.TopLet _ -> S.satisfiable
+  (* The scheme of a top-level definition of type [ty]: its qualifier
+     searched for a closed instance, then reported. *)
+  let reported context ty solution =
+    Result.bind (S.satisfiable context solution) (fun () ->
+        S.generalise ty solution)
 
-  (* The constraint of a command [cmd] solved and its qualifier checked: its
-     solution, or why it has none. *)
-  let solved (cmd : command) env constr =
+  let check (cmd : command) context ty solution =
+    match cmd.it with
+    | Ast.TopDo _ | Ast.OpDefault _ -> S.established context solution
+    | Ast.TopLet _ -> Result.map ignore (reported context ty solution)
+    | Ast.TyDef _ | Ast.OpSig _ -> S.satisfiable context solution
+
+  (* The constraint of a command solved and its solution checked by [check]:
+     what [check] gives, or why the constraint has no solution. *)
+  let solved check env constr =
     let context = context env in
     match S.solve context constr with
     | S.Solved solution ->
         Result.map_error
           (fun failure -> Refuted failure)
-          (Result.map (fun () -> solution) (check cmd context solution))
+          (check context solution)
     | S.Refuted failure -> Error (Refuted failure)
     | S.Stuck stuck -> Error (Stuck stuck)
 
@@ -72,10 +79,12 @@ module Make (C : Constraint.S) = struct
       let ty, constr = Gen.generate_default_effect env ~loc op abs in
       match S.solve (context env) constr with
       | S.Solved solution -> (
-          match (S.generalise ty solution).C.ty with
-          | Ast.TyArrow (_, Ast.CompTy (_, C.X.Eps_const grade)) ->
+          match S.generalise ty solution with
+          | Ok
+              { C.ty = Ast.TyArrow (_, Ast.CompTy (_, C.X.Eps_const grade)); _ }
+            ->
               Gen.check_default_duration env ~loc op grade
-          | _ -> ())
+          | Ok _ | Error _ -> ())
       | S.Refuted _ | S.Stuck _ -> ()
 
   (* [terminating check result] is [result] once [check ()] has accepted the
@@ -113,7 +122,7 @@ module Make (C : Constraint.S) = struct
     in
     match
       attempt (fun () ->
-          solved cmd env (Gen.generate_default env ~loc op abs)
+          solved S.established env (Gen.generate_default env ~loc op abs)
           |> terminating (fun () ->
               Termination.check_abstraction abs;
               DefaultGraph.check_default
@@ -159,9 +168,13 @@ module Make (C : Constraint.S) = struct
       attempt (fun () ->
           let ty, constr = Gen.generate_top_let env ~loc x e in
           Result.map
-            (fun solution ->
-              (S.generalise ty solution, S.unsimplified ty solution))
-            (solved cmd env constr
+            (fun (scheme, solution) -> (scheme, S.unsimplified ty solution))
+            (solved
+               (fun context solution ->
+                 Result.map
+                   (fun scheme -> (scheme, solution))
+                   (reported context ty solution))
+               env constr
             |> terminating (fun () ->
                 Termination.check_expression e;
                 Exhaustiveness.check_expression
@@ -180,7 +193,7 @@ module Make (C : Constraint.S) = struct
     match
       attempt (fun () ->
           let _, constr = Gen.generate_run env ~loc c in
-          solved cmd env constr
+          solved S.established env constr
           |> terminating (fun () ->
               Termination.check_computation c;
               Exhaustiveness.check_computation

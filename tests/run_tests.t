@@ -3512,6 +3512,41 @@ it names none:
   ]
   
   ======================================================================
+  recursion_handler_reject_upper.tpe
+  ======================================================================
+  File "recursion_handler_reject_upper.tpe", lines 16-17, characters 26-55:
+  16 |       let rec w (n : nat) : unit # 'e =
+                                 ^^^^^^^^^^^^^
+  Typing error: This function's body has grade `2`, which does not match its annotated grade `1`
+    File "recursion_handler_reject_upper.tpe", lines 15-18, characters 4-9:
+    15 |   | Read p k ->
+             ^^^^^^^^^^^
+    the inequality goes through the case for `Read` here
+    Note: the effect inequality `2 <= 1` does not hold
+  
+  File "recursion_handler_reject_upper.tpe", lines 26-27, characters 26-55:
+  26 |       let rec w (n : nat) : unit # 'e =
+                                 ^^^^^^^^^^^^^
+  Typing error: This function's body has grade `2`, which does not match its annotated grade `1`
+    File "recursion_handler_reject_upper.tpe", lines 25-28, characters 4-9:
+    25 |   | Read p k ->
+             ^^^^^^^^^^^
+    the inequality goes through the case for `Read` here
+    Note: the effect inequality `2 <= 1` does not hold
+  ======================================================================
+  recursion_handler_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    { resource_1 ↦ <fun> # ∞ },
+    1,
+    1,
+    1,
+    1
+  ]
+  
+  ======================================================================
   recursion_lock.tpe
   ======================================================================
   === Run 1 ===
