@@ -5,16 +5,16 @@
    A default implementation is executed code, so its conditions are
    established as those of a run. *)
 
-(* The body of loop has the grade of the recursive call followed by one tick,
-   which the annotation bounds by the same 'e. *)
+(* The body of loop has the grade of two recursive calls followed by one
+   tick, which the annotation bounds by the same 'e. *)
 let rec loop (n : nat) : unit # 'e =
-  match n with 0 -> () | m + 1 -> (loop m; delay 1)
+  match n with 0 -> () | m + 1 -> (loop m; loop m; delay 1)
 
 operation Op : unit ~> unit # 3
 
 (* Correctly rejected by the typechecker: the default requires a grade ε₀
-   with 1 · ε₀ below both ε₀ and 3; the least grade with 1 · ε₀ ≾ ε₀ is ∞,
-   and loop 20 takes 20 ticks. *)
-default Op () = loop 20
+   with 1 · ε₀ · ε₀ below both ε₀ and 3, and none of the grades tried is;
+   loop 2 takes 3 ticks. *)
+default Op () = loop 2
 
 run perform Op ()

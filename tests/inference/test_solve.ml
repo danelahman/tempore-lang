@@ -111,6 +111,7 @@ let expected_rejections =
     ("tests/default_reject_global.tpe", [ 11 ]);
     ("tests/default_reject_loop.tpe", [ 6 ]);
     ("tests/default_reject_type.tpe", [ 7 ]);
+    ("tests/default_reject_closure.tpe", [ 19 ]);
     ("tests/default_reject_unestablished.tpe", [ 18 ]);
     ("tests/delay_reject_overflow.tpe", [ 8 ]);
     ("tests/error_apply_arg.tpe", [ 8 ]);
