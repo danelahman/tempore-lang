@@ -1,6 +1,7 @@
-// The host model of the M5Stack BALA2 for balance.tpe and
-// ../bala2-regex/balance_regex.tpe: an inverted pendulum on two wheels driven
-// by two DC motors, as a world of the host simulation.
+// The host model of the M5Stack BALA2 for balance.tpe,
+// ../bala2-regex/balance_regex.tpe and ../bala2-remote/balance_remote.tpe: an
+// inverted pendulum on two wheels driven by two DC motors, as a world of the
+// host simulation.
 //
 // The body, of mass M and moment of inertia I about its centre of mass at a
 // distance l above the axle, tilts by theta from upright, positive forwards;

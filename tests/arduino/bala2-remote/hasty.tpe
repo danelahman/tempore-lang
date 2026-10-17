@@ -1,0 +1,10 @@
+(* A session that arms the robot as soon as the controller sends Arm, after
+   balance_remote.tpe. *)
+
+let session_hasty (token : [[1000, ∞)]calibration) =
+  perform ShowTextAt (0, 100, 2, "Waiting for Arm");
+  if wait_arm 4000000000 then (
+    unbox token as calibration in
+    perform Arm calibration;
+    drive 4000000000 0)
+  else ()

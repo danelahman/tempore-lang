@@ -1,6 +1,7 @@
-// The bindings of the operations of balance.tpe and of
-// ../bala2-regex/balance_regex.tpe: the exchange between the control step and
-// the supervision, in atomic variables, and the safe state.
+// The bindings of the operations of balance.tpe,
+// ../bala2-regex/balance_regex.tpe and ../bala2-remote/balance_remote.tpe: the
+// exchange between the control step and the supervision, in atomic variables,
+// and the safe state.
 //
 // The supervision arms the robot with the bias of the gyroscope and commands
 // a speed and a turn; a command older than BALANCE_COMMAND_MS milliseconds

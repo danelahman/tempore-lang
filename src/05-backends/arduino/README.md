@@ -158,7 +158,8 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   the robot and the controller, over `esp-now`, listed before it:
   - the type `message`, `Arm`, `Drive (speed, turn)`, `Disarm` or `Beat`,
     each a tag of a packet;
-  - `remote_send`, which sends a message;
+  - `remote_channel`, the channel of `LinkStart`, and `remote_send`, which
+    sends a message;
   - `remote_receive`, which returns the latest message received at most
     50 ms ago, or `Nothing` for none or an unknown tag, boxed with
     `[0, 150)`, the type `fresh`, so that a command is applied at most 200 ms
@@ -520,6 +521,9 @@ recordings from the serial output:
     EXAMPLE_RECORD_FLAGS = -DBALANCE_RECORD=$(BALANCE_RECORD)
     EXAMPLE_RECORD_FILTER = examples/arduino/bala2/recordings.awk
 
+`EXAMPLE_BUILD_FLAGS` gives the build flags of every device build of the
+example, as `bala2-remote` does with the address of its peer.
+
 Instead of the awk program, `EXAMPLE_RECORD_TOOL` names a Python script by
 which the targets `-capture` and `-erase` read and erase the recordings kept
 on the device, as for `steps`.
@@ -746,6 +750,18 @@ port variable `PORT_M5STACK_GRAY`).
   - Handlers, which the device does not use, simulate the robot and a fault
     of its gyroscope in the interpreter, each case of an operation performing
     that operation.
+- [`bala2-remote`](../../../examples/arduino/bala2-remote/balance_remote.tpe):
+  the robot of `bala2` driven by a controller over ESP-NOW, with the
+  packages `esp-now` and `bala2-remote`, sharing the binding file and host
+  model of `bala2`.
+  - After the calibration and a second held upright, the supervision waits
+    for Arm, then applies each message within its window of 150 ms: a Drive
+    command, Disarm, which returns to waiting for Arm, or zero setpoints.
+  - Each iteration of the drive takes less than 50 ms; after about 2 s
+    without a message it shows "Link lost" and beeps once, and the robot
+    stays armed.
+  - The make variable `REMOTE_PEER`, the address of the controller, sets
+    the peer; the host model `controller.cpp` scripts the controller.
 - [`wheels`](../../../examples/arduino/wheels/wheels.tpe): a wheel check of
   the robot on a stand, under the regular expressions of timed operations.
   - The counts of the encoders are divided by the length of the window only

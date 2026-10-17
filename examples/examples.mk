@@ -12,7 +12,8 @@
 #   PROGRAM.device.json and its program PROGRAM.tpe, has the fragment
 #   examples/arduino/NAME/example.mk, which sets EXAMPLE_GRADES, the grades of
 #   the program, EXAMPLE_SIMULATE, the seconds of its host simulation, and
-#   optionally EXAMPLE_LOG_FLAGS, the build flags of its target -log, and
+#   optionally EXAMPLE_BUILD_FLAGS, the build flags of all its device builds,
+#   EXAMPLE_LOG_FLAGS, the build flags of its target -log, and
 #   EXAMPLE_RECORD_FLAGS and EXAMPLE_RECORD_FILTER, the build flags of its
 #   target -record and the awk program that extracts the recordings from the
 #   serial output read by its target -capture, or, in place of the filter,
@@ -55,17 +56,20 @@ tempore-cli:
 
 # The variables a fragment sets, emptied before each fragment is read.
 EXAMPLE_FIELDS = EXAMPLE_GRADES EXAMPLE_TIME_UNIT EXAMPLE_SIMULATE \
-  EXAMPLE_LOG_FLAGS EXAMPLE_RECORD_FLAGS EXAMPLE_RECORD_FILTER \
-  EXAMPLE_RECORD_TOOL
+  EXAMPLE_BUILD_FLAGS EXAMPLE_LOG_FLAGS EXAMPLE_RECORD_FLAGS \
+  EXAMPLE_RECORD_FILTER EXAMPLE_RECORD_TOOL
+
+# A comma, for the fragments that write one in a function call.
+comma := ,
 
 # The build flags of a device build: PLATFORMIO_BUILD_FLAGS, the flag
 # TEMPORE_DISPLAY_BRIGHTNESS under BRIGHTNESS, and the flags $(1); and the
-# assignment of these flags without $(1) under BRIGHTNESS, prefixed to the
-# commands of the device builds that add no flags.
+# assignment of these flags, prefixed to the commands of the device builds,
+# if BRIGHTNESS or $(1) is set.
 device_flags = $(strip $(PLATFORMIO_BUILD_FLAGS) $(if \
   $(BRIGHTNESS),-DTEMPORE_DISPLAY_BRIGHTNESS=$(BRIGHTNESS)) $(1))
-brightness_flags = $(if $(BRIGHTNESS),PLATFORMIO_BUILD_FLAGS="$(call \
-  device_flags)" )
+build_flags = $(if $(or $(BRIGHTNESS),$(strip $(1))),PLATFORMIO_BUILD_FLAGS="$(call \
+  device_flags,$(1))" )
 
 # The fragments of the Opentrons example $(1) and of the Arduino example $(1).
 opentrons_fragment = examples/opentrons/$(1).mk
@@ -139,7 +143,7 @@ arduino-$(1)-simulate: tempore-cli
 	  $(2)/$(3).tpe
 
 arduino-$(1)-build: tempore-cli arduino-deps
-	$$(brightness_flags)$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3) \
 	  --device $(2)/$(3).device.json \
 	  --monitor $$(or $$(MONITOR),abort) \
@@ -147,7 +151,7 @@ arduino-$(1)-build: tempore-cli arduino-deps
 	  $(2)/$(3).tpe
 
 arduino-$(1)-upload: tempore-cli arduino-deps
-	$$(brightness_flags)$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3) \
 	  --device $(2)/$(3).device.json \
 	  --monitor $$(or $$(MONITOR),abort) \
@@ -155,7 +159,7 @@ arduino-$(1)-upload: tempore-cli arduino-deps
 	  $(2)/$(3).tpe
 
 arduino-$(1)-profile: tempore-cli arduino-deps
-	$$(brightness_flags)$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-profile \
 	  --device $(2)/$(3).device.json \
 	  --monitor $$(or $$(MONITOR),warn) \
@@ -165,6 +169,7 @@ arduino-$(1)-profile: tempore-cli arduino-deps
 
 ARDUINO_TARGETS += arduino-$(1)-simulate arduino-$(1)-build \
   arduino-$(1)-upload arduino-$(1)-profile
+ARDUINO_BUILD_FLAGS_$(1) := $(EXAMPLE_BUILD_FLAGS)
 ARDUINO_BOARDS += $(4)
 ARDUINO_EXAMPLES_$(4) += $(1)
 $(if $(EXAMPLE_LOG_FLAGS),$(call arduino_log,$(1),$(2),$(3),$(4)))
@@ -174,7 +179,7 @@ endef
 # The target -log of the Arduino example $(1), as in arduino_template.
 define arduino_log
 arduino-$(1)-log: tempore-cli arduino-deps
-	PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$(EXAMPLE_LOG_FLAGS))" \
+	PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$$(ARDUINO_BUILD_FLAGS_$(1)) $(EXAMPLE_LOG_FLAGS))" \
 	  $$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-log \
 	  --device $(2)/$(3).device.json \
@@ -202,7 +207,7 @@ endef
 # full.
 define arduino_record
 arduino-$(1)-record: tempore-cli arduino-deps
-	PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$(EXAMPLE_RECORD_FLAGS))" \
+	PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$$(ARDUINO_BUILD_FLAGS_$(1)) $(EXAMPLE_RECORD_FLAGS))" \
 	  $$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-record \
 	  --device $(2)/$(3).device.json \

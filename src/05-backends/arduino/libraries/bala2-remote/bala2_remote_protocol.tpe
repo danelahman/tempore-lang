@@ -16,6 +16,9 @@
 type message = Arm | Drive of float * float | Disarm | Beat
 type received = Got of message | Nothing
 
+(* The Wi-Fi channel of the link, for LinkStart. *)
+let remote_channel = 1
+
 (* The age limit of a packet received, in milliseconds. *)
 let remote_age_limit = 50
 
