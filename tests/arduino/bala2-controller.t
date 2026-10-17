@@ -9,17 +9,16 @@ its typing, its rejected variants, and its host simulation.
   $ packages --typecheck-only $app/controller.tpe
 
 The rejected variants, each loaded after the application: a session that
-sends Arm once, against the protocol of its grade; a drive that reads the
-unit again after the touch screen and averages the pitches, so that the
-first reading is no longer the latest; and a drive that redraws the Disarm
-button between the touch screen and the command, which may then be sent
-more than 2 ms after the reading:
+sends Arm once, against the protocol of its grade; two sessions that keep
+the neutral tilt recorded before the first, used after a Disarm; and a drive
+that redraws the Disarm button between the touch screen and the command,
+which may then be sent more than 2 ms after the reading:
 
-  $ for v in once averaged redrawn; do packages --typecheck-only $app/controller.tpe bala2-controller/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out | cut -c 1-160; done
+  $ for v in once kept redrawn; do packages --typecheck-only $app/controller.tpe bala2-controller/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out | cut -c 1-160; done
   [1]
-  Typing error: This function's body has grade `[{(ReadTouch; SendBeat; !10.5)*; (ReadTouch | 0); (0 | SendArm; !12.5; ShowTextAt; (ReadImu; ReadTouch; SendDrive;
+  Typing error: This function's body has grade `[{(ReadTouch; SendBeat; !10.5)*; (ReadTouch | 0); (0 | ReadImu; SendArm; !12.5; ShowTextAt; (ReadImu; ReadTouch; S
   [1]
-  Typing error: Variable `latest` is unboxed with grade `[{ReadTouch; ReadImu}, {ReadTouch; ReadImu}]` accumulated since it was bound, which is not below its box 
+  Typing error: Variable `zero` is unboxed with grade `[{(SendArm; !12.5)^20; (ReadImu; ReadTouch; SendDrive; (ShowNumberAt | 0); !10.5)*; (ReadImu; ReadTouch | 0
   [1]
   Typing error: Variable `recent` is unboxed with grade `[{ReadTouch; DrawButton}, {ReadTouch; DrawButton}]` accumulated since it was bound, which is not below it
 
@@ -32,12 +31,14 @@ without exceptions and run-time type information:
   $ cd ../../..
 
 The host simulation for 4 s, the packets sent shown when they change. The
-controller sends Beat; a tap on Arm at 1 s starts the arming, Arm 20 times,
-then Drive: from 1.5 s, pitched forwards by 20 degrees, a speed of
-(20 - 5) * 16 = 240 counts per second; from 2.5 s, pitched backwards by 10
-degrees and rolled by 15 degrees, -80 and a turn of (15 - 5) * 4 = 40; from
-3 s, flat, zero. A tap on Disarm at 3.5 s sends Disarm 20 times, then Beat.
-An iteration redraws at most one band:
+controller sends Beat; held pitched forwards by 10 degrees, a tap on Arm
+at 1 s records that tilt as neutral and starts the arming, Arm 20 times,
+then Drive, measured from the neutral tilt: zero at first; from 1.5 s,
+pitched forwards by 30 degrees, 20 beyond it, a speed of (20 - 5) * 16 =
+240 counts per second; from 2.5 s, flat and rolled by 15 degrees, -80 and
+a turn of (15 - 5) * 4 = 40; from 3 s, at the neutral tilt again, zero. A
+tap on Disarm at 3.5 s sends Disarm 20 times, then Beat. An iteration
+redraws at most one band:
 
   $ tempore --emit-arduino controller --device $app/controller.device.json --host-simulate 4 $app/controller.tpe > sim.log
   $ grep -v '^Wrote\|\] \(Release\|Start\|End \|Operation\|IMU\|I2C\|Delay\)' sim.log | awk '/ESP-NOW: sent/ { m = $0; sub(/^\[[^]]*\] /, "", m); if (m == last) next; last = m } { print }'
@@ -57,20 +58,20 @@ An iteration redraws at most one band:
   [161.304 ms] Display at (206, 200): Disarm
   [161.704 ms] ESP-NOW: sent tag 4, 0.000, 0.000
   [162.562 ms] Display at (254, 0): Battery 87%
-  [1001.004 ms] ESP-NOW: sent tag 1, 0.000, 0.000
-  [1256.564 ms] Display at (0, 62): Armed
-  [1257.567 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [1510.633 ms] ESP-NOW: sent tag 2, 240.000, 0.000
-  [1513.293 ms] Display at (120, 102): 240
-  [2502.551 ms] ESP-NOW: sent tag 2, -80.000, 40.000
-  [2505.211 ms] Display at (120, 102): -80
-  [2519.354 ms] Display at (120, 142): 40
-  [3002.480 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [3005.100 ms] Display at (120, 142): 0
-  [3019.223 ms] Display at (120, 102): 0
-  [3502.349 ms] ESP-NOW: sent tag 3, 0.000, 0.000
-  [3757.969 ms] Display at (0, 62): Disarmed
-  [3758.369 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [1001.607 ms] ESP-NOW: sent tag 1, 0.000, 0.000
+  [1257.167 ms] Display at (0, 62): Armed
+  [1258.170 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [1511.236 ms] ESP-NOW: sent tag 2, 240.000, 0.000
+  [1513.896 ms] Display at (120, 102): 240
+  [2503.154 ms] ESP-NOW: sent tag 2, -80.000, 40.000
+  [2505.814 ms] Display at (120, 102): -80
+  [2519.957 ms] Display at (120, 142): 40
+  [3003.083 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [3005.703 ms] Display at (120, 142): 0
+  [3019.826 ms] Display at (120, 102): 0
+  [3502.952 ms] ESP-NOW: sent tag 3, 0.000, 0.000
+  [3758.572 ms] Display at (0, 62): Disarmed
+  [3758.972 ms] ESP-NOW: sent tag 4, 0.000, 0.000
 
 The packets are sent at most 50 ms apart, here 10.9 to 17.2 ms, and Arm
 and Disarm 20 times each:

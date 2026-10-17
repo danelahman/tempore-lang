@@ -906,7 +906,9 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     under 50 ms after the last.
   - Drive takes the speed from the pitch and the turn from the roll, each
     with a dead zone of 5 degrees and bounded, of a reading boxed so that
-    it is the latest and at most 2 ms old.
+    it is the latest and at most 2 ms old, measured from the neutral tilt
+    recorded at the tap on Arm, boxed with `{(!_ & ~SendDisarm)*}` so that
+    it is used only within its session.
   - An armed iteration redraws at most the speed or the turn, in turn, when
     it changes.
   - The make variable `REMOTE_PEER`, the address of the robot, sets the
