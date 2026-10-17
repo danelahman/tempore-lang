@@ -1691,9 +1691,34 @@ code.diag-code {
    brand growing so that the page link sits opposite it. */
 .navbar {
   background-color: transparent;
-  display: block;
+  display: flex;
+  align-items: center;
   min-height: 0;
   margin-bottom: 1.5rem;
+}
+
+/* The overview poster, a thumbnail opposite the brand, drawn as a slightly
+   turned sheet that straightens when pointed at. */
+.navbar .poster-link {
+  flex-shrink: 0;
+  margin-left: 1rem;
+  line-height: 0;
+}
+
+.navbar .poster-thumb {
+  height: 70px;
+  width: auto;
+  max-height: none;
+  border: 1px solid #c9ced6;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  transform: rotate(2deg);
+  transition: transform 0.15s ease-out;
+}
+
+.navbar .poster-link:hover .poster-thumb,
+.navbar .poster-link:focus-visible .poster-thumb {
+  transform: rotate(0) scale(1.06);
 }
 
 
@@ -1762,6 +1787,14 @@ code.diag-code {
   width: 3.5rem;
   flex-shrink: 0;
   display: block;
+}
+
+/* Below 840px the tagline and the poster beside it no longer fit; the
+   poster gives way. */
+@media screen and (max-width: 840px) {
+  .navbar .poster-link {
+    display: none;
+  }
 }
 
 /* The one-line tagline needs 715px of page, so below the tablet

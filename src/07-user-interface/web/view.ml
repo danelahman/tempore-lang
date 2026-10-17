@@ -2359,8 +2359,31 @@ let view_navbar =
           ];
       ]
   in
-
-  elt "navbar" ~a:[ class_ "navbar" ] [ view_title ]
+  (* A thumbnail of the overview poster, a link to its PDF. *)
+  let view_poster =
+    elt "a"
+      ~a:
+        [
+          class_ "poster-link";
+          attr "href" "https://danel.ahman.ee/posters/tempore-lang-2026.pdf";
+          attr "target" "_blank";
+          attr "rel" "noopener";
+          attr "title" "Overview poster (PDF)";
+        ]
+      [
+        elt "img"
+          ~a:
+            [
+              class_ "poster-thumb";
+              attr "src" "poster/tempore-lang-2026.png";
+              attr "alt" "Overview poster (PDF)";
+              attr "width" "50";
+              attr "height" "70";
+            ]
+          [];
+      ]
+  in
+  elt "navbar" ~a:[ class_ "navbar" ] [ view_title; view_poster ]
 
 (* A muted footer link, styled the same as the GitHub link beside it. *)
 let view_footer_link ~href ~title label =
