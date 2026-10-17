@@ -175,7 +175,8 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   - under the rigid grades, `remote_receive` returns two boxes, as a grade
     has a single upper bound and a box of a box is refused: the message, its
     setpoints zero, boxed with `{(!_ & ~Receive)*}`, usable only before the
-    next `Receive`, and its setpoints, boxed with `[0, 150)`;
+    next `Receive`, and its setpoints, of the non-eternal type `setpoints`,
+    boxed with `[0, 150)`, so that once unboxed they are matched at once;
   - the status of the robot, `Status (armed, tilt)` or `NoStatus`, tag 5:
     `SendStatus` sends it, and `bala2_remote_send_status` of the header
     `bala2_remote.h` for the bindings of an application; `remote_status`

@@ -284,7 +284,8 @@ let rec drive (n : nat) (silent : nat) : unit
           delay 25/2
       | Got (Drive _) ->
           unbox fresh as setpoints in
-          perform Command setpoints;
+          (match setpoints with
+           | Setpoints (speed, turn) -> perform Command (speed, turn));
           restored silent;
           perform Report true;
           delay 25/2;
@@ -425,7 +426,7 @@ let drive_polled () =
   match r with
   | Got (Drive _) ->
       unbox fresh as setpoints in
-      perform Command setpoints
+      match setpoints with Setpoints (speed, turn) -> perform Command (speed, turn)
   | _ -> perform Command (0.0, 0.0)
 *)
 

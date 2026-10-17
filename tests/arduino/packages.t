@@ -374,7 +374,9 @@ intervals or upper bounds:
 Under the rigid grades a message received comes in two boxes: the message,
 its setpoints zero, usable while no further Receive has come, and its
 setpoints, usable within 150 ms; a use after 150 ms fails the second, and a
-use after a further Receive the first:
+use after a further Receive the first. The setpoints are non-eternal, so
+that once unboxed they are matched at once: a match after a further
+operation is refused:
 
   $ cat > latest.tpe <<'EOF'
   > let soon () =
@@ -397,12 +399,19 @@ use after a further Receive the first:
   >   unbox latest as r in
   >   unbox fresh as setpoints in
   >   (r, setpoints)
+  > let sent () =
+  >   let _, fresh = remote_receive () in
+  >   unbox fresh as setpoints in
+  >   remote_send Beat;
+  >   match setpoints with Setpoints (speed, turn) -> speed +. turn
   > EOF
   $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-remote --typecheck-only latest.tpe 2>&1 | grep error; done
   Typing error: Variable `fresh` is unboxed with grade `{Send; !150}` accumulated since it was bound, which is not below its box grade `{[0, 150)}`
   Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{(!_ & ~Receive)*}`
+  Typing error: Variable `setpoints` is used with grade `{Send}` accumulated since it was bound, but its type `setpoints` is not eternal
   Typing error: Variable `fresh` is unboxed with grade `[{Send; !150}, {Send; !150}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 150)}]`
   Typing error: Variable `latest` is unboxed with grade `[{Receive}, {Receive}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~Receive)*}, {(!_ & ~Receive)*}]`
+  Typing error: Variable `setpoints` is used with grade `[{Send}, {Send}]` accumulated since it was bound, but its type `setpoints` is not eternal
 
 The status of the robot, sent by SendStatus as tag 5 and received by
 remote_status, under the rigid grades in two boxes: the status, usable
