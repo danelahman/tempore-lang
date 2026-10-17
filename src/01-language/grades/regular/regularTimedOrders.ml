@@ -195,13 +195,17 @@ struct
       let one = (Lower.one, Upper.one)
       let mul (lo, hi) (lo', hi') = (L.mul lo lo', L.mul hi hi')
 
+      (* Componentwise, the upper bounds first. *)
       let leq bounds (lo, hi) (lo', hi') =
-        Lower.leq bounds lo lo' && Upper.leq bounds hi hi'
+        Upper.leq bounds hi hi' && Lower.leq bounds lo lo'
 
       let leq_symbol = "<="
       let top = (Lower.top, Upper.top)
       let join (lo, hi) (lo', hi') = (L.join lo lo', L.join hi hi')
-      let equal bounds p q = leq bounds p q && leq bounds q p
+
+      (* Componentwise, the upper bounds first. *)
+      let equal bounds (lo, hi) (lo', hi') =
+        Upper.equal bounds hi hi' && Lower.equal bounds lo lo'
 
       let is_top bounds (lo, hi) =
         Lower.is_top bounds lo && Upper.is_top bounds hi
