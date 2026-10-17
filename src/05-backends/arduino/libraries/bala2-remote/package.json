@@ -6,7 +6,7 @@
     "time-interval-rational": "bala2_remote.tpe",
     "regex-timed-upper-bound-rational-symbolic": "bala2_remote_upper.tpe",
     "regex-timed-interval-rational-symbolic": "bala2_remote.tpe",
-    "regex-timed-rigid-upper-bound-rational-symbolic": "bala2_remote_upper.tpe",
-    "regex-timed-rigid-interval-rational-symbolic": "bala2_remote.tpe"
+    "regex-timed-rigid-upper-bound-rational-symbolic": "bala2_remote_rigid_upper.tpe",
+    "regex-timed-rigid-interval-rational-symbolic": "bala2_remote_rigid.tpe"
   }
 }

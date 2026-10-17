@@ -130,7 +130,7 @@ controller, becomes the build flag ESP_NOW_PEER, before the flags of a
 target; without it there is none:
 
   $ dry arduino-bala2-remote-build REMOTE_PEER=24:0A:C4:12:34:56
-  PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56" ./tempore --grades time-interval-rational --emit-arduino balance_remote --device examples/arduino/bala2-remote/balance_remote.device.json --monitor abort --build examples/arduino/bala2-remote/balance_remote.tpe
+  PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino balance_remote --device examples/arduino/bala2-remote/balance_remote.device.json --monitor abort --build examples/arduino/bala2-remote/balance_remote.tpe
   $ make -s --no-print-directory -n arduino-bala2-remote-profile REMOTE_PEER=24:0A:C4:12:34:56 BRIGHTNESS=60 | grep -o '^PLATFORMIO_BUILD_FLAGS="[^"]*"'
   PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56"
   $ dry arduino-bala2-remote-upload | grep -c PLATFORMIO_BUILD_FLAGS

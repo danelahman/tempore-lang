@@ -365,12 +365,43 @@ intervals or upper bounds:
   >   unbox fresh as r in
   >   r
   > EOF
-  $ for g in time-interval-rational regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-remote --typecheck-only window.tpe 2>&1 | grep error; done
+  $ for g in time-interval-rational regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-remote --typecheck-only window.tpe 2>&1 | grep error; done
   Typing error: Variable `fresh` is unboxed with grade `[150, 151]` accumulated since it was bound, which is not below its box grade `[0, 150)`
   Typing error: Variable `fresh` is unboxed with grade `{Send; 150}` accumulated since it was bound, which is not below its box grade `{[0, 150)}`
   Typing error: Variable `fresh` is unboxed with grade `[{Send; 150}, {Send; 150}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 150)}]`
+
+Under the rigid grades a message received comes in two boxes: the message,
+its setpoints zero, usable while no further Receive has come, and its
+setpoints, usable within 150 ms; a use after 150 ms fails the second, and a
+use after a further Receive the first:
+
+  $ cat > latest.tpe <<'EOF'
+  > let soon () =
+  >   let latest, fresh = remote_receive () in
+  >   remote_send Beat;
+  >   delay 140;
+  >   unbox latest as r in
+  >   unbox fresh as setpoints in
+  >   (r, setpoints)
+  > let late () =
+  >   let latest, fresh = remote_receive () in
+  >   remote_send Beat;
+  >   delay 150;
+  >   unbox latest as r in
+  >   unbox fresh as setpoints in
+  >   (r, setpoints)
+  > let again () =
+  >   let latest, fresh = remote_receive () in
+  >   let _ = remote_receive () in
+  >   unbox latest as r in
+  >   unbox fresh as setpoints in
+  >   (r, setpoints)
+  > EOF
+  $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-remote --typecheck-only latest.tpe 2>&1 | grep error; done
   Typing error: Variable `fresh` is unboxed with grade `{Send; !150}` accumulated since it was bound, which is not below its box grade `{[0, 150)}`
+  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{(!_ & ~Receive)*}`
   Typing error: Variable `fresh` is unboxed with grade `[{Send; !150}, {Send; !150}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 150)}]`
+  Typing error: Variable `latest` is unboxed with grade `[{Receive}, {Receive}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~Receive)*}, {(!_ & ~Receive)*}]`
 
 The package needs esp-now, listed before it:
 

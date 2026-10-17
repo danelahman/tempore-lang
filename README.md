@@ -1700,7 +1700,7 @@ The examples in [`examples/arduino/`](examples/arduino/), by board:
   [`bala2-regex`](examples/arduino/bala2-regex/balance_regex.tpe), the same
   under the regular expressions of timed operations;
   [`bala2-remote`](examples/arduino/bala2-remote/balance_remote.tpe), the
-  robot driven over ESP-NOW;
+  robot driven over ESP-NOW, under the rigid regular expressions;
   [`wheels`](examples/arduino/wheels/wheels.tpe), a wheel check.
 - M5Stack CoreS3: [`tilt`](examples/arduino/tilt/tilt.tpe), a tilt display;
   [`calibrated`](examples/arduino/calibrated/calibrated.tpe), with a

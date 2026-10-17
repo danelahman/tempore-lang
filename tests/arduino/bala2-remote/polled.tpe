@@ -1,0 +1,14 @@
+(* An iteration of the drive that polls again for a Disarm before it applies
+   the message received first, after balance_remote.tpe. *)
+
+let drive_polled () =
+  let latest, fresh = remote_receive () in
+  let newer, _ = remote_receive () in
+  unbox newer as n in
+  (match n with Got Disarm -> perform Disarm () | _ -> ());
+  unbox latest as r in
+  match r with
+  | Got (Drive _) ->
+      unbox fresh as setpoints in
+      perform Command setpoints
+  | _ -> perform Command (0.0, 0.0)
