@@ -2365,7 +2365,7 @@ let view_navbar =
       ~a:
         [
           class_ "poster-link";
-          attr "href" "https://danel.ahman.ee/posters/tempore-lang-2026.pdf";
+          attr "href" "poster/tempore-lang-2026.pdf";
           attr "target" "_blank";
           attr "rel" "noopener";
           attr "title" "Overview poster (PDF)";
