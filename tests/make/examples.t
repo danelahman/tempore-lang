@@ -124,6 +124,19 @@ Further targets, under variables set on the command line:
   $ dry arduino-bala2-record BALANCE_RECORD=50
   PLATFORMIO_BUILD_FLAGS="-DBALANCE_RECORD=50" ./tempore --grades time-interval-rational --emit-arduino balance-record --device examples/arduino/bala2/balance.device.json --monitor warn --upload --port /dev/cu.usbserial-02012C91 --capture 30 examples/arduino/bala2/balance.tpe
 
+The build flags of a fragment, EXAMPLE_BUILD_FLAGS, apply to every device
+build of its example: REMOTE_PEER of bala2-remote, the address of the
+controller, becomes the build flag ESP_NOW_PEER, before the flags of a
+target; without it there is none:
+
+  $ dry arduino-bala2-remote-build REMOTE_PEER=24:0A:C4:12:34:56
+  PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56" ./tempore --grades time-interval-rational --emit-arduino balance_remote --device examples/arduino/bala2-remote/balance_remote.device.json --monitor abort --build examples/arduino/bala2-remote/balance_remote.tpe
+  $ make -s --no-print-directory -n arduino-bala2-remote-profile REMOTE_PEER=24:0A:C4:12:34:56 BRIGHTNESS=60 | grep -o '^PLATFORMIO_BUILD_FLAGS="[^"]*"'
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56"
+  $ dry arduino-bala2-remote-upload | grep -c PLATFORMIO_BUILD_FLAGS
+  0
+  [1]
+
 BRIGHTNESS adds the flag TEMPORE_DISPLAY_BRIGHTNESS to the build flags of
 every target that builds a device project, before those of the example:
 
@@ -168,9 +181,9 @@ The aggregate targets cover every example:
   $ dry opentrons-simulate-all | grep -c tempore
   11
   $ dry arduino-simulate-all | grep -c tempore
-  10
+  12
   $ dry arduino-build-all | grep -c tempore
-  10
+  12
 
 The help of the examples and that of the diagnostic targets, which are
 listed apart:
@@ -178,12 +191,12 @@ listed apart:
   $ make -s examples-help
   Arduino examples, by board:
   M5Stack CoreS3, port PORT_M5STACK_CORES3 = /dev/cu.usbmodem101:
-    NAME one of: calibrated fall level peak starter steps tilt
+    NAME one of: bala2-controller calibrated fall level peak starter steps tilt
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
   M5Stack Gray, port PORT_M5STACK_GRAY = /dev/cu.usbserial-02012C91:
-    NAME one of: bala2 bala2-regex wheels
+    NAME one of: bala2 bala2-regex bala2-remote wheels
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
@@ -203,13 +216,13 @@ listed apart:
   $ make -s arduino-diagnostics-help
   Arduino diagnostic targets, by board:
   M5Stack CoreS3, port PORT_M5STACK_CORES3 = /dev/cu.usbmodem101:
-    NAME one of: calibrated fall level peak starter steps tilt
+    NAME one of: bala2-controller calibrated fall level peak starter steps tilt
     arduino-NAME-profile          uploads the project with the profile and reads the port
     arduino-steps-record          uploads the project with -DSTEPS_RECORD=600 and reads the port
     arduino-steps-capture         reads the recordings from the port into _arduino/recordings/steps-TIME-N.csv
     arduino-steps-erase           erases the recordings on the device
   M5Stack Gray, port PORT_M5STACK_GRAY = /dev/cu.usbserial-02012C91:
-    NAME one of: bala2 bala2-regex wheels
+    NAME one of: bala2 bala2-regex bala2-remote wheels
     arduino-NAME-profile          uploads the project with the profile and reads the port
     arduino-bala2-log             uploads the project with -DBALANCE_LOG=20 and reads the port
     arduino-bala2-regex-log       uploads the project with -DBALANCE_LOG=20 and reads the port

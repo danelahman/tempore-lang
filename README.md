@@ -1699,6 +1699,8 @@ The examples in [`examples/arduino/`](examples/arduino/), by board:
   [`bala2`](examples/arduino/bala2/balance.tpe), a balancing step;
   [`bala2-regex`](examples/arduino/bala2-regex/balance_regex.tpe), the same
   under the regular expressions of timed operations;
+  [`bala2-remote`](examples/arduino/bala2-remote/balance_remote.tpe), the
+  robot driven over ESP-NOW;
   [`wheels`](examples/arduino/wheels/wheels.tpe), a wheel check.
 - M5Stack CoreS3: [`tilt`](examples/arduino/tilt/tilt.tpe), a tilt display;
   [`calibrated`](examples/arduino/calibrated/calibrated.tpe), with a
@@ -1706,7 +1708,9 @@ The examples in [`examples/arduino/`](examples/arduino/), by board:
   a peak recorder; [`level`](examples/arduino/level/level.tpe), a digital
   level; [`fall`](examples/arduino/fall/fall.tpe), a fall detector;
   [`steps`](examples/arduino/steps/steps.tpe), a step counter;
-  [`starter`](examples/arduino/starter/starter.tpe), a sprint start system.
+  [`starter`](examples/arduino/starter/starter.tpe), a sprint start system;
+  [`bala2-controller`](examples/arduino/bala2-controller/controller.tpe),
+  the controller of `bala2-remote`.
 
 #### Quick start
 <!-- web-skip -->

@@ -968,23 +968,39 @@ let run_with (module G : Grades.Grade.S) config =
       | Some (_, device) -> Some device.board.it
       | None -> config.board
     in
-    let checked ~refuse (package : Package.t) =
-      match Package.files_for ~grades:config.grades ?board package with
-      | Ok files -> (package, files)
-      | Error message -> refuse message
+    (* The package and its files, or [refuse] of a message if it needs a
+       package not among [before] or has no declarations under the grades. *)
+    let checked ~refuse ~before (package : Package.t) =
+      match Package.missing_package ~before package with
+      | Some needed ->
+          refuse
+            (Printf.sprintf
+               "The package `%s` needs the package `%s`, listed before it"
+               package.name needed)
+      | None -> (
+          match Package.files_for ~grades:config.grades ?board package with
+          | Ok files -> (package, files)
+          | Error message -> refuse message)
+    in
+    (* [check] applied to each of [items], with the packages before it. *)
+    let in_order check items =
+      List.rev
+        (List.fold_left
+           (fun acc item -> check ~before:(List.map fst acc) item :: acc)
+           [] items)
     in
     let packages =
       match device with
       | Some (_, device) ->
-          List.map
-            (fun (name : string Utils.Location.located) ->
-              checked (Package.resolve name) ~refuse:(fun message ->
+          in_order
+            (fun ~before (name : string Utils.Location.located) ->
+              checked ~before (Package.resolve name) ~refuse:(fun message ->
                   Error.compilation ~loc:name.at "%s" message))
             device.packages
       | None ->
-          List.map
-            (fun name ->
-              checked
+          in_order
+            (fun ~before name ->
+              checked ~before
                 (Option.get (Package.find name))
                 ~refuse:(fun message ->
                   prerr_endline ("Error: " ^ message);

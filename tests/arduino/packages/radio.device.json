@@ -1,0 +1,6 @@
+{
+  "board": "m5stack-gray",
+  "tasks": [ { "function": "listen", "kind": "free", "core": 0 } ],
+  "host_models": ["radio_peer.cpp"],
+  "packages": ["esp-now", "m5-display"]
+}

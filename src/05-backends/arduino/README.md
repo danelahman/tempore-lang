@@ -143,6 +143,29 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   negates them). Its header `bala2_base.h` gives the application the drives
   last written and the counts last read, for logging outside the timed
   bindings.
+- `esp-now`: packets of a tag and two floats between two ESP32 boards over
+  ESP-NOW, with the peer given by the build flag `ESP_NOW_PEER`, six bytes
+  separated by commas (by default the broadcast address, for development):
+  - `LinkStart` starts the radio and ESP-NOW on a channel, on core 0;
+  - `Send` queues a packet and returns without waiting;
+  - `Receive` returns, without waiting, the latest packet from the peer if it
+    arrived at most a given number of milliseconds ago;
+  - its header `esp_now_link.h` gives the counts of the packets;
+  - its host model logs the packets sent and delivers those of
+    `esp_now_model_peer`, which the host model of an application may define,
+    after a latency and with a loss set by build flags.
+- `bala2-remote`: the messages of the remote control of the BALA2, shared by
+  the robot and the controller, over `esp-now`, listed before it:
+  - the type `message`, `Arm`, `Drive (speed, turn)`, `Disarm` or `Beat`,
+    each a tag of a packet;
+  - `remote_channel`, the channel of `LinkStart`, and `remote_send`, which
+    sends a message;
+  - `remote_receive`, which returns the latest message received at most
+    50 ms ago, or `Nothing` for none or an unknown tag, boxed with
+    `[0, 150)`, the type `fresh`, so that a command is applied at most 200 ms
+    after it was sent;
+  - declared under `time-interval-rational` and the regular expressions of
+    timed operations with intervals or upper bounds.
 
 ### Bounds per board
 
@@ -188,6 +211,7 @@ how the bounds not measured directly, such as those of `i2c`, are derived.
 - The bounds of `ShowTimeAt`, `ShowColourTextAt`, `ShowColourNumberAt`,
   `DrawButton`, `DrawBar` and `DrawLevel` are provisional, derived from those
   measurements; `ShowColourNumberAt` has the bounds of `ShowNumberAt`.
+- The bounds of `esp-now` are provisional, not yet measured.
 
 ## The program
 
@@ -497,6 +521,9 @@ recordings from the serial output:
     EXAMPLE_RECORD_FLAGS = -DBALANCE_RECORD=$(BALANCE_RECORD)
     EXAMPLE_RECORD_FILTER = examples/arduino/bala2/recordings.awk
 
+`EXAMPLE_BUILD_FLAGS` gives the build flags of every device build of the
+example, as `bala2-remote` does with the address of its peer.
+
 Instead of the awk program, `EXAMPLE_RECORD_TOOL` names a Python script by
 which the targets `-capture` and `-erase` read and erase the recordings kept
 on the device, as for `steps`.
@@ -723,6 +750,18 @@ port variable `PORT_M5STACK_GRAY`).
   - Handlers, which the device does not use, simulate the robot and a fault
     of its gyroscope in the interpreter, each case of an operation performing
     that operation.
+- [`bala2-remote`](../../../examples/arduino/bala2-remote/balance_remote.tpe):
+  the robot of `bala2` driven by a controller over ESP-NOW, with the
+  packages `esp-now` and `bala2-remote`, sharing the binding file and host
+  model of `bala2`.
+  - After the calibration and a second held upright, the supervision waits
+    for Arm, then applies each message within its window of 150 ms: a Drive
+    command, Disarm, which returns to waiting for Arm, or zero setpoints.
+  - Each iteration of the drive takes less than 50 ms; after about 2 s
+    without a message it shows "Link lost" and beeps once, and the robot
+    stays armed.
+  - The make variable `REMOTE_PEER`, the address of the controller, sets
+    the peer; the host model `controller.cpp` scripts the controller.
 - [`wheels`](../../../examples/arduino/wheels/wheels.tpe): a wheel check of
   the robot on a stand, under the regular expressions of timed operations.
   - The counts of the encoders are divided by the length of the window only
@@ -839,6 +878,17 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     start before the gun, and "Reset" clears the tally.
   - The host model observes the tones of the Set command and of the gun
     through `m5_speaker_observe` and scripts the pushes after them.
+- [`bala2-controller`](../../../examples/arduino/bala2-controller/controller.tpe):
+  the controller of [`bala2-remote`](#m5stack-gray), with the packages
+  `esp-now` and `bala2-remote`.
+  - Each iteration of its loop sends one message, under 50 ms apart: Beat
+    while disarmed, Arm or Disarm for about 250 ms after a tap on its
+    button, and Drive while armed, the speed from the pitch and the turn
+    from the roll, each with a dead zone of 5 degrees and bounded.
+  - An iteration redraws at most one band: the state, or the speed or the
+    turn, in turn, when it changes.
+  - The make variable `REMOTE_PEER`, the address of the robot, sets the
+    peer; the host model `world.cpp` tilts and taps the device.
 
 #### Using the digital level
 
@@ -879,8 +929,10 @@ The name and the footer are drawn after each clearing in `tilt`, `peak`,
 - A board is a profile `boards/NAME.json`.
 - A package is a directory `libraries/NAME/` with a descriptor
   `package.json`, which maps each grade system to a file of declarations and
-  may name a file of definitions and give running-time bounds per board, and
-  the declarations, C++ sources and host models.
+  may name a file of definitions, give running-time bounds per board and
+  name, by `packages`, the packages whose operations it performs, which a
+  program lists before it, and the declarations, C++ sources and host
+  models.
 - An example is a directory under `examples/arduino/` with a program
   `PROGRAM.tpe`, its manifest `PROGRAM.device.json`, a binding file, host
   models for the simulation if needed, and a fragment `example.mk`

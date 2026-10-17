@@ -1,0 +1,37 @@
+(* The package esp-now: packets between two ESP32 boards over ESP-NOW, the
+   connectionless protocol of the Wi-Fi radio of the ESP32. Grades:
+   time-interval-rational, in milliseconds.
+
+   A packet carries a tag, a natural number, and two floats; their meaning is
+   that of the application. The peer is the address given by the build flag
+   ESP_NOW_PEER, six bytes separated by commas, and by default the broadcast
+   address FF:FF:FF:FF:FF:FF, which sends to every device on the channel and
+   receives from any.
+
+   LinkStart channel starts the radio as a station on the given channel, from
+   1 to 13, and ESP-NOW with the peer, on core 0 whatever the core of the
+   caller; a second LinkStart, a channel outside 1 to 13 and a failure of the
+   radio are run-time errors.
+
+   Send (tag, first, second) queues one packet to the peer and returns without
+   waiting for its transmission. A packet the radio cannot queue is dropped
+   and counted. A Send before LinkStart is a run-time error.
+
+   Receive age returns (true, tag, first, second), the latest packet received
+   from the peer, if it arrived at most age milliseconds ago, and else
+   (false, 0, 0, 0). It does not wait, and returns the same packet while it
+   is not older than age. A packet from another address, of another format or
+   with a float that is not finite is discarded.
+
+   The bounds are provisional, not yet measured on a device: LinkStart
+   [0, 1500], Send [0, 1], Receive [0, 0.1]. The default implementations take
+   a time within the bounds, send nothing and receive nothing. *)
+
+operation LinkStart : nat ~> unit # [0, 1500]
+default LinkStart _ = delay 100
+
+operation Send : nat * float * float ~> unit # [0, 1]
+default Send _ = delay 1/10
+
+operation Receive : nat ~> bool * nat * float * float # [0, 1/10]
+default Receive _ = delay 1/100; (false, 0, 0.0, 0.0)

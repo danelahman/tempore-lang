@@ -1,0 +1,14 @@
+(* An iteration that redraws both the speed and the turn, after
+   controller.tpe. *)
+
+let iteration_both ((m, view) : mode * view) : mode * view # [0, 50) =
+  let touched, x, y = perform ReadTouch () in
+  let m = next m (if touched then press x y else NoPress) in
+  let accel, _ = perform ReadImu () in
+  let speed = command speed_gain speed_limit (tilt_x_of_accel accel) in
+  let turn = command turn_gain turn_limit (tilt_y_of_accel accel) in
+  remote_send (message m speed turn);
+  perform ShowNumberAt (120, 100, 2, 0, speed);
+  perform ShowNumberAt (120, 140, 2, 0, turn);
+  delay 21/2;
+  (m, view)

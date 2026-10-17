@@ -39,7 +39,7 @@ package under other grades, and --package with --device are refused:
   $ ../../tempore --grades time-interval-rational filter.tpe 2>&1 | grep error
   Syntax error: Unknown name `ReadImu`
   $ ../../tempore --grades time-interval-rational --package m5-gyro filter.tpe 2>&1 | head -1 | sed 's/^.*tempore: //'
-  option '--package': 'm5-gyro' is not one of bala2-base, i2c, m5-display, m5-imu, m5-speaker, m5-touch.
+  option '--package': 'm5-gyro' is not one of bala2-base, bala2-remote, esp-now, i2c, m5-display, m5-imu, m5-speaker, m5-touch.
   $ ../../tempore --grades time-interval --package m5-imu filter.tpe
   Error: The package `m5-imu` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `event-separation`, `counts-upper-bound`, not `time-interval`
   [1]
@@ -72,7 +72,7 @@ that the declarations of each package load under each of its grade systems
 on each board:
 
   $ touch empty.tpe
-  $ for p in bala2-base i2c m5-display m5-imu; do for g in time-interval-rational regex-timed-lower-bound-rational-symbolic regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic event-separation counts-upper-bound; do for b in m5stack-gray m5stack-cores3 esp32-devkit; do ../../tempore --grades $g --package $p --board $b --typecheck-only empty.tpe || echo "$p $g $b"; done; done; done
+  $ for p in bala2-base esp-now i2c m5-display m5-imu; do for g in time-interval-rational regex-timed-lower-bound-rational-symbolic regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic event-separation counts-upper-bound; do for b in m5stack-gray m5stack-cores3 esp32-devkit; do ../../tempore --grades $g --package $p --board $b --typecheck-only empty.tpe || echo "$p $g $b"; done; done; done
 
 The option --board needs --package and names a board profile:
 
@@ -255,6 +255,136 @@ the safe-state hook of the application:
   $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ cd ../../..
 
+A link over ESP-NOW with the package esp-now. LinkStart starts the radio,
+which the host model starts in 100 ms, and logs the address of the station
+and of the peer; Send logs its packet. Receive returns the latest packet of
+the peer of the host model of the application, which sends one every 20 ms
+until 160 ms, arriving 2 ms later, if it arrived at most 50 ms ago, and
+otherwise nothing:
+
+  $ simulate radio radio 0.35
+  [0.000 ms] Start listen
+  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF
+  [100.000 ms] Operation LinkStart took 100000 us
+  [100.100 ms] ESP-NOW: sent tag 1, 0.500, -0.250
+  [100.100 ms] Operation Send took 100 us
+  [100.100 ms] Operation Receive took 0 us
+  [101.100 ms] Display: None
+  [101.100 ms] Operation ShowText took 1000 us
+  [101.100 ms] Delay 60000 us
+  [122.000 ms] ESP-NOW model: packet of tag 6 arrives
+  [142.000 ms] ESP-NOW model: packet of tag 7 arrives
+  [161.100 ms] Operation Receive took 0 us
+  [162.000 ms] ESP-NOW model: packet of tag 8 arrives
+  [162.100 ms] Display: 7.000
+  [162.100 ms] Operation ShowNumber took 1000 us
+  [162.100 ms] Delay 60000 us
+  [222.100 ms] Operation Receive took 0 us
+  [223.100 ms] Display: None
+  [223.100 ms] Operation ShowText took 1000 us
+  [223.100 ms] Delay 60000 us
+  [283.100 ms] End listen
+  [350.000 ms] End of the simulation
+  $ grep -A 1 'tempore_argument_Receive;' _arduino/projects/radio/src/tempore_bindings.h
+  typedef uint32_t tempore_argument_Receive;
+  typedef tempore_tuple1 tempore_result_Receive;
+
+The peer of the build flag ESP_NOW_PEER, and a model of the link that loses
+every second packet:
+
+  $ cd _arduino/projects/radio
+  $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DESP_NOW_MODEL_LOSS=2 -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ ./simulation 200000 | grep 'ESP-NOW\|Display'
+  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:07
+  [100.100 ms] ESP-NOW: sent tag 1, 0.500, -0.250
+  [101.100 ms] Display: None
+  [122.000 ms] ESP-NOW model: packet of tag 6 arrives
+  [140.000 ms] ESP-NOW model: packet of tag 7 lost
+  [162.000 ms] ESP-NOW model: packet of tag 8 arrives
+  [162.100 ms] Display: 6.000
+  $ cd ../../..
+
+A Send before LinkStart is a run-time error:
+
+  $ printf '{ "board": "m5stack-gray", "tasks": [ { "function": "early", "kind": "free" } ], "packages": ["esp-now", "m5-display"] }\n' > early.device.json
+  $ emit early --device early.device.json packages/radio.tpe --host-simulate 0.01 | grep -v '^Wrote'
+  [0.000 ms] Start early
+  [0.000 ms] Run-time error: ESP-NOW: Send before LinkStart
+  [0.000 ms] Safe state entered
+  [0.000 ms] Task early stopped
+  [10.000 ms] End of the simulation
+
+The messages of the remote control of the BALA2, with the package
+bala2-remote over esp-now: the initial function sends one message of each
+kind, and the step shows the message received. The peer of the host model of
+the application sends Arm, Drive (0.5, -0.25), a packet of the unknown tag 9,
+Disarm and Beat, one every 20 ms, and then nothing; the unknown tag, and Beat
+once older than 50 ms, decode to Nothing:
+
+  $ simulate remote remote 0.3 | grep 'ESP-NOW\|Display'
+  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF
+  [100.100 ms] ESP-NOW: sent tag 1, 0.000, 0.000
+  [100.200 ms] ESP-NOW: sent tag 2, 0.500, -0.250
+  [100.300 ms] ESP-NOW: sent tag 3, 0.000, 0.000
+  [100.400 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [101.400 ms] Display: Nothing
+  [121.000 ms] Display: Nothing
+  [122.000 ms] ESP-NOW model: packet of tag 1 arrives
+  [141.000 ms] Display: Arm
+  [142.000 ms] ESP-NOW model: packet of tag 2 arrives
+  [161.000 ms] Display: 0.500
+  [162.000 ms] ESP-NOW model: packet of tag 9 arrives
+  [181.000 ms] Display: Nothing
+  [182.000 ms] ESP-NOW model: packet of tag 3 arrives
+  [201.000 ms] Display: Disarm
+  [202.000 ms] ESP-NOW model: packet of tag 4 arrives
+  [221.000 ms] Display: Beat
+  [241.000 ms] Display: Beat
+  [261.000 ms] Display: Nothing
+  [281.000 ms] Display: Nothing
+  $ cd _arduino/projects/remote
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ cd ../../..
+
+A message received is used within 150 ms of its reception, under
+time-interval-rational and the regular expressions of timed operations with
+intervals or upper bounds:
+
+  $ cat > window.tpe <<'EOF'
+  > let soon () =
+  >   let fresh = remote_receive () in
+  >   remote_send Beat;
+  >   delay 140;
+  >   unbox fresh as r in
+  >   r
+  > let late () =
+  >   let fresh = remote_receive () in
+  >   remote_send Beat;
+  >   delay 150;
+  >   unbox fresh as r in
+  >   r
+  > EOF
+  $ for g in time-interval-rational regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-remote --typecheck-only window.tpe 2>&1 | grep error; done
+  Typing error: Variable `fresh` is unboxed with grade `[150, 151]` accumulated since it was bound, which is not below its box grade `[0, 150)`
+  Typing error: Variable `fresh` is unboxed with grade `{Send; 150}` accumulated since it was bound, which is not below its box grade `{[0, 150)}`
+  Typing error: Variable `fresh` is unboxed with grade `[{Send; 150}, {Send; 150}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 150)}]`
+  Typing error: Variable `fresh` is unboxed with grade `{Send; !150}` accumulated since it was bound, which is not below its box grade `{[0, 150)}`
+  Typing error: Variable `fresh` is unboxed with grade `[{Send; !150}, {Send; !150}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 150)}]`
+
+The package needs esp-now, listed before it:
+
+  $ ../../tempore --grades time-interval-rational --package bala2-remote --package esp-now --typecheck-only window.tpe
+  Error: The package `bala2-remote` needs the package `esp-now`, listed before it
+  [1]
+  $ sed 's/"esp-now", "bala2-remote"/"bala2-remote", "esp-now"/' packages/remote.device.json > m.json
+  $ ../../tempore --grades time-interval-rational --emit-arduino rejected --device m.json packages/remote.tpe
+  File "m.json", line 8, characters 15-29:
+  8 |   "packages": ["bala2-remote", "esp-now", "m5-display"]
+                     ^^^^^^^^^^^^^^
+  Compilation error: The package `bala2-remote` needs the package `esp-now`, listed before it
+  [1]
+
 Raw register transactions with the package i2c on a generic ESP32, against
 the host model of the application, a memory at the address 0x50; a read from
 an address without a device is a run-time error, which enters the safe state:
@@ -414,7 +544,7 @@ unknown package and a package under other grades are refused:
   File "m.json", line 4, characters 15-20:
   4 |   "packages": ["spi"],
                      ^^^^^
-  Compilation error: Unknown package `spi`; accepted: `bala2-base`, `i2c`, `m5-display`, `m5-imu`, `m5-speaker`, `m5-touch`
+  Compilation error: Unknown package `spi`; accepted: `bala2-base`, `bala2-remote`, `esp-now`, `i2c`, `m5-display`, `m5-imu`, `m5-speaker`, `m5-touch`
   exit 1
   $ reject packages/memory.device.json packages/memory.tpe time-interval
   File "packages/memory.device.json", line 4, characters 15-20:

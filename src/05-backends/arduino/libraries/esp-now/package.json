@@ -1,0 +1,17 @@
+{
+  "description": "Packets between two ESP32 boards over ESP-NOW, with the latest packet received kept for a bounded age",
+  "declarations": {
+    "time-interval-rational": "esp_now_link.tpe",
+    "regex-timed-lower-bound-rational-symbolic": "esp_now_link_timed_ops.tpe",
+    "regex-timed-upper-bound-rational-symbolic": "esp_now_link_timed_ops.tpe",
+    "regex-timed-interval-rational-symbolic": "esp_now_link_timed_ops.tpe",
+    "regex-timed-rigid-lower-bound-rational-symbolic": "esp_now_link_timed_ops.tpe",
+    "regex-timed-rigid-upper-bound-rational-symbolic": "esp_now_link_timed_ops.tpe",
+    "regex-timed-rigid-interval-rational-symbolic": "esp_now_link_timed_ops.tpe",
+    "event-separation": "esp_now_link_timed_ops.tpe",
+    "counts-upper-bound": "esp_now_link_counts.tpe"
+  },
+  "sources": ["esp_now_link.cpp", "esp_now_link.h"],
+  "host_models": ["esp_now_link_model.cpp", "esp_now.h", "esp_wifi.h", "esp_netif.h"],
+  "bindings": ["LinkStart", "Send", "Receive"]
+}

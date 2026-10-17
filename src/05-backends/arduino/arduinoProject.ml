@@ -674,6 +674,12 @@ let packages_of (board : Board.t) (device : Device.t) =
               package.name op p.name)
           (Package.shared_binding package p))
       packages;
+    Option.iter
+      (fun needed ->
+        Error.compilation ~loc:name.at
+          "The package `%s` needs the package `%s`, listed before it"
+          package.name needed)
+      (Package.missing_package ~before:packages package);
     List.iter
       (fun capability ->
         if not (List.mem capability board.capabilities) then

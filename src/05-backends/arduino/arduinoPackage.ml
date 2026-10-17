@@ -15,6 +15,7 @@ type t = {
   definitions : file option;
   declarations : (string * file) list;
   requires : string list;
+  packages : string list;
   sources : (string * string) list;
   host_models : (string * string) list;
   bindings : string list;
@@ -27,7 +28,8 @@ type t = {
 let files = Arduino_libraries.files
 let descriptor = "package.json"
 
-let names =
+(* The names of the packages of [files], in alphabetical order. *)
+let names_of files =
   List.sort String.compare
     (List.filter_map
        (fun (path, _) ->
@@ -35,6 +37,8 @@ let names =
          | [ name; file ] when file = descriptor -> Some name
          | _ -> None)
        files)
+
+let names = names_of files
 
 let parse ~files name =
   let directory = "libraries/" ^ name ^ "/" in
@@ -55,6 +59,7 @@ let parse ~files name =
           "declarations";
           "grades";
           "requires";
+          "packages";
           "sources";
           "host_models";
           "bindings";
@@ -111,6 +116,22 @@ let parse ~files name =
           (Json.kind member)
   in
   let bindings = list "bindings" in
+  let others = List.filter (( <> ) name) (names_of files) in
+  let packages =
+    List.map
+      (fun (package : string Location.located) ->
+        if not (List.mem package.it others) then
+          Error.compilation ~loc:package.at
+            "The package `%s` needs the package `%s`, which is not another \
+             package; accepted: %s"
+            name package.it
+            (Utils.Diagnostic.code_list others);
+        package.it)
+      (Option.value ~default:[]
+         (Json.optional f "packages"
+            (Json.list (fun ~what (v : Json.t) ->
+                 { Location.it = Json.string ~what v; at = v.at }))))
+  in
   (* The running-time bounds of each board, a closed interval [[lo, hi]] by
      operation, each operation one of the bindings. *)
   let interval ~what (v : Json.t) =
@@ -160,6 +181,7 @@ let parse ~files name =
         (Json.optional f "definitions" Json.string);
     declarations;
     requires = list "requires";
+    packages;
     sources = List.map (file ~what:"its sources") (list "sources");
     host_models = List.map (file ~what:"its host models") (list "host_models");
     bindings;
@@ -195,6 +217,11 @@ let source filename =
 
 let shared_binding p q =
   List.find_opt (fun op -> List.mem op q.bindings) p.bindings
+
+let missing_package ~before package =
+  List.find_opt
+    (fun name -> not (List.exists (fun p -> p.name = name) before))
+    package.packages
 
 let running_times ?board package =
   Option.value ~default:[]

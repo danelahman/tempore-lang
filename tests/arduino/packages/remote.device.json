@@ -1,0 +1,9 @@
+{
+  "board": "m5stack-gray",
+  "tasks": [
+    { "function": "step", "kind": "periodic", "period": 20,
+      "initial": "start", "core": 0 }
+  ],
+  "host_models": ["remote_peer.cpp"],
+  "packages": ["esp-now", "bala2-remote", "m5-display"]
+}

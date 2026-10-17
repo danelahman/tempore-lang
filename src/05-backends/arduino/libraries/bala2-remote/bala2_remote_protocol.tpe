@@ -1,0 +1,43 @@
+(* The package bala2-remote: the messages of the remote control of the
+   M5Stack BALA2 and their encoding as packets of the package esp-now, under
+   every grade system of the package.
+
+   A message is encoded as a packet of a tag and two floats: Arm as tag 1,
+   Drive (speed, turn) as tag 2 with the speed and the turn, Disarm as tag 3
+   and Beat as tag 4, the unused floats 0. A packet of another tag, and no
+   packet, decode to Nothing.
+
+   The constants of the protocol, in milliseconds: the controller sends a
+   message at least every 50 ms; a packet is received only if it arrived at
+   most remote_age_limit = 50 ms ago; a message received is used within
+   150 ms, the box of remote_receive. A command is thus applied at most
+   200 ms after it was sent, the expiry of the commands of the robot. *)
+
+type message = Arm | Drive of float * float | Disarm | Beat
+type received = Got of message | Nothing
+
+(* The Wi-Fi channel of the link, for LinkStart. *)
+let remote_channel = 1
+
+(* The age limit of a packet received, in milliseconds. *)
+let remote_age_limit = 50
+
+(* The packet of a message: its tag and two floats. *)
+let remote_encode (m : message) =
+  match m with
+  | Arm -> (1, 0.0, 0.0)
+  | Drive (speed, turn) -> (2, speed, turn)
+  | Disarm -> (3, 0.0, 0.0)
+  | Beat -> (4, 0.0, 0.0)
+
+(* The message of the result of Receive: Nothing for no packet or a packet of
+   an unknown tag. *)
+let remote_decode ((fresh, tag, first, second) : bool * nat * float * float) =
+  if fresh then
+    match tag with
+    | 1 -> Got Arm
+    | 2 -> Got (Drive (first, second))
+    | 3 -> Got Disarm
+    | 4 -> Got Beat
+    | _ -> Nothing
+  else Nothing

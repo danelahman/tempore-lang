@@ -1,0 +1,11 @@
+{
+  "board": "m5stack-cores3",
+  "battery": true,
+  "tasks": [
+    { "function": "remote", "kind": "free", "priority": 1 }
+  ],
+  "packages": ["m5-imu", "m5-display", "m5-touch", "esp-now", "bala2-remote"],
+  "bindings": "bindings.cpp",
+  "safe_state": "controller_safe_state",
+  "host_models": ["world.cpp"]
+}
