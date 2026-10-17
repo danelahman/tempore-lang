@@ -1,7 +1,8 @@
 // The bindings of the operations of balance.tpe,
 // ../bala2-regex/balance_regex.tpe and ../bala2-remote/balance_remote.tpe: the
 // exchange between the control step and the supervision, in atomic variables,
-// and the safe state.
+// and the safe state; and Report, of ../bala2-remote/balance_remote.tpe only,
+// compiled only for a program that performs it.
 //
 // The supervision arms the robot with the bias of the gyroscope and commands
 // a speed and a turn; a command older than BALANCE_COMMAND_MS milliseconds
@@ -63,6 +64,10 @@
 #include <atomic>
 
 #include "tempore_bindings.h"
+
+#ifdef TEMPORE_PERFORMS_Report
+#include "bala2_remote.h"
+#endif
 
 #if defined(BALANCE_LOG) || defined(BALANCE_RECORD)
 #include <freertos/FreeRTOS.h>
@@ -369,6 +374,16 @@ tempore_result_Disarm binding_Disarm(tempore_argument_Disarm) {
   balance_armed.store(false);
   return {};
 }
+
+#ifdef TEMPORE_PERFORMS_Report
+// Report of ../bala2-remote/balance_remote.tpe: the status of the robot, its
+// arming and the tilt last published, sent to the controller through the
+// package bala2-remote.
+tempore_result_Report binding_Report(tempore_argument_Report armed) {
+  bala2_remote_send_status(armed, balance_tilt.load());
+  return {};
+}
+#endif
 
 tempore_result_Command binding_Command(tempore_argument_Command a) {
   balance_speed.store(a.c0);

@@ -328,7 +328,8 @@ once older than 50 ms, decode to Nothing:
   [100.200 ms] ESP-NOW: sent tag 2, 0.500, -0.250
   [100.300 ms] ESP-NOW: sent tag 3, 0.000, 0.000
   [100.400 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [101.400 ms] Display: Nothing
+  [100.500 ms] ESP-NOW: sent tag 5, 1.000, 2.500
+  [101.500 ms] Display: Nothing
   [121.000 ms] Display: Nothing
   [122.000 ms] ESP-NOW model: packet of tag 1 arrives
   [141.000 ms] Display: Arm
@@ -401,6 +402,35 @@ use after a further Receive the first:
   Typing error: Variable `fresh` is unboxed with grade `{Send; !150}` accumulated since it was bound, which is not below its box grade `{[0, 150)}`
   Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{(!_ & ~Receive)*}`
   Typing error: Variable `fresh` is unboxed with grade `[{Send; !150}, {Send; !150}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 150)}]`
+  Typing error: Variable `latest` is unboxed with grade `[{Receive}, {Receive}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~Receive)*}, {(!_ & ~Receive)*}]`
+
+The status of the robot, sent by SendStatus as tag 5 and received by
+remote_status, under the rigid grades in two boxes: the status, usable
+while no further Receive has come, and usable within 200 ms:
+
+  $ cat > status.tpe <<'EOF'
+  > let soon () =
+  >   let latest, fresh = remote_status () in
+  >   perform SendStatus (true, 2.5);
+  >   delay 190;
+  >   unbox latest as s in
+  >   unbox fresh as t in
+  >   remote_armed s && remote_armed t
+  > let late () =
+  >   let _, fresh = remote_status () in
+  >   delay 200;
+  >   unbox fresh as t in
+  >   remote_armed t
+  > let again () =
+  >   let latest, _ = remote_status () in
+  >   let _ = remote_status () in
+  >   unbox latest as s in
+  >   remote_armed s
+  > EOF
+  $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-remote --typecheck-only status.tpe 2>&1 | grep error; done
+  Typing error: Variable `fresh` is unboxed with grade `{!200}` accumulated since it was bound, which is not below its box grade `{[0, 200)}`
+  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{(!_ & ~Receive)*}`
+  Typing error: Variable `fresh` is unboxed with grade `[{!200}, {!200}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 200)}]`
   Typing error: Variable `latest` is unboxed with grade `[{Receive}, {Receive}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~Receive)*}, {(!_ & ~Receive)*}]`
 
 Under the rigid grades, read_imu_boxed of the package m5-imu reads the unit

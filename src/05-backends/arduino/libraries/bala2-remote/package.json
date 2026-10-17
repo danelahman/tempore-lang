@@ -9,6 +9,6 @@
     "regex-timed-rigid-upper-bound-rational-symbolic": "bala2_remote_rigid_upper.tpe",
     "regex-timed-rigid-interval-rational-symbolic": "bala2_remote_rigid.tpe"
   },
-  "sources": ["bala2_remote.cpp"],
-  "bindings": ["SendArm", "SendDrive", "SendDisarm", "SendBeat"]
+  "sources": ["bala2_remote.cpp", "bala2_remote.h"],
+  "bindings": ["SendArm", "SendDrive", "SendDisarm", "SendBeat", "SendStatus"]
 }

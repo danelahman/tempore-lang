@@ -1,19 +1,25 @@
 (* A session that sends Arm once, after controller.tpe. *)
 
 let rec session_once (n : nat) (v : view) : unit
-    # {((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0);
-        (SendArm; !25/2)^20; ShowTextAt;
-        (ReadImu; ReadTouch; SendDrive; (ShowNumberAt | 0); !21/2)*;
+    # {((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0); ReadImu;
+        (SendArm; !25/2)^80; SendArm; !25/2; Receive;
+        (SendArm; !25/2; Receive)*;
+        (ReadImu; ReadTouch; (SendDrive | SendBeat);
+         (ShowTextAt | ShowNumberAt | 0); !21/2; Receive)*;
         (ReadImu; ReadTouch | 0); (SendDisarm; !25/2)^20; ShowTextAt)*;
        ((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0) | 0)} =
   match n with
   | 0 -> ()
   | m + 1 ->
       if idle 4000000000 then (
+        let zero = record_neutral () in
         perform SendArm ();
         delay 25/2;
-        perform ShowTextAt (0, 60, 2, "Armed");
-        let v = armed 4000000000 v in
+        let latest, fresh = confirm 40 in
+        unbox zero as neutral in
+        let v =
+          armed 4000000000 v (box {(!_ & ~SendDisarm)*} neutral) latest fresh
+        in
         disarming ();
         perform ShowTextAt (0, 60, 2, "Disarmed");
         session_once m v)

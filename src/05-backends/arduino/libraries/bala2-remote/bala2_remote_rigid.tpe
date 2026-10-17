@@ -26,6 +26,12 @@ default SendDrive _ = delay 1/10
 operation SendDisarm : unit ~> unit # {SendDisarm} within [0, 1]
 default SendDisarm _ = delay 1/10
 
+(* SendStatus (armed, tilt) queues the status of the robot to the peer,
+   with the provisional bounds of Send. *)
+
+operation SendStatus : bool * float ~> unit # {SendStatus} within [0, 1]
+default SendStatus _ = delay 1/10
+
 operation SendBeat : unit ~> unit # {SendBeat} within [0, 1]
 default SendBeat _ = delay 1/10
 
@@ -45,3 +51,17 @@ let remote_receive () : latest * fresh =
   box {(!_ & ~Receive)*} (remote_without_setpoints r) as latest in
   box [0, 150) (remote_setpoints r) as fresh in
   (latest, fresh)
+
+(* A status received, to be used before the next Receive, and within 200 ms
+   of its reception. *)
+type latest_status = [{(!_ & ~Receive)*}]status
+type fresh_status = [[0, 200)]status
+
+(* The latest status of the peer, received at most remote_age_limit ms ago,
+   or NoStatus, boxed as the latest and as fresh. *)
+let remote_status () : latest_status * fresh_status =
+  let s = remote_status_decode (perform Receive remote_age_limit) in
+  box {(!_ & ~Receive)*} s as latest in
+  box [0, 200) s as fresh in
+  (latest, fresh)
+
