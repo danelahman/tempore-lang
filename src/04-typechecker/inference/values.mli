@@ -32,21 +32,25 @@
 
     {2:cycles Cycles}
 
-    The value of [v] under lower bounds of join [L] and cycles is the first of
-    the following at which every cycle holds, decided at no hypotheses: [L]; for
-    a cycle [v · v ≾ v] and a variable-free [L], its closure [L⁺]
-    ({!Grades.Grade.S.plus}); for the cycles [d · v ≾ v] with [d] variable-free,
-    of join [D], the value [L ⊔ D⁺ · L]; for the cycles [v · d ≾ v],
-    [L ⊔ L · D⁺]. Each is below every value of [v] above [L] meeting the cycles
-    it is drawn from, by the laws of the closure, so the value is the least at
-    which the lower bounds and the cycles hold: the rule is principal. Where
-    none holds, there is no value. *)
+    The value of [v] under lower bounds of join [L], or the unit where there is
+    none, and cycles is [V = B* · L · C*], and its closure [V⁺] where a cycle is
+    [v · v ≾ v]; [B] and [C] join the multipliers of the cycles [b · v ≾ v] and
+    [v · c ≾ v], free of [v]. [X* · y] is [y] where [x · y ≾ y] is decided for
+    each multiplier [x], and otherwise [y ⊔ X⁺ · y]; likewise [y · X*]. The
+    closure [x⁺] of an expression is [x] where [x · x ≾ x] is decided, and
+    otherwise the closure of its value ({!Grades.Grade.S.plus}). [V] is the
+    value where every cycle holds at it, decided at no hypotheses, and there is
+    no value otherwise. It is below every value of [v] above [L] meeting the
+    cycles: each [b · v ≾ v] gives [B · v ≾ v] by distributivity, hence
+    [B⁺ · v ≾ v] by the induction law of the closure and [B* · L ≾ v]; the
+    mirror for [C]; and the closure of an expression below [v] lies below [v]
+    where [v · v ≾ v]. So the rule is principal. *)
 
 (** The shape of the left side [p] of a cycle [p ≾ v]. *)
 type 'e shape =
   | Square  (** [v · v] *)
-  | Left of 'e  (** [d · v], [d] a constant *)
-  | Right of 'e  (** [v · d], [d] a constant *)
+  | Left of 'e  (** [b · v], [b] free of [v] *)
+  | Right of 'e  (** [v · c], [c] free of [v] *)
   | Other  (** any other *)
 
 type 'e cycles = {

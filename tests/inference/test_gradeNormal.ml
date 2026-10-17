@@ -487,13 +487,129 @@ module Suite (G : Grade.S) = struct
           check "a closure entailed below an idempotent upper bound"
             (E.Eps.follows entail (X.Eps.const plus) a)
             (G.show plus ^ " ≾ a not entailed");
+          check "a closure entailed as a left multiplier"
+            (E.Eps.follows
+               (E.make bounds (eps_hyps [ hyp (en 1 *. a) a 1 ]))
+               (X.Eps.const plus *. a)
+               a)
+            (G.show plus ^ " · a ≾ a not entailed");
+          check "a closure entailed as a right multiplier"
+            (E.Eps.follows
+               (E.make bounds (eps_hyps [ hyp (a *. en 1) a 1 ]))
+               (a *. X.Eps.const plus)
+               a)
+            ("a · " ^ G.show plus ^ " ≾ a not entailed");
         ]
+        @ List.concat_map
+            (fun d ->
+              let shown = G.show d in
+              [
+                check
+                  ("left induction at " ^ shown)
+                  ((not (G.leq bounds (G.mul c d) d))
+                  || G.leq bounds (G.mul plus d) d)
+                  (G.show plus ^ " · " ^ shown ^ " not below " ^ shown);
+                check
+                  ("right induction at " ^ shown)
+                  ((not (G.leq bounds (G.mul d c) d))
+                  || G.leq bounds (G.mul d plus) d)
+                  (shown ^ " · " ^ G.show plus ^ " not below " ^ shown);
+              ])
+            [
+              G.one;
+              c;
+              delay 3;
+              G.top;
+              plus;
+              G.join c (delay 3);
+              G.mul plus (delay 3);
+            ]
+
+  (* The value of lowering [v] = [a] under lower bounds and cycles: where the
+     grade gives one, every cycle and lower bound holds at it; at the time
+     upper bounds and intervals, cycles of several shapes give the closure of a
+     tick, the unit and a tick a step give the closure of a tick above the
+     unit, and a cycle of no shape read gives no value. *)
+  let lowering =
+    let module V = Inference.Values.Make (X) in
+    let sort = V.eps bounds a_var in
+    let oracle =
+      {
+        Inference.Values.may_lower = (fun _ -> true);
+        may_raise = (fun _ -> true);
+      }
+    in
+    let value orderings =
+      Option.map
+        (fun (v : _ Inference.Values.value) -> v.value)
+        (Inference.Values.lower sort oracle
+           (List.mapi (fun i (lhs, rhs) -> hyp lhs rhs i) orderings))
+    in
+    let at x e =
+      X.Eps.subst
+        { X.empty_subst with eps_subst = X.Eps_var.Map.singleton a_var x }
+        e
+    in
+    let holds orderings =
+      match value orderings with
+      | None -> true
+      | Some x ->
+          List.for_all
+            (fun (lhs, rhs) ->
+              Option.is_some
+                (N.Eps.decide_leq bounds N.no_hyps (at x lhs) (at x rhs)))
+            orderings
+    in
+    let mixed_linear = [ (en 1, a); (en 2 *. a, a); (a *. en 3, a) ]
+    and square_linear = [ (en 1, a); (en 2 *. a, a); (a *. a, a) ]
+    and tick = [ (en 0, a); (en 1 *. a, a) ]
+    and other = [ (en 1, a); (en 1 *. a *. a, a) ] in
+    let show = show_option show_eps in
+    let named = G.name = "time-upper-bound" || G.name = "time-interval" in
+    let closure g = Option.map X.Eps.const (G.plus g) in
+    let same_grade name expected actual =
+      check name
+        (match (expected, Option.bind actual X.Eps.value) with
+        | Some e, Some x -> G.equal bounds (Option.get (X.Eps.value e)) x
+        | None, None -> Option.is_none actual
+        | _ -> false)
+        ("expected " ^ show expected ^ ", got " ^ show actual)
+    in
+    List.map
+      (fun (name, orderings) ->
+        check
+          ("lowering holds: " ^ name)
+          (holds orderings)
+          ("value " ^ show (value orderings)))
+      [
+        ("left and right multipliers", mixed_linear);
+        ("a square and a multiplier", square_linear);
+        ("a tick a step", tick);
+        ("a cycle of no shape read", other);
+      ]
+    @
+    if named then
+      [
+        same_grade "left and right multipliers"
+          (closure (delay 1))
+          (value mixed_linear);
+        same_grade "a square and a multiplier"
+          (closure (delay 1))
+          (value square_linear);
+        same_grade "a tick a step"
+          (Option.map
+             (fun p -> X.Eps.const (G.join G.one (G.mul p G.one)))
+             (G.plus (delay 1)))
+          (value tick);
+        same_grade "a cycle of no shape read" None (value other);
+      ]
+    else []
 
   let run () =
     List.map
       (fun c -> { c with name = G.name ^ ": " ^ c.name })
       (expressions @ normal_forms @ decisions @ canonical_forms @ splits
-     @ closed_checks @ refutations @ closures)
+     @ closed_checks @ refutations @ closures @ lowering)
 end
 
 let variable_names =
