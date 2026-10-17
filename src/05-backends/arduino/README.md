@@ -776,7 +776,10 @@ port variable `PORT_M5STACK_GRAY`).
     after it, the bias drifting with the temperature; and with
     `{(!_ & ~Command)*}`, so that no motion was commanded since. The
     calibration is of a non-eternal type, built inside each box, so that
-    once unboxed it is used at once, not after the wait for Arm. The wait
+    once unboxed it is used at once, not after the wait for Arm. The bias
+    is measured only after `CheckAtRest` finds the robot at rest, its
+    verdict boxed with `{(Attitude; !10)*}` over the samples, and else the
+    robot shows "Hold still" and measures again. The wait
     for Arm is therefore bounded, 500 polls 400 ms apart, about 200 s,
     written without a recursion so that its grade is a bounded repetition,
     and each session calibrates anew.

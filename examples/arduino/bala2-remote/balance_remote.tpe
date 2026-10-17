@@ -171,7 +171,7 @@ let start () : state =
 (* The supervision. The bias of the gyroscope is the mean of 50 rates
    published by the step 10 ms apart, with the robot held still. *)
 
-let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; 10)*} =
+let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; !10)*} =
   match n with
   | 0 -> sum
   | m + 1 ->
@@ -193,15 +193,47 @@ let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; 10)*} =
 type aged = [[{[1000, ∞)}, {[0, 600000]}]]calibration
 type still = [{(!_ & ~Command)*}]calibration
 
+(* The measurement of the bias, only at rest: CheckAtRest of the package
+   m5-imu checks that the robot is still, and the rates are sampled at once
+   after it. The verdict of the check is boxed with {(Attitude; !10)*}, so
+   that it is used only after the samples and waits alone, with no other
+   operation, such as a Disarm or a Command, between the check and the
+   samples; the box spans the 50 samples. If the robot is not at rest, the
+   calibration shows "Hold still" and is repeated after 500 ms; after n
+   repetitions it ends with the last measurement. The bounds of CheckAtRest,
+   [17.95, 28.5] ms, are measured on the CoreS3 only, and provisional on the
+   Gray. *)
+let rec measure (n : nat) : aged * still
+    # {(CheckAtRest; (Attitude; !10)*; ShowTextAt; !500; ShowTextAt)*;
+       CheckAtRest; (Attitude; !10)*} =
+  let rest = perform CheckAtRest () in
+  box {(Attitude; !10)*} rest as checked in
+  let sum = rate_sum 50 0.0 in
+  unbox checked as at_rest in
+  let bias = sum /. 50.0 in
+  match n with
+  | 0 ->
+      box [{[1000, ∞)}, {[0, 600000]}] (Calibration bias) as aged in
+      box {(!_ & ~Command)*} (Calibration bias) as still in
+      (aged, still)
+  | m + 1 ->
+      if at_rest then (
+        box [{[1000, ∞)}, {[0, 600000]}] (Calibration bias) as aged in
+        box {(!_ & ~Command)*} (Calibration bias) as still in
+        (aged, still))
+      else (
+        perform ShowTextAt (0, 100, 2, "Hold still");
+        delay 500;
+        perform ShowTextAt (0, 100, 2, "Calibrating");
+        measure m)
+
 let calibrate () : aged * still
-    # {Disarm; ShowTextAt; (Attitude; 10)*} =
+    # {Disarm; ShowTextAt;
+       (CheckAtRest; (Attitude; !10)*; ShowTextAt; !500; ShowTextAt)*;
+       CheckAtRest; (Attitude; !10)*} =
   perform Disarm ();
   perform ShowTextAt (0, 100, 2, "Calibrating");
-  let sum = rate_sum 50 0.0 in
-  let bias = sum /. 50.0 in
-  box [{[1000, ∞)}, {[0, 600000]}] (Calibration bias) as aged in
-  box {(!_ & ~Command)*} (Calibration bias) as still in
-  (aged, still)
+  measure 4000000000
 
 (* The number of consecutive iterations of the drive without a message, about
    2 s, after which the link is reported lost. *)
@@ -306,7 +338,8 @@ let rec drive (n : nat) (silent : nat) : unit
           delay 25/2;
           drive m (min (silent + 1) silence_limit))
 
-(* Correctly accepted by the typechecker: a session calibrates the robot,
+(* Correctly accepted by the typechecker: a session calibrates the robot at
+   rest,
    holds it upright for a second and waits for Arm; at Arm it unboxes the
    calibration, at least a second and at most about 202 s old, with
    no Command since, arms the robot and drives it until Disarm, and
@@ -314,7 +347,9 @@ let rec drive (n : nat) (silent : nat) : unit
    protocol of the robot: calibration, Arm, commands and Disarm, in this
    order. *)
 let rec session (n : nat) : unit
-    # {(Disarm; ShowTextAt; (Attitude; 10)*; ShowTextAt; !1000; ShowTextAt;
+    # {(Disarm; ShowTextAt;
+        (CheckAtRest; (Attitude; !10)*; ShowTextAt; !500; ShowTextAt)*;
+        CheckAtRest; (Attitude; !10)*; ShowTextAt; !1000; ShowTextAt;
         (Receive; Report; !400)^[1, 500];
         (0 | Arm; ShowTextAt;
          (Receive; Command; (ShowTextAt; Beep | ShowTextAt | 0); Report;
@@ -369,41 +404,24 @@ let session_early () =
   else ()
 *)
 
-(* Correctly rejected by the typechecker: a session that waits for Arm
-   without a bound, by a recursion, arms the robot with a calibration that
-   may be older than 10 minutes:
+(* Correctly rejected by the typechecker: a measurement that checks the
+   robot at rest before it disarms it, and samples the rates after the
+   Disarm, when the motors may just have stopped and the robot moves:
 
-     Typing error: Variable `aged` is unboxed with grade `[{ShowTextAt;
-       !1000; (Receive; Report; !400)*; (Receive | 0)}, ...]` accumulated
-       since it was bound, which is not below its box grade
-       `[{[1000, ∞)}, {[0, 600000]}]`
+     Typing error: Variable `checked` is unboxed with grade `[{Disarm;
+       (Attitude; !10)*}, {Disarm; (Attitude; !10)*}]` accumulated since it
+       was bound, which is not below its box grade `[{(Attitude; !10)*},
+       {(Attitude; !10)*}]`
        ...
 *)
 (*
-let rec wait_arm_unbounded (n : nat) : bool
-    # {(Receive; Report; !400)*; (Receive | 0)} =
-  match n with
-  | 0 -> false
-  | m + 1 -> (
-      let latest, _ = remote_receive () in
-      unbox latest as r in
-      match r with
-      | Got Arm -> true
-      | _ ->
-          perform Report false;
-          delay 400;
-          wait_arm_unbounded m)
-
-let session_waited () =
-  let aged, still = calibrate () in
-  perform ShowTextAt (0, 100, 2, "Hold upright");
-  delay 1000;
-  if wait_arm_unbounded 4000000000 then (
-    unbox aged as calibration in
-    unbox still as _ in
-    perform Arm calibration;
-    drive 4000000000 0)
-  else ()
+let measure_unsettled () =
+  let rest = perform CheckAtRest () in
+  box {(Attitude; !10)*} rest as checked in
+  perform Disarm ();
+  let sum = rate_sum 50 0.0 in
+  unbox checked as at_rest in
+  if at_rest then sum /. 50.0 else 0.0
 *)
 
 (* Correctly rejected by the typechecker: an iteration of the drive that

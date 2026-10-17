@@ -1,0 +1,10 @@
+(* A measurement that checks the robot at rest before it disarms it, and
+   samples the rates after the Disarm, after balance_remote.tpe. *)
+
+let measure_unsettled () =
+  let rest = perform CheckAtRest () in
+  box {(Attitude; !10)*} rest as checked in
+  perform Disarm ();
+  let sum = rate_sum 50 0.0 in
+  unbox checked as at_rest in
+  if at_rest then sum /. 50.0 else 0.0
