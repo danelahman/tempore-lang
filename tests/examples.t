@@ -989,7 +989,7 @@ tests show those runs in detail.
   State: [
     [2, 2],
     [1, 1],
-    { resource_0 ↦ "detection antibody" # [0, 20] },
+    { resource_0 ↦ Reagent "detection antibody" # [0, 20] },
     [3, 3],
     [3, 3],
     [3, 3],
@@ -998,7 +998,7 @@ tests show those runs in detail.
     [65, 65],
     [3, 3],
     [1, 1],
-    { resource_2 ↦ "plate" # [15, 20] },
+    { resource_2 ↦ Developed "plate" # [15, 20] },
     [17, 17],
     [2, 2]
   ]
