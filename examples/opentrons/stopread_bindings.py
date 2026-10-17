@@ -3,9 +3,11 @@
 # The plates are flat 96-well plates in C1 ("plate 1") and C2 ("plate 2"),
 # their samples in the wells of the first column. The reservoir holds the
 # stop solution (A12). Stop and Read are handled by the simulated reader of
-# the program, which performs AddStop and Note. Each function declares the
-# nominal duration of its action in seconds by tempore_elapse, the duration
-# the virtual clock of a simulation advances by.
+# the program, which performs AddStop and Note. A plate is passed as the
+# Tempore value Plate name, a tempore_Con whose argument is its name; AddStop
+# returns the value it is given. Each function declares the nominal duration
+# of its action in seconds by tempore_elapse, the duration the virtual clock
+# of a simulation advances by.
 
 ROWS = ["A", "B", "C", "D", "E", "F", "G", "H"]
 SLOTS = {"plate 1": "C1", "plate 2": "C2"}
@@ -23,12 +25,12 @@ def setup(protocol):
 
 
 def AddStop(ctx, plate):
-    wells = [ctx["plates"][plate]["%s1" % row] for row in ROWS]
+    wells = [ctx["plates"][plate.arg]["%s1" % row] for row in ROWS]
     ctx["pipette"].distribute(100, ctx["reservoir"]["A12"], wells)
     tempore_elapse(60)
     return plate
 
 
 def Note(ctx, plate):
-    ctx["protocol"].comment("Simulated reading of %s at 450 nm" % plate)
+    ctx["protocol"].comment("Simulated reading of %s at 450 nm" % plate.arg)
     return ()

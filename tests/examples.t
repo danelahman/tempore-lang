@@ -1242,9 +1242,9 @@ tests show those runs in detail.
   State: [
     { resource_1 ↦ <fun> # [1, 2] },
     [2, 2],
-    { resource_2 ↦ "plate 1" # [0, 30], resource_4 ↦ <fun> # [1, 2] },
+    { resource_2 ↦ Plate "plate 1" # [0, 30], resource_4 ↦ <fun> # [1, 2] },
     [2, 2],
-    { resource_5 ↦ "plate 2" # [0, 30], resource_7 ↦ <fun> # [1, 2] },
+    { resource_5 ↦ Plate "plate 2" # [0, 30], resource_7 ↦ <fun> # [1, 2] },
     [1, 1],
     { resource_9 ↦ <fun> # [1, 2] },
     [1, 1]
