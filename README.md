@@ -1710,7 +1710,7 @@ The examples in [`examples/arduino/`](examples/arduino/), by board:
   [`steps`](examples/arduino/steps/steps.tpe), a step counter;
   [`starter`](examples/arduino/starter/starter.tpe), a sprint start system;
   [`bala2-controller`](examples/arduino/bala2-controller/controller.tpe),
-  the controller of `bala2-remote`.
+  the controller of `bala2-remote`, under the rigid regular expressions.
 
 #### Quick start
 <!-- web-skip -->

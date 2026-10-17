@@ -1,0 +1,13 @@
+(* A drive that shows the pitch before it sends the command, after
+   controller.tpe. *)
+
+let drive_shown () =
+  let accel, _ = perform ReadImu () in
+  box {(!_ & ~ReadImu)*} accel as latest in
+  box [0, 2] accel as recent in
+  perform ShowNumberAt (120, 100, 2, 0, tilt_x_of_accel accel);
+  unbox latest as pitched in
+  unbox recent as rolled in
+  let speed = command speed_gain speed_limit (tilt_x_of_accel pitched) in
+  let turn = command turn_gain turn_limit (tilt_y_of_accel rolled) in
+  perform SendDrive (speed, turn)

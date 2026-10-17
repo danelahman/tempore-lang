@@ -4,8 +4,9 @@
 
    A message is encoded as a packet of a tag and two floats: Arm as tag 1,
    Drive (speed, turn) as tag 2 with the speed and the turn, Disarm as tag 3
-   and Beat as tag 4, the unused floats 0. A packet of another tag, and no
-   packet, decode to Nothing.
+   and Beat as tag 4, the unused floats 0, as do the bindings of SendArm,
+   SendDrive, SendDisarm and SendBeat in bala2_remote.cpp. A packet of
+   another tag, and no packet, decode to Nothing.
 
    The constants of the protocol, in milliseconds: the controller sends a
    message at least every 50 ms; a packet is received only if it arrived at

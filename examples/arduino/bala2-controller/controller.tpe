@@ -1,9 +1,9 @@
 (* The controller of the BALA2 on the M5Stack CoreS3: drive by tilt over
-   ESP-NOW, arm and disarm by touch
+   ESP-NOW, arm and disarm by touch, under rigid timed regular expressions
 
-   Run this example with the 'time-interval-rational' grading monoid, e.g.
+   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades time-interval-rational \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        --package m5-imu \
        --package m5-display \
        --package m5-touch \
@@ -12,28 +12,19 @@
        --board m5stack-cores3 \
        examples/arduino/bala2-controller/controller.tpe
 
-   Grades [q, r], [q, r), (q, r], (q, r): between q and r milliseconds
-     - Unit [0, 0]: no time spent
-     - Top [0, ∞): no bound, the widest interval
-     - Product: componentwise addition, an end open if either end added is *)
+   Grades [L, U]: a lower bound in the coverage order and an upper bound in
+   the rigid allowance order on the traces with rational durations
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
 
 (* Runs on the M5Stack CoreS3 (controller.device.json): 'remote' as a free
-   task, sending a message of the package bala2-remote to the robot of
-   examples/arduino/bala2-remote in each iteration of its loop, under 50 ms
+   task, sending the messages of the package bala2-remote, one operation per
+   message, to the robot of examples/arduino/bala2-remote, under 50 ms
    apart. On the board: make arduino-bala2-controller-upload
    REMOTE_PEER=XX:XX:XX:XX:XX:XX, the address of the robot (by default
    broadcast); simulated on the host, with world.cpp tilting and touching
    the device: make arduino-bala2-controller-simulate. *)
-
-(* The mode of the controller and the message it sends: Idle, Beat; Arming,
-   Arm, for a number of further iterations; Armed, Drive; Disarming,
-   Disarm, likewise. A message is sent repeatedly, since the robot reads only
-   the latest packet. *)
-type mode = Idle | Arming of nat | Armed | Disarming of nat
-
-(* The number of further iterations in which Arm or Disarm is sent after a
-   tap, about 250 ms. *)
-let repeats = 20
 
 (* The command of a tilt: the dead zone, in degrees, and the gain and the
    bound of the speed of the wheels, in encoder counts per second, per
@@ -45,8 +36,6 @@ let speed_gain = 16.0
 let speed_limit = 400.0
 let turn_gain = 4.0
 let turn_limit = 100.0
-
-let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
 let clamp (limit : float) (x : float) =
   if x < ~-.limit then ~-.limit else if x > limit then limit else x
@@ -74,72 +63,128 @@ let press (x : nat) (y : nat) =
   else if x >= 164 then DisarmPress
   else NoPress
 
-let next (m : mode) (p : press) =
-  match p with
-  | ArmPress -> Arming repeats
-  | DisarmPress -> Disarming repeats
-  | NoPress -> (
-      match m with
-      | Arming 0 -> Armed
-      | Arming (k + 1) -> Arming k
-      | Disarming 0 -> Idle
-      | Disarming (k + 1) -> Disarming k
-      | _ -> m)
-
-let message (m : mode) (speed : float) (turn : float) =
-  match m with
-  | Idle -> Beat
-  | Arming _ -> Arm
-  | Armed -> Drive (speed, turn)
-  | Disarming _ -> Disarm
-
-let armed (m : mode) =
-  match m with Arming _ -> true | Armed -> true | _ -> false
-
-(* What the screen shows: whether the robot is shown armed, the speed and
-   the turn shown, and whether the speed is redrawn next. *)
-type view = bool * float * float * bool
-
-(* Correctly accepted by the typechecker: an iteration reads the touch
-   screen and the unit, sends the message of its mode, redraws at most one
-   band, the mode if it changed, and else the speed or the turn, in turn, if
-   it changed, and waits 10.5 ms; it takes 10.7 to 47.45 ms, below the
-   50 ms within which the robot expects a message. *)
-let iteration
-    ((m, (shown, shown_speed, shown_turn, speed_next)) : mode * view) :
-    mode * view # [0, 50) =
-  let touched, x, y = perform ReadTouch () in
-  let m = next m (if touched then press x y else NoPress) in
-  let accel, _ = perform ReadImu () in
-  let speed = command speed_gain speed_limit (tilt_x_of_accel accel) in
-  let turn = command turn_gain turn_limit (tilt_y_of_accel accel) in
-  remote_send (message m speed turn);
-  let now = armed m in
-  let view =
-    if now = shown then
-      if speed_next then
-        if speed = shown_speed then (now, shown_speed, shown_turn, false)
-        else (
-          perform ShowNumberAt (120, 100, 2, 0, speed);
-          (now, speed, shown_turn, false))
-      else if turn = shown_turn then (now, shown_speed, shown_turn, true)
+(* Disarmed: Beat every 10.5 ms after a reading of the touch screen, until a
+   tap on Arm; false if none comes in n readings. *)
+let rec idle (n : nat) : bool
+    # {(ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0)} =
+  match n with
+  | 0 -> false
+  | m + 1 ->
+      let touched, x, y = perform ReadTouch () in
+      if touched && press x y = ArmPress then true
       else (
-        perform ShowNumberAt (120, 140, 2, 0, turn);
-        (now, shown_speed, turn, true))
-    else (
-      (if now then perform ShowTextAt (0, 60, 2, "Armed")
-       else perform ShowTextAt (0, 60, 2, "Disarmed"));
-      (now, shown_speed, shown_turn, speed_next))
-  in
-  delay 21/2;
-  (m, view)
+        perform SendBeat ();
+        delay 21/2;
+        idle m)
 
-let rec control (n : nat) (s : mode * view) : unit # [0, ∞) =
+(* Arm and Disarm, each sent 20 times 12.5 ms apart, about 250 ms, since the
+   robot reads only the latest packet. *)
+let arm_five () : unit # {(SendArm; !25/2)^5} =
+  perform SendArm ();
+  delay 25/2;
+  perform SendArm ();
+  delay 25/2;
+  perform SendArm ();
+  delay 25/2;
+  perform SendArm ();
+  delay 25/2;
+  perform SendArm ();
+  delay 25/2
+
+let arming () : unit # {(SendArm; !25/2)^20} =
+  arm_five ();
+  arm_five ();
+  arm_five ();
+  arm_five ()
+
+let disarm_five () : unit # {(SendDisarm; !25/2)^5} =
+  perform SendDisarm ();
+  delay 25/2;
+  perform SendDisarm ();
+  delay 25/2;
+  perform SendDisarm ();
+  delay 25/2;
+  perform SendDisarm ();
+  delay 25/2;
+  perform SendDisarm ();
+  delay 25/2
+
+let disarming () : unit # {(SendDisarm; !25/2)^20} =
+  disarm_five ();
+  disarm_five ();
+  disarm_five ();
+  disarm_five ()
+
+(* What the screen shows: the speed and the turn shown, and whether the
+   speed is redrawn next. *)
+type view = float * float * bool
+
+(* Correctly accepted by the typechecker: armed, an iteration reads the
+   touch screen, and ends the phase at a tap on Disarm; otherwise it reads
+   the unit, sends Drive with the speed from the pitch and the turn from the
+   roll, redraws at most the speed or the turn, in turn, if it changed, and
+   waits 10.5 ms. The reading is boxed twice, as the messages of the robot:
+   with {(!_ & ~ReadImu)*}, so that the command is that of the latest
+   reading, and with [0, 2], so that it is sent within 2 ms of the reading;
+   the speed comes from the first box and the turn from the second. An
+   iteration takes 10.7 to 47.45 ms. *)
+let rec armed (n : nat) ((shown_speed, shown_turn, speed_next) : view) : view
+    # {(ReadTouch; ReadImu; SendDrive; (ShowNumberAt | 0); !21/2)*;
+       (ReadTouch | 0)} =
+  match n with
+  | 0 -> (shown_speed, shown_turn, speed_next)
+  | m + 1 ->
+      let touched, x, y = perform ReadTouch () in
+      if touched && press x y = DisarmPress then
+        (shown_speed, shown_turn, speed_next)
+      else
+        let accel, _ = perform ReadImu () in
+        box {(!_ & ~ReadImu)*} accel as latest in
+        box [0, 2] accel as recent in
+        unbox latest as pitched in
+        unbox recent as rolled in
+        let speed =
+          command speed_gain speed_limit (tilt_x_of_accel pitched)
+        in
+        let turn = command turn_gain turn_limit (tilt_y_of_accel rolled) in
+        perform SendDrive (speed, turn);
+        let view =
+          if speed_next then
+            if speed = shown_speed then (shown_speed, shown_turn, false)
+            else (
+              perform ShowNumberAt (120, 100, 2, 0, speed);
+              (speed, shown_turn, false))
+          else if turn = shown_turn then (shown_speed, shown_turn, true)
+          else (
+            perform ShowNumberAt (120, 140, 2, 0, turn);
+            (shown_speed, turn, true))
+        in
+        delay 21/2;
+        armed m view
+
+(* Correctly accepted by the typechecker: a session sends Beat until a tap
+   on Arm, Arm 20 times, Drive until a tap on Disarm, and Disarm 20 times,
+   in this order; its grade is the protocol of the controller, and its
+   strict delays and operations bound the time from the end of one message
+   to the start of the next by 48.45 ms, below the 50 ms within which the
+   robot expects one. *)
+let rec session (n : nat) (v : view) : unit
+    # {((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0);
+        (SendArm; !25/2)^20; ShowTextAt;
+        (ReadTouch; ReadImu; SendDrive; (ShowNumberAt | 0); !21/2)*;
+        (ReadTouch | 0); (SendDisarm; !25/2)^20; ShowTextAt)*;
+       ((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0) | 0)} =
   match n with
   | 0 -> ()
-  | k + 1 ->
-      let s = iteration s in
-      control k s
+  | m + 1 ->
+      if idle 4000000000 then (
+        arming ();
+        perform ShowTextAt (0, 60, 2, "Armed");
+        let v = armed 4000000000 v in
+        disarming ();
+        perform ShowTextAt (0, 60, 2, "Disarmed");
+        session m v)
+      else ()
 
 let remote () =
   perform LinkStart remote_channel;
@@ -153,53 +198,82 @@ let remote () =
   perform ShowNumberAt (120, 140, 2, 0, 0.0);
   perform DrawButton (0, 188, 156, 40, "Arm");
   perform DrawButton (164, 188, 156, 40, "Disarm");
-  control 4000000000 (Idle, (false, 0.0, 0.0, true))
+  session 4000000000 (0.0, 0.0, true)
 
-(* Correctly rejected by the typechecker: an iteration that redraws both the
-   speed and the turn may take 80.45 ms, so that the robot may find no
-   message younger than 50 ms:
+(* Correctly rejected by the typechecker: a session that sends Arm once,
+   which the robot may miss, as it reads only the latest packet:
 
-     Typing error: This function's body has grade `[10.8, 80.45]`, which
-       does not match its annotated grade `[0, 50)`
-       Note: the effect inequality `[10.8, 80.45] <= [0, 50)` does not hold
+     Typing error: This function's body has grade `[{(ReadTouch; SendBeat;
+       !10.5)*; (ReadTouch | 0); (0 | SendArm; !12.5; ShowTextAt; ...`,
+       which does not match its annotated grade `[{((ReadTouch; SendBeat;
+       !10.5)*; (ReadTouch | 0); (SendArm; !12.5)^20; ShowTextAt; ...`
+       ...
 *)
 (*
-let iteration_both ((m, view) : mode * view) : mode * view # [0, 50) =
-  let touched, x, y = perform ReadTouch () in
-  let m = next m (if touched then press x y else NoPress) in
-  let accel, _ = perform ReadImu () in
-  let speed = command speed_gain speed_limit (tilt_x_of_accel accel) in
-  let turn = command turn_gain turn_limit (tilt_y_of_accel accel) in
-  remote_send (message m speed turn);
-  perform ShowNumberAt (120, 100, 2, 0, speed);
-  perform ShowNumberAt (120, 140, 2, 0, turn);
-  delay 21/2;
-  (m, view)
+let rec session_once (n : nat) (v : view) : unit
+    # {((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0);
+        (SendArm; !25/2)^20; ShowTextAt;
+        (ReadTouch; ReadImu; SendDrive; (ShowNumberAt | 0); !21/2)*;
+        (ReadTouch | 0); (SendDisarm; !25/2)^20; ShowTextAt)*;
+       ((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0) | 0)} =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      if idle 4000000000 then (
+        perform SendArm ();
+        delay 25/2;
+        perform ShowTextAt (0, 60, 2, "Armed");
+        let v = armed 4000000000 v in
+        disarming ();
+        perform ShowTextAt (0, 60, 2, "Disarmed");
+        session_once m v)
+      else ()
 *)
 
-(* Correctly rejected by the typechecker: an iteration that waits 40 ms, to
-   send at about 20 Hz, may take 76.95 ms with a redraw:
+(* Correctly rejected by the typechecker: a drive that reads the unit twice
+   and averages the pitches, so that the first reading is no longer the
+   latest:
 
-     Typing error: This function's body has grade `[40.2, 76.95]`, which
-       does not match its annotated grade `[0, 50)`
-       Note: the effect inequality `[40.2, 76.95] <= [0, 50)` does not hold
+     Typing error: Variable `latest` is unboxed with grade `[{ReadImu},
+       {ReadImu}]` accumulated since it was bound, which is not below its box
+       grade `[{(!_ & ~ReadImu)*}, {(!_ & ~ReadImu)*}]`
+       ...
 *)
 (*
-let iteration_slow
-    ((m, (shown, shown_speed, shown_turn, speed_next)) : mode * view) :
-    mode * view # [0, 50) =
-  let touched, x, y = perform ReadTouch () in
-  let m = next m (if touched then press x y else NoPress) in
+let drive_averaged () =
   let accel, _ = perform ReadImu () in
-  let speed = command speed_gain speed_limit (tilt_x_of_accel accel) in
-  let turn = command turn_gain turn_limit (tilt_y_of_accel accel) in
-  remote_send (message m speed turn);
-  (if speed = shown_speed then ()
-   else perform ShowNumberAt (120, 100, 2, 0, speed));
-  delay 40;
-  (m, (shown, speed, shown_turn, speed_next))
+  box {(!_ & ~ReadImu)*} accel as latest in
+  box [0, 2] accel as recent in
+  let again, _ = perform ReadImu () in
+  unbox latest as pitched in
+  unbox recent as rolled in
+  let pitch = (tilt_x_of_accel pitched +. tilt_x_of_accel again) /. 2.0 in
+  let speed = command speed_gain speed_limit pitch in
+  let turn = command turn_gain turn_limit (tilt_y_of_accel rolled) in
+  perform SendDrive (speed, turn)
 *)
 
-(* An iteration from the default implementations of the operations: no
-   touch, the unit flat, and Beat sent. *)
-run iteration (Idle, (false, 0.0, 0.0, true))
+(* Correctly rejected by the typechecker: a drive that shows the pitch
+   before it sends the command, up to 33 ms after the reading:
+
+     Typing error: Variable `recent` is unboxed with grade
+       `[{ShowNumberAt}, {ShowNumberAt}]` accumulated since it was bound,
+       which is not below its box grade `[{0}, {2}]`
+       ...
+*)
+(*
+let drive_shown () =
+  let accel, _ = perform ReadImu () in
+  box {(!_ & ~ReadImu)*} accel as latest in
+  box [0, 2] accel as recent in
+  perform ShowNumberAt (120, 100, 2, 0, tilt_x_of_accel accel);
+  unbox latest as pitched in
+  unbox recent as rolled in
+  let speed = command speed_gain speed_limit (tilt_x_of_accel pitched) in
+  let turn = command turn_gain turn_limit (tilt_y_of_accel rolled) in
+  perform SendDrive (speed, turn)
+*)
+
+(* An iteration of the armed phase from the default implementations of the
+   operations: no touch, the unit flat, and Drive (0, 0) sent. *)
+run armed 1 (0.0, 0.0, true)
