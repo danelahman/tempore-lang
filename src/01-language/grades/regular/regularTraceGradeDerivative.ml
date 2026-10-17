@@ -56,6 +56,7 @@ module Constants = struct
 
   let leq_symbol = "<="
   let unit_least = false
+  let plus _ = None
   let commutative = false
   let needs_op_bounds = false
   let duration_bounds _bounds _ = None

@@ -33,6 +33,9 @@ module OfLattice (D : Delay.S) (L : LATTICE) = struct
   let hash = L.hash
   let counterexample _bounds _ _ = None
   let unit_least = true
+
+  (* The product is the join, so every element is its own closure. *)
+  let plus l = Some l
   let commutative = true
   let needs_op_bounds = false
   let duration_bounds _bounds _ = None
@@ -78,6 +81,12 @@ struct
     | None -> Option.map (fun e -> (a, e)) (G2.counterexample bounds b b')
 
   let unit_least = G1.unit_least && G2.unit_least
+
+  let plus (a, b) =
+    match (G1.plus a, G2.plus b) with
+    | Some a, Some b -> Some (a, b)
+    | _ -> None
+
   let commutative = G1.commutative && G2.commutative
   let needs_op_bounds = G1.needs_op_bounds || G2.needs_op_bounds
 
@@ -190,6 +199,7 @@ struct
     | None -> if N.leq n n' then None else Some (m, n)
 
   let unit_least = M.unit_least
+  let plus _ = None
   let commutative = false
   let needs_op_bounds = M.needs_op_bounds
   let duration_bounds bounds (m, _) = M.duration_bounds bounds m
@@ -473,6 +483,7 @@ module Indexed = struct
         (names [ m; m' ])
 
     let unit_least = G.unit_least
+    let plus _ = None
     let commutative = G.commutative
     let needs_op_bounds = G.needs_op_bounds
     let duration_bounds _bounds _ = None

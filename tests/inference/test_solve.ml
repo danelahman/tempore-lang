@@ -66,7 +66,7 @@ let expected_rejections =
     ("tests/alias_cyclic_reject_parameter.tpe", [ 3 ]);
     ("tests/alias_cyclic_reject_through_alias.tpe", [ 3 ]);
     ("tests/andalso_reject_tuple.tpe", [ 4 ]);
-    ("tests/annotation_grade_variables_cyclic_reject.tpe", [ 15; 28 ]);
+    ("tests/annotation_grade_variables_cyclic_reject.tpe", [ 15; 25 ]);
     ("tests/annotation_grade_variables_interval_reject.tpe", [ 25 ]);
     ("tests/annotation_grade_variables_reject.tpe", [ 11; 18 ]);
     ("tests/annotation_recursion_reject.tpe", [ 4; 8 ]);
@@ -165,6 +165,8 @@ let expected_rejections =
     ("tests/positivity_reject_nested.tpe", [ 3 ]);
     ("tests/positivity_reject_omega.tpe", [ 7 ]);
     ("tests/positivity_reject_parameter.tpe", [ 5 ]);
+    ("tests/recursion_closure_reject_interval.tpe", [ 13 ]);
+    ("tests/recursion_closure_reject_upper.tpe", [ 15; 19 ]);
     ("tests/recursion_effect_reject_invariant.tpe", [ 8 ]);
     ("tests/recursion_effect_reject_lower.tpe", [ 7 ]);
     ("tests/recursion_effect_reject_unannotated.tpe", [ 8 ]);
@@ -710,7 +712,7 @@ module Small (G : Grade.S) = struct
         ()
     | outcome -> fail "stuck (%s): got %t" name (S.print_outcome outcome)
 
-  (* [∃ε. ε · 1 ≾ ε ∧ ε ≾ 3] under time-upper-bound: satisfiable is not
+  (* [∃ε. ε · ε · 1 ≾ ε ∧ ε ≾ 3] under time-upper-bound: satisfiable is not
      refuted, established finds no closed instance, and the search at a budget
      of one trial is abandoned. *)
   let unestablished () =
@@ -719,7 +721,7 @@ module Small (G : Grade.S) = struct
       C.Exists
         ( vars ~eps:[ e ] (),
           C.And
-            ( leq 1 (v e * X.Eps.const (delay 1)) (v e),
+            ( leq 1 (v e * v e * X.Eps.const (delay 1)) (v e),
               leq 2 (v e) (X.Eps.const (delay 3)) ) )
     in
     let context = P.context Gen.initial_env in
@@ -745,6 +747,27 @@ module Small (G : Grade.S) = struct
         | Ok _ -> fail "abandoned (%s): an instance found" name)
       (solved "unestablished" constr)
 
+  (* [∃ε. ε · ε ≾ ε ∧ 1 ≾ ε ∧ ε ≾ 1] under time-upper-bound: solved, and
+     refuted by its report, which equates [ε] with [1] and leaves the closed
+     ordering [1 · 1 ≾ 1]. *)
+  let reported_closed () =
+    let e = eps_var () and one = X.Eps.const (delay 1) in
+    let constr =
+      C.Exists
+        ( vars ~eps:[ e ] (),
+          C.And
+            (leq 1 (v e * v e) (v e), C.And (leq 2 one (v e), leq 3 (v e) one))
+        )
+    in
+    Option.iter
+      (fun (s : S.solution) ->
+        match S.generalise (Ast.TyTuple []) s with
+        | Error (R.Refuted_eps _) -> ()
+        | Error f ->
+            fail "reported closed (%s): got %t" name (R.print_failure f)
+        | Ok _ -> fail "reported closed (%s): not refuted" name)
+      (solved "reported closed" constr)
+
   let run () =
     decomposition ();
     handler_decomposition ();
@@ -761,7 +784,9 @@ module Small (G : Grade.S) = struct
       retry ();
       retry_after_close ();
       stuck ());
-    if G.name = "time-upper-bound" then unestablished ()
+    if G.name = "time-upper-bound" then (
+      unestablished ();
+      reported_closed ())
 end
 
 (* ------------------------------------------------------------------ *)

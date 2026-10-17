@@ -126,7 +126,7 @@ it names none:
   File "annotation_grade_variables_cyclic_reject.tpe", line 15, characters 22-23:
   15 | let h () : unit # 5 = f (fun () -> ())
                              ^
-  Typing error: The effect inequality `10 <= 5` does not hold
+  Typing error: The effect inequality `∞ <= 5` does not hold
     File "annotation_grade_variables_cyclic_reject.tpe", line 11, characters 0-58:
     11 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -136,26 +136,25 @@ it names none:
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
   
-  File "annotation_grade_variables_cyclic_reject.tpe", line 28, characters 4-7:
-  28 | run bad ()
-           ^^^
-  Typing error: The conditions of this run could not be established: `1 · ε₀ <= 3` and `1 · ε₀ <= ε₀`
-    File "annotation_grade_variables_cyclic_reject.tpe", line 24, characters 0-31:
-    24 | let bad () : unit # 3 = loop 20
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    `bad` is defined here
+  File "annotation_grade_variables_cyclic_reject.tpe", line 25, characters 24-28:
+  25 | let bad () : unit # 3 = loop 20
+                               ^^^^
+  Typing error: The effect inequality `∞ <= 3` does not hold
     File "annotation_grade_variables_cyclic_reject.tpe", lines 19-20, characters 0-51:
     19 | let rec loop (n : nat) : unit # 'e =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `loop` is defined here
-    Note: this run requires grades for its unknowns at which every one of these holds; none of the grades tried does, although the definitions they come from were accepted
+    File "annotation_grade_variables_cyclic_reject.tpe", line 25, characters 11-31:
+    25 | let bad () : unit # 3 = loop 20
+                    ^^^^^^^^^^^^^^^^^^^^
+    the inequality goes through the annotation here
   ======================================================================
   annotation_grade_variables_interval_reject.tpe
   ======================================================================
   File "annotation_grade_variables_interval_reject.tpe", line 25, characters 27-28:
   25 | let h () : unit # [0, 5] = f (fun () -> ())
                                   ^
-  Typing error: The effect inequality `[10, 10] <= [0, 5]` does not hold
+  Typing error: The effect inequality `[0, ∞) <= [0, 5]` does not hold
     File "annotation_grade_variables_interval_reject.tpe", line 14, characters 0-58:
     14 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -738,23 +737,18 @@ it names none:
   ======================================================================
   default_reject_unestablished.tpe
   ======================================================================
-  File "default_reject_unestablished.tpe", line 18, characters 0-23:
+  File "default_reject_unestablished.tpe", line 18, characters 16-20:
   18 | default Op () = loop 20
-       ^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The conditions of this default implementation could not be established: `ε₀ <= 3` and `1 · ε₀ <= ε₀`
-    File "default_reject_unestablished.tpe", line 13, characters 0-31:
-    13 | operation Op : unit ~> unit # 3
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Op` is declared here
+                       ^^^^
+  Typing error: The effect inequality `∞ <= 3` does not hold
     File "default_reject_unestablished.tpe", lines 10-11, characters 0-51:
     10 | let rec loop (n : nat) : unit # 'e =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `loop` is defined here
-    File "default_reject_unestablished.tpe", line 18, characters 16-20:
+    File "default_reject_unestablished.tpe", line 18, characters 0-23:
     18 | default Op () = loop 20
-                         ^^^^
-    the inequality goes through the type of `loop` here
-    Note: this default implementation requires grades for its unknowns at which every one of these holds; none of the grades tried does, although the definitions they come from were accepted
+         ^^^^^^^^^^^^^^^^^^^^^^^
+    the inequality goes through the default implementation of `Op` here
   ======================================================================
   default_reject_unknown.tpe
   ======================================================================
@@ -3422,6 +3416,84 @@ it names none:
   ]
   
   ======================================================================
+  recursion_closure_interval.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    { resource_1 ↦ <fun> # [1, ∞) },
+    [1, 1],
+    [1, 1],
+    [1, 1],
+    [1, 1]
+  ]
+  
+  ======================================================================
+  recursion_closure_reject_interval.tpe
+  ======================================================================
+  File "recursion_closure_reject_interval.tpe", line 18, characters 11-29:
+  18 |       w 2; continue k with ()
+                  ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with grade `[1, ∞)` accumulated since it was bound, which is not below its box grade `[1, 5]`
+    File "recursion_closure_reject_interval.tpe", line 15, characters 11-12:
+    15 |   | Read p k ->
+                    ^
+    `k` is bound here
+    File "recursion_closure_reject_interval.tpe", line 18, characters 6-9:
+    18 |       w 2; continue k with ()
+               ^^^
+    grade `[1, ∞)` accumulates here (this computation)
+    Note: the resource inequality `[1, ∞) <= [1, 5]` does not hold
+  ======================================================================
+  recursion_closure_reject_upper.tpe
+  ======================================================================
+  File "recursion_closure_reject_upper.tpe", line 15, characters 22-26:
+  15 | let f () : unit # 1 = wait 2
+                             ^^^^
+  Typing error: The effect inequality `∞ <= 1` does not hold
+    File "recursion_closure_reject_upper.tpe", lines 10-11, characters 0-51:
+    10 | let rec wait (n : nat) : unit # 'e =
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `wait` is defined here
+    File "recursion_closure_reject_upper.tpe", line 15, characters 9-28:
+    15 | let f () : unit # 1 = wait 2
+                  ^^^^^^^^^^^^^^^^^^^
+    the inequality goes through the annotation here
+  
+  File "recursion_closure_reject_upper.tpe", line 21, characters 16-20:
+  21 |   | Read p k -> wait 2
+                       ^^^^
+  Typing error: The effect inequality `∀ε_Read. ∞ <= 1 · ε_Read` does not hold
+    File "recursion_closure_reject_upper.tpe", lines 10-11, characters 0-51:
+    10 | let rec wait (n : nat) : unit # 'e =
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `wait` is defined here
+    File "recursion_closure_reject_upper.tpe", line 21, characters 4-22:
+    21 |   | Read p k -> wait 2
+             ^^^^^^^^^^^^^^^^^^
+    the inequality goes through the case for `Read` here
+    File "recursion_closure_reject_upper.tpe", line 21, characters 11-12:
+    21 |   | Read p k -> wait 2
+                    ^
+    `k` may have any grade `ε_Read`
+    Note: the effect inequality `∀ε_Read. ∞ <= 1 · ε_Read` does not hold: for `ε_Read = 0` it becomes `∞ <= 1`
+  ======================================================================
+  recursion_closure_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    1,
+    1
+  ]
+  
+  === Run 2 ===
+  return ()
+  State: [
+    { resource_1 ↦ <fun> # 1 }
+  ]
+  
+  ======================================================================
   recursion_effect_levels.tpe
   ======================================================================
   === Run 1 ===
@@ -3470,7 +3542,7 @@ it names none:
   File "recursion_effect_reject_unannotated.tpe", lines 8-13, characters 13-12:
   8 | let rec wait n =
                    ^^^
-  Typing error: The effect inequality `1 <= 0` does not hold
+  Typing error: The effect inequality `∞ <= 0` does not hold
   ======================================================================
   recursion_effect_reject_unannotated_regular.tpe
   ======================================================================
@@ -3517,22 +3589,30 @@ it names none:
   File "recursion_handler_reject_upper.tpe", lines 16-17, characters 26-55:
   16 |       let rec w (n : nat) : unit # 'e =
                                  ^^^^^^^^^^^^^
-  Typing error: This function's body has grade `2`, which does not match its annotated grade `1`
+  Typing error: This function's body has grade `∞`, which does not match its annotated grade `1 · ε_Read`
     File "recursion_handler_reject_upper.tpe", lines 15-18, characters 4-9:
     15 |   | Read p k ->
              ^^^^^^^^^^^
     the inequality goes through the case for `Read` here
-    Note: the effect inequality `2 <= 1` does not hold
+    File "recursion_handler_reject_upper.tpe", line 15, characters 11-12:
+    15 |   | Read p k ->
+                    ^
+    `k` may have any grade `ε_Read`
+    Note: the effect inequality `∀ε_Read. ∞ <= 1 · ε_Read` does not hold: for `ε_Read = 0` it becomes `∞ <= 1`
   
   File "recursion_handler_reject_upper.tpe", lines 26-27, characters 26-55:
   26 |       let rec w (n : nat) : unit # 'e =
                                  ^^^^^^^^^^^^^
-  Typing error: This function's body has grade `2`, which does not match its annotated grade `1`
+  Typing error: This function's body has grade `∞`, which does not match its annotated grade `1 · ε_Read`
     File "recursion_handler_reject_upper.tpe", lines 25-28, characters 4-9:
     25 |   | Read p k ->
              ^^^^^^^^^^^
     the inequality goes through the case for `Read` here
-    Note: the effect inequality `2 <= 1` does not hold
+    File "recursion_handler_reject_upper.tpe", line 25, characters 11-12:
+    25 |   | Read p k ->
+                    ^
+    `k` may have any grade `ε_Read`
+    Note: the effect inequality `∀ε_Read. ∞ <= 1 · ε_Read` does not hold: for `ε_Read = 0` it becomes `∞ <= 1`
   ======================================================================
   recursion_handler_upper.tpe
   ======================================================================

@@ -245,6 +245,7 @@ module Make (D : Delay.S) = struct
   let hash = hash
   let counterexample _bounds _ _ = None
   let unit_least = false
+  let plus _ = None
   let commutative = false
   let needs_op_bounds = false
   let duration_bounds _bounds _ = None

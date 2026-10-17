@@ -1,0 +1,18 @@
+(* Run this test with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval tests/recursion_closure_reject_interval.tpe
+
+   A recursive function whose base case takes a tick and whose recursive case
+   calls it twice: its grade contains [1, 1] and is closed under sums, so it
+   is [1, ∞). *)
+
+operation Read : unit ~> unit # [1, 5]
+
+(* Correctly rejected by the typechecker: the continuation is resumed after
+   w 2, whose grade [1, ∞) exceeds the grade [1, 5] of Read. *)
+let h = handler
+  | x -> x
+  | Read p k ->
+      let rec w (n : nat) : unit # 'e =
+        match n with 0 -> delay 1 | m + 1 -> (w m; w m) in
+      w 2; continue k with ()

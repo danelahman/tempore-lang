@@ -66,6 +66,7 @@ module Side (D : Delay.S) (O : ORIENTATION) = struct
     let hash = hash_bound
     let counterexample _bounds _ _ = None
     let unit_least = false
+    let plus _ = None
     let commutative = true
     let needs_op_bounds = false
     let duration_bounds _bounds _ = None

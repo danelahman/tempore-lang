@@ -99,6 +99,7 @@ let decide2 decide rho rho' =
 let one = { names = []; regex = Regex.eps }
 let mul = lift2 Regex.concat
 let join = lift2 (fun r s -> Regex.union [ r; s ])
+let plus _ = None
 let top = { names = []; regex = Regex.top }
 let leq _bounds = decide2 D.subset
 let equal _bounds = decide2 D.equal

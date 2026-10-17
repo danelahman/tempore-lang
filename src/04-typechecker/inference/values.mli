@@ -8,15 +8,19 @@
     (Pottier, ICFP 1996; Trifonov and Smith, SAS 1996).
 
     - Lowering: every ordering has [v] on no right side, is [x ≾ v] with [x]
-      free of [v], a lower bound, or is valid; some ordering is a lower bound,
-      and [v] may decrease. The value is the join of the lower bounds, which it
-      discharges.
+      free of [v], a lower bound, is a cycle [p ≾ v] with [v] in [p] where the
+      sort reads cycles, or is valid; some ordering is a lower bound, and [v]
+      may decrease. The value is the join [L] of the lower bounds where every
+      cycle holds at it, and otherwise the least closure of [L] the cycles admit
+      ({!section-cycles}); it discharges the lower bounds and the cycles.
     - Raising: some ordering is [v ≾ U] with [U] free of [v], and every ordering
       is reflexive, has [v] on no left side, is [v ≾ x'] with [U ≾ x'] valid, or
       is valid; [v] may increase. The value is [U], the first such bound, and it
       discharges the orderings [v ≾ x'] it caps.
     - Least: the unit is least, the orderings are as for lowering with no lower
-      bound, and [v] may decrease. The value is the unit.
+      bound, and [v] may decrease. The value is the unit where every cycle holds
+      at it, and otherwise its least closure the cycles admit; it discharges the
+      cycles.
     - Top: every ordering with [v] on its left side is valid, and [v] may
       increase. The value is the top.
     - Forced unit: the unit is least and an ordering [v ≾ y], its left side [v]
@@ -24,7 +28,37 @@
       unit, at every solution of the ordering, whatever the occurrences of [v].
     - Equating: an ordering sets [v] against an expression [b], an earlier
       unknown or free of [v], that the hypotheses entail equal to [v]. The value
-      is [b]. *)
+      is [b].
+
+    {2:cycles Cycles}
+
+    The value of [v] under lower bounds of join [L] and cycles is the first of
+    the following at which every cycle holds, decided at no hypotheses: [L]; for
+    a cycle [v · v ≾ v] and a variable-free [L], its closure [L⁺]
+    ({!Grades.Grade.S.plus}); for the cycles [d · v ≾ v] with [d] variable-free,
+    of join [D], the value [L ⊔ D⁺ · L]; for the cycles [v · d ≾ v],
+    [L ⊔ L · D⁺]. Each is below every value of [v] above [L] meeting the cycles
+    it is drawn from, by the laws of the closure, so the value is the least at
+    which the lower bounds and the cycles hold: the rule is principal. Where
+    none holds, there is no value. *)
+
+(** The shape of the left side [p] of a cycle [p ≾ v]. *)
+type 'e shape =
+  | Square  (** [v · v] *)
+  | Left of 'e  (** [d · v], [d] a constant *)
+  | Right of 'e  (** [v · d], [d] a constant *)
+  | Other  (** any other *)
+
+type 'e cycles = {
+  replace : 'e -> 'e -> 'e;
+      (** [replace x e] is [e] with [v] replaced by [x] *)
+  shape : 'e -> 'e shape;  (** the shape of a cycle's left side *)
+  closure : 'e -> 'e option;
+      (** the closure of a variable-free expression, where the grade declares
+          one ({!Grades.Grade.S.plus}) *)
+  mul : 'e -> 'e -> 'e;  (** the product of two expressions *)
+}
+(** How the cycles [p ≾ v] of a sort are read. *)
 
 type 'e sort = {
   self : 'e;  (** [v] as an expression *)
@@ -44,6 +78,9 @@ type 'e sort = {
   unit_least : bool;
       (** whether the unit is least, so that an upper bound below the unit
           forces [v] to it *)
+  cycles : 'e cycles option;
+      (** how cycles are read, where the sort reads them; a cycle blocks
+          lowering and the least element otherwise *)
 }
 (** How the expressions of one sort are read for the unknown [v]. *)
 
@@ -72,7 +109,8 @@ val lower :
   ('e, 'a) oracle ->
   ('e, 'a) GradeNormal.ordering list ->
   ('e, 'a) value option
-(** [lower sort oracle os] is the join of the lower bounds of [v] in [os]. *)
+(** [lower sort oracle os] is the join of the lower bounds of [v] in [os], or
+    its least closure that the cycles of [v] admit. *)
 
 val raise :
   'e sort ->
@@ -87,8 +125,8 @@ val least :
   ('e, 'a) oracle ->
   ('e, 'a) GradeNormal.ordering list ->
   ('e, 'a) value option
-(** [least sort oracle os] is the unit, where it is least and [v] has no lower
-    bound in [os]. *)
+(** [least sort oracle os] is the unit, or its least closure that the cycles of
+    [v] admit, where the unit is least and [v] has no lower bound in [os]. *)
 
 val top :
   'e sort ->

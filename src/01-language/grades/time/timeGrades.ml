@@ -55,6 +55,9 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let hash = D.hash
     let counterexample _bounds _ _ = None
     let unit_least = false
+
+    (* Every lower bound is its own closure: [n + n >= n]. *)
+    let plus n = Some n
     let commutative = true
     let needs_op_bounds = false
     let events _ = []
@@ -91,6 +94,9 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let hash = Ext.hash
     let counterexample _bounds _ _ = None
     let unit_least = true
+
+    (* The closure of a positive bound is [∞], that of [0] itself. *)
+    let plus n = Some (if Ext.equal n one then one else Ext.Inf)
     let commutative = true
     let needs_op_bounds = false
     let events _ = []
@@ -192,6 +198,13 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
 
     let counterexample _bounds _ _ = None
     let unit_least = false
+
+    (* An interval with a positive upper endpoint closes to the same lower
+       endpoint and no upper one; the unit is its own closure. *)
+    let plus c =
+      if Ext.equal c.hi (Ext.Fin D.zero) then Some c
+      else Some { c with hi = Ext.Inf; hi_closed = false }
+
     let commutative = true
     let needs_op_bounds = false
     let events _ = []

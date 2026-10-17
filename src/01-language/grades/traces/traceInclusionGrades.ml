@@ -29,6 +29,7 @@ module Make (D : Delay.S) (N : TimedTraceGrades.NAMES) = struct
           Option.map (fun s -> Within [ s ]) (Trace.missing p q)
 
     let unit_least = false
+    let plus _ = None
     let commutative = false
     let needs_op_bounds = false
     let duration_bounds _bounds _ = None

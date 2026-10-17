@@ -19,10 +19,7 @@ let h () : unit # 5 = f (fun () -> ())
 let rec loop (n : nat) : unit # 'e =
   match n with 0 -> () | m + 1 -> (loop m; delay 1)
 
-(* Accepted at its definition, where its qualifier 1 · ε₀ ≾ ε₀ ∧ 1 · ε₀ ≾ 3
-   is not refuted. *)
+(* Correctly rejected by the typechecker: the least grade ε₀ with
+   1 · ε₀ ≾ ε₀ is ∞, which the annotation bounds by 3; loop 20 takes 20
+   ticks. *)
 let bad () : unit # 3 = loop 20
-
-(* Correctly rejected by the typechecker: the run requires a grade ε₀ with
-   1 · ε₀ below both ε₀ and 3, and there is none; loop 20 takes 20 ticks. *)
-run bad ()

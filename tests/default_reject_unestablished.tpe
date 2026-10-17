@@ -13,8 +13,8 @@ let rec loop (n : nat) : unit # 'e =
 operation Op : unit ~> unit # 3
 
 (* Correctly rejected by the typechecker: the default requires a grade ε₀
-   with 1 · ε₀ below both ε₀ and 3, and there is none; loop 20 takes 20
-   ticks. *)
+   with 1 · ε₀ below both ε₀ and 3; the least grade with 1 · ε₀ ≾ ε₀ is ∞,
+   and loop 20 takes 20 ticks. *)
 default Op () = loop 20
 
 run perform Op ()
