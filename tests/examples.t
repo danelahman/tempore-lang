@@ -923,7 +923,7 @@ tests show those runs in detail.
   return ()
   State: [
     (4, Low),
-    { resource_0 ↦ "master mix" # (30, High) },
+    { resource_0 ↦ Reagent "master mix" # (30, High) },
     (1, Low),
     { resource_1 ↦ Tip # (∞, Low) },
     (1, Low),
