@@ -4,7 +4,9 @@
 # column of a PCR plate, go to the wells of its first column. The reservoir
 # holds the wash buffer (A2), the detection antibody concentrate and diluent
 # (A3, A4), the substrate (A5) and the stop solution (A6), and receives the
-# liquid waste (A12). Each
+# liquid waste (A12). A plate is passed as its name. Dilute returns the
+# Tempore value Reagent "detection antibody" and Develop the value Developed
+# name, each a tempore_Con with the tag of its label, which Stop unwraps. Each
 # function declares the nominal duration of its action in seconds by
 # tempore_elapse, the duration the virtual clock of a simulation advances by.
 
@@ -48,7 +50,7 @@ def Wash(ctx, plate):
 def Dilute(ctx, unit):
     ctx["pipette"].transfer(50, ctx["reservoir"]["A3"], ctx["reservoir"]["A4"], mix_after=(3, 500))
     tempore_elapse(90)
-    return "detection antibody"
+    return tempore_Con(tempore_LABELS.index("Reagent"), "detection antibody")
 
 
 def Detect(ctx, plate_and_antibody):
@@ -61,13 +63,13 @@ def Detect(ctx, plate_and_antibody):
 def Develop(ctx, plate):
     dispense_to_samples(ctx, 100, "A5")
     tempore_elapse(60)
-    return plate
+    return tempore_Con(tempore_LABELS.index("Developed"), plate)
 
 
-def Stop(ctx, plate):
+def Stop(ctx, developed):
     dispense_to_samples(ctx, 100, "A6")
     tempore_elapse(45)
-    return plate
+    return developed.arg
 
 
 def Read(ctx, plate):

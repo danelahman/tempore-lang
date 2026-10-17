@@ -3,11 +3,13 @@
 # The reagent tubes stand in an aluminium block on the temperature module,
 # held at 4 °C: the amplicon tagment mix (A1), the tagment DNA buffer (B1) and
 # the neutralize tagment buffer (C1), dispensed at 5, 10 and 5 µL. The DNA
-# samples are in the first wells of
-# the columns of a PCR plate in D2, and the tagmentation takes place in the
-# first four wells of the columns of a PCR plate on the thermocycler. Each
-# function declares the nominal duration of its action in seconds by
-# tempore_elapse, the duration the virtual clock of a simulation advances by.
+# samples are in the first wells of the columns of a PCR plate in D2, and the
+# tagmentation takes place in the first four wells of the columns of a PCR
+# plate on the thermocycler. A reagent is passed as the Tempore value
+# Reagent name, a tempore_Con whose argument is its name; Thaw returns the
+# value it is given. Each function declares the nominal duration of its action
+# in seconds by tempore_elapse, the duration the virtual clock of a simulation
+# advances by.
 
 ROWS = ["A", "B", "C", "D"]
 TUBES = {
@@ -47,18 +49,20 @@ def column(ctx, labware, number):
     return [ctx[labware]["%s%d" % (row, number)] for row in ROWS]
 
 
-def Thaw(ctx, name):
+def Thaw(ctx, reagent):
+    name = reagent.arg
     pipette = ctx["pipette"]
     ctx["protocol"].comment("Thaw the %s" % name)
     pipette.pick_up_tip()
     pipette.mix(3, 20, ctx["tubes"][TUBES[name]])
     pipette.drop_tip()
     tempore_elapse(360)
-    return name
+    return reagent
 
 
 def Dispense(ctx, reagent_and_column):
-    name, number = reagent_and_column
+    reagent, number = reagent_and_column
+    name = reagent.arg
     ctx["pipette"].transfer(VOLUMES[name], ctx["tubes"][TUBES[name]], column(ctx, "plate", number), new_tip="always")
     tempore_elapse(90)
     return ()

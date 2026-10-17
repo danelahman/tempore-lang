@@ -35,15 +35,16 @@
 
    A thawed reagent is a box: it may be dispensed only within 30 minutes of
    thawing. The thawing and its 30-minute window are the example's own.
-   Reagents are named by strings, of the type reagent, and columns by
-   numbers, of the type column. *)
+   Reagents are named by strings, wrapped in the type reagent, and columns by
+   numbers, of the type column. The type reagent is not eternal: a reagent
+   unboxed from its window is dispensed before any further step. *)
 
-type reagent = string
+noneternal type reagent = Reagent of string
 type column = nat
 
 (* Thawing a reagent takes five to ten minutes. *)
 operation Thaw : reagent ~> [[0, 30]]reagent # [5, 10]
-default Thaw name = delay 6; box [0, 30] name
+default Thaw (Reagent name) = delay 6; box [0, 30] (Reagent name)
 
 (* Dispensing a reagent or the DNA into a column takes one to two minutes. *)
 operation Dispense : reagent * column ~> unit # [1, 2]
@@ -69,7 +70,7 @@ let after step thawed (column : column) =
   perform Dispense (r, column)
 
 let load (column : column) =
-  perform Dispense ("tagment DNA buffer", column);
+  perform Dispense (Reagent "tagment DNA buffer", column);
   perform AddDNA column
 
 (* Correctly accepted by the typechecker: the tagment mix is dispensed two to
@@ -77,9 +78,9 @@ let load (column : column) =
    neutralization buffer five to seven minutes after thawing, once the
    column is tagmented. *)
 let tagmentation (column : column) =
-  let mix = perform Thaw "amplicon tagment mix" in
+  let mix = perform Thaw (Reagent "amplicon tagment mix") in
   after load mix column;
-  let neutralization = perform Thaw "neutralize tagment buffer" in
+  let neutralization = perform Thaw (Reagent "neutralize tagment buffer") in
   after (fun c -> perform Tagment c) neutralization column
 
 (* Correctly rejected by the typechecker: the neutralization buffer is thawed
@@ -96,8 +97,25 @@ let incubate (column : column) =
   delay 30
 
 let tagmentation_late (column : column) =
-  let neutralization = perform Thaw "neutralize tagment buffer" in
+  let neutralization = perform Thaw (Reagent "neutralize tagment buffer") in
   after incubate neutralization column
+*)
+
+(* Correctly rejected by the typechecker: the neutralization buffer is
+   unboxed right after thawing and dispensed after a tagmentation followed by
+   a 30-minute incubation:
+
+     Typing error: Variable `r` is used with grade `[35, 37]` accumulated
+       since it was bound, but its type `reagent` is not eternal
+       Note: the resource inequality `[35, 37] <= [0, 0]` does not hold
+*)
+(*
+let tagmentation_unboxed (column : column) =
+  let neutralization = perform Thaw (Reagent "neutralize tagment buffer") in
+  unbox neutralization as r in
+  perform Tagment column;
+  delay 30;
+  perform Dispense (r, column)
 *)
 
 run tagmentation 1

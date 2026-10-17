@@ -42,8 +42,10 @@
    unboxed again before each use, and each unboxing checks that this tip is
    still clean. Only new_tip () puts on a new tip. The monitors of the
    protocol check each binding function against the time bound of its
-   operation's grade. A reagent is named by a string, of the type reagent,
-   and a column by its number, of the type column.
+   operation's grade. The master mix is named by a string, wrapped in the
+   type reagent, which is not eternal either: the boxed mix is unboxed again
+   before each dispensing. A column is named by its number, of the type
+   column.
 
    The protocol is given its master mix ready; its preparation, and the
    30-minute window within which it is dispensed, are the example's own. So
@@ -51,7 +53,7 @@
    protocol takes a new tip for each. *)
 
 noneternal type tip = Tip
-type reagent = string
+noneternal type reagent = Reagent of string
 type column = nat
 
 (* Changing the tip takes at most a minute. *)
@@ -73,7 +75,7 @@ default AddWater (t, column) = delay 1
 (* The master mix takes at most five minutes to prepare, and must be
    dispensed within 30 minutes. *)
 operation PrepareMix : unit ~> [(30, High)]reagent # (5, Low)
-default PrepareMix () = delay 4; box (30, High) "master mix"
+default PrepareMix () = delay 4; box (30, High) (Reagent "master mix")
 
 (* Adding the test article, diluting it from one column of the preparation
    plate into the next, and transferring a dilution from a column of the
@@ -155,6 +157,28 @@ let ddpcr_shared_tip () =
   perform AddArticle (t, 1);
   unbox article_tip as t in
   perform AddWater (t, 4)
+*)
+
+(* Correctly rejected by the typechecker: the master mix is unboxed once and
+   kept for the dispensing into all four columns:
+
+     Typing error: Variable `m` is used with grade `(1, Low)` accumulated
+       since it was bound, but its type `reagent` is not eternal
+       Note: the resource inequality `(1, Low) <= (0, Low)` does not hold
+*)
+(*
+let ddpcr_kept_mix () =
+  let mix = perform PrepareMix () in
+  let mix_tip = new_tip () in
+  unbox mix as m in
+  unbox mix_tip as t in
+  perform AddMix (t, (m, 1));
+  unbox mix_tip as t in
+  perform AddMix (t, (m, 2));
+  unbox mix_tip as t in
+  perform AddMix (t, (m, 3));
+  unbox mix_tip as t in
+  perform AddMix (t, (m, 4))
 *)
 
 run ddpcr ()

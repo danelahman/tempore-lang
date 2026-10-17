@@ -923,7 +923,7 @@ tests show those runs in detail.
   return ()
   State: [
     (4, Low),
-    { resource_0 ↦ "master mix" # (30, High) },
+    { resource_0 ↦ Reagent "master mix" # (30, High) },
     (1, Low),
     { resource_1 ↦ Tip # (∞, Low) },
     (1, Low),
@@ -989,7 +989,7 @@ tests show those runs in detail.
   State: [
     [2, 2],
     [1, 1],
-    { resource_0 ↦ "detection antibody" # [0, 20] },
+    { resource_0 ↦ Reagent "detection antibody" # [0, 20] },
     [3, 3],
     [3, 3],
     [3, 3],
@@ -998,7 +998,7 @@ tests show those runs in detail.
     [65, 65],
     [3, 3],
     [1, 1],
-    { resource_2 ↦ "plate" # [15, 20] },
+    { resource_2 ↦ Developed "plate" # [15, 20] },
     [17, 17],
     [2, 2]
   ]
@@ -1168,12 +1168,12 @@ tests show those runs in detail.
   return ()
   State: [
     [6, 6],
-    { resource_0 ↦ "amplicon tagment mix" # [0, 30] },
+    { resource_0 ↦ Reagent "amplicon tagment mix" # [0, 30] },
     [2, 2],
     [1, 1],
     [2, 2],
     [6, 6],
-    { resource_1 ↦ "neutralize tagment buffer" # [0, 30] },
+    { resource_1 ↦ Reagent "neutralize tagment buffer" # [0, 30] },
     [6, 6],
     [2, 2]
   ]
@@ -1242,9 +1242,9 @@ tests show those runs in detail.
   State: [
     { resource_1 ↦ <fun> # [1, 2] },
     [2, 2],
-    { resource_2 ↦ "plate 1" # [0, 30], resource_4 ↦ <fun> # [1, 2] },
+    { resource_2 ↦ Plate "plate 1" # [0, 30], resource_4 ↦ <fun> # [1, 2] },
     [2, 2],
-    { resource_5 ↦ "plate 2" # [0, 30], resource_7 ↦ <fun> # [1, 2] },
+    { resource_5 ↦ Plate "plate 2" # [0, 30], resource_7 ↦ <fun> # [1, 2] },
     [1, 1],
     { resource_9 ↦ <fun> # [1, 2] },
     [1, 1]

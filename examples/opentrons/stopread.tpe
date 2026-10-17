@@ -32,20 +32,21 @@
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
    The target opentrons-stopread-simulate of 'make' runs this command.
 
-   A plate is named by a string, of the type plate. A stopped plate is a box,
-   read within 30 minutes of the stop; the 30-minute window of the reading is
-   the example's own. *)
+   A plate is named by a string, wrapped in the type plate. A stopped plate
+   is a box, read within 30 minutes of the stop; the 30-minute window of the
+   reading is the example's own. The type plate is not eternal: a plate
+   unboxed from its window is read before any further step. *)
 
-type plate = string
+noneternal type plate = Plate of string
 
 (* Dispensing the stop solution takes one to two minutes. *)
 operation AddStop : plate ~> [[0, 30]]plate # [1, 2]
-default AddStop plate = delay 2; box [0, 30] plate
+default AddStop (Plate name) = delay 2; box [0, 30] (Plate name)
 
 (* The operations of a plate reader with an injector for the stop solution:
    stopping a plate takes one to two minutes, and reading it one to two. *)
 operation Stop : plate ~> [[0, 30]]plate # [1, 2]
-default Stop plate = delay 1; box [0, 30] plate
+default Stop (Plate name) = delay 1; box [0, 30] (Plate name)
 
 operation Read : plate ~> nat # [1, 2]
 default Read plate = delay 1; 0
@@ -71,8 +72,8 @@ let simulated_reader =
 (* Correctly accepted by the typechecker: each plate is read one to two
    minutes after its stop. *)
 let assay () =
-  let first = perform Stop "plate 1" in
-  let second = perform Stop "plate 2" in
+  let first = perform Stop (Plate "plate 1") in
+  let second = perform Stop (Plate "plate 2") in
   unbox first as first_plate in
   let a = perform Read first_plate in
   unbox second as second_plate in
@@ -90,12 +91,30 @@ let assay () =
 *)
 (*
 let assay_late () =
-  let first = perform Stop "plate 1" in
+  let first = perform Stop (Plate "plate 1") in
   delay 30;
-  let second = perform Stop "plate 2" in
+  let second = perform Stop (Plate "plate 2") in
   unbox first as first_plate in
   let a = perform Read first_plate in
   unbox second as second_plate in
+  let b = perform Read second_plate in
+  (a, b)
+*)
+
+(* Correctly rejected by the typechecker: both plates are unboxed at once,
+   and the second is read after the reading of the first:
+
+     Typing error: Variable `second_plate` is used with grade `[1, 2]`
+       accumulated since it was bound, but its type `plate` is not eternal
+       Note: the resource inequality `[1, 2] <= [0, 0]` does not hold
+*)
+(*
+let assay_unboxed () =
+  let first = perform Stop (Plate "plate 1") in
+  let second = perform Stop (Plate "plate 2") in
+  unbox first as first_plate in
+  unbox second as second_plate in
+  let a = perform Read first_plate in
   let b = perform Read second_plate in
   (a, b)
 *)
