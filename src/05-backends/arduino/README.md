@@ -143,6 +143,17 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   negates them). Its header `bala2_base.h` gives the application the drives
   last written and the counts last read, for logging outside the timed
   bindings.
+- `esp-now`: packets of a tag and two floats between two ESP32 boards over
+  ESP-NOW, with the peer given by the build flag `ESP_NOW_PEER`, six bytes
+  separated by commas (by default the broadcast address, for development):
+  - `LinkStart` starts the radio and ESP-NOW on a channel, on core 0;
+  - `Send` queues a packet and returns without waiting;
+  - `Receive` returns, without waiting, the latest packet from the peer if it
+    arrived at most a given number of milliseconds ago;
+  - its header `esp_now_link.h` gives the counts of the packets;
+  - its host model logs the packets sent and delivers those of
+    `esp_now_model_peer`, which the host model of an application may define,
+    after a latency and with a loss set by build flags.
 
 ### Bounds per board
 
@@ -188,6 +199,7 @@ how the bounds not measured directly, such as those of `i2c`, are derived.
 - The bounds of `ShowTimeAt`, `ShowColourTextAt`, `ShowColourNumberAt`,
   `DrawButton`, `DrawBar` and `DrawLevel` are provisional, derived from those
   measurements; `ShowColourNumberAt` has the bounds of `ShowNumberAt`.
+- The bounds of `esp-now` are provisional, not yet measured.
 
 ## The program
 

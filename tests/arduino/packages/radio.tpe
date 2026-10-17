@@ -1,0 +1,20 @@
+(* A link over ESP-NOW on an M5Stack Gray, with the packages esp-now and
+   m5-display: the link is started on channel 1, a packet is sent, and the
+   latest packet received at most 50 ms ago is shown, by its tag, three times
+   60 ms apart. Time is in milliseconds, under the grades
+   time-interval-rational. *)
+
+let poll () =
+  let fresh, tag, _, _ = perform Receive 50 in
+  if fresh then perform ShowNumber (float_of_nat tag)
+  else perform ShowText "None";
+  delay 60
+
+let listen () =
+  perform LinkStart 1;
+  perform Send (1, 0.5, -0.25);
+  poll ();
+  poll ();
+  poll ()
+
+let early () = perform Send (1, 0.5, -0.25)

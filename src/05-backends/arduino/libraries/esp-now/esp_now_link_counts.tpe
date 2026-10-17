@@ -1,0 +1,14 @@
+(* The package esp-now under the operation counts: packets between two ESP32
+   boards over ESP-NOW. Grades: counts-upper-bound; each call counts once,
+   and running times are not bounded. The operations are those of
+   esp_now_link.tpe; the default implementations send nothing and receive
+   nothing. *)
+
+operation LinkStart : nat ~> unit # (LinkStart, 1)
+default LinkStart _ = ()
+
+operation Send : nat * float * float ~> unit # (Send, 1)
+default Send _ = ()
+
+operation Receive : nat ~> bool * nat * float * float # (Receive, 1)
+default Receive _ = (false, 0, 0.0, 0.0)
