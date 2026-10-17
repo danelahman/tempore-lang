@@ -3647,6 +3647,37 @@ it names none:
   ]
   
   ======================================================================
+  recursion_invariant_reject_upper.tpe
+  ======================================================================
+  File "recursion_invariant_reject_upper.tpe", line 15, characters 22-23:
+  15 | let g () : unit # 1 = w 2
+                             ^
+  Typing error: The effect inequality `∞ <= 1` does not hold
+    File "recursion_invariant_reject_upper.tpe", lines 10-11, characters 0-49:
+    10 | let rec w (n : nat) : unit # 'e =
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `w` is defined here
+    File "recursion_invariant_reject_upper.tpe", line 15, characters 9-25:
+    15 | let g () : unit # 1 = w 2
+                  ^^^^^^^^^^^^^^^^
+    the inequality goes through the annotation here
+  ======================================================================
+  recursion_invariant_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    1,
+    1,
+    1,
+    1
+  ]
+  
+  === Run 2 ===
+  return ()
+  State: []
+  
+  ======================================================================
   recursion_lock.tpe
   ======================================================================
   === Run 1 ===

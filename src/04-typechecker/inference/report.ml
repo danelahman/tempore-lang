@@ -533,9 +533,12 @@ module Make (C : Constraint.S) = struct
   (* Elimination: steps                                                  *)
   (* ------------------------------------------------------------------ *)
 
-  (* The kinds of step, in the order they are tried: sending an unknown to
-     the unit comes after lowering and raising. *)
+  (* The kinds of step, in the order they are tried: a lowering to a single
+     unknown comes first, and sending an unknown to the unit after lowering
+     and raising. *)
   type kind =
+    | Merge_eps
+    | Merge_rho
     | Equate_eps
     | Equate_rho
     | Lower_eps
@@ -549,6 +552,8 @@ module Make (C : Constraint.S) = struct
 
   let kinds =
     [
+      Merge_eps;
+      Merge_rho;
       Equate_eps;
       Equate_rho;
       Lower_eps;
@@ -565,16 +570,18 @@ module Make (C : Constraint.S) = struct
     type t = kind
 
     let rank = function
-      | Equate_eps -> 0
-      | Equate_rho -> 1
-      | Lower_eps -> 2
-      | Lower_rho -> 3
-      | Raise_eps -> 4
-      | Raise_rho -> 5
-      | Unit_eps -> 6
-      | Unit_rho -> 7
-      | Collapse -> 8
-      | Lower_ty -> 9
+      | Merge_eps -> 0
+      | Merge_rho -> 1
+      | Equate_eps -> 2
+      | Equate_rho -> 3
+      | Lower_eps -> 4
+      | Lower_rho -> 5
+      | Raise_eps -> 6
+      | Raise_rho -> 7
+      | Unit_eps -> 8
+      | Unit_rho -> 9
+      | Collapse -> 10
+      | Lower_ty -> 11
 
     let compare a b = Int.compare (rank a) (rank b)
   end)
@@ -582,14 +589,15 @@ module Make (C : Constraint.S) = struct
   (* Whether a kind of step is tested at an unknown alone, and at [u]. *)
   let tested_at kind u =
     match (kind, u) with
-    | ( (Equate_eps | Lower_eps | Raise_eps | Unit_eps),
+    | ( (Equate_eps | Merge_eps | Lower_eps | Raise_eps | Unit_eps),
         Grade_unknown (R.Eps_unknown _) )
-    | ( (Equate_rho | Lower_rho | Raise_rho | Unit_rho),
+    | ( (Equate_rho | Merge_rho | Lower_rho | Raise_rho | Unit_rho),
         Grade_unknown (R.Rho_unknown _) )
     | Lower_ty, Ty_unknown _ ->
         true
-    | ( ( Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
-        | Raise_rho | Unit_eps | Unit_rho | Collapse | Lower_ty ),
+    | ( ( Equate_eps | Equate_rho | Merge_eps | Merge_rho | Lower_eps
+        | Lower_rho | Raise_eps | Raise_rho | Unit_eps | Unit_rho | Collapse
+        | Lower_ty ),
         _ ) ->
         false
 
@@ -724,8 +732,8 @@ module Make (C : Constraint.S) = struct
     let mark_kind kind t =
       let us =
         match kind with
-        | Equate_eps | Lower_eps | Raise_eps | Unit_eps -> eps
-        | Equate_rho | Lower_rho | Raise_rho | Unit_rho -> rhos
+        | Equate_eps | Merge_eps | Lower_eps | Raise_eps | Unit_eps -> eps
+        | Equate_rho | Merge_rho | Lower_rho | Raise_rho | Unit_rho -> rhos
         | Lower_ty -> tys
         | Collapse -> Unknown_set.empty
       in
@@ -782,8 +790,8 @@ module Make (C : Constraint.S) = struct
             List.map
               (fun atom -> { atom; unknowns = atom_unknowns atom })
               (canon_atom context (subst_atom plan.value e.atom))
-      | Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps | Raise_rho
-      | Collapse | Lower_ty ->
+      | Equate_eps | Equate_rho | Merge_eps | Merge_rho | Lower_eps | Lower_rho
+      | Raise_eps | Raise_rho | Collapse | Lower_ty ->
           let unknowns = substituted plan.value in
           fun e ->
             [
@@ -825,8 +833,9 @@ module Make (C : Constraint.S) = struct
     | (Equate_eps | Unit_eps), _ -> equate [ Equate_eps; Equate_rho ]
     | (Equate_rho | Unit_rho), _ -> equate [ Equate_rho ]
     | Collapse, Some (_ :: rest) -> { st with cycle = Some rest }
-    | (Lower_eps | Lower_rho | Raise_eps | Raise_rho | Collapse | Lower_ty), _
-      ->
+    | ( ( Merge_eps | Merge_rho | Lower_eps | Lower_rho | Raise_eps | Raise_rho
+        | Collapse | Lower_ty ),
+        _ ) ->
         st
 
   (* ------------------------------------------------------------------ *)
@@ -847,6 +856,7 @@ module Make (C : Constraint.S) = struct
     ordering : atom -> ('e, R.reason) GradeNormal.ordering option;
     assign : 'e -> C.subst;
     atomic : 'e -> bool; (* whether an expression is a single atom *)
+    variable : 'e -> bool; (* whether an expression is a single unknown *)
     at_unit : atom -> bool; (* whether an atom forces the unknown to the unit *)
   }
 
@@ -862,6 +872,7 @@ module Make (C : Constraint.S) = struct
       ordering = (function Eps_atom o -> Some o | _ -> None);
       assign = assign_eps k;
       atomic = E.Eps.is_atom;
+      variable = (function X.Eps_var _ -> true | _ -> false);
       at_unit =
         (function
         | Eps_atom o -> Values.forces_unit sort o
@@ -877,6 +888,7 @@ module Make (C : Constraint.S) = struct
       ordering = (function Rho_atom o -> Some o | _ -> None);
       assign = assign_rho k;
       atomic = E.Rho.is_atom;
+      variable = (function X.Rho_var _ -> true | _ -> false);
       at_unit =
         (function
         | Rho_atom o -> Values.forces_unit sort o
@@ -972,18 +984,23 @@ module Make (C : Constraint.S) = struct
         })
       (Values.equate g.sort ~entails (orderings g st))
 
-  (* A lowering or a raising step, the orderings it discharges dropped. *)
-  let move rule context g st =
-    Option.map
-      (fun (v : _ Values.value) ->
-        {
-          value = g.assign v.value;
-          dropped = positions v.discharged;
-          apart = false;
-          chains = false;
-        })
+  (* A lowering or a raising step to a value [only] admits, the orderings it
+     discharges dropped. *)
+  let move ?(only = fun _ -> true) rule context g st =
+    Option.bind
       (rule g.sort (oracle context g st) (orderings g st))
+      (fun (v : _ Values.value) ->
+        if only v.value then
+          Some
+            {
+              value = g.assign v.value;
+              dropped = positions v.discharged;
+              apart = false;
+              chains = false;
+            }
+        else None)
 
+  let merge context g st = move ~only:g.variable Values.lower context g st
   let lower context g st = move Values.lower context g st
   let raise_to_cap context g st = move Values.raise context g st
 
@@ -1092,6 +1109,10 @@ module Make (C : Constraint.S) = struct
           equate (rho_grade context k)
             (fun a b -> E.Rho.follows_atomic (Lazy.force entail) a b)
             st
+      | Merge_eps, Grade_unknown (R.Eps_unknown k) ->
+          merge context (eps_grade context k) st
+      | Merge_rho, Grade_unknown (R.Rho_unknown k) ->
+          merge context (rho_grade context k) st
       | Lower_eps, Grade_unknown (R.Eps_unknown k) ->
           lower context (eps_grade context k) st
       | Lower_rho, Grade_unknown (R.Rho_unknown k) ->
@@ -1105,8 +1126,9 @@ module Make (C : Constraint.S) = struct
       | Unit_rho, Grade_unknown (R.Rho_unknown k) ->
           to_unit (rho_grade context k) st
       | Lower_ty, Ty_unknown a -> lower_ty context a st
-      | ( ( Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
-          | Raise_rho | Unit_eps | Unit_rho | Collapse | Lower_ty ),
+      | ( ( Equate_eps | Equate_rho | Merge_eps | Merge_rho | Lower_eps
+          | Lower_rho | Raise_eps | Raise_rho | Unit_eps | Unit_rho | Collapse
+          | Lower_ty ),
           _ ) ->
           None
 
@@ -1170,8 +1192,9 @@ module Make (C : Constraint.S) = struct
          (fun kind ->
            match kind with
            | Collapse -> None
-           | Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
-           | Raise_rho | Unit_eps | Unit_rho | Lower_ty ->
+           | Equate_eps | Equate_rho | Merge_eps | Merge_rho | Lower_eps
+           | Lower_rho | Raise_eps | Raise_rho | Unit_eps | Unit_rho | Lower_ty
+             ->
                Some (kind, Unknown_set.filter (tested_at kind) candidates))
          kinds)
 
