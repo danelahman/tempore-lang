@@ -60,6 +60,13 @@ default Disarm () = delay 1/100
 operation Command : float * float ~> unit # {Command} within [0, 0.05]
 default Command _ = delay 1/100
 
+(* Report armed sends the status of the robot to the controller: whether it
+   is armed and the tilt last published by the step, through the package
+   bala2-remote; bound in bindings.cpp. Its bounds are those of Attitude and
+   of the provisional bounds of SendStatus together: [0, 1.05]. *)
+operation Report : bool ~> unit # {Report} within [0, 1.05]
+default Report _ = delay 1/10
+
 (* The control step. The state is the tilt, in degrees, filtered from the
    inertial measurement unit; the speed of the wheels, in encoder counts per
    second, filtered; the integral of the error of the speed; the
@@ -199,41 +206,45 @@ let calibrate () : aged * still
 let silence_limit = 160
 
 (* The wait for Arm, bounded so that the calibration stays within its 10
-   minutes: a poll waits 100 ms, under half of the 250 ms in which the
-   controller repeats Arm, and is true at an Arm message of the controller;
-   wait5, wait25 and wait125 repeat it up to 5, 25 and 125 times, and
-   wait_arm up to 625 times, about 63 s, without a recursion, whose grade
-   would be a star. *)
-let poll_arm () : bool # {Receive; !100} =
+   minutes: a poll reports the status of the disarmed robot, waits 400 ms,
+   and is true at an Arm message of the controller, which repeats Arm for
+   1 s: two Receives lie at most 401.15 ms apart, Report taking at most
+   1.05 ms and Receive 0.1 ms, so that at least two fall within those 1 s,
+   each finding an Arm at most 12.5 ms old. The message received is unboxed
+   after the report and the wait, before any further Receive. wait5, wait25
+   and wait125 repeat the poll up to 5, 25 and 125 times, and wait_arm up
+   to 500 times, about 200 s, without a recursion, whose grade would be a
+   star; 625 polls would take 8 s to typecheck, 500 take 4 s. *)
+let poll_arm () : bool # {Receive; Report; !400} =
   let latest, _ = remote_receive () in
-  delay 100;
+  perform Report false;
+  delay 400;
   unbox latest as r in
   match r with Got Arm -> true | _ -> false
 
-let wait5 () : bool # {(Receive; !100)^[1, 5]} =
+let wait5 () : bool # {(Receive; Report; !400)^[1, 5]} =
   if poll_arm () then true
   else if poll_arm () then true
   else if poll_arm () then true
   else if poll_arm () then true
   else poll_arm ()
 
-let wait25 () : bool # {(Receive; !100)^[1, 25]} =
+let wait25 () : bool # {(Receive; Report; !400)^[1, 25]} =
   if wait5 () then true
   else if wait5 () then true
   else if wait5 () then true
   else if wait5 () then true
   else wait5 ()
 
-let wait125 () : bool # {(Receive; !100)^[1, 125]} =
+let wait125 () : bool # {(Receive; Report; !400)^[1, 125]} =
   if wait25 () then true
   else if wait25 () then true
   else if wait25 () then true
   else if wait25 () then true
   else wait25 ()
 
-let wait_arm () : bool # {(Receive; !100)^[1, 625]} =
+let wait_arm () : bool # {(Receive; Report; !400)^[1, 500]} =
   if wait125 () then true
-  else if wait125 () then true
   else if wait125 () then true
   else if wait125 () then true
   else wait125 ()
@@ -243,13 +254,22 @@ let wait_arm () : bool # {(Receive; !100)^[1, 625]} =
    command is commanded with its setpoints, unboxed within 150 ms of the
    reception; Beat, Arm or no message command zero setpoints, and the 160th
    consecutive iteration without a message shows "Link lost" and beeps once,
-   the robot staying armed; Disarm disarms the robot and ends the drive.
-   The grade fixes the operations and the strict delay of each iteration,
-   which therefore takes 12.5 to 45.8 ms by the bounds of its operations,
+   the robot staying armed, and the first message after the silence shows
+   "Armed" again; each of these iterations then reports the status of the
+   armed robot. Disarm disarms the robot and ends the drive. The grade
+   fixes the operations and the strict delay of each iteration, which
+   therefore takes 12.5 to 46.85 ms by the bounds of its operations,
    below the 50 ms period of the controller and the 200 ms after which a
    command expires. *)
+(* Shows "Armed" again at the first message after the link was reported
+   lost. *)
+let restored (silent : nat) : unit # {ShowTextAt | 0} =
+  if silent >= silence_limit then perform ShowTextAt (0, 100, 2, "Armed")
+  else ()
+
 let rec drive (n : nat) (silent : nat) : unit
-    # {(Receive; Command; (ShowTextAt; Beep | 0); !12.5)*;
+    # {(Receive; Command; (ShowTextAt; Beep | ShowTextAt | 0); Report;
+        !12.5)*;
        (Receive; Disarm; !12.5 | 0)} =
   match n with
   | 0 -> ()
@@ -263,10 +283,14 @@ let rec drive (n : nat) (silent : nat) : unit
       | Got (Drive _) ->
           unbox fresh as setpoints in
           perform Command setpoints;
+          restored silent;
+          perform Report true;
           delay 25/2;
           drive m 0
       | Got _ ->
           perform Command (0.0, 0.0);
+          restored silent;
+          perform Report true;
           delay 25/2;
           drive m 0
       | Nothing ->
@@ -275,21 +299,23 @@ let rec drive (n : nat) (silent : nat) : unit
              perform ShowTextAt (0, 100, 2, "Link lost");
              perform Beep (880, 200))
            else ());
+          perform Report true;
           delay 25/2;
           drive m (min (silent + 1) silence_limit))
 
 (* Correctly accepted by the typechecker: a session calibrates the robot,
    holds it upright for a second and waits for Arm; at Arm it unboxes the
-   calibration, at least a second and at most about 64 s old, with
+   calibration, at least a second and at most about 202 s old, with
    no Command since, arms the robot and drives it until Disarm, and
    otherwise ends; the next session calibrates anew. Its grade is the
    protocol of the robot: calibration, Arm, commands and Disarm, in this
    order. *)
 let rec session (n : nat) : unit
     # {(Disarm; ShowTextAt; (Attitude; 10)*; ShowTextAt; !1000; ShowTextAt;
-        (Receive; !100)^[1, 625];
+        (Receive; Report; !400)^[1, 500];
         (0 | Arm; ShowTextAt;
-         (Receive; Command; (ShowTextAt; Beep | 0); !12.5)*;
+         (Receive; Command; (ShowTextAt; Beep | ShowTextAt | 0); Report;
+          !12.5)*;
          (Receive; Disarm; !12.5 | 0); ShowTextAt))*} =
   match n with
   | 0 -> ()
@@ -322,9 +348,9 @@ let supervise () =
    robot with a calibration after which a motion may have been commanded:
 
      Typing error: Variable `still` is unboxed with grade `[{ShowTextAt;
-       !1000; Command; (Receive; !100)^[1, 625]}, ...]` accumulated since it
-       was bound, which is not below its box grade `[{(!_ & ~Command)*},
-       {(!_ & ~Command)*}]`
+       !1000; Command; (Receive; Report; !400)^[1, 500]}, ...]` accumulated
+       since it was bound, which is not below its box grade
+       `[{(!_ & ~Command)*}, {(!_ & ~Command)*}]`
        ...
 *)
 (*
@@ -346,14 +372,14 @@ let session_commanding () =
    may be older than 10 minutes:
 
      Typing error: Variable `aged` is unboxed with grade `[{ShowTextAt;
-       !1000; (Receive; !100)*; (Receive | 0)}, ...]` accumulated since it
-       was bound, which is not below its box grade `[{[1000, ∞)},
-       {[0, 600000]}]`
+       !1000; (Receive; Report; !400)*; (Receive | 0)}, ...]` accumulated
+       since it was bound, which is not below its box grade
+       `[{[1000, ∞)}, {[0, 600000]}]`
        ...
 *)
 (*
-let rec wait_arm_unbounded (n : nat) : bool # {(Receive; !100)*; (Receive | 0)}
-    =
+let rec wait_arm_unbounded (n : nat) : bool
+    # {(Receive; Report; !400)*; (Receive | 0)} =
   match n with
   | 0 -> false
   | m + 1 -> (
@@ -362,7 +388,8 @@ let rec wait_arm_unbounded (n : nat) : bool # {(Receive; !100)*; (Receive | 0)}
       match r with
       | Got Arm -> true
       | _ ->
-          delay 100;
+          perform Report false;
+          delay 400;
           wait_arm_unbounded m)
 
 let session_waited () =

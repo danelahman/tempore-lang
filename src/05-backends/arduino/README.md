@@ -175,7 +175,12 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   - under the rigid grades, `remote_receive` returns two boxes, as a grade
     has a single upper bound and a box of a box is refused: the message, its
     setpoints zero, boxed with `{(!_ & ~Receive)*}`, usable only before the
-    next `Receive`, and its setpoints, boxed with `[0, 150)`.
+    next `Receive`, and its setpoints, boxed with `[0, 150)`;
+  - the status of the robot, `Status (armed, tilt)` or `NoStatus`, tag 5:
+    `SendStatus` sends it, and `bala2_remote_send_status` of the header
+    `bala2_remote.h` for the bindings of an application; `remote_status`
+    returns the latest status received at most 50 ms ago, boxed with
+    `[0, 200)`, and under the rigid grades also with `{(!_ & ~Receive)*}`.
 
 ### Bounds per board
 
@@ -769,16 +774,20 @@ port variable `PORT_M5STACK_GRAY`).
     so that the robot is armed at least a second and at most 10 minutes
     after it, the bias drifting with the temperature; and with
     `{(!_ & ~Command)*}`, so that no motion was commanded since. The wait
-    for Arm is therefore bounded, 625 polls 100 ms apart, written without a
-    recursion so that its grade is a bounded repetition, and each session
-    calibrates anew.
+    for Arm is therefore bounded, 500 polls 400 ms apart, about 200 s,
+    written without a recursion so that its grade is a bounded repetition,
+    and each session calibrates anew.
+  - Each poll and each iteration of the drive sends the status of the robot
+    to the controller by the operation `Report` of the example, bound in
+    `bala2/bindings.cpp` for the programs that perform it.
   - Each iteration of the drive applies the message it receives before any
     further `Receive`, and its setpoints within 150 ms: a Drive command,
     Disarm, which returns to waiting for Arm, or zero setpoints.
   - The grade of a session is its protocol: Arm, commands and Disarm, in
     this order; it fixes each iteration of the drive, which takes 12.5 to
-    45.8 ms. After about 2 s without a message the robot shows "Link lost"
-    and beeps once, and stays armed.
+    46.85 ms. After about 2 s without a message the robot shows "Link lost"
+    and beeps once, and stays armed, and shows "Armed" again when messages
+    return.
   - The make variable `REMOTE_PEER`, the address of the controller, sets
     the peer; the host model `controller.cpp` scripts the controller.
 - [`wheels`](../../../examples/arduino/wheels/wheels.tpe): a wheel check of
@@ -901,16 +910,20 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   the controller of [`bala2-remote`](#m5stack-gray), under the rigid
   regular expressions of timed operations, with the packages `esp-now` and
   `bala2-remote`.
-  - The grade of a session is its protocol: Beat until a tap on Arm, Arm 20
-    times, Drive until a tap on Disarm and Disarm 20 times, each message
-    under 50 ms after the last.
+  - The grade of a session is its protocol: Beat until a tap on Arm, Arm 80
+    times, for 1 s, and then until the status of the robot confirms, Drive
+    or Beat until a tap on Disarm, and Disarm 20 times, each message under
+    50 ms after the last.
+  - An armed iteration drives only on the latest status of the robot,
+    received at most 200 ms earlier, if it is armed, and else sends Beat
+    and shows "No link"; the tilt of the robot is shown from that status.
   - Drive takes the speed from the pitch and the turn from the roll, each
     with a dead zone of 5 degrees and bounded, of a reading boxed so that
     it is the latest and at most 2 ms old, measured from the neutral tilt
     recorded at the tap on Arm, boxed with `{(!_ & ~SendDisarm)*}` so that
     it is used only within its session.
-  - An armed iteration redraws at most the speed or the turn, in turn, when
-    it changes.
+  - An armed iteration redraws at most one band: the state when it changes,
+    or else the speed, the turn or the tilt of the robot, in turn.
   - The make variable `REMOTE_PEER`, the address of the robot, sets the
     peer; the host model `world.cpp` tilts and taps the device.
 

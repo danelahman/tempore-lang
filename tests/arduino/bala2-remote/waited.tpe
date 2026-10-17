@@ -1,8 +1,8 @@
 (* A session that waits for Arm without a bound and then arms the robot with
    its calibration, after balance_remote.tpe. *)
 
-let rec wait_arm_unbounded (n : nat) : bool # {(Receive; !100)*; (Receive | 0)}
-    =
+let rec wait_arm_unbounded (n : nat) : bool
+    # {(Receive; Report; !400)*; (Receive | 0)} =
   match n with
   | 0 -> false
   | m + 1 -> (
@@ -11,7 +11,8 @@ let rec wait_arm_unbounded (n : nat) : bool # {(Receive; !100)*; (Receive | 0)}
       match r with
       | Got Arm -> true
       | _ ->
-          delay 100;
+          perform Report false;
+          delay 400;
           wait_arm_unbounded m)
 
 let session_waited () =

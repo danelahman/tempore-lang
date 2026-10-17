@@ -1,0 +1,18 @@
+(* A session that redraws the armed screen after the handshake and then
+   drives on its confirmation, after controller.tpe. *)
+
+let session_stale () =
+  let zero = record_neutral () in
+  arming ();
+  let _, fresh = confirm 40 in
+  perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Robot remote");
+  perform ShowTextAt (0, 60, 2, "Armed");
+  perform ShowTextAt (0, 100, 2, "Speed");
+  perform ShowTextAt (0, 140, 2, "Turn");
+  perform DrawButton (0, 188, 156, 40, "Arm");
+  perform DrawButton (164, 188, 156, 40, "Disarm");
+  unbox fresh as status in
+  unbox zero as _ in
+  if remote_armed status then perform SendDrive (0.0, 0.0)
+  else perform SendBeat ()
