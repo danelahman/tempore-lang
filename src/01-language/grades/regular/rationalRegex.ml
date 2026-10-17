@@ -167,13 +167,17 @@ let holds_zero r =
 (** [repetition r] is [Some (x, c)] if [r] is the repetition [x^c]. *)
 let repetition r = match r.view with Repeat (x, c) -> Some (x, c) | _ -> None
 
+(** [chain r] is [Some (h, t)] if [r] is the concatenation [h; t]. *)
+let chain r = match r.view with Concat (h, t) -> Some (h, t) | _ -> None
+
 (** [power r] is [(x, c)] if [r] is the repetition [x^c], and [(r, 1)]
     otherwise. *)
 let power r = Option.value (repetition r) ~default:(r, Count.point 1)
 
 (* The atoms of a union are merged into the atom of the union of their sets,
    the sets of names into their union, and the repetitions of a base where
-   their counts overlap or touch: [x^c | x^c' = x^(c ∪ c')]. *)
+   their counts overlap or touch: [x^c | x^c' = x^(c ∪ c')], also as factors of
+   concatenations equal but for their counts. *)
 let rec union rs =
   let split r =
     match r.view with Union rs -> Some rs | Empty -> Some [] | _ -> None
@@ -190,6 +194,10 @@ let rec union rs =
         (List.filter
            (fun r -> not (is_empty_form r))
            (repetitions repetition repeat rs))
+    in
+    let rs =
+      List.sort_uniq compare_form
+        (repetitions_in_context chain repetition repeat concat rs)
     in
     let rs = unsubsumed rs in
     if complementary split rs then top
@@ -241,7 +249,7 @@ and repeat r (c : Count.t) =
    concatenation; and a repetition followed by one of the same base, alone or
    leading a concatenation, is joined with it: [x^c; x^c' = x^(c + c')], a
    factor [x] counting as [x^1]. *)
-let rec concat r s =
+and concat r s =
   match (r.view, s.view) with
   | Empty, _ | _, Empty -> empty
   | Eps, _ -> s

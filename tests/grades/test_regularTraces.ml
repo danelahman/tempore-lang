@@ -553,6 +553,12 @@ struct
       reads "{A^[2, ∞)}" ~expected:"{A^[2, ∞)}";
       reads "{A^2 | A^3}" ~expected:"{A^[2, 3]}";
       reads "{A^2 | A^4}" ~expected:"{A^2 | A^4}";
+      same_lit "{C; A^[1, 2]; B | C; A^[2, 4]; B}" "{C; A^[1, 4]; B}";
+      same_lit "{C; (A; B)^2; C | C; (A; B)^3; C}" "{C; (A; B)^[2, 3]; C}";
+      reads "{C; A^[1, 2]; B | C; A^[2, 4]; B}" ~expected:"{C; A^[1, 4]; B}";
+      reads "{C; (A; B)^2; C | C; (A; B)^3; C}"
+        ~expected:"{C; (A; B)^[2, 3]; C}";
+      reads "{C; A^2; B | C; A^4; B}" ~expected:"{C; (A^2 | A^4); B}";
       reads "{(A*; B)^2}" ~expected:"{(A*; B)^2}";
       reads "{(B; A*)^2}" ~expected:"{{B; A*}^2}";
       rejects "{A^(2, 3)}" "holds no natural number";
