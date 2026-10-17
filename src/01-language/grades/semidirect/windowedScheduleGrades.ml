@@ -70,6 +70,7 @@ module Durations = struct
   let hash = R.hash
   let counterexample _bounds _ _ = None
   let unit_least = false
+  let plus _ = None
   let commutative = true
   let needs_op_bounds = false
   let duration_bounds _bounds _ = None

@@ -72,6 +72,7 @@ module type S = sig
   val leq_symbol : string
   val top : t
   val join : t -> t -> t
+  val plus : t -> t option
 
   module Delay : Delay.S
 

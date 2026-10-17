@@ -79,6 +79,8 @@ module Make (X : GradeExp.S) = struct
     include N.SORT
 
     val equal_exp : Grades.Grade.bounds -> exp -> exp -> bool
+    val exp_mul : exp -> exp -> exp
+    val closure : exp -> exp option
     val orderings : 'a t -> exp -> exp -> (exp, 'a) GradeNormal.ordering list
     val derivation : 'a t -> (exp -> exp -> 'a list option) Lazy.t
     val atomic_derivation : 'a t -> (exp -> exp -> 'a list option) Lazy.t
@@ -88,8 +90,33 @@ module Make (X : GradeExp.S) = struct
     let closed = S.closed_leq
     let derive t = Lazy.force (S.derivation t)
 
+    (* [e ≾ v] from hypotheses [c ≾ v] and [v · v ≾ v], [e] variable-free
+       and below the closure [c⁺]: [c⁺] is the least [w] with [c ≾ w] and
+       [w · w ≾ w]. *)
+    let below_closure t e e' =
+      S.is_atom e'
+      && Option.is_some (S.value e)
+      &&
+      let os =
+        List.filter
+          (fun (o : _ GradeNormal.ordering) -> S.equal_exp t.bounds o.rhs e')
+          (S.orderings t e e')
+      in
+      List.exists
+        (fun (o : _ GradeNormal.ordering) ->
+          S.equal_exp t.bounds o.lhs (S.exp_mul e' e'))
+        os
+      && List.exists
+           (fun (o : _ GradeNormal.ordering) ->
+             match S.closure o.lhs with
+             | Some plus -> closed t.bounds e plus = Some true
+             | None -> false)
+           os
+
     let follows t e e' =
-      closed t.bounds e e' = Some true || Option.is_some (derive t e e')
+      closed t.bounds e e' = Some true
+      || Option.is_some (derive t e e')
+      || below_closure t e e'
 
     let follows_atomic t e e' =
       List.exists
@@ -118,6 +145,12 @@ module Make (X : GradeExp.S) = struct
     include N.Rho
 
     let equal_exp = X.Rho.equal
+    let exp_mul = X.Rho.mul
+
+    let closure e =
+      Option.bind (X.Rho.value e) (fun c ->
+          Option.map X.Rho.const (X.GS.R.plus c))
+
     let orderings t = t.rho_with
     let derivation t = t.rho
     let atomic_derivation t = t.rho_atomic
@@ -127,6 +160,12 @@ module Make (X : GradeExp.S) = struct
     include N.Eps
 
     let equal_exp = X.Eps.equal
+    let exp_mul = X.Eps.mul
+
+    let closure e =
+      Option.bind (X.Eps.value e) (fun c ->
+          Option.map X.Eps.const (X.GS.E.plus c))
+
     let orderings t = t.eps_with
     let derivation t = t.eps
     let atomic_derivation t = t.eps_atomic

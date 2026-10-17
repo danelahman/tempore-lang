@@ -165,6 +165,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
       let equal bounds p q = leq bounds p q && leq bounds q p
       let counterexample _bounds _ _ = None
       let unit_least = false
+      let plus _ = None
       let commutative = false
       let needs_op_bounds = true
       let events = Trace.events
@@ -209,6 +210,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
       let equal bounds p q = leq bounds p q && leq bounds q p
       let counterexample _bounds _ _ = None
       let unit_least = not O.rigid
+      let plus _ = None
       let commutative = false
       let needs_op_bounds = true
 
@@ -260,6 +262,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
 
       let counterexample _bounds _ _ = None
       let unit_least = false
+      let plus _ = None
       let commutative = false
       let needs_op_bounds = true
 

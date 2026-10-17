@@ -462,11 +462,38 @@ module Suite (G : Grade.S) = struct
         (refuted_by (map (a *. en 3)));
     ]
 
+  (* The closure of one tick, where the grade declares one: its laws, and
+     [c⁺ ≾ a] entailed by [c ≾ a] and [a · a ≾ a]. *)
+  let closures =
+    let module E = Inference.Entail.Make (X) in
+    let c = delay 1 in
+    match G.plus c with
+    | None -> []
+    | Some plus ->
+        let entail =
+          E.make bounds (eps_hyps [ hyp (en 1) a 1; hyp (a *. a) a 2 ])
+        in
+        [
+          check "a grade below its closure" (G.leq bounds c plus)
+            ("not " ^ G.show c ^ " ≾ " ^ G.show plus);
+          check "a closure absorbs its square"
+            (G.leq bounds (G.mul plus plus) plus)
+            ("not " ^ G.show plus ^ " · " ^ G.show plus ^ " ≾ " ^ G.show plus);
+          check "a closure is its own closure"
+            (Option.fold ~none:false
+               ~some:(fun p -> G.equal bounds p plus)
+               (G.plus plus))
+            (G.show plus ^ " is not its own closure");
+          check "a closure entailed below an idempotent upper bound"
+            (E.Eps.follows entail (X.Eps.const plus) a)
+            (G.show plus ^ " ≾ a not entailed");
+        ]
+
   let run () =
     List.map
       (fun c -> { c with name = G.name ^ ": " ^ c.name })
       (expressions @ normal_forms @ decisions @ canonical_forms @ splits
-     @ closed_checks @ refutations)
+     @ closed_checks @ refutations @ closures)
 end
 
 let variable_names =

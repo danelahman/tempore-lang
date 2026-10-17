@@ -604,6 +604,7 @@ module ModeTimes = struct
   let name = "mode-times"
   let leq_symbol = "<="
   let unit_least = false
+  let plus _ = None
   let commutative = false
   let needs_op_bounds = true
   let of_lit = of_lit

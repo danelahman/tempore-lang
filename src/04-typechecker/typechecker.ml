@@ -49,26 +49,29 @@ module Make (GS : Grades.GradeSystem.S) = struct
       envs = P.both (Gen.declare_operations declarations) state.envs;
     }
 
-  (* The constraint of a command that has one, generated afresh. *)
+  (* The type and the constraint of a command that has one, generated afresh;
+     the type of a run or a default is the unit type, which {!P.check} does not
+     read. *)
   let constraint_of env (cmd : command) =
     let loc = cmd.at in
     match cmd.it with
-    | Ast.TopLet (x, e) -> Some (snd (Gen.generate_top_let env ~loc x e))
-    | Ast.TopDo c -> Some (snd (Gen.generate_run env ~loc c))
-    | Ast.OpDefault (op, abs) -> Some (Gen.generate_default env ~loc op abs)
+    | Ast.TopLet (x, e) -> Some (Gen.generate_top_let env ~loc x e)
+    | Ast.TopDo c -> Some (Ast.TyTuple [], snd (Gen.generate_run env ~loc c))
+    | Ast.OpDefault (op, abs) ->
+        Some (Ast.TyTuple [], Gen.generate_default env ~loc op abs)
     | Ast.TyDef _ | Ast.OpSig _ -> None
 
   (* The failure of the constraint of a command [cmd], solved and its
      qualifier checked as the command's is, with what it is explained
      against: the solution in the latter case, the provenance of a failed
      expansion in the former. *)
-  let failure cmd context constr =
+  let failure cmd context ty constr =
     let source solution mismatch =
       { E.context; constr = Some constr; solution; mismatch }
     in
     match S.solve_traced context constr with
     | S.Solved solution, _ -> (
-        match P.check cmd context solution with
+        match P.check cmd context ty solution with
         | Ok () -> None
         | Error failure -> Some (source (Some solution) None, P.Refuted failure)
         )
@@ -83,14 +86,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
   (* The failures of a constraint in the order they are found: its failure,
      then, after a refutation, the refutations of the constraint without the
      atoms it refutes. *)
-  let rec failures cmd context constr =
-    match failure cmd context constr with
+  let rec failures cmd context ty constr =
+    match failure cmd context ty constr with
     | None -> []
     | Some ((_, P.Refuted refuted) as found) ->
         let rest =
           match E.without_refuted refuted constr with
           | Some constr ->
-              List.filter is_refutation (failures cmd context constr)
+              List.filter is_refutation (failures cmd context ty constr)
           | None -> []
         in
         found :: rest
@@ -152,7 +155,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let context = P.context env in
     let found =
       match constraint_of env cmd with
-      | Some constr -> failures cmd context constr
+      | Some (ty, constr) -> failures cmd context ty constr
       | None -> []
       | exception Error.Error { kind = Diagnostic.Typing; _ } -> []
     in

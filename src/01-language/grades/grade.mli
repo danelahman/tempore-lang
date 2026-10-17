@@ -149,6 +149,13 @@ module type S = sig
   val join : t -> t -> t
   (** The binary join [_⊔_]. *)
 
+  val plus : t -> t option
+  (** [plus c] is the closure [c⁺] of [c], where the grade declares one: the
+      least grade [w] with [c ≾ w] and [w · w ≾ w]. It also satisfies, for every
+      [d], [c · d ≾ d ⇒ c⁺ · d ≾ d] and [d · c ≾ d ⇒ d · c⁺ ≾ d], as it does
+      where the grade is residuated. Both laws hold under all running times. It
+      is [None] where the grade declares no closure. *)
+
   module Delay : Delay.S
   (** The delays. *)
 

@@ -157,6 +157,7 @@ struct
 
       let is_top = is_top coverage
       let unit_least = false
+      let plus _ = None
       let of_delay = of_delay
       let of_lit = function Top -> top | lit -> literals ~rigid:O.rigid lit
 
@@ -178,6 +179,7 @@ struct
       let top = allowance.top
       let is_top = is_top allowance
       let unit_least = not O.rigid
+      let plus _ = None
       let of_delay = of_delay
       let of_lit = literals ~rigid:O.rigid
       let accepts = if O.rigid then S.accepts else L.accepts
@@ -216,6 +218,7 @@ struct
             Option.map (fun e -> (lo, e)) (Upper.counterexample bounds hi hi')
 
       let unit_least = false
+      let plus _ = None
       let commutative = false
       let needs_op_bounds = true
       let duration_bounds bounds (lo, hi) = duration_bounds bounds lo hi

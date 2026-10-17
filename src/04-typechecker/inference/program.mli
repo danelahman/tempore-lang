@@ -7,7 +7,8 @@
     closed instance ({!Program.Make.check}); the command is rejected when either
     refutes. A top-level definition is generalised to its reported scheme
     [∀Θ. Q ∧ R ⇒ A] ({!Solver.Make.generalise}), no unknown being free in the
-    environment of top-level definitions; local definitions are not generalised.
+    environment of top-level definitions, and rejected when an ordering of [Q]
+    between variable-free sides is false; local definitions are not generalised.
 
     Satisfiability of a definition's qualifier is decided provisionally: the
     definition is accepted unless the search for a closed instance refutes its
@@ -61,11 +62,15 @@ module Make (C : Constraint.S) : sig
   val check :
     command ->
     Solver.Make(C).context ->
+    C.ty ->
     Solver.Make(C).solution ->
     (unit, Solver.Make(C).failure) result
-  (** [check cmd] is how the qualifier of the solution of [cmd] is checked:
-      {!Solver.Make.established} for a run and {!Solver.Make.satisfiable}
-      otherwise. *)
+  (** [check cmd context ty solution] is how the qualifier of the solution of
+      [cmd] is checked: {!Solver.Make.established} for a run and a default; for
+      a top-level definition of type [ty], {!Solver.Make.satisfiable}, then the
+      decision of the closed orderings of its reported scheme
+      ({!Solver.Make.generalise}); {!Solver.Make.satisfiable} otherwise. The
+      type [ty] is read for a top-level definition only. *)
 
   (** Whether the commands after one are processed. *)
   type next = Continue | Stop
