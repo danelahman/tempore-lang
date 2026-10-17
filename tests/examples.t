@@ -1168,12 +1168,12 @@ tests show those runs in detail.
   return ()
   State: [
     [6, 6],
-    { resource_0 ↦ "amplicon tagment mix" # [0, 30] },
+    { resource_0 ↦ Reagent "amplicon tagment mix" # [0, 30] },
     [2, 2],
     [1, 1],
     [2, 2],
     [6, 6],
-    { resource_1 ↦ "neutralize tagment buffer" # [0, 30] },
+    { resource_1 ↦ Reagent "neutralize tagment buffer" # [0, 30] },
     [6, 6],
     [2, 2]
   ]
