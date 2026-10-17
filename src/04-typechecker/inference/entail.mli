@@ -15,7 +15,9 @@
     - [follows]: [closed] where it holds, or [derive], or [e ≾ v] for an atom
       [v] and a variable-free [e] below the closure [c⁺]
       ({!Grades.Grade.S.plus}) of the left side of a hypothesis [c ≾ v], where
-      [v · v ≾ v] is a hypothesis too;
+      [v · v ≾ v] is a hypothesis too, or [d · v ≾ v] for a variable-free [d]
+      below the closure [c⁺] of the constant multiplier of a hypothesis
+      [c · v ≾ v], or its mirror [v · d ≾ v];
     - [follows_atomic]: the fragment of [follows] whose chains pass along the
       hypotheses between two atoms only, and a hypothesis itself;
     - [decided] and [valid] at no hypotheses: [closed] where both sides are
@@ -63,7 +65,8 @@ module Make (X : GradeExp.S) : sig
     val follows : 'a t -> exp -> exp -> bool
     (** [follows t e e'] is whether [closed] holds, [derive t] succeeds, or [e']
         is an atom [v] with hypotheses [c ≾ v] and [v · v ≾ v], [e] being
-        variable-free and below [c⁺]. *)
+        variable-free and below [c⁺], or [e] is [d · v] with a hypothesis
+        [c · v ≾ v], [d] variable-free and below [c⁺], or the mirror. *)
 
     val follows_atomic : 'a t -> exp -> exp -> bool
     (** [follows_atomic t e e'] is whether [e ≾ e'] is one of the hypotheses of

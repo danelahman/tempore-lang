@@ -113,10 +113,44 @@ module Make (X : GradeExp.S) = struct
              | None -> false)
            os
 
+    (* The constant multiplier [c] of [e] as [c · v], [left], or as [v · c],
+       [v] being the atom [e']. *)
+    let multiplier t ~left e e' =
+      let is_v x =
+        S.equal_exp t.bounds (S.read_back_product [ GradeNormal.Var x ]) e'
+      in
+      match (left, S.normal t.bounds e) with
+      | true, [ [ GradeNormal.Const c; GradeNormal.Var x ] ]
+      | false, [ [ GradeNormal.Var x; GradeNormal.Const c ] ]
+        when is_v x ->
+          Some (S.read_back_product [ GradeNormal.Const c ])
+      | _ -> None
+
+    (* [d · v ≾ v] from a hypothesis [c · v ≾ v], [d] below the closure [c⁺],
+       which also satisfies [c⁺ · v ≾ v]; likewise [v · d ≾ v]. *)
+    let multiplied_closure t e e' =
+      S.is_atom e'
+      && List.exists
+           (fun left ->
+             match multiplier t ~left e e' with
+             | None -> false
+             | Some d ->
+                 List.exists
+                   (fun (o : _ GradeNormal.ordering) ->
+                     S.equal_exp t.bounds o.rhs e'
+                     &&
+                     match
+                       Option.bind (multiplier t ~left o.lhs e') S.closure
+                     with
+                     | Some plus -> closed t.bounds d plus = Some true
+                     | None -> false)
+                   (S.orderings t e e'))
+           [ true; false ]
+
     let follows t e e' =
       closed t.bounds e e' = Some true
       || Option.is_some (derive t e e')
-      || below_closure t e e'
+      || below_closure t e e' || multiplied_closure t e e'
 
     let follows_atomic t e e' =
       List.exists

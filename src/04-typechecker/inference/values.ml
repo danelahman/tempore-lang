@@ -55,48 +55,59 @@ let lows sort orderings =
     orderings
     (Some ([], []))
 
-(* The least value of [v] at or above [base] at which every cycle holds, of
-   the following candidates the first at which they all hold, each below every
-   value of [v] above [base] that meets the cycles it is drawn from:
-   - [base] itself;
-   - for a cycle [v · v ≾ v] and a variable-free [base], the closure [base⁺];
-   - for the cycles [d · v ≾ v] with variable-free [d], their join [D], the
-     value [base ⊔ D⁺ · base]; likewise [base ⊔ base · D⁺] for the cycles
-     [v · d ≾ v]. *)
+(* The least value of [v] at or above [base] at which every cycle holds:
+   [V = B* · base · C*], and its closure [V⁺] where a cycle is [v · v ≾ v],
+   [B] and [C] the joins of the multipliers of the cycles [b · v ≾ v] and
+   [v · c ≾ v]. [X* · y] is [y] where each multiplier leaves [y], decided,
+   and otherwise [y ⊔ X⁺ · y], likewise [y · X*]; the closure [x⁺] of an
+   expression is [x] where [x · x ≾ x] is decided, and otherwise that of its
+   value. The value is taken where every cycle holds at it. *)
 let settle sort cycles base =
   match (cycles, sort.cycles) with
   | [], _ -> Some base
   | _ :: _, None -> None
   | _ :: _, Some c ->
-      let closes x =
-        List.for_all
-          (fun (o : _ GradeNormal.ordering) -> sort.valid (c.replace x o.lhs) x)
-          cycles
+      let open Option.Syntax in
+      let closure x =
+        if sort.valid (c.mul x x) x then Some x else c.closure x
       in
       let shapes =
         List.map (fun (o : _ GradeNormal.ordering) -> c.shape o.lhs) cycles
       in
-      let factors pick =
-        match List.filter_map pick shapes with
-        | [] -> None
-        | d :: ds -> c.closure (List.fold_left sort.join d ds)
+      let star ~left multipliers y =
+        let times x = if left then c.mul x y else c.mul y x in
+        match multipliers with
+        | [] -> Some y
+        | _ when List.for_all (fun m -> sort.valid (times m) y) multipliers ->
+            Some y
+        | m :: ms ->
+            Option.map
+              (fun plus -> sort.join y (times plus))
+              (closure (List.fold_left sort.join m ms))
       in
-      let square () = if List.mem Square shapes then c.closure base else None
-      and left () =
-        Option.map
-          (fun d -> sort.join base (c.mul d base))
-          (factors (function Left d -> Some d | _ -> None))
-      and right () =
-        Option.map
-          (fun d -> sort.join base (c.mul base d))
-          (factors (function Right d -> Some d | _ -> None))
+      let* y =
+        star ~left:true
+          (List.filter_map (function Left b -> Some b | _ -> None) shapes)
+          base
       in
-      List.find_map
-        (fun candidate ->
-          Option.bind (candidate ()) (fun x ->
-              let x = sort.canon x in
-              if closes x then Some x else None))
-        [ (fun () -> Some base); square; left; right ]
+      let* z =
+        star ~left:false
+          (List.filter_map (function Right b -> Some b | _ -> None) shapes)
+          y
+      in
+      let* value =
+        if List.exists (function Square -> true | _ -> false) shapes then
+          closure z
+        else Some z
+      in
+      let value = sort.canon value in
+      if
+        List.for_all
+          (fun (o : _ GradeNormal.ordering) ->
+            sort.valid (c.replace value o.lhs) value)
+          cycles
+      then Some value
+      else None
 
 (* The orderings [cap] caps, when every ordering with [v] on its left side is
    reflexive, capped or valid. *)
@@ -186,32 +197,24 @@ module Make (X : GradeExp.S) = struct
   module E = Entail.Make (X)
 
   (* The shape of a cycle's left side from its normal form, [is_v] telling
-     the atoms of [v] and [const] reading a constant back. *)
-  let shape ~normal ~is_v ~const e =
-    let all_const atoms =
-      List.for_all
-        (function GradeNormal.Const _ -> true | GradeNormal.Var _ -> false)
-        atoms
-    and product atoms =
-      match
-        List.filter_map
-          (function GradeNormal.Const c -> Some c | GradeNormal.Var _ -> None)
-          atoms
-      with
-      | [ c ] -> Some (const c)
-      | _ -> None
+     the atoms of [v] and [read_back] reading a product back. *)
+  let shape ~normal ~is_v ~read_back e =
+    let free atoms =
+      atoms <> []
+      && List.for_all
+           (function
+             | GradeNormal.Var a -> not (is_v a) | GradeNormal.Const _ -> true)
+           atoms
     in
     match normal e with
     | [ [ GradeNormal.Var a; GradeNormal.Var b ] ] when is_v a && is_v b ->
         Square
-    | [ (GradeNormal.Var a :: rest as atoms) ]
-      when is_v a && rest <> [] && all_const rest ->
-        Option.fold ~none:Other ~some:(fun d -> Right d) (product atoms)
+    | [ GradeNormal.Var a :: rest ] when is_v a && free rest ->
+        Right (read_back rest)
     | [ atoms ] -> (
         match List.rev atoms with
-        | GradeNormal.Var a :: rest when is_v a && rest <> [] && all_const rest
-          ->
-            Option.fold ~none:Other ~some:(fun d -> Left d) (product atoms)
+        | GradeNormal.Var a :: rest when is_v a && free rest ->
+            Left (read_back (List.rev rest))
         | _ -> Other)
     | _ -> Other
 
@@ -240,7 +243,7 @@ module Make (X : GradeExp.S) = struct
                   { X.empty_subst with eps_subst = X.Eps_var.Map.singleton k x });
             shape =
               shape ~normal:(N.Eps.normal bounds) ~is_v:(X.Eps_var.equal k)
-                ~const:X.Eps.const;
+                ~read_back:N.Eps.read_back_product;
             closure =
               (fun e ->
                 Option.bind (X.Eps.value e) (fun c ->
@@ -276,7 +279,7 @@ module Make (X : GradeExp.S) = struct
               shape ~normal:(N.Rho.normal bounds)
                 ~is_v:(function
                   | N.Resource k' -> X.Rho_var.equal k k' | N.Image _ -> false)
-                ~const:X.Rho.const;
+                ~read_back:N.Rho.read_back_product;
             closure =
               (fun e ->
                 Option.bind (X.Rho.value e) (fun c ->
