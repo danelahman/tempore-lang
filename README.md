@@ -1708,7 +1708,9 @@ The examples in [`examples/arduino/`](examples/arduino/), by board:
   a peak recorder; [`level`](examples/arduino/level/level.tpe), a digital
   level; [`fall`](examples/arduino/fall/fall.tpe), a fall detector;
   [`steps`](examples/arduino/steps/steps.tpe), a step counter;
-  [`starter`](examples/arduino/starter/starter.tpe), a sprint start system.
+  [`starter`](examples/arduino/starter/starter.tpe), a sprint start system;
+  [`bala2-controller`](examples/arduino/bala2-controller/controller.tpe),
+  the controller of `bala2-remote`.
 
 #### Quick start
 <!-- web-skip -->

@@ -878,6 +878,17 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     start before the gun, and "Reset" clears the tally.
   - The host model observes the tones of the Set command and of the gun
     through `m5_speaker_observe` and scripts the pushes after them.
+- [`bala2-controller`](../../../examples/arduino/bala2-controller/controller.tpe):
+  the controller of [`bala2-remote`](#m5stack-gray), with the packages
+  `esp-now` and `bala2-remote`.
+  - Each iteration of its loop sends one message, under 50 ms apart: Beat
+    while disarmed, Arm or Disarm for about 250 ms after a tap on its
+    button, and Drive while armed, the speed from the pitch and the turn
+    from the roll, each with a dead zone of 5 degrees and bounded.
+  - An iteration redraws at most one band: the state, or the speed or the
+    turn, in turn, when it changes.
+  - The make variable `REMOTE_PEER`, the address of the robot, sets the
+    peer; the host model `world.cpp` tilts and taps the device.
 
 #### Using the digital level
 

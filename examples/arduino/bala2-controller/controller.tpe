@@ -1,0 +1,205 @@
+(* The controller of the BALA2 on the M5Stack CoreS3: drive by tilt over
+   ESP-NOW, arm and disarm by touch
+
+   Run this example with the 'time-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades time-interval-rational \
+       --package m5-imu \
+       --package m5-display \
+       --package m5-touch \
+       --package esp-now \
+       --package bala2-remote \
+       --board m5stack-cores3 \
+       examples/arduino/bala2-controller/controller.tpe
+
+   Grades [q, r], [q, r), (q, r], (q, r): between q and r milliseconds
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition, an end open if either end added is *)
+
+(* Runs on the M5Stack CoreS3 (controller.device.json): 'remote' as a free
+   task, sending a message of the package bala2-remote to the robot of
+   examples/arduino/bala2-remote in each iteration of its loop, under 50 ms
+   apart. On the board: make arduino-bala2-controller-upload
+   REMOTE_PEER=XX:XX:XX:XX:XX:XX, the address of the robot (by default
+   broadcast); simulated on the host, with world.cpp tilting and touching
+   the device: make arduino-bala2-controller-simulate. *)
+
+(* The mode of the controller and the message it sends: Idle, Beat; Arming,
+   Arm, for a number of further iterations; Armed, Drive; Disarming,
+   Disarm, likewise. A message is sent repeatedly, since the robot reads only
+   the latest packet. *)
+type mode = Idle | Arming of nat | Armed | Disarming of nat
+
+(* The number of further iterations in which Arm or Disarm is sent after a
+   tap, about 250 ms. *)
+let repeats = 20
+
+(* The command of a tilt: the dead zone, in degrees, and the gain and the
+   bound of the speed of the wheels, in encoder counts per second, per
+   degree of pitch, and of the turn, a difference of the drives of the
+   motors in units of 1023, per degree of roll. A pitch of 30 degrees gives
+   the greatest speed, 400 counts per second, about 0.2 m/s. *)
+let dead_zone = 5.0
+let speed_gain = 16.0
+let speed_limit = 400.0
+let turn_gain = 4.0
+let turn_limit = 100.0
+
+let magnitude (x : float) = if x < 0.0 then ~-.x else x
+
+let clamp (limit : float) (x : float) =
+  if x < ~-.limit then ~-.limit else if x > limit then limit else x
+
+(* x rounded to the nearest whole number, a half away from zero. *)
+let whole (x : float) =
+  if x < 0.0 then float_of_int (int_of_float (x -. 0.5))
+  else float_of_int (int_of_float (x +. 0.5))
+
+(* The command of an angle: zero within the dead zone, and beyond it the
+   gain times the excess, bounded and rounded. *)
+let command (gain : float) (limit : float) (angle : float) =
+  if angle > dead_zone then whole (clamp limit (gain *. (angle -. dead_zone)))
+  else if angle < ~-.dead_zone then
+    whole (clamp limit (gain *. (angle +. dead_zone)))
+  else 0.0
+
+(* The buttons Arm and Disarm, 156 by 40 pixels, side by side at the bottom
+   of the screen. *)
+type press = ArmPress | DisarmPress | NoPress
+
+let press (x : nat) (y : nat) =
+  if y < 188 then NoPress
+  else if x < 156 then ArmPress
+  else if x >= 164 then DisarmPress
+  else NoPress
+
+let next (m : mode) (p : press) =
+  match p with
+  | ArmPress -> Arming repeats
+  | DisarmPress -> Disarming repeats
+  | NoPress -> (
+      match m with
+      | Arming 0 -> Armed
+      | Arming (k + 1) -> Arming k
+      | Disarming 0 -> Idle
+      | Disarming (k + 1) -> Disarming k
+      | _ -> m)
+
+let message (m : mode) (speed : float) (turn : float) =
+  match m with
+  | Idle -> Beat
+  | Arming _ -> Arm
+  | Armed -> Drive (speed, turn)
+  | Disarming _ -> Disarm
+
+let armed (m : mode) =
+  match m with Arming _ -> true | Armed -> true | _ -> false
+
+(* What the screen shows: whether the robot is shown armed, the speed and
+   the turn shown, and whether the speed is redrawn next. *)
+type view = bool * float * float * bool
+
+(* Correctly accepted by the typechecker: an iteration reads the touch
+   screen and the unit, sends the message of its mode, redraws at most one
+   band, the mode if it changed, and else the speed or the turn, in turn, if
+   it changed, and waits 10.5 ms; it takes 10.7 to 47.45 ms, below the
+   50 ms within which the robot expects a message. *)
+let iteration
+    ((m, (shown, shown_speed, shown_turn, speed_next)) : mode * view) :
+    mode * view # [0, 50) =
+  let touched, x, y = perform ReadTouch () in
+  let m = next m (if touched then press x y else NoPress) in
+  let accel, _ = perform ReadImu () in
+  let speed = command speed_gain speed_limit (tilt_x_of_accel accel) in
+  let turn = command turn_gain turn_limit (tilt_y_of_accel accel) in
+  remote_send (message m speed turn);
+  let now = armed m in
+  let view =
+    if now = shown then
+      if speed_next then
+        if speed = shown_speed then (now, shown_speed, shown_turn, false)
+        else (
+          perform ShowNumberAt (120, 100, 2, 0, speed);
+          (now, speed, shown_turn, false))
+      else if turn = shown_turn then (now, shown_speed, shown_turn, true)
+      else (
+        perform ShowNumberAt (120, 140, 2, 0, turn);
+        (now, shown_speed, turn, true))
+    else (
+      (if now then perform ShowTextAt (0, 60, 2, "Armed")
+       else perform ShowTextAt (0, 60, 2, "Disarmed"));
+      (now, shown_speed, shown_turn, speed_next))
+  in
+  delay 21/2;
+  (m, view)
+
+let rec control (n : nat) (s : mode * view) : unit # [0, ∞) =
+  match n with
+  | 0 -> ()
+  | k + 1 ->
+      let s = iteration s in
+      control k s
+
+let remote () =
+  perform LinkStart remote_channel;
+  perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Robot remote");
+  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (0, 60, 2, "Disarmed");
+  perform ShowTextAt (0, 100, 2, "Speed");
+  perform ShowNumberAt (120, 100, 2, 0, 0.0);
+  perform ShowTextAt (0, 140, 2, "Turn");
+  perform ShowNumberAt (120, 140, 2, 0, 0.0);
+  perform DrawButton (0, 188, 156, 40, "Arm");
+  perform DrawButton (164, 188, 156, 40, "Disarm");
+  control 4000000000 (Idle, (false, 0.0, 0.0, true))
+
+(* Correctly rejected by the typechecker: an iteration that redraws both the
+   speed and the turn may take 80.45 ms, so that the robot may find no
+   message younger than 50 ms:
+
+     Typing error: This function's body has grade `[10.8, 80.45]`, which
+       does not match its annotated grade `[0, 50)`
+       Note: the effect inequality `[10.8, 80.45] <= [0, 50)` does not hold
+*)
+(*
+let iteration_both ((m, view) : mode * view) : mode * view # [0, 50) =
+  let touched, x, y = perform ReadTouch () in
+  let m = next m (if touched then press x y else NoPress) in
+  let accel, _ = perform ReadImu () in
+  let speed = command speed_gain speed_limit (tilt_x_of_accel accel) in
+  let turn = command turn_gain turn_limit (tilt_y_of_accel accel) in
+  remote_send (message m speed turn);
+  perform ShowNumberAt (120, 100, 2, 0, speed);
+  perform ShowNumberAt (120, 140, 2, 0, turn);
+  delay 21/2;
+  (m, view)
+*)
+
+(* Correctly rejected by the typechecker: an iteration that waits 40 ms, to
+   send at about 20 Hz, may take 76.95 ms with a redraw:
+
+     Typing error: This function's body has grade `[40.2, 76.95]`, which
+       does not match its annotated grade `[0, 50)`
+       Note: the effect inequality `[40.2, 76.95] <= [0, 50)` does not hold
+*)
+(*
+let iteration_slow
+    ((m, (shown, shown_speed, shown_turn, speed_next)) : mode * view) :
+    mode * view # [0, 50) =
+  let touched, x, y = perform ReadTouch () in
+  let m = next m (if touched then press x y else NoPress) in
+  let accel, _ = perform ReadImu () in
+  let speed = command speed_gain speed_limit (tilt_x_of_accel accel) in
+  let turn = command turn_gain turn_limit (tilt_y_of_accel accel) in
+  remote_send (message m speed turn);
+  (if speed = shown_speed then ()
+   else perform ShowNumberAt (120, 100, 2, 0, speed));
+  delay 40;
+  (m, (shown, speed, shown_turn, speed_next))
+*)
+
+(* An iteration from the default implementations of the operations: no
+   touch, the unit flat, and Beat sent. *)
+run iteration (Idle, (false, 0.0, 0.0, true))

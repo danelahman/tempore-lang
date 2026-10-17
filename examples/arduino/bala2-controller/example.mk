@@ -1,0 +1,12 @@
+# The make targets of the example: the grades of its program and the
+# simulated time of its host simulation, in seconds.
+EXAMPLE_GRADES = time-interval-rational
+EXAMPLE_SIMULATE = 4
+
+# The build flags of every device build: the address of the robot,
+# REMOTE_PEER, six bytes in hexadecimal separated by colons, as the robot
+# logs it at the start of its link, passed as the build flag ESP_NOW_PEER of
+# the package esp-now; without it the controller sends to every device and
+# receives from any (the broadcast address).
+REMOTE_PEER ?=
+EXAMPLE_BUILD_FLAGS = $(if $(REMOTE_PEER),-DESP_NOW_PEER=0x$(subst :,$(comma)0x,$(REMOTE_PEER)))

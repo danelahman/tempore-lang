@@ -17,6 +17,12 @@ tests show those runs in detail.
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
   ======================================================================
+  ../examples/arduino/bala2-controller/controller.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Idle, (false, 0., 0., false))
+  
+  ======================================================================
   ../examples/arduino/bala2-regex/balance_regex.tpe
   ======================================================================
   === Run 1 ===
