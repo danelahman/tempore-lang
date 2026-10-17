@@ -253,7 +253,7 @@ let upright_limit = 10.0
    after the report and the wait, before any further Receive. wait5, wait25
    and wait125 repeat the poll up to 5, 25 and 125 times, and wait_arm up
    to 500 times, about 200 s, without a recursion, whose grade would be a
-   star; 625 polls would take 8 s to typecheck, 500 take 4 s. *)
+   star. *)
 let poll_arm () : bool # {Receive; Report; !400} =
   let latest, _ = remote_receive () in
   perform Report false;
