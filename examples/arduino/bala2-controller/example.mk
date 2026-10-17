@@ -1,6 +1,6 @@
 # The make targets of the example: the grades of its program and the
 # simulated time of its host simulation, in seconds.
-EXAMPLE_GRADES = time-interval-rational
+EXAMPLE_GRADES = regex-timed-rigid-interval-rational-symbolic
 EXAMPLE_SIMULATE = 4
 
 # The build flags of every device build: the address of the robot,

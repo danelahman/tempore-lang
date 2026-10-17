@@ -159,13 +159,20 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   - the type `message`, `Arm`, `Drive (speed, turn)`, `Disarm` or `Beat`,
     each a tag of a packet;
   - `remote_channel`, the channel of `LinkStart`, and `remote_send`, which
-    sends a message;
+    sends a message by `Send`;
+  - the operations `SendArm`, `SendDrive`, `SendDisarm` and `SendBeat`, one
+    per message, bound in C++ over the packets of `esp-now`, so that grades
+    tell the messages apart, with the provisional bounds of `Send`;
   - `remote_receive`, which returns the latest message received at most
     50 ms ago, or `Nothing` for none or an unknown tag, boxed with
     `[0, 150)`, the type `fresh`, so that a command is applied at most 200 ms
     after it was sent;
   - declared under `time-interval-rational` and the regular expressions of
-    timed operations with intervals or upper bounds.
+    timed operations with intervals or upper bounds;
+  - under the rigid grades, `remote_receive` returns two boxes, as a grade
+    has a single upper bound and a box of a box is refused: the message, its
+    setpoints zero, boxed with `{(!_ & ~Receive)*}`, usable only before the
+    next `Receive`, and its setpoints, boxed with `[0, 150)`.
 
 ### Bounds per board
 
@@ -751,15 +758,20 @@ port variable `PORT_M5STACK_GRAY`).
     of its gyroscope in the interpreter, each case of an operation performing
     that operation.
 - [`bala2-remote`](../../../examples/arduino/bala2-remote/balance_remote.tpe):
-  the robot of `bala2` driven by a controller over ESP-NOW, with the
-  packages `esp-now` and `bala2-remote`, sharing the binding file and host
-  model of `bala2`.
-  - After the calibration and a second held upright, the supervision waits
-    for Arm, then applies each message within its window of 150 ms: a Drive
-    command, Disarm, which returns to waiting for Arm, or zero setpoints.
-  - Each iteration of the drive takes less than 50 ms; after about 2 s
-    without a message it shows "Link lost" and beeps once, and the robot
-    stays armed.
+  the robot of `bala2-regex` driven by a controller over ESP-NOW, under the
+  rigid regular expressions of timed operations, with the packages
+  `esp-now` and `bala2-remote`, sharing the binding file and host model of
+  `bala2`.
+  - The calibration is boxed with `[{[1000, ∞)}, {(!_ & ~Command)*}]`: the
+    robot is armed at least a second after it, and only if no motion was
+    commanded since.
+  - Each iteration of the drive applies the message it receives before any
+    further `Receive`, and its setpoints within 150 ms: a Drive command,
+    Disarm, which returns to waiting for Arm, or zero setpoints.
+  - The grade of a session is its protocol: Arm, commands and Disarm, in
+    this order; it fixes each iteration of the drive, which takes 12.5 to
+    45.8 ms. After about 2 s without a message the robot shows "Link lost"
+    and beeps once, and stays armed.
   - The make variable `REMOTE_PEER`, the address of the controller, sets
     the peer; the host model `controller.cpp` scripts the controller.
 - [`wheels`](../../../examples/arduino/wheels/wheels.tpe): a wheel check of
@@ -879,14 +891,17 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   - The host model observes the tones of the Set command and of the gun
     through `m5_speaker_observe` and scripts the pushes after them.
 - [`bala2-controller`](../../../examples/arduino/bala2-controller/controller.tpe):
-  the controller of [`bala2-remote`](#m5stack-gray), with the packages
-  `esp-now` and `bala2-remote`.
-  - Each iteration of its loop sends one message, under 50 ms apart: Beat
-    while disarmed, Arm or Disarm for about 250 ms after a tap on its
-    button, and Drive while armed, the speed from the pitch and the turn
-    from the roll, each with a dead zone of 5 degrees and bounded.
-  - An iteration redraws at most one band: the state, or the speed or the
-    turn, in turn, when it changes.
+  the controller of [`bala2-remote`](#m5stack-gray), under the rigid
+  regular expressions of timed operations, with the packages `esp-now` and
+  `bala2-remote`.
+  - The grade of a session is its protocol: Beat until a tap on Arm, Arm 20
+    times, Drive until a tap on Disarm and Disarm 20 times, each message
+    under 50 ms after the last.
+  - Drive takes the speed from the pitch and the turn from the roll, each
+    with a dead zone of 5 degrees and bounded, of a reading boxed so that
+    it is the latest and at most 2 ms old.
+  - An armed iteration redraws at most the speed or the turn, in turn, when
+    it changes.
   - The make variable `REMOTE_PEER`, the address of the robot, sets the
     peer; the host model `world.cpp` tilts and taps the device.
 

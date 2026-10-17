@@ -1,8 +1,9 @@
-(* The M5Stack BALA2 driven by radio from a controller over ESP-NOW
+(* The M5Stack BALA2 driven by radio from a controller over ESP-NOW, under
+   rigid timed regular expressions
 
-   Run this example with the 'time-interval-rational' grading monoid, e.g.
+   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades time-interval-rational \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        --package m5-imu \
        --package m5-display \
        --package m5-speaker \
@@ -12,21 +13,23 @@
        --board m5stack-gray \
        examples/arduino/bala2-remote/balance_remote.tpe
 
-   Grades [q, r], [q, r), (q, r], (q, r): between q and r milliseconds
-     - Unit [0, 0]: no time spent
-     - Top [0, ∞): no bound, the widest interval
-     - Product: componentwise addition, an end open if either end added is *)
+   Grades [L, U]: a lower bound in the coverage order and an upper bound in
+   the rigid allowance order on the traces with rational durations
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
 
-(* The robot of examples/arduino/bala2 (its control step, bindings.cpp and
-   plant.cpp), armed, driven and disarmed by the messages of the package
-   bala2-remote. On the board: make arduino-bala2-remote-upload
-   REMOTE_PEER=XX:XX:XX:XX:XX:XX, the address of the controller (by default
-   broadcast); simulated on the host, with controller.cpp scripting the
-   controller: make arduino-bala2-remote-simulate. *)
+(* The robot of examples/arduino/bala2-regex (its control step, and the
+   bindings.cpp and plant.cpp of examples/arduino/bala2), armed, driven and
+   disarmed by the messages of the package bala2-remote. On the board: make
+   arduino-bala2-remote-upload REMOTE_PEER=XX:XX:XX:XX:XX:XX, the address of
+   the controller (by default broadcast); simulated on the host, with
+   controller.cpp scripting the controller: make
+   arduino-bala2-remote-simulate. *)
 
-(* The exchange between the tasks, through bindings.cpp. The step publishes
-   the tilt, in degrees, the rate of the gyroscope, in degrees per second,
-   the filtered speed of the wheels, in encoder counts per second, and the
+(* The exchange between the tasks, as in balance.tpe. The step publishes the
+   tilt, in degrees, the rate of the gyroscope, in degrees per second, the
+   filtered speed of the wheels, in encoder counts per second, and the
    reference tilt of the speed loop, in degrees, and reads the setpoints:
    whether the robot is armed, the bias of the gyroscope, the speed of the
    wheels, in encoder counts per second, and the difference of the drives of
@@ -34,35 +37,27 @@
    arms the robot with a calibration of the gyroscope, disarms it, and
    commands a speed and a turn; a command older than 200 ms is replaced by
    zero setpoints. The default implementations describe an armed robot
-   without commands.
-
-   The bounds of the running times are measured on the device by its
-   profile (2026-10-14): Publish took 0 to 0.008 ms, Setpoints 0 to 0.028
-   ms, Attitude 0 to 0.012 ms, Disarm 0.021 ms and Command 0.002 to 0.019
-   ms; with the margin of the packages, 1.5 times the greatest time, rounded
-   up, each is bounded by 0.05 ms. Arm, which stores as many values as
-   Command, is bounded as Command; it is not measured in its present form,
-   without a line to the log. Publish, measured with two values, stores
-   four, as many as Setpoints loads, and is bounded as Setpoints. *)
+   without commands. The bounds of their running times are those of
+   balance.tpe. *)
 
 type calibration = Calibration of float
 
-operation Publish : float * float * float * float ~> unit # [0, 0.05]
+operation Publish : float * float * float * float ~> unit # {Publish} within [0, 0.05]
 default Publish _ = delay 1/100
 
-operation Setpoints : unit ~> bool * float * float * float # [0, 0.05]
+operation Setpoints : unit ~> bool * float * float * float # {Setpoints} within [0, 0.05]
 default Setpoints () = delay 1/100; (true, 0.0, 0.0, 0.0)
 
-operation Attitude : unit ~> float * float # [0, 0.05]
+operation Attitude : unit ~> float * float # {Attitude} within [0, 0.05]
 default Attitude () = delay 1/100; (0.0, 0.0)
 
-operation Arm : calibration ~> unit # [0, 0.05]
+operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
 default Arm _ = delay 1/100
 
-operation Disarm : unit ~> unit # [0, 0.05]
+operation Disarm : unit ~> unit # {Disarm} within [0, 0.05]
 default Disarm () = delay 1/100
 
-operation Command : float * float ~> unit # [0, 0.05]
+operation Command : float * float ~> unit # {Command} within [0, 0.05]
 default Command _ = delay 1/100
 
 (* The control step. The state is the tilt, in degrees, filtered from the
@@ -73,60 +68,26 @@ default Command _ = delay 1/100
 
 type state = float * float * float * float * float
 
-(* The period, in seconds, and the weight of the gyroscope in the
-   complementary filter of the tilt. *)
+(* The period, in seconds, the weight of the gyroscope in the complementary
+   filter of the tilt, the gains and bounds of the controller and of its
+   heading loop, the weight of the previous speed in the filter of the
+   speed, the balance point, in degrees, which the tilt loop subtracts from
+   the tilt, and the dead bands of the left and the right motor, in units of
+   drive, by which their drives are moved away from zero, those of
+   balance.tpe. *)
 let period = 0.005
 let gyro_weight = 0.98
-
-(* The gains of the cascade of an outer speed loop, a proportional-integral
-   controller that sets the reference tilt, and an inner tilt loop, a
-   proportional-derivative controller that sets the drive of the motors: the
-   drive per degree of tilt and per degree per second of its rate, and the
-   reference tilt per encoder count per second of the error of the speed
-   and per encoder count of its integral, the position of the wheels. The
-   gains of the tilt loop were tuned on the device, those of the speed loop
-   on the host model plant.cpp, whose linearisation is stable for speed
-   gains from 0.011 to 0.037: below, the speed of the wheels diverges, the
-   drive of the speed term falling short of that which the free speed of
-   the motors demands; above, the tilt loop oscillates. Both ends scale
-   with the inverse of the free speed. *)
 let tilt_gain = 25.0
 let rate_gain = 0.4
 let speed_gain = 0.02
 let integral_gain = 0.004
-
-(* The weight of the previous speed in the filter of the speed, a
-   first-order low-pass filter with a time constant of about 50 ms. *)
 let speed_weight = 0.9
-
-(* The balance point, in degrees: the tilt at which the robot is upright,
-   which the tilt loop subtracts from the tilt. The cutoff applies to the
-   tilt itself. *)
-let balance_point = 0.0
-
-(* The bounds of the integral of the error of the speed, which limits its
-   term of the reference tilt to 5 degrees, of the reference tilt, in
-   degrees, and of the tilt beyond which the motors stop. A reference tilt
-   at its bound leaves the speed of the wheels unstable, so that the bound
-   is above the reference tilts of the recovery from a disturbance. *)
 let integral_limit = 1250.0
 let reference_limit = 20.0
 let cutoff = 70.0
-
-(* The gain and the bound of the heading loop, a proportional controller
-   that adds to the turn the drive per encoder count of the difference of
-   the counts of the left and the right encoder from the heading held,
-   tuned on the host model plant.cpp. The back electromotive force of the
-   motors damps the rotation, so that the loop has no derivative term. *)
+let balance_point = 0.0
 let heading_gain = 2.0
 let heading_limit = 200.0
-
-(* The dead bands of the left and the right motor, in units of drive: the
-   drive below which a wheel does not turn, estimated from measurements of
-   the device with its wheels off the ground. The drive of a motor is moved
-   away from zero by its dead band, the inverse of a dead zone (G. Tao and
-   P. V. Kokotovic, "Adaptive control of plants with unknown dead-zones",
-   IEEE Transactions on Automatic Control 39(1), 1994). *)
 let left_dead_band = 70.0
 let right_dead_band = 180.0
 
@@ -138,17 +99,19 @@ let magnitude (x : float) = if x < 0.0 then ~-.x else x
 let clamp (limit : float) (x : float) =
   if x < ~-.limit then ~-.limit else if x > limit then limit else x
 
-(* Correctly accepted by the typechecker: the step reads the unit, boxes the
-   reading for 2 ms, reads the encoders and the setpoints, and unboxes the
-   reading after 0.45 to 1.05 ms; it ends within 1.2 to 2.8 ms, below its
-   period. It publishes the attitude, the speed and the reference tilt before
-   it commands the motors. While a turn is commanded, the heading held
-   follows the difference of the counts. Beyond the cutoff, or disarmed, it
-   stops the motors, clears the integral and holds the present heading. *)
+(* Correctly accepted by the typechecker: the step reads the unit, the
+   encoders and the setpoints, publishes the attitude, the speed and the
+   reference tilt, and commands the motors, each once and in this order; its
+   durations, 1.2 to 2.8 ms, are checked against its period of 5 ms by the
+   device. The reading of the unit is boxed with any number of reads of the
+   encoders and the setpoints, without delays: it is used only if no other
+   operation, in particular no command of the motors, and no delay has come
+   since it was taken. While a turn is commanded, the heading held follows the
+   difference of the counts; disarmed, the step holds the present heading. *)
 let step ((tilt, speed, integral, position, heading) : state) : state
-    # [0, 5) =
+    # {ReadImu; ReadEncoders; Setpoints; Publish; SetMotors} =
   let reading = perform ReadImu () in
-  box [0, 2] reading as fresh in
+  box {(ReadEncoders | Setpoints)*} reading as fresh in
   let left, right = perform ReadEncoders () in
   let armed, bias, target, turn = perform Setpoints () in
   unbox fresh as imu in
@@ -187,8 +150,8 @@ let step ((tilt, speed, integral, position, heading) : state) : state
     perform SetMotors (0i, 0i);
     (tilt, speed, 0.0, now, difference))
 
-(* The initial state: the link started, the encoders reset, and the tilt
-   from the accelerometer. *)
+(* The initial state: the encoders reset, and the tilt from the
+   accelerometer. *)
 let start () : state =
   perform LinkStart remote_channel;
   perform ResetEncoders ();
@@ -199,7 +162,7 @@ let start () : state =
 (* The supervision. The bias of the gyroscope is the mean of 50 rates
    published by the step 10 ms apart, with the robot held still. *)
 
-let rec rate_sum (n : nat) (sum : float) : float # [0, ∞) =
+let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; 10)*} =
   match n with
   | 0 -> sum
   | m + 1 ->
@@ -207,82 +170,91 @@ let rec rate_sum (n : nat) (sum : float) : float # [0, ∞) =
       delay 10;
       rate_sum m (sum +. rate)
 
-(* The calibration, boxed with a delay of at least a second: arming the
-   robot needs it unboxed, at least a second after the box, in which the
-   robot is to be held upright. *)
-let calibrate () =
+(* The calibration. The bias is valid while the robot stands still, so the
+   calibration is boxed with [{[1000, ∞)}, {(!_ & ~Command)*}]: it arms the
+   robot only at least a second later, in which the robot is held upright,
+   and only if no motion has been commanded since, the upper bound admitting
+   any operation but Command and strict delays only. *)
+type token = [[{[1000, ∞)}, {(!_ & ~Command)*}]]calibration
+
+let calibrate () : token
+    # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*} =
   perform Disarm ();
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Remote robot");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
   perform ShowText "Calibrating";
   let sum = rate_sum 50 0.0 in
-  box [1000, ∞) (Calibration (sum /. 50.0))
+  box [{[1000, ∞)}, {(!_ & ~Command)*}] (Calibration (sum /. 50.0))
 
 (* The number of consecutive iterations of the drive without a message, about
    2 s, after which the link is reported lost. *)
 let silence_limit = 160
 
-(* Waits for an Arm message of the controller, ignoring the others; false if
-   none comes in n polls. *)
-let rec wait_arm (n : nat) : bool # [0, ∞) =
+(* Waits for an Arm message of the controller, ignoring the others, each
+   poll 12.5 ms after the last; false if none comes in n polls. *)
+let rec wait_arm (n : nat) : bool # {(Receive; !12.5)*; (Receive | 0)} =
   match n with
   | 0 -> false
   | m + 1 -> (
-      let fresh = remote_receive () in
-      unbox fresh as r in
+      let latest, _ = remote_receive () in
+      unbox latest as r in
       match r with
       | Got Arm -> true
       | _ ->
           delay 25/2;
           wait_arm m)
 
-(* Correctly accepted by the typechecker: an iteration of the drive applies
-   the message received, within its window of 150 ms: a Drive command is
-   commanded, Disarm disarms the robot, and Beat, Arm or no message command
-   zero setpoints. The 160th consecutive iteration without a message shows
-   "Link lost" and beeps once; the robot stays armed and keeps balancing in
-   place. It returns whether the robot is disarmed and the number of
-   iterations without a message, and takes 12.5 to 45.8 ms, below the 50 ms
-   period of the controller and the 200 ms after which a command expires. *)
-let drive_step (silent : nat) : bool * nat # [0, 50) =
-  let fresh = remote_receive () in
-  unbox fresh as r in
-  let result =
-    match r with
-    | Got (Drive (speed, turn)) ->
-        perform Command (speed, turn);
-        (false, 0)
-    | Got Disarm ->
-        perform Disarm ();
-        (true, 0)
-    | Got _ ->
-        perform Command (0.0, 0.0);
-        (false, 0)
-    | Nothing ->
-        perform Command (0.0, 0.0);
-        (if silent + 1 = silence_limit then (
-           perform ShowTextAt (0, 100, 2, "Link lost");
-           perform Beep (880, 200))
-         else ());
-        (false, min (silent + 1) silence_limit)
-  in
-  delay 25/2;
-  result
-
-let rec drive (n : nat) (silent : nat) : unit # [0, ∞) =
+(* Correctly accepted by the typechecker: the drive. Each iteration receives
+   a message and applies it at once, before any further Receive: a Drive
+   command is commanded with its setpoints, unboxed within 150 ms of the
+   reception; Beat, Arm or no message command zero setpoints, and the 160th
+   consecutive iteration without a message shows "Link lost" and beeps once,
+   the robot staying armed; Disarm disarms the robot and ends the drive.
+   The grade fixes the operations and the strict delay of each iteration,
+   which therefore takes 12.5 to 45.8 ms by the bounds of its operations,
+   below the 50 ms period of the controller and the 200 ms after which a
+   command expires. *)
+let rec drive (n : nat) (silent : nat) : unit
+    # {(Receive; Command; (ShowTextAt; Beep | 0); !12.5)*;
+       (Receive; Disarm; !12.5 | 0)} =
   match n with
   | 0 -> ()
   | m + 1 -> (
-      match drive_step silent with
-      | true, _ -> ()
-      | false, s -> drive m s)
+      let latest, fresh = remote_receive () in
+      unbox latest as r in
+      match r with
+      | Got Disarm ->
+          perform Disarm ();
+          delay 25/2
+      | Got (Drive _) ->
+          unbox fresh as setpoints in
+          perform Command setpoints;
+          delay 25/2;
+          drive m 0
+      | Got _ ->
+          perform Command (0.0, 0.0);
+          delay 25/2;
+          drive m 0
+      | Nothing ->
+          perform Command (0.0, 0.0);
+          (if silent + 1 = silence_limit then (
+             perform ShowTextAt (0, 100, 2, "Link lost");
+             perform Beep (880, 200))
+           else ());
+          delay 25/2;
+          drive m (min (silent + 1) silence_limit))
 
-(* Correctly accepted by the typechecker: each session holds the robot
-   upright for a second, waits for Arm, arms the robot with a calibration
-   1000.05 ms or more old, drives it until Disarm, and boxes the calibration
-   again for the next session. *)
-let rec session (n : nat) (token : [[1000, ∞)]calibration) : unit # [0, ∞) =
+(* Correctly accepted by the typechecker: a session holds the robot upright
+   for a second, waits for Arm, arms the robot, drives it until Disarm, and
+   boxes the calibration again for the next session; its grade is the
+   protocol of the robot, Arm, commands and Disarm, in this order. *)
+let rec session (n : nat) (token : token) : unit
+    # {(ShowTextAt; !1000; ShowTextAt; (Receive; !12.5)*; (Receive | 0);
+        Arm; ShowTextAt; (Receive; Command; (ShowTextAt; Beep | 0); !12.5)*;
+        (Receive; Disarm; !12.5 | 0); ShowTextAt)*;
+       (ShowTextAt; !1000; ShowTextAt; (Receive; !12.5)*; (Receive | 0) | 0)} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -295,7 +267,7 @@ let rec session (n : nat) (token : [[1000, ∞)]calibration) : unit # [0, ∞) =
         perform ShowTextAt (0, 100, 2, "Armed");
         drive 4000000000 0;
         perform ShowTextAt (0, 100, 2, "Disarmed");
-        session m (box [1000, ∞) calibration))
+        session m (box [{[1000, ∞)}, {(!_ & ~Command)*}] calibration))
       else ()
 
 let supervise () =
@@ -303,55 +275,89 @@ let supervise () =
   session 4000000000 token;
   perform Disarm ()
 
-(* Correctly rejected by the typechecker: the robot is armed as soon as the
-   controller sends Arm, which may come at once, before it is held upright:
+(* Correctly rejected by the typechecker: a session that commands zero
+   setpoints while it waits for Arm, to keep the setpoints fresh, arms the
+   robot with a calibration after which a motion may have been commanded:
 
-     Typing error: Variable `token` is unboxed with grade `[0.05, ∞)`
-       accumulated since it was bound, which is not below its box grade
-       `[1000, ∞)`
+     Typing error: Variable `token` is unboxed with grade `[{ShowTextAt;
+       !1000; (Receive; Command; !12.5)*; (Receive | 0)}, ...]` accumulated
+       since it was bound, which is not below its box grade `[{[1000, ∞)},
+       {(!_ & ~Command)*}]`
        ...
-       Note: the resource inequality `[0.05, ∞) <= [1000, ∞)` does not hold
 *)
 (*
-let session_hasty (token : [[1000, ∞)]calibration) =
-  perform ShowTextAt (0, 100, 2, "Waiting for Arm");
-  if wait_arm 4000000000 then (
+let rec wait_arm_commanding (n : nat) : bool
+    # {(Receive; Command; !12.5)*; (Receive | 0)} =
+  match n with
+  | 0 -> false
+  | m + 1 -> (
+      let latest, _ = remote_receive () in
+      unbox latest as r in
+      match r with
+      | Got Arm -> true
+      | _ ->
+          perform Command (0.0, 0.0);
+          delay 25/2;
+          wait_arm_commanding m)
+
+let session_commanding (token : token) =
+  perform ShowTextAt (0, 100, 2, "Hold upright");
+  delay 1000;
+  if wait_arm_commanding 4000000000 then (
     unbox token as calibration in
     perform Arm calibration;
     drive 4000000000 0)
   else ()
 *)
 
-(* Correctly rejected by the typechecker: an iteration of the drive redraws
-   the whole screen between receiving a message and applying it, which may
-   then be older than its window of 150 ms:
+(* Correctly rejected by the typechecker: an iteration of the drive that
+   polls again for a Disarm before it applies the message received first,
+   which is then no longer the latest:
 
-     Typing error: Variable `fresh` is unboxed with grade `[31.2, 159.5]`
-       accumulated since it was bound, which is not below its box grade
-       `[0, 150)`
+     Typing error: Variable `latest` is unboxed with grade `[{Receive; (0 |
+       Disarm)}, {Receive; (0 | Disarm)}]` accumulated since it was bound,
+       which is not below its box grade `[{(!_ & ~Receive)*}, {(!_ &
+       ~Receive)*}]`
        ...
-       Note: the resource inequality `[31.2, 159.5] <= [0, 150)` does not
-       hold
 *)
 (*
-let drive_step_redrawn (silent : nat) : bool * nat =
-  let fresh = remote_receive () in
+let drive_polled () =
+  let latest, fresh = remote_receive () in
+  let newer, _ = remote_receive () in
+  unbox newer as n in
+  (match n with Got Disarm -> perform Disarm () | _ -> ());
+  unbox latest as r in
+  match r with
+  | Got (Drive _) ->
+      unbox fresh as setpoints in
+      perform Command setpoints
+  | _ -> perform Command (0.0, 0.0)
+*)
+
+(* Correctly rejected by the typechecker: an iteration of the drive that
+   redraws the whole screen between receiving a message and applying it,
+   whose setpoints may then be older than 150 ms:
+
+     Typing error: Variable `fresh` is unboxed with grade `[{ClearDisplay;
+       ShowTextAt^3; ShowText}, {ClearDisplay; ShowTextAt^3; ShowText}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{0}, {[0, 150)}]`
+       ...
+*)
+(*
+let drive_redrawn () =
+  let latest, fresh = remote_receive () in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Remote robot");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
   perform ShowTextAt (0, 100, 2, "Armed");
   perform ShowText "Link up";
-  unbox fresh as r in
+  unbox latest as r in
   match r with
-  | Got (Drive (speed, turn)) ->
-      perform Command (speed, turn);
-      (false, 0)
-  | Got Disarm ->
-      perform Disarm ();
-      (true, 0)
-  | _ ->
-      perform Command (0.0, 0.0);
-      (false, silent)
+  | Got (Drive _) ->
+      unbox fresh as setpoints in
+      perform Command setpoints
+  | _ -> perform Command (0.0, 0.0)
 *)
 
 (* Two control steps from the reading of the default implementation of the

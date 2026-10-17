@@ -1,6 +1,7 @@
 The BALA2 application of examples/arduino/bala2-remote: the balancing robot
-driven by a controller over ESP-NOW, with the packages esp-now and
-bala2-remote and the binding file and host model of examples/arduino/bala2:
+driven by a controller over ESP-NOW, under the rigid regular expressions of
+timed operations, with the packages esp-now and bala2-remote and the binding
+file and host model of examples/arduino/bala2:
 its typing, its rejected variants, and its host simulation with a scripted
 controller.
 
@@ -9,18 +10,19 @@ controller.
   $ from_header $app/balance_remote.tpe
   $ packages --typecheck-only $app/balance_remote.tpe
 
-The rejected variants, each loaded after the application: arming as soon as
-the controller sends Arm, before the robot is held upright, and an iteration
-of the drive that redraws the screen between receiving a message and
-applying it:
+The rejected variants, each loaded after the application: a session that
+commands zero setpoints while it waits for Arm, a motion after the
+calibration; an iteration that polls again before it applies the message
+received first, no longer the latest; and an iteration that redraws the
+screen between receiving a message and applying its setpoints:
 
-  $ for v in hasty redrawn; do packages --typecheck-only $app/balance_remote.tpe bala2-remote/$v.tpe > out 2>&1; echo "[$?]"; grep 'error\|Note' out; done
+  $ for v in commanding polled redrawn; do packages --typecheck-only $app/balance_remote.tpe bala2-remote/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out; done
   [1]
-  Typing error: Variable `token` is unboxed with grade `[0.05, ∞)` accumulated since it was bound, which is not below its box grade `[1000, ∞)`
-    Note: the resource inequality `[0.05, ∞) <= [1000, ∞)` does not hold
+  Typing error: Variable `token` is unboxed with grade `[{ShowTextAt; !1000; (Receive; Command; !12.5)*; (Receive | 0)}, {ShowTextAt; !1000; (Receive; Command; !12.5)*; (Receive | 0)}]` accumulated since it was bound, which is not below its box grade `[{[1000, ∞)}, {(!_ & ~Command)*}]`
   [1]
-  Typing error: Variable `fresh` is unboxed with grade `[31.2, 159.5]` accumulated since it was bound, which is not below its box grade `[0, 150)`
-    Note: the resource inequality `[31.2, 159.5] <= [0, 150)` does not hold
+  Typing error: Variable `latest` is unboxed with grade `[{Receive; (0 | Disarm)}, {Receive; (0 | Disarm)}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~Receive)*}, {(!_ & ~Receive)*}]`
+  [1]
+  Typing error: Variable `fresh` is unboxed with grade `[{ClearDisplay; ShowTextAt^3; ShowText}, {ClearDisplay; ShowTextAt^3; ShowText}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 150)}]`
 
 The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information:

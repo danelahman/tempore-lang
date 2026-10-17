@@ -177,6 +177,16 @@ void esp_now_link_encode(uint32_t tag, float first, float second,
   put_word(bytes + 12, float_bits(second));
 }
 
+void esp_now_link_send(uint32_t tag, float first, float second) {
+  if (state.load() != started) tempore_fault("ESP-NOW: Send before LinkStart");
+  uint8_t bytes[packet_size];
+  esp_now_link_encode(tag, first, second, bytes);
+  if (esp_now_send(peer, bytes, packet_size) == ESP_OK)
+    queued.fetch_add(1);
+  else
+    dropped.fetch_add(1);
+}
+
 esp_now_link_counts esp_now_link_read_counts() {
   return {queued.load(), dropped.load(), failed_sends.load(), received.load(),
           discarded.load()};
@@ -199,13 +209,7 @@ tempore_result_LinkStart binding_LinkStart(tempore_argument_LinkStart c) {
 
 #ifdef TEMPORE_PERFORMS_Send
 tempore_result_Send binding_Send(tempore_argument_Send a) {
-  if (state.load() != started) tempore_fault("ESP-NOW: Send before LinkStart");
-  uint8_t bytes[packet_size];
-  esp_now_link_encode(a.c0, a.c1, a.c2, bytes);
-  if (esp_now_send(peer, bytes, packet_size) == ESP_OK)
-    queued.fetch_add(1);
-  else
-    dropped.fetch_add(1);
+  esp_now_link_send(a.c0, a.c1, a.c2);
   return {};
 }
 #endif

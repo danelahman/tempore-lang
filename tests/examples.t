@@ -20,7 +20,7 @@ tests show those runs in detail.
   ../examples/arduino/bala2-controller/controller.tpe
   ======================================================================
   === Run 1 ===
-  return (Idle, (false, 0., 0., false))
+  return (0., 0., false)
   
   ======================================================================
   ../examples/arduino/bala2-regex/balance_regex.tpe

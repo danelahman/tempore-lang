@@ -1,0 +1,25 @@
+(* A session that commands zero setpoints while it waits for Arm, after
+   balance_remote.tpe. *)
+
+let rec wait_arm_commanding (n : nat) : bool
+    # {(Receive; Command; !12.5)*; (Receive | 0)} =
+  match n with
+  | 0 -> false
+  | m + 1 -> (
+      let latest, _ = remote_receive () in
+      unbox latest as r in
+      match r with
+      | Got Arm -> true
+      | _ ->
+          perform Command (0.0, 0.0);
+          delay 25/2;
+          wait_arm_commanding m)
+
+let session_commanding (token : token) =
+  perform ShowTextAt (0, 100, 2, "Hold upright");
+  delay 1000;
+  if wait_arm_commanding 4000000000 then (
+    unbox token as calibration in
+    perform Arm calibration;
+    drive 4000000000 0)
+  else ()
