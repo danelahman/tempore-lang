@@ -10,17 +10,18 @@ its typing, its rejected variants, and its host simulation.
 
 The rejected variants, each loaded after the application: a session that
 sends Arm once, against the protocol of its grade; a drive that reads the
-unit twice and averages the pitches, so that the first reading is no longer
-the latest; and a drive that shows the pitch before it sends the command,
+unit again after the touch screen and averages the pitches, so that the
+first reading is no longer the latest; and a drive that redraws the Disarm
+button between the touch screen and the command, which may then be sent
 more than 2 ms after the reading:
 
-  $ for v in once averaged shown; do packages --typecheck-only $app/controller.tpe bala2-controller/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out | cut -c 1-160; done
+  $ for v in once averaged redrawn; do packages --typecheck-only $app/controller.tpe bala2-controller/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out | cut -c 1-160; done
   [1]
-  Typing error: This function's body has grade `[{(ReadTouch; SendBeat; !10.5)*; (ReadTouch | 0); (0 | SendArm; !12.5; ShowTextAt; (ReadTouch; ReadImu; SendDrive;
+  Typing error: This function's body has grade `[{(ReadTouch; SendBeat; !10.5)*; (ReadTouch | 0); (0 | SendArm; !12.5; ShowTextAt; (ReadImu; ReadTouch; SendDrive;
   [1]
-  Typing error: Variable `latest` is unboxed with grade `[{ReadImu}, {ReadImu}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~ReadIm
+  Typing error: Variable `latest` is unboxed with grade `[{ReadTouch; ReadImu}, {ReadTouch; ReadImu}]` accumulated since it was bound, which is not below its box 
   [1]
-  Typing error: Variable `recent` is unboxed with grade `[{ShowNumberAt}, {ShowNumberAt}]` accumulated since it was bound, which is not below its box grade `[{0},
+  Typing error: Variable `recent` is unboxed with grade `[{ReadTouch; DrawButton}, {ReadTouch; DrawButton}]` accumulated since it was bound, which is not below it
 
 The PlatformIO project for the M5Stack CoreS3, its C++ sources checked
 without exceptions and run-time type information:
@@ -67,9 +68,9 @@ An iteration redraws at most one band:
   [3002.480 ms] ESP-NOW: sent tag 2, 0.000, 0.000
   [3005.100 ms] Display at (120, 142): 0
   [3019.223 ms] Display at (120, 102): 0
-  [3501.746 ms] ESP-NOW: sent tag 3, 0.000, 0.000
-  [3757.366 ms] Display at (0, 62): Disarmed
-  [3757.766 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [3502.349 ms] ESP-NOW: sent tag 3, 0.000, 0.000
+  [3757.969 ms] Display at (0, 62): Disarmed
+  [3758.369 ms] ESP-NOW: sent tag 4, 0.000, 0.000
 
 The packets are sent at most 50 ms apart, here 10.9 to 17.2 ms, and Arm
 and Disarm 20 times each:

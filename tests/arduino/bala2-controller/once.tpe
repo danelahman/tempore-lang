@@ -3,8 +3,8 @@
 let rec session_once (n : nat) (v : view) : unit
     # {((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0);
         (SendArm; !25/2)^20; ShowTextAt;
-        (ReadTouch; ReadImu; SendDrive; (ShowNumberAt | 0); !21/2)*;
-        (ReadTouch | 0); (SendDisarm; !25/2)^20; ShowTextAt)*;
+        (ReadImu; ReadTouch; SendDrive; (ShowNumberAt | 0); !21/2)*;
+        (ReadImu; ReadTouch | 0); (SendDisarm; !25/2)^20; ShowTextAt)*;
        ((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0) | 0)} =
   match n with
   | 0 -> ()

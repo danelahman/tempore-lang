@@ -403,6 +403,34 @@ use after a further Receive the first:
   Typing error: Variable `fresh` is unboxed with grade `[{Send; !150}, {Send; !150}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 150)}]`
   Typing error: Variable `latest` is unboxed with grade `[{Receive}, {Receive}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~Receive)*}, {(!_ & ~Receive)*}]`
 
+Under the rigid grades, read_imu_boxed of the package m5-imu reads the unit
+once and returns the reading as the latest and as recent: a use after a
+further reading fails the first box, and a use after a display call of up to
+33 ms the second:
+
+  $ cat > boxed.tpe <<'EOF'
+  > let at_once () =
+  >   let latest, recent = read_imu_boxed () in
+  >   unbox latest as a in
+  >   unbox recent as b in
+  >   (a, b)
+  > let again () =
+  >   let latest, _ = read_imu_boxed () in
+  >   let _ = perform ReadImu () in
+  >   unbox latest as a in
+  >   a
+  > let shown () =
+  >   let _, recent = read_imu_boxed () in
+  >   perform ShowTextAt (0, 0, 2, "Tilt");
+  >   unbox recent as b in
+  >   b
+  > EOF
+  $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package m5-imu --package m5-display --board m5stack-cores3 --typecheck-only boxed.tpe 2>&1 | grep error; done
+  Typing error: Variable `latest` is unboxed with grade `{ReadImu}` accumulated since it was bound, which is not below its box grade `{(!_ & ~ReadImu)*}`
+  Typing error: Variable `recent` is unboxed with grade `{ShowTextAt}` accumulated since it was bound, which is not below its box grade `{[0, 2]}`
+  Typing error: Variable `latest` is unboxed with grade `[{ReadImu}, {ReadImu}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~ReadImu)*}, {(!_ & ~ReadImu)*}]`
+  Typing error: Variable `recent` is unboxed with grade `[{ShowTextAt}, {ShowTextAt}]` accumulated since it was bound, which is not below its box grade `[{0}, {2}]`
+
 The package needs esp-now, listed before it:
 
   $ ../../tempore --grades time-interval-rational --package bala2-remote --package esp-now --typecheck-only window.tpe

@@ -114,6 +114,9 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   - Each reading of `ReadImu` is passed to `m5_imu_observe(accel, gyro)`,
     defined weakly to do nothing, which an application may define to record
     the readings.
+  - Under the rigid grades of timed operations, `read_imu_boxed` reads the
+    unit once and returns the reading in two boxes, as `latest_imu`, usable
+    before the next `ReadImu`, and as `recent_imu`, usable within 2 ms.
 - `m5-display`, with colours of 24 bits, `0xRRGGBB`:
   - `ShowText`, `ShowNumber` and `ClearDisplay`, lines of text of size 2
     written one below another;

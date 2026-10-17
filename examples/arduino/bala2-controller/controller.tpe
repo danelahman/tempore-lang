@@ -120,29 +120,33 @@ let disarming () : unit # {(SendDisarm; !25/2)^20} =
 type view = float * float * bool
 
 (* Correctly accepted by the typechecker: armed, an iteration reads the
-   touch screen, and ends the phase at a tap on Disarm; otherwise it reads
-   the unit, sends Drive with the speed from the pitch and the turn from the
-   roll, redraws at most the speed or the turn, in turn, if it changed, and
-   waits 10.5 ms. The reading is boxed twice, as the messages of the robot:
-   with {(!_ & ~ReadImu)*}, so that the command is that of the latest
-   reading, and with [0, 2], so that it is sent within 2 ms of the reading;
-   the speed comes from the first box and the turn from the second. An
-   iteration takes 10.7 to 47.45 ms. *)
+   unit by read_imu_boxed of the package m5-imu, which returns the reading
+   in two boxes, reads the touch screen, and ends the phase at a tap on
+   Disarm, dropping the reading; otherwise it sends Drive with the speed
+   from the pitch and the turn from the roll of the reading, redraws at
+   most the speed or the turn, in turn, if it changed, and waits 10.5 ms.
+   The boxes span the reading of the touch screen: {(!_ & ~ReadImu)*}
+   admits it but no second reading of the unit, so that the command is that
+   of the latest reading; [0, 2] admits it by its bound of [0, 1.45] ms on
+   the CoreS3, so that the command is sent within 2 ms of the reading of
+   the unit, and no slower operation fits between. The speed comes from the
+   first box and the turn from the second. An iteration takes 10.7 to
+   47.45 ms. *)
 let rec armed (n : nat) ((shown_speed, shown_turn, speed_next) : view) : view
-    # {(ReadTouch; ReadImu; SendDrive; (ShowNumberAt | 0); !21/2)*;
-       (ReadTouch | 0)} =
+    # {(ReadImu; ReadTouch; SendDrive; (ShowNumberAt | 0); !21/2)*;
+       (ReadImu; ReadTouch | 0)} =
   match n with
   | 0 -> (shown_speed, shown_turn, speed_next)
   | m + 1 ->
+      let latest, recent = read_imu_boxed () in
       let touched, x, y = perform ReadTouch () in
       if touched && press x y = DisarmPress then
         (shown_speed, shown_turn, speed_next)
       else
-        let accel, _ = perform ReadImu () in
-        box {(!_ & ~ReadImu)*} accel as latest in
-        box [0, 2] accel as recent in
-        unbox latest as pitched in
-        unbox recent as rolled in
+        unbox latest as latest_reading in
+        unbox recent as recent_reading in
+        let pitched, _ = latest_reading in
+        let rolled, _ = recent_reading in
         let speed =
           command speed_gain speed_limit (tilt_x_of_accel pitched)
         in
@@ -167,12 +171,14 @@ let rec armed (n : nat) ((shown_speed, shown_turn, speed_next) : view) : view
    in this order; its grade is the protocol of the controller, and its
    strict delays and operations bound the time from the end of one message
    to the start of the next by 48.45 ms, below the 50 ms within which the
-   robot expects one. *)
+   robot expects one: after the last Arm, 12.5 ms, the redraw of the state,
+   up to 33 ms, and the readings of the unit and the touch screen, up to
+   1.5 and 1.45 ms, before the first Drive. *)
 let rec session (n : nat) (v : view) : unit
     # {((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0);
         (SendArm; !25/2)^20; ShowTextAt;
-        (ReadTouch; ReadImu; SendDrive; (ShowNumberAt | 0); !21/2)*;
-        (ReadTouch | 0); (SendDisarm; !25/2)^20; ShowTextAt)*;
+        (ReadImu; ReadTouch; SendDrive; (ShowNumberAt | 0); !21/2)*;
+        (ReadImu; ReadTouch | 0); (SendDisarm; !25/2)^20; ShowTextAt)*;
        ((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0) | 0)} =
   match n with
   | 0 -> ()
@@ -213,8 +219,8 @@ let remote () =
 let rec session_once (n : nat) (v : view) : unit
     # {((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0);
         (SendArm; !25/2)^20; ShowTextAt;
-        (ReadTouch; ReadImu; SendDrive; (ShowNumberAt | 0); !21/2)*;
-        (ReadTouch | 0); (SendDisarm; !25/2)^20; ShowTextAt)*;
+        (ReadImu; ReadTouch; SendDrive; (ShowNumberAt | 0); !21/2)*;
+        (ReadImu; ReadTouch | 0); (SendDisarm; !25/2)^20; ShowTextAt)*;
        ((ReadTouch; SendBeat; !21/2)*; (ReadTouch | 0) | 0)} =
   match n with
   | 0 -> ()
@@ -230,45 +236,49 @@ let rec session_once (n : nat) (v : view) : unit
       else ()
 *)
 
-(* Correctly rejected by the typechecker: a drive that reads the unit twice
-   and averages the pitches, so that the first reading is no longer the
-   latest:
+(* Correctly rejected by the typechecker: a drive that reads the unit again
+   after the touch screen and averages the pitches, so that the first
+   reading is no longer the latest:
 
-     Typing error: Variable `latest` is unboxed with grade `[{ReadImu},
-       {ReadImu}]` accumulated since it was bound, which is not below its box
-       grade `[{(!_ & ~ReadImu)*}, {(!_ & ~ReadImu)*}]`
+     Typing error: Variable `latest` is unboxed with grade `[{ReadTouch;
+       ReadImu}, {ReadTouch; ReadImu}]` accumulated since it was bound, which
+       is not below its box grade `[{(!_ & ~ReadImu)*}, {(!_ & ~ReadImu)*}]`
        ...
 *)
 (*
 let drive_averaged () =
-  let accel, _ = perform ReadImu () in
-  box {(!_ & ~ReadImu)*} accel as latest in
-  box [0, 2] accel as recent in
+  let latest, recent = read_imu_boxed () in
+  let _ = perform ReadTouch () in
   let again, _ = perform ReadImu () in
-  unbox latest as pitched in
-  unbox recent as rolled in
+  unbox latest as latest_reading in
+  unbox recent as recent_reading in
+  let pitched, _ = latest_reading in
+  let rolled, _ = recent_reading in
   let pitch = (tilt_x_of_accel pitched +. tilt_x_of_accel again) /. 2.0 in
   let speed = command speed_gain speed_limit pitch in
   let turn = command turn_gain turn_limit (tilt_y_of_accel rolled) in
   perform SendDrive (speed, turn)
 *)
 
-(* Correctly rejected by the typechecker: a drive that shows the pitch
-   before it sends the command, up to 33 ms after the reading:
+(* Correctly rejected by the typechecker: a drive that redraws the Disarm
+   button after the reading of the touch screen, to acknowledge the touch,
+   and before it sends the command, up to 34.45 ms after the reading of the
+   unit:
 
-     Typing error: Variable `recent` is unboxed with grade
-       `[{ShowNumberAt}, {ShowNumberAt}]` accumulated since it was bound,
-       which is not below its box grade `[{0}, {2}]`
+     Typing error: Variable `recent` is unboxed with grade `[{ReadTouch;
+       DrawButton}, {ReadTouch; DrawButton}]` accumulated since it was
+       bound, which is not below its box grade `[{0}, {2}]`
        ...
 *)
 (*
-let drive_shown () =
-  let accel, _ = perform ReadImu () in
-  box {(!_ & ~ReadImu)*} accel as latest in
-  box [0, 2] accel as recent in
-  perform ShowNumberAt (120, 100, 2, 0, tilt_x_of_accel accel);
-  unbox latest as pitched in
-  unbox recent as rolled in
+let drive_redrawn () =
+  let latest, recent = read_imu_boxed () in
+  let _ = perform ReadTouch () in
+  perform DrawButton (164, 188, 156, 40, "Disarm");
+  unbox latest as latest_reading in
+  unbox recent as recent_reading in
+  let pitched, _ = latest_reading in
+  let rolled, _ = recent_reading in
   let speed = command speed_gain speed_limit (tilt_x_of_accel pitched) in
   let turn = command turn_gain turn_limit (tilt_y_of_accel rolled) in
   perform SendDrive (speed, turn)
