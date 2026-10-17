@@ -86,8 +86,18 @@ module Boolean (E : FORM) = struct
           (Hashtbl.mem stars (E.id r) || (nullable_other && equal_form r E.eps)))
       rs
 
-  (* The counts of each base are swept in increasing order of their least
+  (* [sweep cs] is the counts [cs] swept in increasing order of their least
      numbers, each merged into the last interval it overlaps or touches. *)
+  let sweep cs =
+    List.fold_left
+      (fun acc c ->
+        match acc with
+        | c' :: rest -> (
+            match Count.union c' c with Some u -> u :: rest | None -> c :: acc)
+        | [] -> [ c ])
+      []
+      (List.sort Count.compare cs)
+
   let repetitions repetition repeat rs =
     if not (List.exists (fun r -> Option.is_some (repetition r)) rs) then rs
     else
@@ -105,21 +115,98 @@ module Boolean (E : FORM) = struct
         rs;
       if Hashtbl.length bases = List.length rs then rs
       else
-        let sweep cs =
-          List.fold_left
-            (fun acc c ->
-              match acc with
-              | c' :: rest -> (
-                  match Count.union c' c with
-                  | Some u -> u :: rest
-                  | None -> c :: acc)
-              | [] -> [ c ])
-            []
-            (List.sort Count.compare cs)
-        in
         Hashtbl.fold
           (fun _ (x, cs) acc -> List.map (repeat x) (sweep cs) @ acc)
           bases []
+
+  (* The operands are read as sequences of factors. A group is the factors
+     of the operands at one position with equal preceding factors, base and
+     remainder; a group whose counts sweep into fewer intervals is replaced by
+     its swept operands, groups taken in order of their first operand, each
+     operand merged at most once a pass, and the passes repeated until no
+     group merges. *)
+  let repetitions_in_context chain repetition repeat concat rs =
+    let power r = Option.value (repetition r) ~default:(r, Count.point 1) in
+    (* The factors of a concatenation, each with the factors before it in
+       reverse order and the concatenation after it, if any. *)
+    let positions r =
+      let rec go prefix r acc =
+        match chain r with
+        | Some (h, t) -> go (h :: prefix) t ((prefix, h, Some t) :: acc)
+        | None -> (prefix, r, None) :: acc
+      in
+      match chain r with Some _ -> go [] r [] | None -> []
+    in
+    let bases = Hashtbl.create 8 in
+    let operands = List.map (fun r -> (r, positions r)) rs in
+    List.iter
+      (fun (_, ps) ->
+        List.iter
+          (fun (_, f, _) ->
+            Option.iter
+              (fun (x, _) -> Hashtbl.replace bases (E.id x) ())
+              (repetition f))
+          ps)
+      operands;
+    if Hashtbl.length bases = 0 then rs
+    else
+      let rebuild prefix x tail c =
+        let r = repeat x c in
+        List.fold_left
+          (fun acc f -> concat f acc)
+          (match tail with None -> r | Some t -> concat r t)
+          prefix
+      in
+      let rec pass operands =
+        let operands = Array.of_list operands in
+        let groups = Hashtbl.create 16 and order = ref [] in
+        Array.iteri
+          (fun i (_, ps) ->
+            List.iter
+              (fun (prefix, f, tail) ->
+                let x, c = power f in
+                if Hashtbl.mem bases (E.id x) then begin
+                  let key =
+                    ( List.map E.id prefix,
+                      E.id x,
+                      match tail with Some t -> E.id t | None -> -1 )
+                  in
+                  match Hashtbl.find_opt groups key with
+                  | Some members ->
+                      Hashtbl.replace groups key ((i, c) :: members)
+                  | None ->
+                      Hashtbl.add groups key [ (i, c) ];
+                      order := (key, (prefix, x, tail)) :: !order
+                end)
+              ps)
+          operands;
+        let merged = Array.make (Array.length operands) false in
+        let built =
+          List.concat_map
+            (fun (key, (prefix, x, tail)) ->
+              let members =
+                List.filter
+                  (fun (i, _) -> not merged.(i))
+                  (Hashtbl.find groups key)
+              in
+              let swept = sweep (List.map snd members) in
+              if List.compare_lengths swept members >= 0 then []
+              else begin
+                List.iter (fun (i, _) -> merged.(i) <- true) members;
+                List.map (rebuild prefix x tail) swept
+              end)
+            (List.rev !order)
+        in
+        match built with
+        | [] -> Array.to_list (Array.map fst operands)
+        | built ->
+            pass
+              (List.map (fun r -> (r, positions r)) built
+              @ List.filteri
+                  (fun i _ -> not merged.(i))
+                  (Array.to_list operands))
+      in
+      pass operands
 
   let collect children leaves roots =
     let seen = Hashtbl.create 64 in

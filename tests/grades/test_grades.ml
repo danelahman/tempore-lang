@@ -2376,6 +2376,13 @@ let registered_repetitions =
       Repeat (Union (Tick 0, Seq (a, b)), count 4 (Some 4));
       Repeat (Seq (Frac (Rational.make 1 2), a), count 3 (Some 3));
       Seq (Repeat (Union (Tick 1, a), count 0 (Some 3)), Tick 2);
+      Union
+        ( Seq (c, Seq (Repeat (Seq (a, Strict (Tick 1)), count 1 (Some 2)), b)),
+          Seq (c, Seq (Repeat (Seq (a, Strict (Tick 1)), count 2 (Some 4)), b))
+        );
+      Union
+        ( Seq (Repeat (a, count 0 (Some 2)), c),
+          Seq (Repeat (a, count 4 (Some 5)), c) );
       Repeat
         ( Seq
             (Delays (Closed (Rational.of_int 1), Closed (Rational.of_int 2)), b),

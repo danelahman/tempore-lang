@@ -277,12 +277,16 @@ struct
   let repetition r =
     match r.view with Repeat (x, c) -> Some (x, c) | _ -> None
 
+  (** [chain r] is [Some (h, t)] if [r] is the concatenation [h; t]. *)
+  let chain r = match r.view with Concat (h, t) -> Some (h, t) | _ -> None
+
   (** [power r] is [(x, c)] if [r] is the repetition [x^c], and [(r, 1)]
       otherwise. *)
   let power r = Option.value (repetition r) ~default:(r, Count.point 1)
 
   (* The repetitions of a base in a union are merged where their counts
-     overlap or touch: [x^c | x^c' = x^(c ∪ c')]. *)
+     overlap or touch: [x^c | x^c' = x^(c ∪ c')], also as factors of
+     concatenations equal but for their counts. *)
   let rec union rs =
     let split r =
       match r.view with Union rs -> Some rs | Empty -> Some [] | _ -> None
@@ -292,6 +296,10 @@ struct
     else
       let rs =
         List.sort_uniq by_id (repetitions repetition repeat (merge_union rs))
+      in
+      let rs =
+        List.sort_uniq by_id
+          (repetitions_in_context chain repetition repeat concat rs)
       in
       let rs = unsubsumed rs in
       if complementary split rs then top
@@ -337,6 +345,36 @@ struct
           | None -> make (Repeat (r, c)))
       | _ -> make (Repeat (r, c))
 
+  (* A run of ticks followed by a run of ticks, alone or leading a
+     concatenation, is joined with it: [tickᵐ; tickⁿ = tickᵐ⁺ⁿ]; and a
+     repetition followed by one of the same base, alone or leading a
+     concatenation, is joined with it: [x^c; x^c' = x^(c + c')], a factor [x]
+     counting as [x^1]. *)
+  and concat r s =
+    match (r.view, s.view) with
+    | Empty, _ | _, Empty -> empty
+    | Eps, _ -> s
+    | _, Eps -> r
+    | Concat (r1, r2), _ -> concat r1 (concat r2 s)
+    | Star _, Star _ when equal_form r s -> r
+    | Star _, Concat (s1, _) when equal_form r s1 -> s
+    | _ -> (
+        match (run r, split_run s) with
+        | Some m, (n, s') when n > 0 ->
+            concat (ticks (Delay.checked_add ~quantity:"duration" m n)) s'
+        | _ -> (
+            let x, c = power r in
+            let head, rest =
+              match s.view with
+              | Concat (s1, s2) -> (s1, Some s2)
+              | _ -> (s, None)
+            in
+            let y, c' = power head in
+            if not (equal_form x y) then make (Concat (r, s))
+            else
+              let joined = repeat x (Count.add c c') in
+              match rest with None -> joined | Some rest -> concat joined rest))
+
   let inter rs =
     let split r =
       match r.view with
@@ -369,36 +407,6 @@ struct
 
   let runs lo hi =
     union (List.init (max 1 (hi - lo + 1)) (fun k -> ticks (lo + k)))
-
-  (* A run of ticks followed by a run of ticks, alone or leading a
-     concatenation, is joined with it: [tickᵐ; tickⁿ = tickᵐ⁺ⁿ]; and a
-     repetition followed by one of the same base, alone or leading a
-     concatenation, is joined with it: [x^c; x^c' = x^(c + c')], a factor [x]
-     counting as [x^1]. *)
-  let rec concat r s =
-    match (r.view, s.view) with
-    | Empty, _ | _, Empty -> empty
-    | Eps, _ -> s
-    | _, Eps -> r
-    | Concat (r1, r2), _ -> concat r1 (concat r2 s)
-    | Star _, Star _ when equal_form r s -> r
-    | Star _, Concat (s1, _) when equal_form r s1 -> s
-    | _ -> (
-        match (run r, split_run s) with
-        | Some m, (n, s') when n > 0 ->
-            concat (ticks (Delay.checked_add ~quantity:"duration" m n)) s'
-        | _ -> (
-            let x, c = power r in
-            let head, rest =
-              match s.view with
-              | Concat (s1, s2) -> (s1, Some s2)
-              | _ -> (s, None)
-            in
-            let y, c' = power head in
-            if not (equal_form x y) then make (Concat (r, s))
-            else
-              let joined = repeat x (Count.add c c') in
-              match rest with None -> joined | Some rest -> concat joined rest))
 
   (** {1 Traversals} *)
 

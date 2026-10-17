@@ -89,6 +89,22 @@ module Boolean (E : FORM) : sig
       operands are [rs] if no base occurs twice, and otherwise in no particular
       order. *)
 
+  val repetitions_in_context :
+    (E.t -> (E.t * E.t) option) ->
+    (E.t -> (E.t * Count.t) option) ->
+    (E.t -> Count.t -> E.t) ->
+    (E.t -> E.t -> E.t) ->
+    E.t list ->
+    E.t list
+  (** [repetitions_in_context chain repetition repeat concat rs] is the operands
+      [rs] of a union with the repetitions of a base [x] merged where they are
+      factors of concatenations equal but for their counts, and the counts
+      overlap or touch: [u; x^c; v | u; x^c'; v] is [u; x^(c ∪ c'); v], built by
+      [repeat] and [concat], [chain r] being [Some (h, t)] for the concatenation
+      [r = h; t], [repetition r] [Some (x, c)] for [r = x^c], and a factor [x]
+      counting as [x^1]. The operands are [rs] if no factor of a concatenation
+      among them is a repetition, and otherwise in no particular order. *)
+
   val collect : (E.t -> E.t list) -> (E.t -> 'a list) -> E.t list -> 'a list
   (** [collect children leaves roots] is the values [leaves r] of the
       expressions [r] reachable from [roots] by [children], each expression
