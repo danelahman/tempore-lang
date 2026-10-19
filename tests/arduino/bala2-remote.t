@@ -23,7 +23,7 @@ message received first, no longer the latest:
   [1]
   Typing error: Variable `checked` is unboxed with grade `{Disarm; (Attitude; !10)*}` accumulated since it was bound, which is not below its box grade `{(Attitude; !10)*}`
   [1]
-  Typing error: Variable `latest` is unboxed with grade `{Receive; Disarm?}` accumulated since it was bound, which is not below its box grade `{≥0 & ~Receive}`
+  Typing error: Variable `latest` is unboxed with grade `{Receive; Disarm?}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~Receive}`
 
 The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information:

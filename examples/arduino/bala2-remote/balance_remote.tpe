@@ -243,15 +243,16 @@ let upright_limit = 10.0
    1 s: two Receives lie at most 401.15 ms apart, Report taking at most
    1.05 ms and Receive 0.1 ms, so that at least two fall within those 1 s,
    each finding an Arm at most 12.5 ms old. The message received is unboxed
-   after the report and the wait, before any further Receive. wait5, wait25
-   and wait125 repeat the poll up to 5, 25 and 125 times, and wait_arm up
-   to 500 times, about 200 s, without a recursion, whose grade would be a
-   star. *)
+   after the report, within 150 ms and before any further Receive, and
+   decided after the wait. wait5, wait25 and wait125 repeat the poll up to
+   5, 25 and 125 times, and wait_arm up to 500 times, about 200 s, without a
+   recursion, whose grade would be a star. *)
 let poll_arm () : bool # {Receive; Report; !400} =
-  let latest, _ = remote_receive () in
+  let latest = remote_receive () in
   perform Report false;
+  unbox latest as received in
+  let r, _ = received in
   delay 400;
-  unbox latest as r in
   match r with Got Arm -> true | _ -> false
 
 let wait5 () : bool # {(Receive; Report; !400)^[1, 5]} =
@@ -282,9 +283,9 @@ let wait_arm () : bool # {(Receive; Report; !400)^[1, 500]} =
   else wait125 ()
 
 (* Correctly accepted by the typechecker: the drive. Each iteration receives
-   a message and applies it at once, before any further Receive: a Drive
-   command is commanded with its setpoints, unboxed within 150 ms of the
-   reception; Beat, Arm or no message command zero setpoints, and the 160th
+   a message and applies it at once, within 150 ms of the reception and
+   before any further Receive: a Drive command is commanded with its
+   setpoints; Beat, Arm or no message command zero setpoints, and the 160th
    consecutive iteration without a message shows "Link lost" and beeps once,
    the robot staying armed, and the first message after the silence shows
    "Armed" again; each of these iterations then reports the status of the
@@ -306,14 +307,14 @@ let rec drive (n : nat) (silent : nat) : unit
   match n with
   | 0 -> ()
   | m + 1 -> (
-      let latest, fresh = remote_receive () in
-      unbox latest as r in
+      let latest = remote_receive () in
+      unbox latest as received in
+      let r, setpoints = received in
       match r with
       | Got Disarm ->
           perform Disarm ();
           delay 25/2
       | Got (Drive _) ->
-          unbox fresh as setpoints in
           (match setpoints with
            | Setpoints (speed, turn) -> perform Command (speed, turn));
           restored silent;
@@ -431,20 +432,21 @@ let measure_unsettled () =
 
      Typing error: Variable `latest` is unboxed with grade `{Receive;
        Disarm?}` accumulated since it was bound, which is not below its box
-       grade `{≥0 & ~Receive}`
+       grade `{[0, 150) & ~Receive}`
        ...
 *)
 (*
 let drive_polled () =
-  let latest, fresh = remote_receive () in
-  let newer, _ = remote_receive () in
-  unbox newer as n in
+  let latest = remote_receive () in
+  let newer = remote_receive () in
+  unbox newer as polled in
+  let n, _ = polled in
   (match n with Got Disarm -> perform Disarm () | _ -> ());
-  unbox latest as r in
+  unbox latest as received in
+  let r, setpoints = received in
   match r with
   | Got (Drive _) ->
-      unbox fresh as setpoints in
-      match setpoints with Setpoints (speed, turn) -> perform Command (speed, turn)
+      (match setpoints with Setpoints (speed, turn) -> perform Command (speed, turn))
   | _ -> perform Command (0.0, 0.0)
 *)
 

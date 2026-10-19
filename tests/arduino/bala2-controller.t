@@ -20,7 +20,7 @@ confirmation, which may then be older than 200 ms:
   [1]
   Typing error: Variable `zero` is unboxed with grade `{(SendArm; !12.5)^80; SendArm; !12.5; Receive; (SendArm; !12.5; Receive)*; (ReadImu; ReadTouch; (SendBeat |
   [1]
-  Typing error: Variable `fresh` is unboxed with grade `{ClearDisplay; ShowTextAt^4; DrawButton^2}` accumulated since it was bound, which is not below its box gra
+  Typing error: Variable `latest` is unboxed with grade `{ClearDisplay; ShowTextAt^4; DrawButton^2}` accumulated since it was bound, which is not below its box gr
 
 The PlatformIO project for the M5Stack CoreS3, its C++ sources checked
 without exceptions and run-time type information:

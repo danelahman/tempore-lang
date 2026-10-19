@@ -2,13 +2,14 @@
    the message received first, after balance_remote.tpe. *)
 
 let drive_polled () =
-  let latest, fresh = remote_receive () in
-  let newer, _ = remote_receive () in
-  unbox newer as n in
+  let latest = remote_receive () in
+  let newer = remote_receive () in
+  unbox newer as polled in
+  let n, _ = polled in
   (match n with Got Disarm -> perform Disarm () | _ -> ());
-  unbox latest as r in
+  unbox latest as received in
+  let r, setpoints = received in
   match r with
   | Got (Drive _) ->
-      unbox fresh as setpoints in
-      match setpoints with Setpoints (speed, turn) -> perform Command (speed, turn)
+      (match setpoints with Setpoints (speed, turn) -> perform Command (speed, turn))
   | _ -> perform Command (0.0, 0.0)

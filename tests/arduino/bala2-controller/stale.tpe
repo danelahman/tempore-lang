@@ -4,7 +4,7 @@
 let session_stale () =
   let zero = record_neutral () in
   arming ();
-  let _, fresh = confirm 40 in
+  let latest = confirm 40 in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Robot remote");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
@@ -12,7 +12,7 @@ let session_stale () =
   perform ShowTextAt (130, 80, 2, "Robot tilt");
   perform DrawButton (0, 188, 156, 40, "Arm");
   perform DrawButton (164, 188, 156, 40, "Disarm");
-  unbox fresh as status in
+  unbox latest as status in
   unbox zero as _ in
   if remote_armed status then perform SendDrive (0.0, 0.0)
   else perform SendBeat ()

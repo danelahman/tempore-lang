@@ -127,17 +127,17 @@ let record_neutral () : neutral # {ReadImu} =
 
 (* The handshake: after the arming, Arm again every 12.5 ms until the status
    of the robot says it is armed, at most 40 more times; it returns the last
-   status received, in its two boxes, for the first iteration of the armed
+   status received, in its box, for the first iteration of the armed
    phase. *)
-let rec confirm (n : nat) : latest_status * fresh_status
+let rec confirm (n : nat) : latest_status
     # {SendArm; !25/2; Receive; (SendArm; !25/2; Receive)*} =
   perform SendArm ();
   delay 25/2;
-  let latest, fresh = remote_status () in
+  let latest = remote_status () in
   unbox latest as s in
   match n with
-  | 0 -> (latest, fresh)
-  | m + 1 -> if remote_armed s then (latest, fresh) else confirm m
+  | 0 -> latest
+  | m + 1 -> if remote_armed s then latest else confirm m
 
 (* The bubble level: a vial of radius 56 pixels centred at (62, 122), its
    inner circle of radius 14 marking the dead zone, and the greatest offset
@@ -214,42 +214,40 @@ type view = bool * float * bool
    robot, if it changed and the link holds. It waits 10.5 ms and receives
    the status for the next iteration.
 
-   The boxes span the readings of the unit and the touch screen: those of
-   the reading, {≥0 & ~ReadImu} and [0, 2], as before; those of the
-   status, {≥0 & ~Receive} and [0, 200), so that the command is decided
-   on the latest status, received at most 200 ms earlier; the tilt shown
-   comes from the second. The neutral tilt is unboxed after the readings
+   The boxes span the reading of the touch screen: that of the reading of
+   the unit, {[0, 2] & ~ReadImu}, so that the command is computed from the
+   latest reading, at most 2 ms old; that of the status, which also spans
+   the reading of the unit, {[0, 200) & ~Receive}, so that the command and
+   the tilt shown come from the latest status, received at most 200 ms
+   earlier. The neutral tilt is unboxed after the readings
    and boxed again for the next iteration. An iteration takes 10.7 to 47.55
    ms, a redraw of the state or the tilt taking up to 33 ms and one of the
    bubble up to 10 ms. *)
 let rec armed (n : nat) ((link_shown, shown_tilt, bubble_next) : view)
-    (zero : neutral) (latest : latest_status) (fresh : fresh_status) : view
+    (zero : neutral) (latest : latest_status) : view
     # {(ReadImu; ReadTouch; (SendDrive | SendBeat);
         (ShowTextAt | ShowNumberAt | DrawLevel | 0); !21/2; Receive)*;
        (ReadImu; ReadTouch | 0)} =
   match n with
   | 0 -> (link_shown, shown_tilt, bubble_next)
   | m + 1 ->
-      let reading_latest, reading_recent = read_imu_boxed () in
+      let latest_reading = read_imu_boxed () in
       let touched, x, y = perform ReadTouch () in
       if touched && press x y = DisarmPress then
         (link_shown, shown_tilt, bubble_next)
       else
-        unbox reading_latest as latest_reading in
-        unbox reading_recent as recent_reading in
+        unbox latest_reading as reading in
         unbox zero as neutral in
         unbox latest as status in
-        unbox fresh as recent_status in
-        let pitched, _ = latest_reading in
-        let rolled, _ = recent_reading in
+        let accel, _ = reading in
         let neutral_pitch, neutral_roll = neutral in
-        let pitch = tilt_x_of_accel pitched -. neutral_pitch in
-        let roll = tilt_y_of_accel rolled -. neutral_roll in
+        let pitch = tilt_x_of_accel accel -. neutral_pitch in
+        let roll = tilt_y_of_accel accel -. neutral_roll in
         let speed = command speed_gain speed_limit pitch in
         let turn = command turn_gain turn_limit roll in
         let link = remote_armed status in
         let tilt =
-          match recent_status with Status (_, t) -> t | NoStatus -> shown_tilt
+          match status with Status (_, t) -> t | NoStatus -> shown_tilt
         in
         (if link then perform SendDrive (speed, turn) else perform SendBeat ());
         let view =
@@ -268,8 +266,8 @@ let rec armed (n : nat) ((link_shown, shown_tilt, bubble_next) : view)
             (link, shown_tilt, bubble_next))
         in
         delay 21/2;
-        let latest, fresh = remote_status () in
-        armed m view (box {≥0 & ~SendDisarm} neutral) latest fresh
+        let latest = remote_status () in
+        armed m view (box {≥0 & ~SendDisarm} neutral) latest
 
 (* Correctly accepted by the typechecker: a session sends Beat until a tap
    on Arm, records the neutral tilt, sends Arm 80 times and then until the
@@ -296,10 +294,10 @@ let rec session (n : nat) (v : view) : unit
       if idle 4000000000 true then (
         let zero = record_neutral () in
         arming ();
-        let latest, fresh = confirm 40 in
+        let latest = confirm 40 in
         unbox zero as neutral in
         let v =
-          armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest fresh
+          armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest
         in
         disarming ();
         perform ShowTextAt (0, 30, 2, "Disarmed");
@@ -345,10 +343,10 @@ let rec session_once (n : nat) (v : view) : unit
         let zero = record_neutral () in
         perform SendArm ();
         delay 25/2;
-        let latest, fresh = confirm 40 in
+        let latest = confirm 40 in
         unbox zero as neutral in
         let v =
-          armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest fresh
+          armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest
         in
         disarming ();
         perform ShowTextAt (0, 30, 2, "Disarmed");
@@ -371,32 +369,32 @@ let rec session_once (n : nat) (v : view) : unit
 let sessions_kept (v : view) =
   let zero = record_neutral () in
   arming ();
-  let latest, fresh = confirm 40 in
+  let latest = confirm 40 in
   unbox zero as neutral in
   let v =
-    armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest fresh
+    armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest
   in
   disarming ();
   arming ();
-  let latest, fresh = confirm 40 in
+  let latest = confirm 40 in
   unbox zero as kept in
-  armed 4000000000 v (box {≥0 & ~SendDisarm} kept) latest fresh
+  armed 4000000000 v (box {≥0 & ~SendDisarm} kept) latest
 *)
 
 (* Correctly rejected by the typechecker: a session that redraws the armed
    screen after the handshake and then drives on its confirmation, which
    may then be older than 200 ms:
 
-     Typing error: Variable `fresh` is unboxed with grade `{ClearDisplay;
+     Typing error: Variable `latest` is unboxed with grade `{ClearDisplay;
        ShowTextAt^4; DrawButton^2}` accumulated since it was bound, which is
-       not below its box grade `{[0, 200)}`
+       not below its box grade `{[0, 200) & ~Receive}`
        ...
 *)
 (*
 let session_stale () =
   let zero = record_neutral () in
   arming ();
-  let _, fresh = confirm 40 in
+  let latest = confirm 40 in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Robot remote");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
@@ -404,7 +402,7 @@ let session_stale () =
   perform ShowTextAt (130, 80, 2, "Robot tilt");
   perform DrawButton (0, 188, 156, 40, "Arm");
   perform DrawButton (164, 188, 156, 40, "Disarm");
-  unbox fresh as status in
+  unbox latest as status in
   unbox zero as _ in
   if remote_armed status then perform SendDrive (0.0, 0.0)
   else perform SendBeat ()
@@ -413,6 +411,5 @@ let session_stale () =
 (* An iteration of the armed phase from the default implementations of the
    operations: no touch, the unit flat, no status, and Beat sent. *)
 run (
-  let latest, fresh = remote_status () in
-  armed 1 (false, 0.0, true) (box {≥0 & ~SendDisarm} (0.0, 0.0))
-    latest fresh)
+  let latest = remote_status () in
+  armed 1 (false, 0.0, true) (box {≥0 & ~SendDisarm} (0.0, 0.0)) latest)
