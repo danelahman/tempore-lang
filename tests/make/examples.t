@@ -124,64 +124,170 @@ Further targets, under variables set on the command line:
   $ dry arduino-bala2-record BALANCE_RECORD=50
   PLATFORMIO_BUILD_FLAGS="-DBALANCE_RECORD=50" ./tempore --grades time-interval-rational --emit-arduino balance-record --device examples/arduino/bala2/balance.device.json --monitor warn --upload --port /dev/cu.usbserial-02012C91 --capture 30 examples/arduino/bala2/balance.tpe
 
-The build flags of a fragment, EXAMPLE_BUILD_FLAGS, apply to every device
-build of its example: REMOTE_PEER of bala2-remote, the address of the
-controller, becomes the build flag ESP_NOW_PEER, before the flags of a
-target, and, under the link of the fragment, EXAMPLE_LINK, the key printed
-by scripts/link-key.sh becomes the build flag ESP_NOW_KEY through a shell
-variable, so that the command does not show it; without REMOTE_PEER there
-is neither:
+The examples of an encrypted ESP-NOW link, EXAMPLE_LINK, name the role of
+their board in it, EXAMPLE_LINK_ROLE. Each device build of such an example
+first runs scripts/link.sh with the link, the role, the other role of the
+link and the upload target of its example, and the port of an upload, and
+passes the peer and the key that it prints as the build flags ESP_NOW_PEER
+and ESP_NOW_KEY through shell variables, so that the command does not show
+the key; a build without an upload reads no port:
 
-  $ make -s --no-print-directory -n arduino-bala2-remote-build REMOTE_PEER=24:0A:C4:12:34:56 | grep tempore' ' | tr -s ' '
-  key=$(sh scripts/link-key.sh bala2-remote) && PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56 -DESP_NOW_KEY=$key" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino balance_remote --device examples/arduino/bala2-remote/balance_remote.device.json --monitor abort --build examples/arduino/bala2-remote/balance_remote.tpe
-  $ make -s --no-print-directory -n arduino-bala2-remote-profile REMOTE_PEER=24:0A:C4:12:34:56 BRIGHTNESS=60 | grep -o 'PLATFORMIO_BUILD_FLAGS="[^"]*"'
-  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56 -DESP_NOW_KEY=$key"
-  $ make -s --no-print-directory -n arduino-bala2-controller-upload REMOTE_PEER=24:0A:C4:12:34:57 | grep -o '^key=[^&]*'
-  key=$(sh scripts/link-key.sh bala2-remote) 
-  $ dry arduino-bala2-remote-upload | grep -c 'PLATFORMIO_BUILD_FLAGS\|key'
-  0
+  $ make -s --no-print-directory -n arduino-bala2-remote-build | grep tempore' ' | tr -s ' '
+  link=$(sh scripts/link.sh -t arduino-bala2-controller-upload bala2-remote robot controller) && eval "$link" && PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino balance_remote --device examples/arduino/bala2-remote/balance_remote.device.json --monitor abort --build examples/arduino/bala2-remote/balance_remote.tpe
+  $ make -s --no-print-directory -n arduino-bala2-remote-profile BRIGHTNESS=60 | grep -o '^link=[^&]*\|PLATFORMIO_BUILD_FLAGS="[^"]*"'
+  link=$(sh scripts/link.sh -p /dev/cu.usbserial-02012C91 -t arduino-bala2-controller-upload bala2-remote robot controller) 
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key"
+  $ make -s --no-print-directory -n arduino-bala2-controller-upload PORT_M5STACK_CORES3=/dev/ttyACM0 | grep -o '^link=[^&]*'
+  link=$(sh scripts/link.sh -p /dev/ttyACM0 -t arduino-bala2-remote-upload bala2-remote controller robot) 
+
+The other examples run no link:
+
+  $ for d in examples/arduino/*/; do
+  >   n=$(basename "$d")
+  >   case $n in bala2-remote|bala2-controller) continue;; esac
+  >   make -s --no-print-directory -n "arduino-$n-build" "arduino-$n-upload" |
+  >     grep -l 'link\|ESP_NOW' > /dev/null && echo "$n"
+  > done
   [1]
 
-The key of a link is REMOTE_KEY if set, and otherwise that of the key
-file, REMOTE_KEY_FILE if set and else under $HOME/.config/tempore/keys,
-written first from random bytes if absent, readable by its owner only,
-in a directory created readable by its owner only; the key file is
-reported, and the key is printed to standard output only. Concurrent
-builds read the same key:
+The link file of a link holds its key and the address of the board of each
+role. A fake esptool, TEMPORE_ESPTOOL, prints the address held by the file
+named as its port; HOME, the link file and the key file of the link are in
+the test directory:
 
-  $ export REMOTE_KEY_FILE="$PWD/keys/bala2-remote.key"
-  $ unset REMOTE_KEY
-  $ for i in 1 2 3 4; do sh scripts/link-key.sh bala2-remote > printed$i 2> log$i & done; wait
-  $ cat log* | sed "s|$PWD|.|" | sort | uniq -c | tr -s ' '
-   1 ESP-NOW link bala2-remote: key generated, in ./keys/bala2-remote.key
-   3 ESP-NOW link bala2-remote: key reused, in ./keys/bala2-remote.key
-  $ cat printed* | sort -u | grep -c '^[0-9a-f]\{32\}$'
-  1
-  $ cmp printed1 keys/bala2-remote.key
-  $ ls -ld keys keys/bala2-remote.key | cut -c 1-10
+  $ mkdir link
+  $ cat > link/esptool <<'EOF'
+  > #!/bin/sh
+  > while [ $# -gt 0 ]; do case $1 in --port) port=$2; shift;; esac; shift; done
+  > [ -f "$port" ] || { echo "Could not open $port"; exit 2; }
+  > echo "esptool.py v4.11.0"
+  > echo "MAC: $(cat "$port")"
+  > EOF
+  $ chmod +x link/esptool
+  $ echo 24:0a:c4:12:34:56 > link/robot
+  $ echo 24:0a:c4:12:34:57 > link/controller
+  $ export HOME="$PWD/link/home" TEMPORE_ESPTOOL="$PWD/link/esptool"
+  $ export REMOTE_LINK_FILE="$PWD/link/links/bala2-remote"
+  $ export REMOTE_KEY_FILE="$PWD/link/keys/bala2-remote.key"
+  $ unset REMOTE_KEY REMOTE_PEER
+  $ link () { sh scripts/link.sh "$@" 2>&1 | sed -e "s|$PWD|.|g" -e 's/esp_now_key=.*/esp_now_key=(the key)/'; }
+
+The first upload, to the robot, generates the key, records the address of
+the robot, and stops, the controller not yet recorded; the upload to the
+controller records it and builds; the robot is then built with its address:
+
+  $ link -p link/robot -t arduino-bala2-controller-upload bala2-remote robot controller
+  ESP-NOW link bala2-remote: key generated in ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: the robot 24:0A:C4:12:34:56 recorded in ./link/links/bala2-remote
+  Error: the link file ./link/links/bala2-remote has no address of the controller: connect the controller and upload to it first (make arduino-bala2-controller-upload), or set REMOTE_PEER
+  $ link -p link/controller bala2-remote controller robot
+  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: the controller 24:0A:C4:12:34:57 recorded in ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:56, the robot
+  esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x56
+  esp_now_key=(the key)
+  $ link -p link/robot bala2-remote robot controller
+  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:57, the controller
+  esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x57
+  esp_now_key=(the key)
+  $ sed 's/^key=.*/key=(the key)/' link/links/bala2-remote
+  # The ESP-NOW link bala2-remote: its key and the address of the board of each role.
+  key=(the key)
+  robot=24:0A:C4:12:34:56
+  controller=24:0A:C4:12:34:57
+  $ ls -ld link/links link/links/bala2-remote | cut -c 1-10
   drwx------
   -rw-------
-  $ ls -A keys
-  bala2-remote.key
-  $ sh scripts/link-key.sh bala2-remote 2>&1 > /dev/null | sed "s|$PWD|.|"
-  ESP-NOW link bala2-remote: key reused, in ./keys/bala2-remote.key
+  $ ls -A link/links
+  bala2-remote
 
-REMOTE_KEY, here a fake key, takes precedence over the key file; a key that
-is not 32 hexadecimal digits, of REMOTE_KEY or of the key file, is an error:
+The key printed is that of the file, and no build without an upload reads
+a port:
 
-  $ REMOTE_KEY=000102030405060708090a0b0c0d0e0f sh scripts/link-key.sh bala2-remote
+  $ key=$(sed -n 's/^key=//p' link/links/bala2-remote)
+  $ sh scripts/link.sh bala2-remote robot controller 2> /dev/null | grep -c "^esp_now_key=$key$"
+  1
+
+A replaced board is recorded under its role, with the change reported; the
+board of the other role, under a role, is an error, as is a port that
+esptool does not read:
+
+  $ echo 24:0A:C4:12:34:58 > link/robot
+  $ link -p link/robot bala2-remote robot controller | grep -v esp_now
+  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: the robot changed from 24:0A:C4:12:34:56 to 24:0A:C4:12:34:58 in ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:57, the controller
+  $ link -p link/controller bala2-remote robot controller
+  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
+  Error: the board on link/controller, 24:0A:C4:12:34:57, is recorded as the controller in ./link/links/bala2-remote
+  $ link -p link/none bala2-remote robot controller
+  Could not open link/none
+  Error: the address of the board on link/none was not read by ./link/esptool
+
+REMOTE_PEER and REMOTE_KEY, here a fake key, take precedence over the link
+file; a malformed one is an error:
+
+  $ REMOTE_PEER=24:0a:c4:00:00:09 REMOTE_KEY=000102030405060708090a0b0c0d0e0f sh scripts/link.sh bala2-remote robot controller
   ESP-NOW link bala2-remote: key of REMOTE_KEY
-  000102030405060708090a0b0c0d0e0f
-  $ REMOTE_KEY=000102030405060708090a0b0c0d0e sh scripts/link-key.sh bala2-remote
+  ESP-NOW link bala2-remote: peer 24:0A:C4:00:00:09 of REMOTE_PEER
+  esp_now_peer=0x24,0x0A,0xC4,0x00,0x00,0x09
+  esp_now_key=000102030405060708090a0b0c0d0e0f
+  $ (export REMOTE_PEER=24:0a:c4:00:00; link bala2-remote robot controller)
+  Error: REMOTE_PEER is not six bytes in hexadecimal separated by colons
+  $ (export REMOTE_KEY=000102030405060708090a0b0c0d0e0g; link bala2-remote robot controller)
   Error: REMOTE_KEY is not 32 hexadecimal digits
-  [1]
-  $ REMOTE_KEY=000102030405060708090a0b0c0d0e0g sh scripts/link-key.sh bala2-remote
-  Error: REMOTE_KEY is not 32 hexadecimal digits
-  [1]
-  $ echo 0001 > keys/bala2-remote.key
-  $ sh scripts/link-key.sh bala2-remote 2>&1 | sed "s|$PWD|.|"
-  Error: the key file ./keys/bala2-remote.key is not 32 hexadecimal digits
-  $ rm -r keys printed* log*
+
+A malformed link file is an error, at its first malformed line; comments,
+empty lines, spaces, carriage returns, '-' in addresses and lower case are
+read:
+
+  $ printf '# A link\r\n\n key = 000102030405060708090A0B0C0D0E0F \r\nrobot=24-0a-c4-12-34-56\ncontroller=24:0A:C4:12:34:57\n' > link/links/bala2-remote
+  $ sh scripts/link.sh bala2-remote controller robot 2> /dev/null
+  esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x56
+  esp_now_key=000102030405060708090A0B0C0D0E0F
+  $ for content in 'key=0001' 'key 000102030405060708090a0b0c0d0e0f' 'robot=24:0a:c4:12:34' 'robot=24:0a:c4:12:34:5g' 'robot=24:0a:c4:12:34:56\nrobot=24:0a:c4:12:34:57' '2robot=24:0a:c4:12:34:56'; do
+  >   printf "$content\n" > link/links/bala2-remote; link bala2-remote controller robot
+  > done
+  Error: the link file ./link/links/bala2-remote, line 1: the key is not 32 hexadecimal digits
+  Error: the link file ./link/links/bala2-remote, line 1: not NAME=VALUE
+  Error: the link file ./link/links/bala2-remote, line 1: the address of robot is not six bytes in hexadecimal separated by colons
+  Error: the link file ./link/links/bala2-remote, line 1: the address of robot is not six bytes in hexadecimal separated by colons
+  Error: the link file ./link/links/bala2-remote, line 2: the name robot is repeated
+  Error: the link file ./link/links/bala2-remote, line 1: the name "2robot" is not a name
+
+Without a link file, the key is taken over from the key file of the link,
+if it exists:
+
+  $ rm link/links/bala2-remote
+  $ mkdir -p link/keys
+  $ echo 000102030405060708090a0b0c0d0e0f > link/keys/bala2-remote.key
+  $ link -p link/robot bala2-remote robot controller
+  ESP-NOW link bala2-remote: key taken over from ./link/keys/bala2-remote.key into ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: the robot 24:0A:C4:12:34:58 recorded in ./link/links/bala2-remote
+  Error: the link file ./link/links/bala2-remote has no address of the controller: connect the controller and upload to it first, or set REMOTE_PEER
+  $ cat link/links/bala2-remote
+  # The ESP-NOW link bala2-remote: its key and the address of the board of each role.
+  key=000102030405060708090a0b0c0d0e0f
+  robot=24:0A:C4:12:34:58
+
+Concurrent builds agree on one key, generated once:
+
+  $ rm -r link/links link/keys
+  $ export REMOTE_PEER=24:0a:c4:12:34:57
+  $ for i in 1 2 3 4; do sh scripts/link.sh -p link/robot bala2-remote robot controller > printed$i 2> log$i & done; wait
+  $ unset REMOTE_PEER
+  $ cat log* | grep -c generated
+  1
+  $ grep -h esp_now_key printed* | wc -l | tr -d ' '
+  4
+  $ grep -h esp_now_key printed* | sort -u | wc -l | tr -d ' '
+  1
+  $ grep -h esp_now_key printed1 | grep -c "=$(sed -n 's/^key=//p' link/links/bala2-remote)$"
+  1
+  $ ls -A link/links
+  bala2-remote
+  $ rm -r link printed* log*
 
 BRIGHTNESS adds the flag TEMPORE_DISPLAY_BRIGHTNESS to the build flags of
 every target that builds a device project, before those of the example:
@@ -228,7 +334,7 @@ The aggregate targets cover every example:
   11
   $ dry arduino-simulate-all | grep -c tempore
   12
-  $ dry arduino-build-all | grep -c tempore
+  $ make -s --no-print-directory -n arduino-build-all | grep -c '\./tempore '
   12
 
 The help of the examples and that of the diagnostic targets, which are
@@ -263,6 +369,8 @@ listed apart:
     SIMULATE=                                    when set, the simulated seconds of every example
     MONITOR=                                     when set, the monitor policy of every target
     BRIGHTNESS=                                  when set, the display brightness, 0 to 100 % (default 24), of every build
+  ESP-NOW link bala2-remote, roles controller robot: paired by the link file ~/.config/tempore/links/bala2-remote,
+    or REMOTE_LINK_FILE; REMOTE_PEER and REMOTE_KEY override its address and key
   Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help
   $ make -s arduino-diagnostics-help
   Arduino diagnostic targets, by board:

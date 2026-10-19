@@ -4,16 +4,16 @@
 
    A packet carries a tag, a natural number, and two floats; their meaning is
    that of the application. The peer is the address given by the build flag
-   ESP_NOW_PEER, six bytes separated by commas, with the key given by the
-   build flag ESP_NOW_KEY, 32 hexadecimal digits, by which ESP-NOW encrypts
-   and authenticates the packets with CCMP; by default it is the broadcast
-   address FF:FF:FF:FF:FF:FF, which sends to every device on the channel and
-   receives from any, unencrypted.
+   ESP_NOW_PEER, six bytes separated by commas, other than the broadcast
+   address, and the key is that given by the build flag ESP_NOW_KEY, 32
+   hexadecimal digits, by which ESP-NOW encrypts and authenticates the
+   packets with CCMP; both are required.
 
    LinkStart channel starts the radio as a station on the given channel, from
    1 to 13, and ESP-NOW with the peer, on core 0 whatever the core of the
-   caller, and returns whether the link is encrypted; a second LinkStart, a
-   channel outside 1 to 13 and a failure of the radio are run-time errors.
+   caller, and returns whether the link is encrypted, true for every link of
+   the package; a second LinkStart, a channel outside 1 to 13 and a failure
+   of the radio are run-time errors.
 
    Send (tag, first, second) queues one packet to the peer and returns without
    waiting for its transmission. A packet the radio cannot queue is dropped
@@ -28,7 +28,7 @@
    The bounds are provisional, not yet measured on a device: LinkStart
    [0, 1500], Send [0, 1], Receive [0, 0.1]. The default implementations take
    a time within the bounds, send nothing, receive nothing and start an
-   unencrypted link.
+   encrypted link.
 
    On the profile m5stack-gray-radio, an M5Stack Gray, the radio on core 0,
    the tasks of the application on core 1 and the link encrypted, the
@@ -40,7 +40,7 @@
    [0, 0.6]. *)
 
 operation LinkStart : nat ~> bool # [0, 1500]
-default LinkStart _ = delay 100; false
+default LinkStart _ = delay 100; true
 
 operation Send : nat * float * float ~> unit # [0, 1]
 default Send _ = delay 1/10

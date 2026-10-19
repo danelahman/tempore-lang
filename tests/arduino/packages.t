@@ -258,14 +258,15 @@ the safe-state hook of the application:
 
 A link over ESP-NOW with the package esp-now. LinkStart starts the radio,
 which the host model starts in 100 ms, and logs the address of the station
-and of the peer; Send logs its packet. Receive returns the latest packet of
+and of the peer, the fixed peer of the host model with its fixed key; Send
+logs its packet. Receive returns the latest packet of
 the peer of the host model of the application, which sends one every 20 ms
 until 160 ms, arriving 2 ms later, if it arrived at most 50 ms ago, and
 otherwise nothing:
 
   $ simulate radio radio 0.35
   [0.000 ms] Start listen
-  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF, not encrypted
+  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:02, encrypted (CCMP)
   [100.000 ms] Operation LinkStart took 100000 us
   [100.100 ms] ESP-NOW: sent tag 1, 0.500, -0.250
   [100.100 ms] Operation Send took 100 us
@@ -306,15 +307,18 @@ the link that loses every second packet:
   [162.000 ms] ESP-NOW model: packet of tag 8 arrives
   [162.100 ms] Display: 6.000
 
-A peer without a key, a key without a peer, a key that is not 32
-hexadecimal digits and a key with the broadcast address are rejected at
-compilation:
+A device build, without TEMPORE_HOST, requires the peer and the key: none,
+a peer without a key, a key without a peer, a key that is not 32
+hexadecimal digits and the broadcast address are rejected at compilation; a
+host build without either takes the fixed peer and key of the host model:
 
-  $ check () { c++ -std=c++17 -fsyntax-only -DTEMPORE_HOST "$@" -I host -I src src/esp_now_link.cpp 2>&1 | grep -m 1 -o 'the \(peer\|key\|link\) [^"]*'; }
+  $ check () { c++ -std=c++17 -fsyntax-only "$@" -I host -I src src/esp_now_link.cpp 2>&1 | grep -m 1 -o 'the \(package\|peer\|key\) [^"]*'; }
+  $ check
+  the package esp-now requires the peer ESP_NOW_PEER
   $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07
-  the peer ESP_NOW_PEER requires the key ESP_NOW_KEY
+  the package esp-now requires the key ESP_NOW_KEY
   $ check -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f
-  the key ESP_NOW_KEY requires the peer ESP_NOW_PEER
+  the package esp-now requires the peer ESP_NOW_PEER
   $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=
   the key ESP_NOW_KEY is 32 hexadecimal digits
   $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e
@@ -322,7 +326,11 @@ compilation:
   $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0g
   the key ESP_NOW_KEY is 32 hexadecimal digits
   $ check -DESP_NOW_PEER=0xff,0xff,0xff,0xff,0xff,0xff -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f
-  the link to the broadcast address is not encrypted
+  the peer ESP_NOW_PEER is not the broadcast address, to which ESP-NOW does not encrypt
+  $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f
+  [1]
+  $ check -DTEMPORE_HOST
+  [1]
   $ cd ../../..
 
 A Send before LinkStart is a run-time error:
@@ -343,7 +351,7 @@ Disarm and Beat, one every 20 ms, and then nothing; the unknown tag, and Beat
 once older than 50 ms, decode to Nothing:
 
   $ simulate remote remote 0.3 | grep 'ESP-NOW\|Display'
-  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF, not encrypted
+  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:02, encrypted (CCMP)
   [100.100 ms] ESP-NOW: sent tag 1, 0.000, 0.000
   [100.200 ms] ESP-NOW: sent tag 2, 0.500, -0.250
   [100.300 ms] ESP-NOW: sent tag 3, 0.000, 0.000

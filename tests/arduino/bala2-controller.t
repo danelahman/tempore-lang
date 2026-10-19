@@ -44,8 +44,8 @@ vial:
   $ cd ../../..
 
 The host simulation for 9 s, the packets sent shown when they change. The
-controller shows that the link, to the broadcast address, is not encrypted,
-and sends Beat; the robot, scripted ready for Arm, is shown as such in the
+controller shows that the link, to the fixed peer of the host model under
+its fixed key, is encrypted, and sends Beat; the robot, scripted ready for Arm, is shown as such in the
 guidance line at (0, 54); held pitched forwards by 10 degrees, a tap on Arm at 1 s,
 acknowledged by a tone of 1760 Hz, records that tilt as neutral and starts
 the arming, Arm 80 times, for 1 s, and once more until the status of the
@@ -71,53 +71,53 @@ robot". An iteration redraws at most one band:
   $ tempore --emit-arduino controller --device $app/controller.device.json --host-simulate 9 $app/controller.tpe > sim.log
   $ grep -v '^Wrote\|\] \(Release\|Start\|End \|Operation\|IMU\|I2C\|Delay\|ESP-NOW model\)' sim.log | awk '/ESP-NOW: sent/ { m = $0; sub(/^\[[^]]*\] /, "", m); if (m == last) next; last = m } { print }'
   [1.458 ms] Display at (254, 0): Battery 87%
-  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF, not encrypted
+  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:02, encrypted (CCMP)
   [131.000 ms] Display cleared
   [134.800 ms] Display at (0, 2): Robot remote
   [137.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [141.280 ms] Display at (0, 32): Disarmed
   [144.000 ms] Display at (130, 82): Robot tilt
   [147.340 ms] Display at (130, 113): 0.0
-  [150.120 ms] Display at (130, 152): Not encrypted
-  [152.616 ms] Display fill at (0, 188), 156 by 40: 0x303030
-  [153.832 ms] Display at (60, 200): Arm
-  [156.328 ms] Display fill at (164, 188), 156 by 40: 0x303030
-  [157.604 ms] Display at (206, 200): Disarm
-  [158.004 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [158.862 ms] Display at (254, 0): Battery 87%
-  [159.138 ms] Display disc at (62, 122), radius 9: 0x404040
-  [172.718 ms] Display at (0, 55): Robot ready: tap Arm
-  [1001.168 ms] Speaker: 1760 Hz for 60 ms
-  [1001.871 ms] ESP-NOW: sent tag 1, 0.000, 0.000
-  [2023.374 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [2027.034 ms] Display at (0, 32): Armed
-  [2040.817 ms] Display at (0, 55): 
-  [2052.697 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [2067.540 ms] Display at (130, 113): 2.5
-  [2205.576 ms] ESP-NOW: sent tag 2, -240.000, 0.000
-  [2217.456 ms] Display disc at (62, 89), radius 9: 0x00c000
-  [3011.163 ms] ESP-NOW: sent tag 2, 80.000, -40.000
-  [3023.043 ms] Display disc at (89, 142), radius 9: 0x00c000
-  [3506.169 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [3506.546 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [3840.133 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [3843.833 ms] Display at (0, 32): No link
-  [3867.216 ms] Display disc at (62, 122), radius 9: 0x808080
-  [4212.306 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [4215.966 ms] Display at (0, 32): Armed
-  [4227.846 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [4242.689 ms] Display at (130, 113): 1.5
-  [4610.835 ms] Speaker: 880 Hz for 60 ms
-  [4610.935 ms] ESP-NOW: sent tag 3, 0.000, 0.000
-  [4866.555 ms] Display at (0, 32): Disarmed
-  [4866.955 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [4867.332 ms] Display disc at (62, 122), radius 9: 0x404040
-  [4880.732 ms] Display at (0, 55): Robot armed
-  [4905.452 ms] Display at (0, 55): Hold the robot upright and still
-  [5605.532 ms] Display at (0, 55): Hold still
-  [6306.052 ms] Display at (0, 55): Hold the robot upright and still
-  [7006.332 ms] Display at (0, 55): Robot ready: tap Arm
-  [8611.292 ms] Display at (0, 55): Switch on the robot
+  [150.040 ms] Display at (130, 152): Encrypted
+  [152.536 ms] Display fill at (0, 188), 156 by 40: 0x303030
+  [153.752 ms] Display at (60, 200): Arm
+  [156.248 ms] Display fill at (164, 188), 156 by 40: 0x303030
+  [157.524 ms] Display at (206, 200): Disarm
+  [157.924 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [158.782 ms] Display at (254, 0): Battery 87%
+  [159.058 ms] Display disc at (62, 122), radius 9: 0x404040
+  [172.638 ms] Display at (0, 55): Robot ready: tap Arm
+  [1001.088 ms] Speaker: 1760 Hz for 60 ms
+  [1001.791 ms] ESP-NOW: sent tag 1, 0.000, 0.000
+  [2023.294 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [2026.954 ms] Display at (0, 32): Armed
+  [2040.737 ms] Display at (0, 55): 
+  [2052.617 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [2067.460 ms] Display at (130, 113): 2.5
+  [2205.496 ms] ESP-NOW: sent tag 2, -240.000, 0.000
+  [2217.376 ms] Display disc at (62, 89), radius 9: 0x00c000
+  [3011.083 ms] ESP-NOW: sent tag 2, 80.000, -40.000
+  [3022.963 ms] Display disc at (89, 142), radius 9: 0x00c000
+  [3506.089 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [3506.466 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [3840.053 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [3843.753 ms] Display at (0, 32): No link
+  [3867.136 ms] Display disc at (62, 122), radius 9: 0x808080
+  [4212.226 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [4215.886 ms] Display at (0, 32): Armed
+  [4227.766 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [4242.609 ms] Display at (130, 113): 1.5
+  [4610.755 ms] Speaker: 880 Hz for 60 ms
+  [4610.855 ms] ESP-NOW: sent tag 3, 0.000, 0.000
+  [4866.475 ms] Display at (0, 32): Disarmed
+  [4866.875 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [4867.252 ms] Display disc at (62, 122), radius 9: 0x404040
+  [4880.652 ms] Display at (0, 55): Robot armed
+  [4905.372 ms] Display at (0, 55): Hold the robot upright and still
+  [5605.452 ms] Display at (0, 55): Hold still
+  [6305.972 ms] Display at (0, 55): Hold the robot upright and still
+  [7006.252 ms] Display at (0, 55): Robot ready: tap Arm
+  [8611.212 ms] Display at (0, 55): Switch on the robot
 
 The packets are sent at most 50 ms apart, here 10.9 to 16.6 ms, Arm 81
 times and Disarm 20 times:

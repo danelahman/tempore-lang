@@ -10,11 +10,12 @@
 // read from it, and written to it when it changes. The callbacks of ESP-NOW
 // run in the task of the Wi-Fi driver.
 //
-// A peer ESP_NOW_PEER requires the key ESP_NOW_KEY, 32 hexadecimal digits,
-// and the converse: the link to the peer is then encrypted and authenticated
-// by ESP-NOW with CCMP (AES-128 in counter mode with CBC-MAC), the key being
-// both the primary master key and the local master key of the peer. The
-// link to the broadcast address, the default, is not encrypted.
+// The build requires the peer ESP_NOW_PEER, six bytes other than the
+// broadcast address, and the key ESP_NOW_KEY, 32 hexadecimal digits: the
+// link to the peer is encrypted and authenticated by ESP-NOW with CCMP
+// (AES-128 in counter mode with CBC-MAC), the key being both the primary
+// master key and the local master key of the peer. The host model supplies
+// a fixed peer and key when neither is given.
 //
 // A packet is 16 bytes: the bytes 'T' and 'p', the version 1, a byte 0, then
 // the tag, a 32-bit unsigned integer, and the two floats, each in IEEE 754
@@ -36,15 +37,11 @@
 #include "esp_now_link.h"
 #include "tempore_bindings.h"
 
-#if defined(ESP_NOW_PEER) && !defined(ESP_NOW_KEY)
-#error "the peer ESP_NOW_PEER requires the key ESP_NOW_KEY"
-#endif
-#if defined(ESP_NOW_KEY) && !defined(ESP_NOW_PEER)
-#error "the key ESP_NOW_KEY requires the peer ESP_NOW_PEER"
-#endif
-
 #ifndef ESP_NOW_PEER
-#define ESP_NOW_PEER 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+#error "the package esp-now requires the peer ESP_NOW_PEER"
+#endif
+#ifndef ESP_NOW_KEY
+#error "the package esp-now requires the key ESP_NOW_KEY"
 #endif
 
 #define ESP_NOW_STRING(x) #x
@@ -54,14 +51,8 @@ namespace {
 
 constexpr uint8_t peer[6] = {ESP_NOW_PEER};
 
-// Whether the link is encrypted, and the digits of its key, empty for none.
-#ifdef ESP_NOW_KEY
-constexpr bool encrypted = true;
+// The digits of the key.
 constexpr char key_digits[] = ESP_NOW_EXPANDED_STRING(ESP_NOW_KEY);
-#else
-constexpr bool encrypted = false;
-constexpr char key_digits[] = "";
-#endif
 
 // The value of a hexadecimal digit, or -1.
 constexpr int hex_value(char c) {
@@ -86,10 +77,11 @@ constexpr bool broadcast() {
   return true;
 }
 
-static_assert(!encrypted || valid_key(key_digits),
+static_assert(valid_key(key_digits),
               "the key ESP_NOW_KEY is 32 hexadecimal digits");
-static_assert(!(encrypted && broadcast()),
-              "the link to the broadcast address is not encrypted");
+static_assert(!broadcast(),
+              "the peer ESP_NOW_PEER is not the broadcast address, to which "
+              "ESP-NOW does not encrypt");
 
 // The bytes of the key, of its digits read in pairs, most significant first.
 void key_bytes(uint8_t key[ESP_NOW_KEY_LEN]) {
@@ -157,8 +149,7 @@ std::atomic<uint32_t> queued{0}, dropped{0}, failed_sends{0}, received{0},
 
 void on_receive(const uint8_t *address, const uint8_t *bytes, int length) {
   packet p;
-  if ((!broadcast() && memcmp(address, peer, sizeof peer) != 0) ||
-      !decode(bytes, length, &p)) {
+  if (memcmp(address, peer, sizeof peer) != 0 || !decode(bytes, length, &p)) {
     discarded.fetch_add(1);
     return;
   }
@@ -203,23 +194,20 @@ const char *begin() {
   memcpy(info.peer_addr, peer, sizeof peer);
   info.channel = channel;
   info.ifidx = WIFI_IF_STA;
-  info.encrypt = encrypted;
-  if (encrypted) {
-    key_bytes(info.lmk);
-    if (!succeeded(esp_now_set_pmk(info.lmk)))
-      return "ESP-NOW: the primary master key was not set";
-  }
+  info.encrypt = true;
+  key_bytes(info.lmk);
+  if (!succeeded(esp_now_set_pmk(info.lmk)))
+    return "ESP-NOW: the primary master key was not set";
   if (!succeeded(esp_now_add_peer(&info)))
-    return encrypted ? "ESP-NOW: the encrypted peer was not added"
-                     : "ESP-NOW: the peer was not added";
+    return "ESP-NOW: the encrypted peer was not added";
   uint8_t own[6] = {};
   esp_wifi_get_mac(WIFI_IF_STA, own);
   tempore_log(
       "ESP-NOW: started on channel %u, address "
-      "%02X:%02X:%02X:%02X:%02X:%02X, peer %02X:%02X:%02X:%02X:%02X:%02X, %s",
+      "%02X:%02X:%02X:%02X:%02X:%02X, peer %02X:%02X:%02X:%02X:%02X:%02X, "
+      "encrypted (CCMP)",
       channel, own[0], own[1], own[2], own[3], own[4], own[5], peer[0],
-      peer[1], peer[2], peer[3], peer[4], peer[5],
-      encrypted ? "encrypted (CCMP)" : "not encrypted");
+      peer[1], peer[2], peer[3], peer[4], peer[5]);
   return nullptr;
 }
 
@@ -268,7 +256,7 @@ tempore_result_LinkStart binding_LinkStart(tempore_argument_LinkStart c) {
                           nullptr, 0);
   while (state.load() == starting) vTaskDelay(1);
   if (state.load() == failed) tempore_fault(failure);
-  return encrypted;
+  return true;
 }
 #endif
 

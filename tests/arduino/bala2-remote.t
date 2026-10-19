@@ -71,7 +71,7 @@ library, are not shown:
   [31.245 ms] Display cleared
   [35.045 ms] Display at (0, 2): Remote robot
   [37.805 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [100.245 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF, not encrypted
+  [100.245 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:02, encrypted (CCMP)
   [111.585 ms] Display at (0, 102): Calibrating
   [111.685 ms] ESP-NOW: status, phase 2.000
   [634.188 ms] Display at (0, 102): Hold upright

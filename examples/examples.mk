@@ -19,9 +19,10 @@
 #   serial output read by its target -capture, or, in place of the filter,
 #   EXAMPLE_RECORD_TOOL, a Python script by which the targets -capture and
 #   -erase read and erase the recordings kept on the device, and
-#   EXAMPLE_LINK, the name of the encrypted ESP-NOW link of its device
-#   builds, whose key, ESP_NOW_KEY, is printed by scripts/link-key.sh. The
-#   board is that of the manifest, and its port the variable PORT_BOARD, the
+#   EXAMPLE_LINK and EXAMPLE_LINK_ROLE, the name of the encrypted ESP-NOW
+#   link of its device builds and the role of its board in the link, whose
+#   peer and key, ESP_NOW_PEER and ESP_NOW_KEY, are printed by
+#   scripts/link.sh from the link file. The board is that of the manifest, and its port the variable PORT_BOARD, the
 #   name of the board in upper case with '-' replaced by '_'. 'make
 #   examples-help' and 'make arduino-diagnostics-help' group the Arduino
 #   targets by board, named by the member "title" of the board profile.
@@ -61,7 +62,7 @@ tempore-cli:
 # The variables a fragment sets, emptied before each fragment is read.
 EXAMPLE_FIELDS = EXAMPLE_GRADES EXAMPLE_TIME_UNIT EXAMPLE_SIMULATE \
   EXAMPLE_BUILD_FLAGS EXAMPLE_LOG_FLAGS EXAMPLE_RECORD_FLAGS \
-  EXAMPLE_RECORD_FILTER EXAMPLE_RECORD_TOOL EXAMPLE_LINK
+  EXAMPLE_RECORD_FILTER EXAMPLE_RECORD_TOOL EXAMPLE_LINK EXAMPLE_LINK_ROLE
 
 # A comma, for the fragments that write one in a function call.
 comma := ,
@@ -75,12 +76,30 @@ device_flags = $(strip $(PLATFORMIO_BUILD_FLAGS) $(if \
 build_flags = $(if $(or $(BRIGHTNESS),$(strip $(1))),PLATFORMIO_BUILD_FLAGS="$(call \
   device_flags,$(1))" )
 
-# Under the ESP-NOW link $(1), the command that sets the shell variable key
-# to the key of the link, prefixed to the commands of the device builds, and
-# the build flag ESP_NOW_KEY of that variable, so that the commands do not
-# show the key.
-link_key = $(if $(1),key=$$(sh scripts/link-key.sh $(1)) && )
-link_flag = $(if $(1),-DESP_NOW_KEY=$$key)
+# The ESP-NOW link of the Arduino example $(1), the role of its board, the
+# other role of the link, and the example of that role.
+link_name = $(ARDUINO_LINK_$(1))
+link_role = $(ARDUINO_LINK_ROLE_$(1))
+link_peer = $(filter-out $(call link_role,$(1)),$(LINK_ROLES_$(call \
+  link_name,$(1))))
+link_peer_example = $(LINK_EXAMPLE_$(call link_name,$(1))_$(call \
+  link_peer,$(1)))
+
+# Under the ESP-NOW link of the Arduino example $(1), the command that sets
+# the shell variables esp_now_peer and esp_now_key to the peer and the key of
+# its board, printed by scripts/link.sh, which first records the address of
+# the board on the port $(2) if given; it is prefixed to the commands of the
+# device builds. The build flags ESP_NOW_PEER and ESP_NOW_KEY of these
+# variables, so that the commands do not show the key.
+link_setup = $(if $(call link_name,$(1)),$(if $(filter 1,$(words $(call \
+  link_peer,$(1)))),,$(error The ESP-NOW link $(call link_name,$(1)) of \
+  $(1) has not exactly one other role: $(call link_peer,$(1))))link=$$(sh \
+  scripts/link.sh $(if $(2),-p $(2) )$(if $(call \
+  link_peer_example,$(1)),-t arduino-$(call \
+  link_peer_example,$(1))-upload )$(call link_name,$(1)) $(call \
+  link_role,$(1)) $(call link_peer,$(1))) && eval "$$link" && )
+link_flags = $(if $(1),-DESP_NOW_PEER=$$esp_now_peer \
+  -DESP_NOW_KEY=$$esp_now_key)
 
 # The fragments of the Opentrons example $(1) and of the Arduino example $(1).
 opentrons_fragment = examples/opentrons/$(1).mk
@@ -154,7 +173,7 @@ arduino-$(1)-simulate: tempore-cli
 	  $(2)/$(3).tpe
 
 arduino-$(1)-build: tempore-cli arduino-deps
-	$$(call link_key,$(EXAMPLE_LINK))$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	$$(call link_setup,$(1))$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3) \
 	  --device $(2)/$(3).device.json \
 	  --monitor $$(or $$(MONITOR),abort) \
@@ -162,7 +181,7 @@ arduino-$(1)-build: tempore-cli arduino-deps
 	  $(2)/$(3).tpe
 
 arduino-$(1)-upload: tempore-cli arduino-deps
-	$$(call link_key,$(EXAMPLE_LINK))$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	$$(call link_setup,$(1),$$(call port,$(4)))$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3) \
 	  --device $(2)/$(3).device.json \
 	  --monitor $$(or $$(MONITOR),abort) \
@@ -170,7 +189,7 @@ arduino-$(1)-upload: tempore-cli arduino-deps
 	  $(2)/$(3).tpe
 
 arduino-$(1)-profile: tempore-cli arduino-deps
-	$$(call link_key,$(EXAMPLE_LINK))$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	$$(call link_setup,$(1),$$(call port,$(4)))$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-profile \
 	  --device $(2)/$(3).device.json \
 	  --monitor $$(or $$(MONITOR),warn) \
@@ -180,7 +199,12 @@ arduino-$(1)-profile: tempore-cli arduino-deps
 
 ARDUINO_TARGETS += arduino-$(1)-simulate arduino-$(1)-build \
   arduino-$(1)-upload arduino-$(1)-profile
-ARDUINO_BUILD_FLAGS_$(1) := $(EXAMPLE_BUILD_FLAGS) $$(call link_flag,$(EXAMPLE_LINK))
+ARDUINO_BUILD_FLAGS_$(1) := $(EXAMPLE_BUILD_FLAGS) $$(call link_flags,$(EXAMPLE_LINK))
+ARDUINO_LINK_$(1) := $(EXAMPLE_LINK)
+ARDUINO_LINK_ROLE_$(1) := $(EXAMPLE_LINK_ROLE)
+$(if $(EXAMPLE_LINK),ARDUINO_LINKS += $(EXAMPLE_LINK))
+$(if $(EXAMPLE_LINK),LINK_ROLES_$(EXAMPLE_LINK) += $(EXAMPLE_LINK_ROLE))
+$(if $(EXAMPLE_LINK),LINK_EXAMPLE_$(EXAMPLE_LINK)_$(EXAMPLE_LINK_ROLE) := $(1))
 ARDUINO_BOARDS += $(4)
 ARDUINO_EXAMPLES_$(4) += $(1)
 $(if $(EXAMPLE_LOG_FLAGS),$(call arduino_log,$(1),$(2),$(3),$(4)))
@@ -190,7 +214,7 @@ endef
 # The target -log of the Arduino example $(1), as in arduino_template.
 define arduino_log
 arduino-$(1)-log: tempore-cli arduino-deps
-	$$(call link_key,$(EXAMPLE_LINK))PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$$(ARDUINO_BUILD_FLAGS_$(1)) $(EXAMPLE_LOG_FLAGS))" \
+	$$(call link_setup,$(1),$$(call port,$(4)))PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$$(ARDUINO_BUILD_FLAGS_$(1)) $(EXAMPLE_LOG_FLAGS))" \
 	  $$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-log \
 	  --device $(2)/$(3).device.json \
@@ -218,7 +242,7 @@ endef
 # full.
 define arduino_record
 arduino-$(1)-record: tempore-cli arduino-deps
-	$$(call link_key,$(EXAMPLE_LINK))PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$$(ARDUINO_BUILD_FLAGS_$(1)) $(EXAMPLE_RECORD_FLAGS))" \
+	$$(call link_setup,$(1),$$(call port,$(4)))PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$$(ARDUINO_BUILD_FLAGS_$(1)) $(EXAMPLE_RECORD_FLAGS))" \
 	  $$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-record \
 	  --device $(2)/$(3).device.json \
@@ -344,6 +368,8 @@ examples-help:
 	  "SIMULATE=$(SIMULATE)" "when set, the simulated seconds of every example" \
 	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target" \
 	  "BRIGHTNESS=$(BRIGHTNESS)" "when set, the display brightness, 0 to 100 % (default 24), of every build"
+	@$(foreach link,$(sort $(ARDUINO_LINKS)),echo "ESP-NOW link $(link), roles $(LINK_ROLES_$(link)): paired by the link file ~/.config/tempore/links/$(link),"; \
+	  echo "  or REMOTE_LINK_FILE; REMOTE_PEER and REMOTE_KEY override its address and key";)
 	@echo "Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help"
 
 arduino-diagnostics-help:

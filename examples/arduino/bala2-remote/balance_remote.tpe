@@ -28,9 +28,8 @@
    of the profile m5stack-gray-radio, measured on the Gray with its radio
    running. It reports its phase to the controller, which shows it, and
    beeps when it is ready for Arm. On the board: make
-   arduino-bala2-remote-upload REMOTE_PEER=XX:XX:XX:XX:XX:XX, the address
-   of the controller, which encrypts the link with the key shared with the
-   controller (by default broadcast and unencrypted; see the README of the
+   arduino-bala2-remote-upload, which pairs it with the controller by the
+   link file of bala2-remote and encrypts the link (see the README of the
    Arduino backend); simulated on the host, with controller.cpp scripting
    the controller: make arduino-bala2-remote-simulate. *)
 

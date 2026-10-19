@@ -12,6 +12,13 @@
 
 #define ESP_NOW_KEY_LEN 16
 
+// The peer and the key of a host build that gives neither, both fixed: the
+// peer is the address of the peer of the host model.
+#if defined(TEMPORE_HOST) && !defined(ESP_NOW_PEER) && !defined(ESP_NOW_KEY)
+#define ESP_NOW_PEER 0x24, 0x0a, 0xc4, 0x00, 0x00, 0x02
+#define ESP_NOW_KEY 00112233445566778899aabbccddeeff
+#endif
+
 typedef enum {
   ESP_NOW_SEND_SUCCESS = 0,
   ESP_NOW_SEND_FAIL
@@ -51,8 +58,8 @@ esp_err_t esp_now_send(const uint8_t *peer_addr, const uint8_t *data,
 // in milliseconds and returns whether the peer then sends a packet, of the
 // tag and the floats it sets. The packet arrives ESP_NOW_MODEL_LATENCY_MS
 // milliseconds later (default 2, below the period), from the address
-// ESP_NOW_PEER, or 24:0A:C4:00:00:02 if that is the broadcast address, and
-// every ESP_NOW_MODEL_LOSS-th packet is lost (never by default, 0).
+// ESP_NOW_PEER, and every ESP_NOW_MODEL_LOSS-th packet is lost (never by
+// default, 0).
 bool esp_now_model_peer(uint32_t time_ms, uint32_t *tag, float *first,
                         float *second);
 

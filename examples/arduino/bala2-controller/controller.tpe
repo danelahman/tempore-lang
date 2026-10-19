@@ -29,9 +29,8 @@
    shows the tilt that steers it, a label whether the link is encrypted,
    a line, while disarmed, the guidance of the phase the robot reports, and
    a short tone acknowledges a tap on Arm or Disarm. On the board: make
-   arduino-bala2-controller-upload REMOTE_PEER=XX:XX:XX:XX:XX:XX, the
-   address of the robot, which encrypts the link with the key shared with
-   the robot (by default broadcast and unencrypted; see the README of the
+   arduino-bala2-controller-upload, which pairs it with the robot by the
+   link file of bala2-remote and encrypts the link (see the README of the
    Arduino backend); simulated on the host, with world.cpp tilting and
    touching the device: make arduino-bala2-controller-simulate. *)
 
@@ -161,9 +160,10 @@ let dark_grey = 0x404040
    and 5 + 100 / 4. *)
 let full_tilt = 30.0
 
-(* Whether the link is encrypted, shown once at the start right of the
-   vial, below the tilt of the robot, where nothing else is drawn: in green
-   on black if it is, and in amber on black if not. *)
+(* Whether the link is encrypted, as LinkStart reports it, shown once at
+   the start right of the vial, below the tilt of the robot, where nothing
+   else is drawn: in green on black if it is, as every link of the package
+   esp-now is, and in amber on black if not. *)
 let amber = 0xffb000
 let black = 0x000000
 

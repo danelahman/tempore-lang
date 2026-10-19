@@ -5,7 +5,7 @@
    nothing. *)
 
 operation LinkStart : nat ~> bool # (LinkStart, 1)
-default LinkStart _ = false
+default LinkStart _ = true
 
 operation Send : nat * float * float ~> unit # (Send, 1)
 default Send _ = ()

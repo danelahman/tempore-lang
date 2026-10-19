@@ -157,18 +157,17 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   negates them). Its header `bala2_base.h` gives the application the drives
   last written and the counts last read, for logging outside the timed
   bindings.
-- `esp-now`: packets of a tag and two floats between two ESP32 boards over
-  ESP-NOW, with the peer given by the build flag `ESP_NOW_PEER`, six bytes
-  separated by commas (by default the broadcast address, for development):
-  - a peer requires the key given by the build flag `ESP_NOW_KEY`, 32
-    hexadecimal digits, and the converse; ESP-NOW then encrypts and
-    authenticates the packets with CCMP, the key being both the primary
-    master key and the local master key of the peer (one secret, and the
-    default primary master key is public); a missing or malformed key, and
-    a key with the broadcast address, which ESP-NOW does not encrypt, are
-    compilation errors;
+- `esp-now`: encrypted packets of a tag and two floats between two ESP32
+  boards over ESP-NOW:
+  - a device build requires the peer, the build flag `ESP_NOW_PEER`, six
+    bytes separated by commas, and the key, the build flag `ESP_NOW_KEY`,
+    32 hexadecimal digits; ESP-NOW encrypts and authenticates the packets
+    with CCMP, the key being both the primary master key and the local
+    master key of the peer (one secret, and the default primary master key
+    is public); a missing or malformed peer or key, and the broadcast
+    address, which ESP-NOW does not encrypt, are compilation errors;
   - `LinkStart` starts the radio and ESP-NOW on a channel, on core 0, and
-    returns whether the link is encrypted;
+    returns whether the link is encrypted, true for every link;
   - `Send` queues a packet and returns without waiting;
   - `Receive` returns, without waiting, the latest packet from the peer if it
     arrived at most a given number of milliseconds ago;
@@ -176,7 +175,8 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   - its host model logs the packets sent and delivers those of
     `esp_now_model_peer`, which the host model of an application may define,
     after a latency and with a loss set by build flags, unencrypted, and
-    reports the link encrypted under a key;
+    reports the link encrypted; without the build flags it takes a fixed
+    peer, `24:0A:C4:00:00:02`, and a fixed key;
   - the bounds of `Send` and `Receive` were not measured with encryption
     and are to be measured again with it.
 - `bala2-remote`: the messages of the remote control of the BALA2, shared by
@@ -577,7 +577,10 @@ recordings from the serial output:
     EXAMPLE_RECORD_FILTER = examples/arduino/bala2/recordings.awk
 
 `EXAMPLE_BUILD_FLAGS` gives the build flags of every device build of the
-example, as `bala2-remote` does with the address of its peer.
+example. `EXAMPLE_LINK` and `EXAMPLE_LINK_ROLE` name the encrypted ESP-NOW
+link of its device builds and the role of its board in it, as
+`bala2-remote` and `bala2-controller` do
+([Pairing the robot and the controller](#pairing-the-robot-and-the-controller)).
 
 Instead of the awk program, `EXAMPLE_RECORD_TOOL` names a Python script by
 which the targets `-capture` and `-erase` read and erase the recordings kept
@@ -854,8 +857,8 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
     52.8 ms. After about 2 s without a message the robot shows "Link lost"
     and beeps once, and stays armed, and shows "Armed" again when messages
     return.
-  - The make variable `REMOTE_PEER`, the address of the controller, sets
-    the peer, and the link is then encrypted (see
+  - The link to the controller is encrypted, its address and key kept in
+    a link file (see
     [Pairing the robot and the controller](#pairing-the-robot-and-the-controller));
     the host model `controller.cpp` scripts the controller.
 - [`wheels`](../../../examples/arduino/wheels/wheels.tpe): a wheel check of
@@ -1002,45 +1005,63 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   - An armed iteration redraws at most one item: the state when it
     changes, else the guidance line, cleared once, or else the bubble or
     the tilt of the robot, in turn.
-  - It shows at the start, right of the bubble level, whether the link is
-    encrypted: "Encrypted" in green, or "Not encrypted" in amber.
+  - It shows at the start, right of the bubble level, whether `LinkStart`
+    reports the link encrypted: "Encrypted" in green, as every link of
+    `esp-now` is, or else "Not encrypted" in amber.
   - While disarmed, it receives the status of the robot after each Beat and
     shows a line of guidance above the bubble level, redrawn when it
     changes, from the phase of the latest status: "Hold the robot upright
     and still", "Hold still", "Robot ready: tap Arm" in green, or "Switch
     on the robot" after about 1 s without a status, 90 iterations.
-  - The make variable `REMOTE_PEER`, the address of the robot, sets the
-    peer, and the link is then encrypted (see
+  - The link to the robot is encrypted, its address and key kept in a
+    link file (see
     [Pairing the robot and the controller](#pairing-the-robot-and-the-controller));
     the host model `world.cpp` tilts and taps the device.
 
 #### Pairing the robot and the controller
 
-A paired build, with `REMOTE_PEER`, encrypts the link with the key of the
-link `bala2-remote`, the same for both boards, printed to the build by
-`scripts/link-key.sh` and passed as `ESP_NOW_KEY` through a shell variable,
-so that no command shows it:
+The robot and the controller share the encrypted link `bala2-remote`. Its
+link file, `~/.config/tempore/links/bala2-remote`, outside the repository,
+of mode 600 in a directory of mode 700, holds the key and the address of
+the board of each role:
 
-- the key is the environment variable `REMOTE_KEY`, 32 hexadecimal digits,
-  if set, and otherwise that of the key file, `REMOTE_KEY_FILE` if set and
-  else `~/.config/tempore/keys/bala2-remote.key`, outside the repository;
-- an absent key file is first written with 16 random bytes of
-  `openssl rand` (or of `/dev/urandom`), of mode 600, in a directory
-  created with mode 700, and written once even by concurrent builds;
-- the build reports whether the key was generated or reused, and the key
-  file, never the key; a malformed key stops the build.
+    key=0123456789abcdef0123456789abcdef
+    robot=XX:XX:XX:XX:XX:XX
+    controller=YY:YY:YY:YY:YY:YY
 
-Each board logs its address at the start of its link:
+Every target of the two examples that builds for the device runs
+`scripts/link.sh` first, which passes the address of the other board and
+the key as `ESP_NOW_PEER` and `ESP_NOW_KEY` through shell variables, so
+that no command shows the key:
 
-    make arduino-bala2-remote-upload \
-      REMOTE_PEER=XX:XX:XX:XX:XX:XX
-    make arduino-bala2-controller-upload \
-      REMOTE_PEER=YY:YY:YY:YY:YY:YY
+- an upload, profile, log or record target reads the address of the
+  board on its port with esptool, of PlatformIO, and records it under its
+  role, reporting a change; a build without an upload reads no port;
+- an absent key is generated, 16 random bytes of `openssl rand` (or of
+  `/dev/urandom`), once even by concurrent builds;
+- without the address of the other board the build stops, and names the
+  board to connect and the target to run first.
 
-the first with the address of the controller, the second with that of the
-robot. Building both on one computer gives them the same key; on another
-computer, copy the key file or set `REMOTE_KEY`. A broadcast build, without
-`REMOTE_PEER`, is not encrypted and uses no key.
+The first pairing, one board at a time:
+
+1. connect the robot and run `make arduino-bala2-remote-upload`: it
+   records the address of the robot and the key, and stops;
+2. connect the controller and run `make arduino-bala2-controller-upload`:
+   it records its address and uploads;
+3. connect the robot again and run `make arduino-bala2-remote-upload`.
+
+A replaced board is paired by uploading to it and then to the other board,
+which then learns its address. Other choices:
+
+- `REMOTE_PEER`, an address `XX:XX:XX:XX:XX:XX`, and `REMOTE_KEY`, 32
+  hexadecimal digits, override the address of the other board and the key;
+- `REMOTE_LINK_FILE` sets another link file;
+- a key file `~/.config/tempore/keys/bala2-remote.key` of an earlier
+  version is taken over when there is no link file yet;
+- on another computer, copy the link file, which keeps the pairing.
+
+The build reports what it records and the link file, never the key; a
+malformed link file or override stops it.
 
 #### Using the digital level
 

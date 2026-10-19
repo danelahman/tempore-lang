@@ -3,12 +3,8 @@
 EXAMPLE_GRADES = regex-timed-rigid-interval-rational-symbolic
 EXAMPLE_SIMULATE = 9
 
-# The build flags of every device build: the address of the robot,
-# REMOTE_PEER, six bytes in hexadecimal separated by colons, as it is logged
-# at the start of its link, passed as the build flag ESP_NOW_PEER of the
-# package esp-now, with the key of the link bala2-remote, which encrypts it;
-# without it the controller sends to every device and receives from any
-# (the broadcast address), unencrypted.
-REMOTE_PEER ?=
-EXAMPLE_BUILD_FLAGS = $(if $(REMOTE_PEER),-DESP_NOW_PEER=0x$(subst :,$(comma)0x,$(REMOTE_PEER)))
-EXAMPLE_LINK = $(if $(REMOTE_PEER),bala2-remote)
+# The encrypted ESP-NOW link of its device builds, bala2-remote, in which
+# its board has the role controller; the address of the robot and the key of
+# the link are those of its link file, kept by scripts/link.sh.
+EXAMPLE_LINK = bala2-remote
+EXAMPLE_LINK_ROLE = controller
