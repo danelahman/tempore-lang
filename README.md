@@ -149,34 +149,11 @@ protocol.
 
 #### Addresses
 
-The address of the page names the example, the grades and the backend selected,
-and a line of the example, in the query parameters
-
-- `example`, the path of the example relative to `examples` (as in
-  `examples/index`);
-- `grades`, a grading monoid;
-- `backend`, a backend's key (`interpreter`, `arduino` or `opentrons`);
-- `line`, a line of the example, from 1,
-
-e.g., <https://tempore-lang.ee/?example=arduino/bala2/balance.tpe&line=42>.
-
-- Opening such a link loads the example as the gallery does, with its own
-  grades and backend unless `grades` or `backend` overrides them.
-- `backend` without `example` selects the backend with its default example,
-  unless the example last loaded is of that backend.
-- `line` scrolls to that line of the example and highlights it briefly; it
-  stays in the address until another example, grades, backend or input is
-  selected.
-- While the editor shows an example unedited, a click on a line number copies
-  the address with that line to the clipboard.
-- The address follows the selection, `grades` and `backend` given only where
-  they differ from the example's own, and the button beside the example
-  copies it to the clipboard.
-- The edited text of a program is not part of the address.
-- Parameters of unknown or malformed values are ignored, with a notice; so is a
-  `line` other than a decimal number of a line of the example (leading zeros
-  allowed), or without `example`. The choices not given by the address are
-  those the browser remembers.
+The address of the page names, in its query parameters, the example
+(`example`, its path relative to `examples`), the grading monoid (`grades`),
+the backend (`backend`: `interpreter`, `arduino` or `opentrons`) and a line of
+the example to highlight (`line`, from 1), as in
+<https://tempore-lang.ee/?example=arduino/bala2/balance.tpe&line=42>.
 
 ## Temporal resources
 
@@ -934,18 +911,12 @@ with strict ethanol soaks.
 
 #### The non-rigid grades as instances
 
-In theory, the non-rigid grades above are instances of the rigid ones. An
-upper bound translates with every operation `A` skippable, `A?`, and every
-delay or set of delays `D` a budget `≤ sup D`: `{A; 3; B}` is
-`{A?; ≤3; B?}`. A lower bound translates with every operation rigid and
-flanked, `≥0; A`, every delay or set of delays a budget `≥ inf D`, and `≥0`
-at the end: `{A; 2; B}` is `{≥0; A; ≥2; B; ≥0}`. The intervals translate
-componentwise. Both translations preserve and reflect the order and preserve
-products and joins; the upper one also preserves the unit, while the lower
-one maps the unit `{0}` to the top `{≥0}`, so it is an order embedding but
-not a monoid morphism. The prototype keeps the separate decision procedures
-of the non-rigid grades, and `tests/grades/test_nonrigid_instances.ml` checks
-the translations on random grades.
+The non-rigid grades above embed in the rigid ones, preserving and reflecting
+the order: an upper bound with every operation `A` made optional, `A?`, and
+every delay a budget, `{A; 3; B}` as `{A?; ≤3; B?}`, and a lower bound with
+every operation preceded by `≥0`, every delay a budget and `≥0` at the end,
+`{A; 2; B}` as `{≥0; A; ≥2; B; ≥0}`. The non-rigid grades keep decision
+procedures of their own.
 
 ### Security levels and products
 
@@ -1281,16 +1252,10 @@ is accepted, as a round takes at most 3.5, while a second `perform Work ()`
 would be rejected, as a gap may then be 6.5.
 
 Counts add under sequencing, so they suit bounded stretches, such as a box held
-over exactly one new reading, and not loop invariants, which carry no count. The
-step counter splits the two: its loop invariant bounds the spacing of the
-readings and, as a rate limit, the gaps between its counts of steps, and its
-boxes the count and the times until their use, such as the 50 distinct readings
-of its calibration. A rate limit `(X, [s, ∞))` is a loop invariant where each
-round that performs `X` takes at least `s` from its last `X` to its end; it is
-not closed under sequencing, so that a loop calling another loop between its
-counts gives the inner one the invariant of no count, `(0, X, [0, ∞))`. `counts-upper-bound` bounds the numbers of calls from
-above, without times; `event-separation` bounds counts together with the times
-before, between and after the occurrences. See
+over exactly one new reading, and not loop invariants, which carry no count.
+Unlike `counts-upper-bound`, which bounds the numbers of calls from above,
+`event-separation` bounds counts together with the times before, between and
+after the occurrences. See
 [`examples/opentrons/binding.tpe`](examples/opentrons/binding.tpe) and
 [`examples/arduino/steps/steps.tpe`](examples/arduino/steps/steps.tpe).
 

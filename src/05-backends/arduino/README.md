@@ -452,15 +452,8 @@ runs. `PORT_M5STACK_GRAY_RADIO` defaults to `PORT_M5STACK_GRAY` and
 
 The port is found by [`scripts/port.sh`](../../../scripts/port.sh) among
 the serial ports listed by `pio device list --serial --json-output`, by the
-USB identifiers `VID:PID` of the member `usb` of the board profile:
-
-- `m5stack-gray`, `m5stack-gray-radio`, `m5stack-fire` and `m5stack-core2`:
-  `10c4:ea60`, the CP2104 bridge, and `1a86:55d4`, the CH9102 bridge of the
-  later revisions;
-- `m5stack-cores3` and `m5stack-cores3-radio`: `303a:1001`, the USB
-  Serial/JTAG controller of the ESP32-S3.
-
-The port found is reported, as `M5Stack CoreS3 on /dev/cu.usbmodem1101`.
+USB identifiers `VID:PID` of the member `usb` of the board profile. The port
+found is reported, as `M5Stack CoreS3 on /dev/cu.usbmodem1101`.
 No matching port, several matching ports, as for two boards of the same
 kind, and a profile without `usb`, such as `esp32-devkit`, are errors that
 ask for `PORT` or `PORT_BOARD`:
@@ -712,14 +705,12 @@ the board of each role:
 
 Every target of the two examples that builds for the device runs
 `scripts/link.sh` first, which passes the address of the other board and
-the key as `ESP_NOW_PEER` and `ESP_NOW_KEY` through shell variables, so
-that no command shows the key:
+the key as `ESP_NOW_PEER` and `ESP_NOW_KEY`, without showing the key:
 
 - an upload, profile, log or record target reads the address of the
-  board on its port with esptool, of PlatformIO, and records it under its
-  role, reporting a change; a build without an upload reads no port;
-- an absent key is generated, 16 random bytes of `openssl rand` (or of
-  `/dev/urandom`), once even by concurrent builds;
+  board on its port and records it under its role, reporting a change; a
+  build without an upload reads no port;
+- an absent key is generated, 16 random bytes;
 - without the address of the other board the build stops, and names the
   board to connect and the target to run first.
 
@@ -771,12 +762,9 @@ no message arrives for about 2 s, as when the controller is switched off,
 the robot sounds one tone and keeps balancing in place, with zero
 setpoints, until a message arrives.
 
-A violated running-time bound enters the safe state: the robot stops its
-motors, falls, stays switched on with its lights on and its tasks halted,
-and writes the violation to the serial port; it is restarted by its reset
-button. A robot that falls with its lights off has lost its power: the
-battery in its base, charged through the USB-C port of the Gray, is too
-weak for the motors.
+A violated running-time bound halts the robot with its lights on, and its
+reset button restarts it. A robot that falls with its lights off has a
+battery too weak for the motors, charged through the USB-C port of the Gray.
 
 ## Adding a board, a package or an example
 <!-- web-skip -->
