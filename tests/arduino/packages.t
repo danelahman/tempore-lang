@@ -55,8 +55,9 @@ board for which the package gives none keeps those of the declarations:
   $ cat > bounds.tpe <<'EOF'
   > let read () : imu # [0.55, 1.25] = perform ReadImu ()
   > EOF
-  $ for b in m5stack-gray m5stack-cores3 m5stack-fire; do ../../tempore --grades time-interval-rational --package m5-imu --board $b --typecheck-only bounds.tpe > /dev/null 2>&1; echo "$b [$?]"; done
+  $ for b in m5stack-gray m5stack-gray-radio m5stack-cores3 m5stack-fire; do ../../tempore --grades time-interval-rational --package m5-imu --board $b --typecheck-only bounds.tpe > /dev/null 2>&1; echo "$b [$?]"; done
   m5stack-gray [0]
+  m5stack-gray-radio [1]
   m5stack-cores3 [1]
   m5stack-fire [1]
   $ ../../tempore --grades time-interval-rational --package m5-imu --typecheck-only bounds.tpe 2>&1 | grep error
@@ -72,7 +73,7 @@ that the declarations of each package load under each of its grade systems
 on each board:
 
   $ touch empty.tpe
-  $ for p in bala2-base esp-now i2c m5-display m5-imu; do for g in time-interval-rational regex-timed-lower-bound-rational-symbolic regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic event-separation counts-upper-bound; do for b in m5stack-gray m5stack-cores3 esp32-devkit; do ../../tempore --grades $g --package $p --board $b --typecheck-only empty.tpe || echo "$p $g $b"; done; done; done
+  $ for p in bala2-base esp-now i2c m5-display m5-imu; do for g in time-interval-rational regex-timed-lower-bound-rational-symbolic regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic event-separation counts-upper-bound; do for b in m5stack-gray m5stack-gray-radio m5stack-cores3 esp32-devkit; do ../../tempore --grades $g --package $p --board $b --typecheck-only empty.tpe || echo "$p $g $b"; done; done; done
 
 The option --board needs --package and names a board profile:
 
@@ -80,7 +81,7 @@ The option --board needs --package and names a board profile:
   ../../tempore: option '--board' requires '--package'.
   [2]
   $ ../../tempore --grades time-interval-rational --package m5-imu --board m5stack-grey filter.tpe 2>&1 | head -1 | sed 's/^.*tempore: //'
-  option '--board': 'm5stack-grey' is not one of esp32-devkit, esp32s3-devkit, m5stack-core2, m5stack-cores3, m5stack-fire, m5stack-gray.
+  option '--board': 'm5stack-grey' is not one of esp32-devkit, esp32s3-devkit, m5stack-core2, m5stack-cores3, m5stack-fire, m5stack-gray, m5stack-gray-radio.
 
 The tilt display on an M5Stack Gray, with the packages m5-imu and m5-display:
 the sources of the packages are copied to src/ and their host models to host/,

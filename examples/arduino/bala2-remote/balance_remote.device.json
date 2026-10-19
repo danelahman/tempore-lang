@@ -1,10 +1,10 @@
 {
-  "board": "m5stack-gray",
+  "board": "m5stack-gray-radio",
   "tasks": [
-    { "function": "step", "kind": "periodic", "period": 5,
-      "initial": "start", "priority": 3 },
+    { "function": "step", "kind": "periodic", "period": 8,
+      "initial": "start", "priority": 3, "core": 1 },
     { "function": "supervise", "kind": "free", "repeat": true,
-      "priority": 1, "core": 0 }
+      "priority": 1, "core": 1 }
   ],
   "packages": ["m5-imu", "m5-display", "m5-speaker", "bala2-base", "esp-now", "bala2-remote"],
   "bindings": "../bala2/bindings.cpp",

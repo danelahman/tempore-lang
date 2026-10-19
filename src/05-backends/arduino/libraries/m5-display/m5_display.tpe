@@ -22,10 +22,20 @@
    margin. A longer text, which wraps over several lines, is not within
    these bounds.
 
-   The bounds hold on both boards, and the descriptor gives none per board:
+   The bounds hold on both boards, and the descriptor gives none for them:
    ClearDisplay took 31.354 to 31.469 ms on the Gray and 31.739 to 31.814 ms
    on the CoreS3, which give the same bounds, and those of ShowText and
    ShowNumber are those of a full line.
+
+   On the profile m5stack-gray-radio, an M5Stack Gray with its Wi-Fi radio
+   running, the profile of the device (2026-10-19) measured ClearDisplay,
+   called once per run right after the start of the radio, at 113.810 to
+   117.572 ms, and ShowTextAt at 3.955 to 5.503 ms. The bounds of
+   ClearDisplay there are [31, 176.5]: the upper bound 1.5 times the
+   greatest time measured with the radio, rounded up, and the lower bound
+   that of the Gray without it; ShowTextAt keeps its bounds. The
+   measurements precede the pinning of the tasks of the application to core
+   1, and are to be repeated.
 
    ShowTextAt (x, y, size, s) writes s at the pixel (x, y) from the top left
    corner, in text of the size 1 to 4 (a larger size is 4, a smaller 1),

@@ -31,13 +31,21 @@ rest before it disarms it and samples the rates after the Disarm:
   [1]
   Typing error: Variable `checked` is unboxed with grade `{Disarm; (Attitude; !10)*}` accumulated since it was bound, which is not below its box grade `{(Attitude; !10)*}`
 
-The PlatformIO project for the M5Stack Gray, its C++ sources checked without
-exceptions and run-time type information:
+The PlatformIO project for the M5Stack Gray with its radio running (profile
+m5stack-gray-radio), its C++ sources checked without exceptions and run-time
+type information:
 
   $ tempore --emit-arduino balance_remote --device $app/balance_remote.device.json $app/balance_remote.tpe > /dev/null
   $ cd _arduino/projects/balance_remote
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
+
+Under the bounds of m5stack-gray-radio the step takes up to 7.2 ms, so that
+the period of 5 ms of the BALA2 without the radio is rejected:
+
+  $ sed -e 's/"period": 8,/"period": 5,/' -e "s|\"\.\./bala2/|\"$app/../bala2/|g" -e "s|\"controller\.cpp\"|\"$app/controller.cpp\"|" $app/balance_remote.device.json > period.device.json
+  $ tempore --emit-arduino balance_period --device period.device.json $app/balance_remote.tpe 2>&1 | grep error
+  Compilation error: The effect `{ReadImu; ReadEncoders; Setpoints; Publish; SetMotors}` of the function `step` of a periodic task is not below its period: its durations are not all below 5
 
 The host simulation for 12 s. The controller sends Beat until 1.5 s, Arm
 for 1 s, Drive (100, 0) from 2.5 s, Disarm at 3.5 s, Beat, Arm again for
@@ -65,18 +73,18 @@ not shown:
   [1971.708 ms] ESP-NOW: status, armed 1.000
   [3525.028 ms] Display at (0, 102): Disarmed
   [3528.808 ms] Display at (0, 102): Calibrating
-  [4051.679 ms] Display at (0, 102): Hold still
-  [4555.459 ms] Display at (0, 102): Calibrating
-  [5077.862 ms] Display at (0, 102): Hold upright
-  [6081.722 ms] Display at (0, 102): Waiting for Arm
-  [6081.822 ms] ESP-NOW: status, armed 0.000
-  [6885.582 ms] Display at (0, 102): Armed
-  [6885.682 ms] ESP-NOW: status, armed 1.000
-  [9648.722 ms] Display at (0, 102): Link lost
-  [9648.772 ms] Speaker: 880 Hz for 200 ms
-  [10017.832 ms] Display at (0, 102): Armed
+  [4051.171 ms] Display at (0, 102): Hold still
+  [4554.951 ms] Display at (0, 102): Calibrating
+  [5077.354 ms] Display at (0, 102): Hold upright
+  [6081.214 ms] Display at (0, 102): Waiting for Arm
+  [6081.314 ms] ESP-NOW: status, armed 0.000
+  [6885.074 ms] Display at (0, 102): Armed
+  [6885.174 ms] ESP-NOW: status, armed 1.000
+  [9648.214 ms] Display at (0, 102): Link lost
+  [9648.264 ms] Speaker: 880 Hz for 200 ms
+  [10017.324 ms] Display at (0, 102): Armed
   [12000.000 ms] End of the simulation
-  [12000.000 ms] Plant: released at 6882.0 ms
+  [12000.000 ms] Plant: released at 6886.0 ms
 
 Held askew at 0.5 rad (28.6 degrees) from the start, the robot is
 calibrated, since it is held still, but not armed at the Arm of 1.5 s: the

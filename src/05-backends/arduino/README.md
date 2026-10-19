@@ -19,8 +19,16 @@ A profile [`boards/NAME.json`](boards/) gives the PlatformIO platform, board,
 libraries and build flags, the number of cores, the I2C buses, the baud rate
 of the serial port and the capabilities of a board (`imu`, `display`,
 `touch`, `speaker`, `battery`, ...). The profiles are `m5stack-gray`,
-`m5stack-fire`, `m5stack-core2`, `m5stack-cores3`, `esp32-devkit` and
-`esp32s3-devkit`.
+`m5stack-gray-radio`, `m5stack-fire`, `m5stack-core2`, `m5stack-cores3`,
+`esp32-devkit` and `esp32s3-devkit`.
+
+The profile `m5stack-gray-radio` is the M5Stack Gray with its Wi-Fi radio
+running, as for `esp-now`: the same hardware and project as `m5stack-gray`,
+under its own name for the bounds of the packages measured with the radio
+([Bounds per board](#bounds-per-board)). Its bounds assume the radio on
+core 0, where `esp-now` starts it and the Wi-Fi driver runs
+(`CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_0` of the Arduino core), and the
+tasks of the manifest on core 1.
 
 The I2C buses of a profile are started after M5Unified and then set to their
 frequency, since M5Unified may already have started a bus that shares their
@@ -238,7 +246,16 @@ how the bounds not measured directly, such as those of `i2c`, are derived.
 - The bounds of `ShowTimeAt`, `ShowColourTextAt`, `ShowColourNumberAt`,
   `DrawButton`, `DrawBar` and `DrawLevel` are provisional, derived from those
   measurements; `ShowColourNumberAt` has the bounds of `ShowNumberAt`.
-- The bounds of `esp-now` are provisional, not yet measured.
+- The bounds of `esp-now` are provisional, not yet measured, except those
+  of `LinkStart` on `m5stack-gray-radio`.
+- On `m5stack-gray-radio` the radio lengthens the operations: the upper
+  bound is 1.5 times the greatest time measured with the radio, rounded up,
+  and at least that of the Gray; the lower bound is the least time measured
+  on the Gray with or without the radio, rounded down. An operation not
+  measured with the radio has the bounds of the Gray. The present bounds
+  were measured before the tasks of the application were all pinned to
+  core 1, the supervision of `bala2-remote` then running on core 0, and are
+  to be measured again.
 
 ## The program
 
@@ -521,9 +538,10 @@ An upload goes to the serial port `PORT` when it is set, and else to that of
 the board of the manifest, the variable `PORT_BOARD`, the name of the board
 in upper case with `-` replaced by `_`.
 
-`PORT_M5STACK_GRAY` defaults to `/dev/cu.usbserial-02012C91` and
-`PORT_M5STACK_CORES3` to `/dev/cu.usbmodem101`, the ports of the boards of
-the development machine. A board without a default port, such as
+`PORT_M5STACK_GRAY` defaults to `/dev/cu.usbserial-02012C91`,
+`PORT_M5STACK_GRAY_RADIO` to `PORT_M5STACK_GRAY` and `PORT_M5STACK_CORES3`
+to `/dev/cu.usbmodem101`, the ports of the boards of the development
+machine. A board without a default port, such as
 `esp32-devkit`, needs `PORT` or `PORT_ESP32_DEVKIT`:
 
     make arduino-bala2-upload PORT=/dev/ttyUSB0
@@ -751,7 +769,8 @@ grouped by the board of their manifest.
 ### M5Stack Gray
 
 The core of the M5Stack BALA2 self-balancing robot (profile `m5stack-gray`,
-port variable `PORT_M5STACK_GRAY`).
+port variable `PORT_M5STACK_GRAY`; for `bala2-remote`, which runs the radio,
+profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
 
 - [`bala2`](../../../examples/arduino/bala2/balance.tpe): a 5 ms balancing
   step of the robot with its supervision and calibration, and the host model
@@ -783,6 +802,9 @@ port variable `PORT_M5STACK_GRAY`).
   rigid regular expressions of timed operations, with the packages
   `esp-now` and `bala2-remote`, sharing the binding file and host model of
   `bala2`.
+  - Under the bounds of `m5stack-gray-radio`, the step takes 1.15 to 7.2 ms,
+    and its period is 8 ms. Both tasks run on core 1, apart from the radio
+    on core 0, the step at the higher priority.
   - The calibration is boxed in two nested boxes. The outer box,
     `[{≥1000 & ~Command}, {≤600000 & ~Command}]`, opens the arming at least
     a second and at most 10 minutes after the calibration, the bias
@@ -797,7 +819,7 @@ port variable `PORT_M5STACK_GRAY`).
     else the robot shows "Hold still" and measures again. The robot is
     armed only within 10 degrees of the balance point, and else shows "Not
     upright". The wait
-    for Arm is therefore bounded, 500 polls 400 ms apart, about 200 s,
+    for Arm is therefore bounded, 500 polls 400 ms apart, about 202 s,
     written without a recursion so that its grade is a bounded repetition,
     and each session calibrates anew.
   - Each poll and each iteration of the drive sends the status of the robot
@@ -808,7 +830,7 @@ port variable `PORT_M5STACK_GRAY`).
     command, Disarm, which returns to waiting for Arm, or zero setpoints.
   - The grade of a session is its protocol: Arm, commands and Disarm, in
     this order; it fixes each iteration of the drive, which takes 12.5 to
-    46.85 ms. After about 2 s without a message the robot shows "Link lost"
+    50 ms. After about 2 s without a message the robot shows "Link lost"
     and beeps once, and stays armed, and shows "Armed" again when messages
     return.
   - The make variable `REMOTE_PEER`, the address of the controller, sets
