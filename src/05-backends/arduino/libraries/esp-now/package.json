@@ -13,5 +13,9 @@
   },
   "sources": ["esp_now_link.cpp", "esp_now_link.h"],
   "host_models": ["esp_now_link_model.cpp", "esp_now.h", "esp_wifi.h", "esp_netif.h"],
-  "bindings": ["LinkStart", "Send", "Receive"]
+  "bindings": ["LinkStart", "Send", "Receive"],
+  "bounds": {
+    "m5stack-gray-radio": { "LinkStart": [85.5, 144], "Receive": [0, 0.6] },
+    "m5stack-cores3-radio": { "LinkStart": [36.5, 90], "Receive": [0, 0.05] }
+  }
 }

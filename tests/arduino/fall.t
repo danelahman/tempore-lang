@@ -125,34 +125,34 @@ watch, in green, shows the falls counted:
   [12555.938 ms] Display at (0, 102): Impact (g)
   [12558.278 ms] Display at (160, 102): 3.5
   [12564.458 ms] Display at (160, 124): 0.05
-  [13578.188 ms] Display fill at (0, 44), 320 by 30: 0xffffff
-  [13579.288 ms] Display at (9, 47): ALARM
-  [14593.018 ms] Display fill at (0, 44), 320 by 30: 0xe00000
-  [14594.118 ms] Display at (9, 47): ALARM
-  [15607.848 ms] Display fill at (0, 44), 320 by 30: 0xffffff
-  [15608.948 ms] Display at (9, 47): ALARM
-  [16622.728 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [16623.988 ms] Display at (9, 47): Alarm stopped
-  [16627.548 ms] Display at (6, 78):
-  [18672.228 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [18673.388 ms] Display at (9, 47): Watching
-  [18677.128 ms] Display at (6, 78): for falls
-  [18680.788 ms] Display at (0, 102): Falls
-  [18683.088 ms] Display at (160, 102): 1
-  [25354.832 ms] Display fill at (0, 44), 320 by 30: 0xff8000
-  [25356.052 ms] Display at (9, 47): Are you OK?
-  [25359.872 ms] Display at (6, 78): Tap to cancel
-  [25367.290 ms] Display at (0, 104): 10
-  [26381.478 ms] Display at (0, 104): 9
-  [27395.665 ms] Display at (0, 104): 8
-  [28407.602 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [28408.782 ms] Display at (9, 47): Cancelled
-  [28412.622 ms] Display at (6, 78): Glad you're OK
-  [30457.302 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [30458.462 ms] Display at (9, 47): Watching
-  [30462.202 ms] Display at (6, 78): for falls
-  [30465.862 ms] Display at (0, 102): Falls
-  [30468.162 ms] Display at (160, 102): 2
+  [13578.288 ms] Display fill at (0, 44), 320 by 30: 0xffffff
+  [13579.388 ms] Display at (9, 47): ALARM
+  [14593.218 ms] Display fill at (0, 44), 320 by 30: 0xe00000
+  [14594.318 ms] Display at (9, 47): ALARM
+  [15608.148 ms] Display fill at (0, 44), 320 by 30: 0xffffff
+  [15609.248 ms] Display at (9, 47): ALARM
+  [16623.228 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [16624.488 ms] Display at (9, 47): Alarm stopped
+  [16628.048 ms] Display at (6, 78):
+  [18672.728 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [18673.888 ms] Display at (9, 47): Watching
+  [18677.628 ms] Display at (6, 78): for falls
+  [18681.288 ms] Display at (0, 102): Falls
+  [18683.588 ms] Display at (160, 102): 1
+  [25355.332 ms] Display fill at (0, 44), 320 by 30: 0xff8000
+  [25356.552 ms] Display at (9, 47): Are you OK?
+  [25360.372 ms] Display at (6, 78): Tap to cancel
+  [25367.790 ms] Display at (0, 104): 10
+  [26381.978 ms] Display at (0, 104): 9
+  [27396.165 ms] Display at (0, 104): 8
+  [28408.202 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [28409.382 ms] Display at (9, 47): Cancelled
+  [28413.222 ms] Display at (6, 78): Glad you're OK
+  [30457.902 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [30459.062 ms] Display at (9, 47): Watching
+  [30462.802 ms] Display at (6, 78): for falls
+  [30466.462 ms] Display at (0, 102): Falls
+  [30468.762 ms] Display at (160, 102): 2
   [35000.000 ms] End of the simulation
 The alarm sounds four tones, and a tone of 1500 Hz acknowledges each of the
 two taps; the time since the last event is redrawn every hundred readings,
@@ -166,7 +166,7 @@ every second:
   $ grep 'Since last event' run.log | sed -n '1,3p'
   [59.520 ms] Display at (0, 148): Since last event 0:00
   [1137.645 ms] Display at (0, 148): Since last event 0:01
-  [18687.068 ms] Display at (0, 148): Since last event 0:00
+  [18687.568 ms] Display at (0, 148): Since last event 0:00
   $ grep -c 'Display fill at (0, 1\(72\|80\))' run.log
   132
 

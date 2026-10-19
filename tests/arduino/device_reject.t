@@ -55,7 +55,7 @@ their capabilities, and an unknown time unit:
   File "m.json", line 2, characters 11-20:
   2 |   "board": "esp8266",
                  ^^^^^^^^^
-  Compilation error: Unknown board `esp8266`; accepted: `esp32-devkit`, `esp32s3-devkit`, `m5stack-core2`, `m5stack-cores3`, `m5stack-fire`, `m5stack-gray`
+  Compilation error: Unknown board `esp8266`; accepted: `esp32-devkit`, `esp32s3-devkit`, `m5stack-core2`, `m5stack-cores3`, `m5stack-cores3-radio`, `m5stack-fire`, `m5stack-gray`, `m5stack-gray-radio`
   exit 1
   $ sed 's/"time_unit": "ms",/"time_unit": "ms", "packages": ["m5-imu"],/' toy/toy.device.json | sed 's/toy_bindings/toy\/toy_bindings/' > m.json
   $ reject m.json

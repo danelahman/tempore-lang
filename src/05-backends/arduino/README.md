@@ -19,8 +19,18 @@ A profile [`boards/NAME.json`](boards/) gives the PlatformIO platform, board,
 libraries and build flags, the number of cores, the I2C buses, the baud rate
 of the serial port and the capabilities of a board (`imu`, `display`,
 `touch`, `speaker`, `battery`, ...). The profiles are `m5stack-gray`,
-`m5stack-fire`, `m5stack-core2`, `m5stack-cores3`, `esp32-devkit` and
-`esp32s3-devkit`.
+`m5stack-gray-radio`, `m5stack-fire`, `m5stack-core2`, `m5stack-cores3`,
+`m5stack-cores3-radio`, `esp32-devkit` and `esp32s3-devkit`.
+
+The profile `m5stack-gray-radio` is the M5Stack Gray with its Wi-Fi radio
+running, as for `esp-now`: the same hardware and project as `m5stack-gray`,
+under its own name for the bounds of the packages measured with the radio
+([Bounds per board](#bounds-per-board)). Its bounds assume the radio on
+core 0, where `esp-now` starts it and the Wi-Fi driver runs
+(`CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_0` of the Arduino core), and the
+tasks of the manifest on core 1. The profile `m5stack-cores3-radio` is
+likewise the CoreS3 with its radio running, under its own name, so that
+the CoreS3 examples without the radio keep the bounds of `m5stack-cores3`.
 
 The I2C buses of a profile are started after M5Unified and then set to their
 frequency, since M5Unified may already have started a bus that shares their
@@ -110,7 +120,10 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
     changing its range (the register ACC_CONF of the BMI270, the sample rate
     divider of the MPU6886), so that the conversion of M5Unified stays valid.
   - `CheckAtRest` is a check of plausibility, not a self-test: four readings
-    started 6 ms apart, true if the unit is at rest.
+    started 6 ms apart, true if the unit is at rest, judged by the variation
+    of the readings (the spread of the rate about each axis below 5 °/s, the
+    direction of gravity turned by less than 2°, each acceleration within
+    0.9 to 1.1 g), so that a constant bias of the gyroscope passes.
   - Each reading of `ReadImu` is passed to `m5_imu_observe(accel, gyro)`,
     defined weakly to do nothing, which an application may define to record
     the readings.
@@ -146,17 +159,28 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   negates them). Its header `bala2_base.h` gives the application the drives
   last written and the counts last read, for logging outside the timed
   bindings.
-- `esp-now`: packets of a tag and two floats between two ESP32 boards over
-  ESP-NOW, with the peer given by the build flag `ESP_NOW_PEER`, six bytes
-  separated by commas (by default the broadcast address, for development):
-  - `LinkStart` starts the radio and ESP-NOW on a channel, on core 0;
+- `esp-now`: encrypted packets of a tag and two floats between two ESP32
+  boards over ESP-NOW:
+  - a device build requires the peer, the build flag `ESP_NOW_PEER`, six
+    bytes separated by commas, and the key, the build flag `ESP_NOW_KEY`,
+    32 hexadecimal digits; ESP-NOW encrypts and authenticates the packets
+    with CCMP, the key being both the primary master key and the local
+    master key of the peer (one secret, and the default primary master key
+    is public); a missing or malformed peer or key, and the broadcast
+    address, which ESP-NOW does not encrypt, are compilation errors;
+  - `LinkStart` starts the radio and ESP-NOW on a channel, on core 0, and
+    returns whether the link is encrypted, true for every link;
   - `Send` queues a packet and returns without waiting;
   - `Receive` returns, without waiting, the latest packet from the peer if it
     arrived at most a given number of milliseconds ago;
   - its header `esp_now_link.h` gives the counts of the packets;
   - its host model logs the packets sent and delivers those of
     `esp_now_model_peer`, which the host model of an application may define,
-    after a latency and with a loss set by build flags.
+    after a latency and with a loss set by build flags, unencrypted, and
+    reports the link encrypted; without the build flags it takes a fixed
+    peer, `24:0A:C4:00:00:02`, and a fixed key;
+  - the bounds of `Send` and `Receive` were not measured with encryption
+    and are to be measured again with it.
 - `bala2-remote`: the messages of the remote control of the BALA2, shared by
   the robot and the controller, over `esp-now`, listed before it:
   - the type `message`, `Arm`, `Drive (speed, turn)`, `Disarm` or `Beat`,
@@ -177,9 +201,12 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
     `Receive`, of the message, its setpoints zero, and its setpoints, of the
     non-eternal type `setpoints`, so that once unboxed they are matched at
     once;
-  - the status of the robot, `Status (armed, tilt)` or `NoStatus`, tag 5:
-    `SendStatus` sends it, and `bala2_remote_send_status` of the header
-    `bala2_remote.h` for the bindings of an application; `remote_status`
+  - the status of the robot, `Status (phase, tilt)` or `NoStatus`, tag 5,
+    the phase `Ready` (for Arm), `Armed`, `Calibrating` or `Unsettled`
+    (calibrating after a check that found it moving), sent as the code of
+    `remote_phase_code`: `SendStatus` sends it, and
+    `bala2_remote_send_status` of the header `bala2_remote.h` for the
+    bindings of an application; `remote_status`
     returns the latest status received at most 50 ms ago, boxed with
     `[0, 200)`, and under the rigid grades with `{<200 & ~Receive}`.
 
@@ -207,6 +234,9 @@ regular expressions of timed operations and `event-separation`.
   those of the board of its manifest.
 - Each board and operation of `bounds` must be a board profile and an
   operation the package binds.
+- A lower bound 0 is open at 0 where the declaration is, as under the
+  regular expressions of timed operations, whose operations take positive
+  time.
 - The default implementations take a time within the bounds of every board.
 - The examples name the board of their manifest by `--board` in the run
   command of their header, and the figures in their comments are those under
@@ -220,14 +250,29 @@ lower bound is the least time measured, rounded down, and the upper bound 1.5
 times the greatest, rounded up. Each declaration states its measurements and
 how the bounds not measured directly, such as those of `i2c`, are derived.
 
-- The bounds of `ConfigureImu`, `CheckAtRest`, `ReadTouch` and `Beep` are
-  measured on the CoreS3 only.
+- The bounds of `ConfigureImu` are measured on the CoreS3 only, those of
+  `ReadTouch` on the CoreS3 and `m5stack-cores3-radio`, that of
+  `CheckAtRest` on the CoreS3 and `m5stack-gray-radio`, and those of `Beep`
+  on all three.
 - The least times of `ShowTextAt` and `ShowNumberAt` depend on the text, so
   their lower bound is that of `ShowText`.
 - The bounds of `ShowTimeAt`, `ShowColourTextAt`, `ShowColourNumberAt`,
   `DrawButton`, `DrawBar` and `DrawLevel` are provisional, derived from those
   measurements; `ShowColourNumberAt` has the bounds of `ShowNumberAt`.
-- The bounds of `esp-now` are provisional, not yet measured.
+- The bounds of `esp-now` and `bala2-remote` are provisional, not yet
+  measured, except those of `LinkStart` and `Receive` on
+  `m5stack-gray-radio` and `m5stack-cores3-radio`, and of `SendArm`,
+  `SendDrive`, `SendDisarm` and `SendBeat` on `m5stack-cores3-radio`.
+- On `m5stack-gray-radio` and `m5stack-cores3-radio` the radio lengthens
+  the operations: the upper bound is 1.5 times the greatest time measured
+  with the radio, rounded up, and at least that of the board without it;
+  the lower bound is the least time measured on the board with or without
+  the radio, rounded down. An operation not measured with the radio has
+  the bounds of the board without it. They are measured with the radio on
+  core 0, the tasks of the application on core 1 and the link encrypted.
+- The upper bound of `LinkStart` on `m5stack-cores3-radio` is widened from
+  68 to 90 ms, so that its default implementation, 88 ms, lies within the
+  bounds of both profiles with the radio; it runs once, at start-up.
 
 ## The program
 
@@ -510,9 +555,11 @@ An upload goes to the serial port `PORT` when it is set, and else to that of
 the board of the manifest, the variable `PORT_BOARD`, the name of the board
 in upper case with `-` replaced by `_`.
 
-`PORT_M5STACK_GRAY` defaults to `/dev/cu.usbserial-02012C91` and
-`PORT_M5STACK_CORES3` to `/dev/cu.usbmodem101`, the ports of the boards of
-the development machine. A board without a default port, such as
+`PORT_M5STACK_GRAY` defaults to `/dev/cu.usbserial-02012C91`,
+`PORT_M5STACK_GRAY_RADIO` to `PORT_M5STACK_GRAY`, `PORT_M5STACK_CORES3`
+to `/dev/cu.usbmodem101` and `PORT_M5STACK_CORES3_RADIO` to
+`PORT_M5STACK_CORES3`, the ports of the boards of the development
+machine. A board without a default port, such as
 `esp32-devkit`, needs `PORT` or `PORT_ESP32_DEVKIT`:
 
     make arduino-bala2-upload PORT=/dev/ttyUSB0
@@ -539,7 +586,10 @@ recordings from the serial output:
     EXAMPLE_RECORD_FILTER = examples/arduino/bala2/recordings.awk
 
 `EXAMPLE_BUILD_FLAGS` gives the build flags of every device build of the
-example, as `bala2-remote` does with the address of its peer.
+example. `EXAMPLE_LINK` and `EXAMPLE_LINK_ROLE` name the encrypted ESP-NOW
+link of its device builds and the role of its board in it, as
+`bala2-remote` and `bala2-controller` do
+([Pairing the robot and the controller](#pairing-the-robot-and-the-controller)).
 
 Instead of the awk program, `EXAMPLE_RECORD_TOOL` names a Python script by
 which the targets `-capture` and `-erase` read and erase the recordings kept
@@ -740,7 +790,8 @@ grouped by the board of their manifest.
 ### M5Stack Gray
 
 The core of the M5Stack BALA2 self-balancing robot (profile `m5stack-gray`,
-port variable `PORT_M5STACK_GRAY`).
+port variable `PORT_M5STACK_GRAY`; for `bala2-remote`, which runs the radio,
+profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
 
 - [`bala2`](../../../examples/arduino/bala2/balance.tpe): a 5 ms balancing
   step of the robot with its supervision and calibration, and the host model
@@ -772,6 +823,11 @@ port variable `PORT_M5STACK_GRAY`).
   rigid regular expressions of timed operations, with the packages
   `esp-now` and `bala2-remote`, sharing the binding file and host model of
   `bala2`.
+  - Under the bounds of `m5stack-gray-radio`, the step takes 1.15 to 4.6 ms,
+    and its period is 5 ms. Both tasks run on core 1, apart from the radio
+    on core 0, the step at the higher priority. The initial function of the
+    step starts the link before the first period, and the supervision
+    reports only after the first reading of the unit, which follows it.
   - The calibration is boxed in two nested boxes. The outer box,
     `[{≥1000 & ~Command}, {≤600000 & ~Command}]`, opens the arming at least
     a second and at most 10 minutes after the calibration, the bias
@@ -781,27 +837,39 @@ port variable `PORT_M5STACK_GRAY`).
     its tilt first and is armed less than a millisecond later, with no
     `Receive` or `Command` in between. The calibration is of a non-eternal
     type, built inside the inner box, so that once unboxed it is used at
-    once. The bias is measured only after `CheckAtRest` finds the robot at
-    rest, its verdict boxed with `{(Attitude; !10)*}` over the samples, and
-    else the robot shows "Hold still" and measures again. The robot is
+    once. The bias is the mean rate of the readings of the step, sampled
+    50 times about 10 ms apart by the operation `Reading` of the example,
+    each reading at most once by its number, without a further access to
+    the bus; the samples are taken only after `CheckAtRest` finds the robot
+    at rest, its verdict boxed with `{(Reading; !10)*}` over the samples.
+    The samples are judged at rest as `CheckAtRest` judges its readings, by
+    their variation, so that a constant bias passes, and the direction of
+    gravity over the whole window also detects a slow steady turn; else the
+    robot shows "Hold still" and measures again. The robot is
     armed only within 10 degrees of the balance point, and else shows "Not
     upright". The wait
-    for Arm is therefore bounded, 500 polls 400 ms apart, about 200 s,
+    for Arm is therefore bounded, 500 polls 400 ms apart, about 203 s,
     written without a recursion so that its grade is a bounded repetition,
     and each session calibrates anew.
-  - Each poll and each iteration of the drive sends the status of the robot
-    to the controller by the operation `Report` of the example, bound in
-    `bala2/bindings.cpp` for the programs that perform it.
+  - The robot sends its phase to the controller by the operation `Report`
+    of the example, bound in `bala2/bindings.cpp` for the programs that
+    perform it: calibrating at each check at rest and twice in the hold
+    that follows, calibrating after a failed check, ready at each poll for
+    Arm and armed at each iteration of the drive, at least every 572 ms.
+  - When the calibration succeeds and the wait for Arm begins, the robot
+    beeps once, 2 kHz for 80 ms.
   - Each iteration of the drive applies the message it receives, with its
     setpoints, within 150 ms and before any further `Receive`: a Drive
     command, Disarm, which returns to waiting for Arm, or zero setpoints.
   - The grade of a session is its protocol: Arm, commands and Disarm, in
     this order; it fixes each iteration of the drive, which takes 12.5 to
-    46.85 ms. After about 2 s without a message the robot shows "Link lost"
+    52.8 ms. After about 2 s without a message the robot shows "Link lost"
     and beeps once, and stays armed, and shows "Armed" again when messages
     return.
-  - The make variable `REMOTE_PEER`, the address of the controller, sets
-    the peer; the host model `controller.cpp` scripts the controller.
+  - The link to the controller is encrypted, its address and key kept in
+    a link file (see
+    [Pairing the robot and the controller](#pairing-the-robot-and-the-controller));
+    the host model `controller.cpp` scripts the controller.
 - [`wheels`](../../../examples/arduino/wheels/wheels.tpe): a wheel check of
   the robot on a stand, under the regular expressions of timed operations.
   - The counts of the encoders are divided by the length of the window only
@@ -813,7 +881,9 @@ port variable `PORT_M5STACK_GRAY`).
 
 ### M5Stack CoreS3 and CoreS3 Lite
 
-Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
+Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`; for
+`bala2-controller`, which runs the radio, profile `m5stack-cores3-radio`,
+port variable `PORT_M5STACK_CORES3_RADIO`.
 
 - [`tilt`](../../../examples/arduino/tilt/tilt.tpe): a tilt display, with a
   20 ms filter step and a display task.
@@ -926,24 +996,83 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     times, for 1 s, and then until the status of the robot confirms, Drive
     or Beat until a tap on Disarm, and Disarm 20 times, each message under
     50 ms after the last.
+  - A tone of 60 ms, `Beep`, acknowledges an accepted tap: 1760 Hz on Arm
+    and 880 Hz on Disarm, before the first message that follows it.
   - An armed iteration drives only on the latest status of the robot,
     received at most 200 ms earlier, if it is armed, and else sends Beat
     and shows "No link"; the tilt of the robot is shown from that status.
-  - Drive takes the speed from the pitch and the turn from the roll, each
-    with a dead zone of 5 degrees and bounded, of a reading boxed so that
-    it is the latest and at most 2 ms old, measured from the neutral tilt
-    recorded at the tap on Arm, boxed with `{≥0 & ~SendDisarm}` so that
-    it is used only within its session.
-  - A bubble level, `DrawLevel`, shows the tilt beyond the neutral tilt,
-    pitch forwards moving the bubble up and roll to the right moving it
-    right: the dead zone fills the inner circle and the bounds of the speed
-    and the turn reach the edge; green while the robot confirms, grey
-    without a link, dark grey while disarmed. The buttons Arm and Disarm
-    stay below it.
+  - Drive takes the speed from the pitch and the turn from the roll, so
+    that a tilt forwards drives the robot forwards and a tilt to the right
+    turns it to the right, each with a dead zone of 5 degrees and bounded,
+    of a reading boxed so that it is the latest and at most 2 ms old,
+    measured from the neutral tilt recorded at the tap on Arm, boxed with
+    `{≥0 & ~SendDisarm}` so that it is used only within its session.
+  - A bubble level, `DrawLevel`, shows the tilt beyond the neutral tilt in
+    its direction, a tilt forwards moving the bubble up and a tilt to the
+    right moving it right: the dead zone fills the inner circle and the
+    bounds of the speed and the turn reach the edge; green while the robot
+    confirms, grey without a link, dark grey while disarmed. The buttons
+    Arm and Disarm stay below it.
   - An armed iteration redraws at most one item: the state when it
-    changes, or else the bubble or the tilt of the robot, in turn.
-  - The make variable `REMOTE_PEER`, the address of the robot, sets the
-    peer; the host model `world.cpp` tilts and taps the device.
+    changes, else the guidance line, cleared once, or else the bubble or
+    the tilt of the robot, in turn.
+  - It shows at the start, right of the bubble level, whether `LinkStart`
+    reports the link encrypted: "Encrypted" in green, as every link of
+    `esp-now` is, or else "Not encrypted" in amber.
+  - While disarmed, it receives the status of the robot after each Beat and
+    shows a line of guidance above the bubble level, redrawn when it
+    changes, from the phase of the latest status: "Hold the robot upright
+    and still", "Hold still", "Robot ready: tap Arm" in green, or "Switch
+    on the robot" after about 1 s without a status, 90 iterations.
+  - The link to the robot is encrypted, its address and key kept in a
+    link file (see
+    [Pairing the robot and the controller](#pairing-the-robot-and-the-controller));
+    the host model `world.cpp` tilts and taps the device.
+
+#### Pairing the robot and the controller
+
+The robot and the controller share the encrypted link `bala2-remote`. Its
+link file, `~/.config/tempore/links/bala2-remote`, outside the repository,
+of mode 600 in a directory of mode 700, holds the key and the address of
+the board of each role:
+
+    key=0123456789abcdef0123456789abcdef
+    robot=XX:XX:XX:XX:XX:XX
+    controller=YY:YY:YY:YY:YY:YY
+
+Every target of the two examples that builds for the device runs
+`scripts/link.sh` first, which passes the address of the other board and
+the key as `ESP_NOW_PEER` and `ESP_NOW_KEY` through shell variables, so
+that no command shows the key:
+
+- an upload, profile, log or record target reads the address of the
+  board on its port with esptool, of PlatformIO, and records it under its
+  role, reporting a change; a build without an upload reads no port;
+- an absent key is generated, 16 random bytes of `openssl rand` (or of
+  `/dev/urandom`), once even by concurrent builds;
+- without the address of the other board the build stops, and names the
+  board to connect and the target to run first.
+
+The first pairing, one board at a time:
+
+1. connect the robot and run `make arduino-bala2-remote-upload`: it
+   records the address of the robot and the key, and stops;
+2. connect the controller and run `make arduino-bala2-controller-upload`:
+   it records its address and uploads;
+3. connect the robot again and run `make arduino-bala2-remote-upload`.
+
+A replaced board is paired by uploading to it and then to the other board,
+which then learns its address. Other choices:
+
+- `REMOTE_PEER`, an address `XX:XX:XX:XX:XX:XX`, and `REMOTE_KEY`, 32
+  hexadecimal digits, override the address of the other board and the key;
+- `REMOTE_LINK_FILE` sets another link file;
+- a key file `~/.config/tempore/keys/bala2-remote.key` of an earlier
+  version is taken over when there is no link file yet;
+- on another computer, copy the link file, which keeps the pairing.
+
+The build reports what it records and the link file, never the key; a
+malformed link file or override stops it.
 
 #### Using the digital level
 

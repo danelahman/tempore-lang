@@ -12,10 +12,6 @@
 #include "esp_now_link.h"
 #include "tempore_scaffold.h"
 
-#ifndef ESP_NOW_PEER
-#define ESP_NOW_PEER 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
-#endif
-
 #ifndef ESP_NOW_MODEL_PERIOD_MS
 #define ESP_NOW_MODEL_PERIOD_MS 20
 #endif
@@ -35,17 +31,9 @@ namespace {
 
 const uint8_t peer[6] = {ESP_NOW_PEER};
 const uint8_t own_address[6] = {0x24, 0x0a, 0xc4, 0x00, 0x00, 0x01};
-const uint8_t model_address[6] = {0x24, 0x0a, 0xc4, 0x00, 0x00, 0x02};
 
 esp_now_recv_cb_t on_receive = nullptr;
 esp_now_send_cb_t on_sent = nullptr;
-
-// The address of the peer of the model.
-const uint8_t *peer_address() {
-  for (uint8_t b : peer)
-    if (b != 0xff) return peer;
-  return model_address;
-}
 
 uint32_t word_at(const uint8_t *bytes) {
   uint32_t w = 0;
@@ -80,7 +68,7 @@ void peer_task(void *) {
     delay(ESP_NOW_MODEL_LATENCY_MS);
     tempore_log("ESP-NOW model: packet of tag %u arrives",
                 static_cast<unsigned>(tag));
-    on_receive(peer_address(), bytes, static_cast<int>(sizeof bytes));
+    on_receive(peer, bytes, static_cast<int>(sizeof bytes));
   }
 }
 
@@ -98,7 +86,7 @@ esp_err_t esp_wifi_set_storage(wifi_storage_t) { return ESP_OK; }
 esp_err_t esp_wifi_set_mode(wifi_mode_t) { return ESP_OK; }
 
 esp_err_t esp_wifi_start() {
-  delay(100);
+  delay(88);
   return ESP_OK;
 }
 
@@ -111,6 +99,7 @@ esp_err_t esp_wifi_get_mac(wifi_interface_t, uint8_t mac[6]) {
 }
 
 esp_err_t esp_now_init() { return ESP_OK; }
+esp_err_t esp_now_set_pmk(const uint8_t *) { return ESP_OK; }
 esp_err_t esp_now_add_peer(const esp_now_peer_info_t *) { return ESP_OK; }
 
 esp_err_t esp_now_register_recv_cb(esp_now_recv_cb_t callback) {

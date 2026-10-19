@@ -14,5 +14,8 @@
   "requires": ["m5unified", "touch"],
   "sources": ["m5_touch.cpp"],
   "host_models": ["m5_touch_model.cpp"],
-  "bindings": ["ReadTouch"]
+  "bindings": ["ReadTouch"],
+  "bounds": {
+    "m5stack-cores3-radio": { "ReadTouch": [0, 1.5] }
+  }
 }

@@ -32,6 +32,8 @@ struct tempore_world {
                          // accelerometer
   double accel[3];       // that reading, in g, in place of the one of the
                          // load, the roll and the tilt
+  double gyro_bias[3];   // the constant offset of the readings of the
+                         // gyroscope, in radians per second
 };
 
 // The length of a step.

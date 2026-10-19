@@ -3,10 +3,8 @@
 
 let session_stale_tilt () =
   let calibrated = calibrate () in
-  perform ShowTextAt (0, 100, 2, "Hold upright");
-  delay 1000;
+  hold ();
   let tilt, _ = perform Attitude () in
-  perform ShowTextAt (0, 100, 2, "Waiting for Arm");
   if wait_arm () then (
     unbox calibrated as open_arming in
     let arming = open_arming () in

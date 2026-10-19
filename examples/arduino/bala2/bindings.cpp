@@ -1,8 +1,9 @@
 // The bindings of the operations of balance.tpe,
 // ../bala2-regex/balance_regex.tpe and ../bala2-remote/balance_remote.tpe: the
 // exchange between the control step and the supervision, in atomic variables,
-// and the safe state; and Report, of ../bala2-remote/balance_remote.tpe only,
-// compiled only for a program that performs it.
+// and the safe state; and Report and Reading, of
+// ../bala2-remote/balance_remote.tpe only, compiled only for a program that
+// performs them.
 //
 // The supervision arms the robot with the bias of the gyroscope and commands
 // a speed and a turn; a command older than BALANCE_COMMAND_MS milliseconds
@@ -375,12 +376,54 @@ tempore_result_Disarm binding_Disarm(tempore_argument_Disarm) {
   return {};
 }
 
+#ifdef TEMPORE_PERFORMS_Reading
+// The last reading of the inertial measurement unit by ReadImu, received
+// through m5_imu_observe of the package m5-imu, and its number, under a
+// sequence lock (Lameter, "Effective synchronization on Linux/NUMA systems",
+// 2005): the version is odd while the reading is written, by the step only,
+// and Reading retries until it reads one version, even, before and after the
+// reading.
+static std::atomic<uint32_t> balance_reading_version{0};
+static std::atomic<int32_t> balance_reading_number{0};
+static std::atomic<float> balance_reading[6];
+
+void m5_imu_observe(const float *accel, const float *gyro) {
+  const uint32_t version =
+      balance_reading_version.load(std::memory_order_relaxed);
+  balance_reading_version.store(version + 1, std::memory_order_relaxed);
+  std::atomic_thread_fence(std::memory_order_release);
+  for (int k = 0; k < 3; ++k) {
+    balance_reading[k].store(accel[k], std::memory_order_relaxed);
+    balance_reading[3 + k].store(gyro[k], std::memory_order_relaxed);
+  }
+  balance_reading_number.store(
+      balance_reading_number.load(std::memory_order_relaxed) + 1,
+      std::memory_order_relaxed);
+  balance_reading_version.store(version + 2, std::memory_order_release);
+}
+
+tempore_result_Reading binding_Reading(tempore_argument_Reading) {
+  uint32_t before, after;
+  int32_t number;
+  float r[6];
+  do {
+    before = balance_reading_version.load(std::memory_order_acquire);
+    number = balance_reading_number.load(std::memory_order_relaxed);
+    for (int k = 0; k < 6; ++k)
+      r[k] = balance_reading[k].load(std::memory_order_relaxed);
+    std::atomic_thread_fence(std::memory_order_acquire);
+    after = balance_reading_version.load(std::memory_order_relaxed);
+  } while ((before & 1) != 0 || before != after);
+  return {number, {{r[0], r[1], r[2]}, {r[3], r[4], r[5]}}};
+}
+#endif
+
 #ifdef TEMPORE_PERFORMS_Report
-// Report of ../bala2-remote/balance_remote.tpe: the status of the robot, its
-// arming and the tilt last published, sent to the controller through the
-// package bala2-remote.
-tempore_result_Report binding_Report(tempore_argument_Report armed) {
-  bala2_remote_send_status(armed, balance_tilt.load());
+// Report of ../bala2-remote/balance_remote.tpe: the status of the robot, the
+// code of its phase and the tilt last published, sent to the controller
+// through the package bala2-remote.
+tempore_result_Report binding_Report(tempore_argument_Report phase) {
+  bala2_remote_send_status(phase, balance_tilt.load());
   return {};
 }
 #endif

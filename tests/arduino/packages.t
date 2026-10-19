@@ -55,8 +55,9 @@ board for which the package gives none keeps those of the declarations:
   $ cat > bounds.tpe <<'EOF'
   > let read () : imu # [0.55, 1.25] = perform ReadImu ()
   > EOF
-  $ for b in m5stack-gray m5stack-cores3 m5stack-fire; do ../../tempore --grades time-interval-rational --package m5-imu --board $b --typecheck-only bounds.tpe > /dev/null 2>&1; echo "$b [$?]"; done
+  $ for b in m5stack-gray m5stack-gray-radio m5stack-cores3 m5stack-fire; do ../../tempore --grades time-interval-rational --package m5-imu --board $b --typecheck-only bounds.tpe > /dev/null 2>&1; echo "$b [$?]"; done
   m5stack-gray [0]
+  m5stack-gray-radio [1]
   m5stack-cores3 [1]
   m5stack-fire [1]
   $ ../../tempore --grades time-interval-rational --package m5-imu --typecheck-only bounds.tpe 2>&1 | grep error
@@ -72,7 +73,7 @@ that the declarations of each package load under each of its grade systems
 on each board:
 
   $ touch empty.tpe
-  $ for p in bala2-base esp-now i2c m5-display m5-imu; do for g in time-interval-rational regex-timed-lower-bound-rational-symbolic regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic event-separation counts-upper-bound; do for b in m5stack-gray m5stack-cores3 esp32-devkit; do ../../tempore --grades $g --package $p --board $b --typecheck-only empty.tpe || echo "$p $g $b"; done; done; done
+  $ for p in bala2-base esp-now i2c m5-display m5-imu; do for g in time-interval-rational regex-timed-lower-bound-rational-symbolic regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic event-separation counts-upper-bound; do for b in m5stack-gray m5stack-gray-radio m5stack-cores3 esp32-devkit; do ../../tempore --grades $g --package $p --board $b --typecheck-only empty.tpe || echo "$p $g $b"; done; done; done
 
 The option --board needs --package and names a board profile:
 
@@ -80,7 +81,7 @@ The option --board needs --package and names a board profile:
   ../../tempore: option '--board' requires '--package'.
   [2]
   $ ../../tempore --grades time-interval-rational --package m5-imu --board m5stack-grey filter.tpe 2>&1 | head -1 | sed 's/^.*tempore: //'
-  option '--board': 'm5stack-grey' is not one of esp32-devkit, esp32s3-devkit, m5stack-core2, m5stack-cores3, m5stack-fire, m5stack-gray.
+  option '--board': 'm5stack-grey' is not one of esp32-devkit, esp32s3-devkit, m5stack-core2, m5stack-cores3, m5stack-cores3-radio, m5stack-fire, m5stack-gray, m5stack-gray-radio.
 
 The tilt display on an M5Stack Gray, with the packages m5-imu and m5-display:
 the sources of the packages are copied to src/ and their host models to host/,
@@ -256,53 +257,80 @@ the safe-state hook of the application:
   $ cd ../../..
 
 A link over ESP-NOW with the package esp-now. LinkStart starts the radio,
-which the host model starts in 100 ms, and logs the address of the station
-and of the peer; Send logs its packet. Receive returns the latest packet of
+which the host model starts in 88 ms, and logs the address of the station
+and of the peer, the fixed peer of the host model with its fixed key; Send
+logs its packet. Receive returns the latest packet of
 the peer of the host model of the application, which sends one every 20 ms
 until 160 ms, arriving 2 ms later, if it arrived at most 50 ms ago, and
 otherwise nothing:
 
   $ simulate radio radio 0.35
   [0.000 ms] Start listen
-  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF
-  [100.000 ms] Operation LinkStart took 100000 us
-  [100.100 ms] ESP-NOW: sent tag 1, 0.500, -0.250
-  [100.100 ms] Operation Send took 100 us
-  [100.100 ms] Operation Receive took 0 us
-  [101.100 ms] Display: None
-  [101.100 ms] Operation ShowText took 1000 us
-  [101.100 ms] Delay 60000 us
-  [122.000 ms] ESP-NOW model: packet of tag 6 arrives
-  [142.000 ms] ESP-NOW model: packet of tag 7 arrives
-  [161.100 ms] Operation Receive took 0 us
-  [162.000 ms] ESP-NOW model: packet of tag 8 arrives
-  [162.100 ms] Display: 7.000
-  [162.100 ms] Operation ShowNumber took 1000 us
-  [162.100 ms] Delay 60000 us
-  [222.100 ms] Operation Receive took 0 us
-  [223.100 ms] Display: None
-  [223.100 ms] Operation ShowText took 1000 us
-  [223.100 ms] Delay 60000 us
-  [283.100 ms] End listen
+  [88.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:02, encrypted (CCMP)
+  [88.000 ms] Operation LinkStart took 88000 us
+  [88.100 ms] ESP-NOW: sent tag 1, 0.500, -0.250
+  [88.100 ms] Operation Send took 100 us
+  [88.100 ms] Operation Receive took 0 us
+  [89.100 ms] Display: None
+  [89.100 ms] Operation ShowText took 1000 us
+  [89.100 ms] Delay 60000 us
+  [110.000 ms] ESP-NOW model: packet of tag 5 arrives
+  [130.000 ms] ESP-NOW model: packet of tag 6 arrives
+  [149.100 ms] Operation Receive took 0 us
+  [150.000 ms] ESP-NOW model: packet of tag 7 arrives
+  [150.100 ms] Display: 6.000
+  [150.100 ms] Operation ShowNumber took 1000 us
+  [150.100 ms] Delay 60000 us
+  [210.100 ms] Operation Receive took 0 us
+  [211.100 ms] Display: None
+  [211.100 ms] Operation ShowText took 1000 us
+  [211.100 ms] Delay 60000 us
+  [271.100 ms] End listen
   [350.000 ms] End of the simulation
   $ grep -A 1 'tempore_argument_Receive;' _arduino/projects/radio/src/tempore_bindings.h
   typedef uint32_t tempore_argument_Receive;
   typedef tempore_tuple1 tempore_result_Receive;
 
-The peer of the build flag ESP_NOW_PEER, and a model of the link that loses
-every second packet:
+The peer of the build flag ESP_NOW_PEER with the key of the build flag
+ESP_NOW_KEY, here a fake one, by which the link is encrypted, and a model of
+the link that loses every second packet:
 
   $ cd _arduino/projects/radio
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
-  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DESP_NOW_MODEL_LOSS=2 -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DESP_NOW_MODEL_LOSS=2 -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ ./simulation 200000 | grep 'ESP-NOW\|Display'
-  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:07
-  [100.100 ms] ESP-NOW: sent tag 1, 0.500, -0.250
-  [101.100 ms] Display: None
-  [122.000 ms] ESP-NOW model: packet of tag 6 arrives
-  [140.000 ms] ESP-NOW model: packet of tag 7 lost
-  [162.000 ms] ESP-NOW model: packet of tag 8 arrives
-  [162.100 ms] Display: 6.000
+  [88.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:07, encrypted (CCMP)
+  [88.100 ms] ESP-NOW: sent tag 1, 0.500, -0.250
+  [89.100 ms] Display: None
+  [110.000 ms] ESP-NOW model: packet of tag 5 arrives
+  [128.000 ms] ESP-NOW model: packet of tag 6 lost
+  [150.000 ms] ESP-NOW model: packet of tag 7 arrives
+  [150.100 ms] Display: 5.000
+
+A device build, without TEMPORE_HOST, requires the peer and the key: none,
+a peer without a key, a key without a peer, a key that is not 32
+hexadecimal digits and the broadcast address are rejected at compilation; a
+host build without either takes the fixed peer and key of the host model:
+
+  $ check () { c++ -std=c++17 -fsyntax-only "$@" -I host -I src src/esp_now_link.cpp 2>&1 | grep -m 1 -o 'the \(package\|peer\|key\) [^"]*'; }
+  $ check
+  the package esp-now requires the peer ESP_NOW_PEER
+  $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07
+  the package esp-now requires the key ESP_NOW_KEY
+  $ check -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f
+  the package esp-now requires the peer ESP_NOW_PEER
+  $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=
+  the key ESP_NOW_KEY is 32 hexadecimal digits
+  $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e
+  the key ESP_NOW_KEY is 32 hexadecimal digits
+  $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0g
+  the key ESP_NOW_KEY is 32 hexadecimal digits
+  $ check -DESP_NOW_PEER=0xff,0xff,0xff,0xff,0xff,0xff -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f
+  the peer ESP_NOW_PEER is not the broadcast address, to which ESP-NOW does not encrypt
+  $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f
+  [1]
+  $ check -DTEMPORE_HOST
+  [1]
   $ cd ../../..
 
 A Send before LinkStart is a run-time error:
@@ -323,27 +351,28 @@ Disarm and Beat, one every 20 ms, and then nothing; the unknown tag, and Beat
 once older than 50 ms, decode to Nothing:
 
   $ simulate remote remote 0.3 | grep 'ESP-NOW\|Display'
-  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF
-  [100.100 ms] ESP-NOW: sent tag 1, 0.000, 0.000
-  [100.200 ms] ESP-NOW: sent tag 2, 0.500, -0.250
-  [100.300 ms] ESP-NOW: sent tag 3, 0.000, 0.000
-  [100.400 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [100.500 ms] ESP-NOW: sent tag 5, 1.000, 2.500
-  [101.500 ms] Display: Nothing
-  [121.000 ms] Display: Nothing
-  [122.000 ms] ESP-NOW model: packet of tag 1 arrives
-  [141.000 ms] Display: Arm
-  [142.000 ms] ESP-NOW model: packet of tag 2 arrives
-  [161.000 ms] Display: 0.500
-  [162.000 ms] ESP-NOW model: packet of tag 9 arrives
-  [181.000 ms] Display: Nothing
-  [182.000 ms] ESP-NOW model: packet of tag 3 arrives
-  [201.000 ms] Display: Disarm
-  [202.000 ms] ESP-NOW model: packet of tag 4 arrives
-  [221.000 ms] Display: Beat
-  [241.000 ms] Display: Beat
-  [261.000 ms] Display: Nothing
-  [281.000 ms] Display: Nothing
+  [88.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:02, encrypted (CCMP)
+  [88.100 ms] ESP-NOW: sent tag 1, 0.000, 0.000
+  [88.200 ms] ESP-NOW: sent tag 2, 0.500, -0.250
+  [88.300 ms] ESP-NOW: sent tag 3, 0.000, 0.000
+  [88.400 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [88.500 ms] ESP-NOW: sent tag 5, 1.000, 2.500
+  [89.500 ms] Display: Nothing
+  [109.000 ms] Display: Nothing
+  [110.000 ms] ESP-NOW model: packet of tag 1 arrives
+  [129.000 ms] Display: Arm
+  [130.000 ms] ESP-NOW model: packet of tag 2 arrives
+  [149.000 ms] Display: 0.500
+  [150.000 ms] ESP-NOW model: packet of tag 9 arrives
+  [169.000 ms] Display: Nothing
+  [170.000 ms] ESP-NOW model: packet of tag 3 arrives
+  [189.000 ms] Display: Disarm
+  [190.000 ms] ESP-NOW model: packet of tag 4 arrives
+  [209.000 ms] Display: Beat
+  [229.000 ms] Display: Beat
+  [249.000 ms] Display: Nothing
+  [269.000 ms] Display: Nothing
+  [289.000 ms] Display: Nothing
   $ cd _arduino/projects/remote
   $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ cd ../../..
@@ -418,7 +447,7 @@ while no further Receive has come:
   $ cat > status.tpe <<'EOF'
   > let soon () =
   >   let latest = remote_status () in
-  >   perform SendStatus (true, 2.5);
+  >   perform SendStatus (1, 2.5);
   >   delay 190;
   >   unbox latest as s in
   >   remote_armed s

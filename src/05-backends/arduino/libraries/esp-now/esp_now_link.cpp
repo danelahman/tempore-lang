@@ -5,7 +5,17 @@
 // as a station on a channel, with its power saving off, and ESP-NOW with the
 // peer ESP_NOW_PEER, in a task pinned to core 0, which it waits for, so that
 // the interrupt of the radio is allocated on core 0 whatever the core of the
-// caller. The callbacks of ESP-NOW run in the task of the Wi-Fi driver.
+// caller. The Wi-Fi driver keeps its configuration in memory, not in the
+// non-volatile storage of the flash; the calibration of the radio is still
+// read from it, and written to it when it changes. The callbacks of ESP-NOW
+// run in the task of the Wi-Fi driver.
+//
+// The build requires the peer ESP_NOW_PEER, six bytes other than the
+// broadcast address, and the key ESP_NOW_KEY, 32 hexadecimal digits: the
+// link to the peer is encrypted and authenticated by ESP-NOW with CCMP
+// (AES-128 in counter mode with CBC-MAC), the key being both the primary
+// master key and the local master key of the peer. The host model supplies
+// a fixed peer and key when neither is given.
 //
 // A packet is 16 bytes: the bytes 'T' and 'p', the version 1, a byte 0, then
 // the tag, a 32-bit unsigned integer, and the two floats, each in IEEE 754
@@ -28,12 +38,58 @@
 #include "tempore_bindings.h"
 
 #ifndef ESP_NOW_PEER
-#define ESP_NOW_PEER 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+#error "the package esp-now requires the peer ESP_NOW_PEER"
 #endif
+#ifndef ESP_NOW_KEY
+#error "the package esp-now requires the key ESP_NOW_KEY"
+#endif
+
+#define ESP_NOW_STRING(x) #x
+#define ESP_NOW_EXPANDED_STRING(x) ESP_NOW_STRING(x)
 
 namespace {
 
-const uint8_t peer[6] = {ESP_NOW_PEER};
+constexpr uint8_t peer[6] = {ESP_NOW_PEER};
+
+// The digits of the key.
+constexpr char key_digits[] = ESP_NOW_EXPANDED_STRING(ESP_NOW_KEY);
+
+// The value of a hexadecimal digit, or -1.
+constexpr int hex_value(char c) {
+  return c >= '0' && c <= '9'   ? c - '0'
+         : c >= 'a' && c <= 'f' ? c - 'a' + 10
+         : c >= 'A' && c <= 'F' ? c - 'A' + 10
+                                : -1;
+}
+
+// Whether digits are 2 * ESP_NOW_KEY_LEN hexadecimal digits.
+constexpr bool valid_key(const char *digits) {
+  size_t n = 0;
+  for (; digits[n] != '\0'; ++n)
+    if (hex_value(digits[n]) < 0) return false;
+  return n == 2 * ESP_NOW_KEY_LEN;
+}
+
+// Whether the peer is the broadcast address.
+constexpr bool broadcast() {
+  for (uint8_t b : peer)
+    if (b != 0xff) return false;
+  return true;
+}
+
+static_assert(valid_key(key_digits),
+              "the key ESP_NOW_KEY is 32 hexadecimal digits");
+static_assert(!broadcast(),
+              "the peer ESP_NOW_PEER is not the broadcast address, to which "
+              "ESP-NOW does not encrypt");
+
+// The bytes of the key, of its digits read in pairs, most significant first.
+void key_bytes(uint8_t key[ESP_NOW_KEY_LEN]) {
+  for (size_t i = 0; i < ESP_NOW_KEY_LEN; ++i)
+    key[i] = static_cast<uint8_t>(hex_value(key_digits[2 * i]) * 16 +
+                                  hex_value(key_digits[2 * i + 1]));
+}
+
 const size_t packet_size = esp_now_link_packet_size;
 const uint8_t version = 1;
 
@@ -41,13 +97,6 @@ struct packet {
   uint32_t tag;
   float first, second;
 };
-
-// Whether the peer is the broadcast address.
-bool broadcast() {
-  for (uint8_t b : peer)
-    if (b != 0xff) return false;
-  return true;
-}
 
 // The 32-bit words and floats of a packet, little-endian.
 void put_word(uint8_t *bytes, uint32_t w) {
@@ -100,8 +149,7 @@ std::atomic<uint32_t> queued{0}, dropped{0}, failed_sends{0}, received{0},
 
 void on_receive(const uint8_t *address, const uint8_t *bytes, int length) {
   packet p;
-  if ((!broadcast() && memcmp(address, peer, sizeof peer) != 0) ||
-      !decode(bytes, length, &p)) {
+  if (memcmp(address, peer, sizeof peer) != 0 || !decode(bytes, length, &p)) {
     discarded.fetch_add(1);
     return;
   }
@@ -130,6 +178,7 @@ const char *begin() {
   if (!initialised(esp_event_loop_create_default()))
     return "ESP-NOW: the event loop did not start";
   wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
+  config.nvs_enable = 0;
   if (!succeeded(esp_wifi_init(&config)) ||
       !succeeded(esp_wifi_set_storage(WIFI_STORAGE_RAM)) ||
       !succeeded(esp_wifi_set_mode(WIFI_MODE_STA)) ||
@@ -145,14 +194,18 @@ const char *begin() {
   memcpy(info.peer_addr, peer, sizeof peer);
   info.channel = channel;
   info.ifidx = WIFI_IF_STA;
-  info.encrypt = false;
+  info.encrypt = true;
+  key_bytes(info.lmk);
+  if (!succeeded(esp_now_set_pmk(info.lmk)))
+    return "ESP-NOW: the primary master key was not set";
   if (!succeeded(esp_now_add_peer(&info)))
-    return "ESP-NOW: the peer was not added";
+    return "ESP-NOW: the encrypted peer was not added";
   uint8_t own[6] = {};
   esp_wifi_get_mac(WIFI_IF_STA, own);
   tempore_log(
       "ESP-NOW: started on channel %u, address "
-      "%02X:%02X:%02X:%02X:%02X:%02X, peer %02X:%02X:%02X:%02X:%02X:%02X",
+      "%02X:%02X:%02X:%02X:%02X:%02X, peer %02X:%02X:%02X:%02X:%02X:%02X, "
+      "encrypted (CCMP)",
       channel, own[0], own[1], own[2], own[3], own[4], own[5], peer[0],
       peer[1], peer[2], peer[3], peer[4], peer[5]);
   return nullptr;
@@ -203,7 +256,7 @@ tempore_result_LinkStart binding_LinkStart(tempore_argument_LinkStart c) {
                           nullptr, 0);
   while (state.load() == starting) vTaskDelay(1);
   if (state.load() == failed) tempore_fault(failure);
-  return {};
+  return true;
 }
 #endif
 

@@ -4,8 +4,7 @@
 
 let session_early () =
   let calibrated = calibrate () in
-  perform ShowTextAt (0, 100, 2, "Hold upright");
-  delay 1000;
+  hold ();
   unbox calibrated as open_arming in
   let arming = open_arming () in
   if wait_arm () then (

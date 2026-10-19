@@ -6,4 +6,4 @@
    m5_speaker.tpe. *)
 
 operation Beep : nat * nat ~> unit # {Beep} within (0, 0.15]
-default Beep _ = delay 1/20
+default Beep _ = delay 3/20

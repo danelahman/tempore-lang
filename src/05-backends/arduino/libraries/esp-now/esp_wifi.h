@@ -1,6 +1,6 @@
 // The part of the Wi-Fi driver of ESP-IDF that the package esp-now uses, on
 // the host, implemented by esp_now_link_model.cpp: the radio starts at once
-// but for esp_wifi_start, which takes 100 milliseconds, and every call
+// but for esp_wifi_start, which takes 88 milliseconds, and every call
 // succeeds.
 
 #ifndef TEMPORE_HOST_ESP_WIFI_H
@@ -20,9 +20,9 @@ typedef enum { WIFI_PS_NONE = 0 } wifi_ps_type_t;
 typedef enum { WIFI_SECOND_CHAN_NONE = 0 } wifi_second_chan_t;
 
 typedef struct {
-  int unused;
+  int nvs_enable;
 } wifi_init_config_t;
-#define WIFI_INIT_CONFIG_DEFAULT() {0}
+#define WIFI_INIT_CONFIG_DEFAULT() {1}
 
 esp_err_t esp_event_loop_create_default();
 esp_err_t esp_wifi_init(const wifi_init_config_t *config);

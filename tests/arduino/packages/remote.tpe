@@ -13,12 +13,12 @@ let show (r : received) =
   | Nothing -> perform ShowText "Nothing"
 
 let start () =
-  perform LinkStart 1;
+  let _ = perform LinkStart 1 in
   remote_send Arm;
   remote_send (Drive (0.5, -0.25));
   remote_send Disarm;
   remote_send Beat;
-  perform SendStatus (true, 2.5);
+  perform SendStatus (1, 2.5);
   0
 
 let step (n : nat) =

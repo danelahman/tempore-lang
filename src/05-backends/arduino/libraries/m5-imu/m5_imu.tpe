@@ -23,9 +23,12 @@
    on the BMI270, 25 to 1600 Hz in powers of two, and on a unit of the MPU6886
    family the sample rate of 1 kHz divided by an integer; on another unit it
    does nothing. CheckAtRest () reads the unit four times, the readings
-   started 6 ms apart, and returns whether it is at rest: the magnitude of each acceleration between
-   0.9 and 1.1 g and that of each angular rate below 20 degrees per second.
-   It is a check of plausibility, not a self-test of the sensor. Their
+   started 6 ms apart, and returns whether it is at rest by the variation of
+   the readings: the magnitude of each acceleration between 0.9 and 1.1 g,
+   the greatest less the least angular rate about each axis below 5 degrees
+   per second, and the angle between the first and the last acceleration
+   below 2 degrees, so that a constant bias of the gyroscope does not affect
+   it. It is a check of plausibility, not a self-test of the sensor. Their
    default implementations take a time within the bounds; that of
    CheckAtRest returns true.
 
@@ -35,7 +38,22 @@
    18.982 ms, [17.95, 28.5], with its readings then 5 ms apart from the end
    of one to the start of the next. Started 6 ms apart, the readings take
    18 ms and the last reading, within these bounds; they are not measured
-   so, nor on other boards. *)
+   so, nor on other boards.
+
+   On the profile m5stack-gray-radio, an M5Stack Gray with its Wi-Fi radio
+   running on core 0, the tasks of the application on core 1 and the link
+   encrypted, the profile of the device (2026-10-19) measured ReadImu at
+   0.631 to 1.462 ms and CheckAtRest at 18.646 to 21.775 ms. Their bounds
+   there have the upper bound 1.5 times the greatest time measured with the
+   radio, rounded up, and the lower bound of the Gray without it: ReadImu
+   [0.55, 2.2] and CheckAtRest [17.95, 33].
+
+   On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
+   core 0, the tasks of the application on core 1 and the link encrypted, the
+   profile of the device (2026-10-19, two sessions of the remote controller,
+   110 s and 276 s) measured ReadImu at 0.806 to 1.298 ms: [0.2, 1.95], the
+   upper bound 1.5 times the greatest time measured with the radio, rounded
+   up, and the lower bound that of the CoreS3 without it. *)
 
 operation ReadImu : unit ~> imu # [0.2, 1.5]
 default ReadImu () = delay 3/5; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))

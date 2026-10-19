@@ -10,6 +10,15 @@
 
 #include "esp_wifi.h"
 
+#define ESP_NOW_KEY_LEN 16
+
+// The peer and the key of a host build that gives neither, both fixed: the
+// peer is the address of the peer of the host model.
+#if defined(TEMPORE_HOST) && !defined(ESP_NOW_PEER) && !defined(ESP_NOW_KEY)
+#define ESP_NOW_PEER 0x24, 0x0a, 0xc4, 0x00, 0x00, 0x02
+#define ESP_NOW_KEY 00112233445566778899aabbccddeeff
+#endif
+
 typedef enum {
   ESP_NOW_SEND_SUCCESS = 0,
   ESP_NOW_SEND_FAIL
@@ -17,6 +26,7 @@ typedef enum {
 
 typedef struct {
   uint8_t peer_addr[6];
+  uint8_t lmk[ESP_NOW_KEY_LEN];
   uint8_t channel;
   wifi_interface_t ifidx;
   bool encrypt;
@@ -28,6 +38,7 @@ typedef void (*esp_now_send_cb_t)(const uint8_t *mac_addr,
                                   esp_now_send_status_t status);
 
 esp_err_t esp_now_init();
+esp_err_t esp_now_set_pmk(const uint8_t *pmk);
 esp_err_t esp_now_add_peer(const esp_now_peer_info_t *peer);
 
 // Registers the callback of reception and starts the peer of the host model.
@@ -47,8 +58,8 @@ esp_err_t esp_now_send(const uint8_t *peer_addr, const uint8_t *data,
 // in milliseconds and returns whether the peer then sends a packet, of the
 // tag and the floats it sets. The packet arrives ESP_NOW_MODEL_LATENCY_MS
 // milliseconds later (default 2, below the period), from the address
-// ESP_NOW_PEER, or 24:0A:C4:00:00:02 if that is the broadcast address, and
-// every ESP_NOW_MODEL_LOSS-th packet is lost (never by default, 0).
+// ESP_NOW_PEER, and every ESP_NOW_MODEL_LOSS-th packet is lost (never by
+// default, 0).
 bool esp_now_model_peer(uint32_t time_ms, uint32_t *tag, float *first,
                         float *second);
 

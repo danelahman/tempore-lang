@@ -53,6 +53,16 @@ let with_running_times (type e) (module E : Grades.Grade.S with type t = e)
     let lo = read_end lo in
     (lo, read_end hi)
   in
+  (* [open_at_zero declared bounds] is [bounds] with a closed lower end at 0
+     made open where the [declared] one is open at 0, the running time being
+     positive. *)
+  let open_at_zero declared (lo, hi) =
+    match (declared, lo) with
+    | (Grades.Grade.Open z, _), Grades.Grade.Closed z'
+      when Grades.Rational.(equal z zero && equal z' zero) ->
+        (Grades.Grade.Open z', hi)
+    | _ -> (lo, hi)
+  in
   (* [finite own bounds] is [own] with each infinite end, that of a grade
      bounding durations on one side only, replaced by the end of [bounds]. *)
   let finite (lo, hi) (lo', hi') =
@@ -65,10 +75,12 @@ let with_running_times (type e) (module E : Grades.Grade.S with type t = e)
       | SugaredAst.OpSig (name, t1, t2, (eps : _ Ast.located), declared) -> (
           match (List.assoc_opt name.it running_times, declared, eps.it) with
           | None, _, _ | Some _, None, SugaredAst.GradeParam _ -> cmd
-          | Some bounds, Some _, _ ->
+          | Some bounds, Some declared, _ ->
               {
                 cmd with
-                it = SugaredAst.OpSig (name, t1, t2, eps, Some bounds);
+                it =
+                  SugaredAst.OpSig
+                    (name, t1, t2, eps, Some (open_at_zero declared bounds));
               }
           | Some bounds, None, SugaredAst.GradeLit g -> (
               match if E.needs_op_bounds then E.events g else [] with

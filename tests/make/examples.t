@@ -124,18 +124,170 @@ Further targets, under variables set on the command line:
   $ dry arduino-bala2-record BALANCE_RECORD=50
   PLATFORMIO_BUILD_FLAGS="-DBALANCE_RECORD=50" ./tempore --grades time-interval-rational --emit-arduino balance-record --device examples/arduino/bala2/balance.device.json --monitor warn --upload --port /dev/cu.usbserial-02012C91 --capture 30 examples/arduino/bala2/balance.tpe
 
-The build flags of a fragment, EXAMPLE_BUILD_FLAGS, apply to every device
-build of its example: REMOTE_PEER of bala2-remote, the address of the
-controller, becomes the build flag ESP_NOW_PEER, before the flags of a
-target; without it there is none:
+The examples of an encrypted ESP-NOW link, EXAMPLE_LINK, name the role of
+their board in it, EXAMPLE_LINK_ROLE. Each device build of such an example
+first runs scripts/link.sh with the link, the role, the other role of the
+link and the upload target of its example, and the port of an upload, and
+passes the peer and the key that it prints as the build flags ESP_NOW_PEER
+and ESP_NOW_KEY through shell variables, so that the command does not show
+the key; a build without an upload reads no port:
 
-  $ dry arduino-bala2-remote-build REMOTE_PEER=24:0A:C4:12:34:56
-  PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino balance_remote --device examples/arduino/bala2-remote/balance_remote.device.json --monitor abort --build examples/arduino/bala2-remote/balance_remote.tpe
-  $ make -s --no-print-directory -n arduino-bala2-remote-profile REMOTE_PEER=24:0A:C4:12:34:56 BRIGHTNESS=60 | grep -o '^PLATFORMIO_BUILD_FLAGS="[^"]*"'
-  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56"
-  $ dry arduino-bala2-remote-upload | grep -c PLATFORMIO_BUILD_FLAGS
-  0
+  $ make -s --no-print-directory -n arduino-bala2-remote-build | grep tempore' ' | tr -s ' '
+  link=$(sh scripts/link.sh -t arduino-bala2-controller-upload bala2-remote robot controller) && eval "$link" && PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino balance_remote --device examples/arduino/bala2-remote/balance_remote.device.json --monitor abort --build examples/arduino/bala2-remote/balance_remote.tpe
+  $ make -s --no-print-directory -n arduino-bala2-remote-profile BRIGHTNESS=60 | grep -o '^link=[^&]*\|PLATFORMIO_BUILD_FLAGS="[^"]*"'
+  link=$(sh scripts/link.sh -p /dev/cu.usbserial-02012C91 -t arduino-bala2-controller-upload bala2-remote robot controller) 
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key"
+  $ make -s --no-print-directory -n arduino-bala2-controller-upload PORT_M5STACK_CORES3=/dev/ttyACM0 | grep -o '^link=[^&]*'
+  link=$(sh scripts/link.sh -p /dev/ttyACM0 -t arduino-bala2-remote-upload bala2-remote controller robot) 
+
+The other examples run no link:
+
+  $ for d in examples/arduino/*/; do
+  >   n=$(basename "$d")
+  >   case $n in bala2-remote|bala2-controller) continue;; esac
+  >   make -s --no-print-directory -n "arduino-$n-build" "arduino-$n-upload" |
+  >     grep -l 'link\|ESP_NOW' > /dev/null && echo "$n"
+  > done
   [1]
+
+The link file of a link holds its key and the address of the board of each
+role. A fake esptool, TEMPORE_ESPTOOL, prints the address held by the file
+named as its port; HOME, the link file and the key file of the link are in
+the test directory:
+
+  $ mkdir link
+  $ cat > link/esptool <<'EOF'
+  > #!/bin/sh
+  > while [ $# -gt 0 ]; do case $1 in --port) port=$2; shift;; esac; shift; done
+  > [ -f "$port" ] || { echo "Could not open $port"; exit 2; }
+  > echo "esptool.py v4.11.0"
+  > echo "MAC: $(cat "$port")"
+  > EOF
+  $ chmod +x link/esptool
+  $ echo 24:0a:c4:12:34:56 > link/robot
+  $ echo 24:0a:c4:12:34:57 > link/controller
+  $ export HOME="$PWD/link/home" TEMPORE_ESPTOOL="$PWD/link/esptool"
+  $ export REMOTE_LINK_FILE="$PWD/link/links/bala2-remote"
+  $ export REMOTE_KEY_FILE="$PWD/link/keys/bala2-remote.key"
+  $ unset REMOTE_KEY REMOTE_PEER
+  $ link () { sh scripts/link.sh "$@" 2>&1 | sed -e "s|$PWD|.|g" -e 's/esp_now_key=.*/esp_now_key=(the key)/'; }
+
+The first upload, to the robot, generates the key, records the address of
+the robot, and stops, the controller not yet recorded; the upload to the
+controller records it and builds; the robot is then built with its address:
+
+  $ link -p link/robot -t arduino-bala2-controller-upload bala2-remote robot controller
+  ESP-NOW link bala2-remote: key generated in ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: the robot 24:0A:C4:12:34:56 recorded in ./link/links/bala2-remote
+  Error: the link file ./link/links/bala2-remote has no address of the controller: connect the controller and upload to it first (make arduino-bala2-controller-upload), or set REMOTE_PEER
+  $ link -p link/controller bala2-remote controller robot
+  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: the controller 24:0A:C4:12:34:57 recorded in ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:56, the robot
+  esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x56
+  esp_now_key=(the key)
+  $ link -p link/robot bala2-remote robot controller
+  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:57, the controller
+  esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x57
+  esp_now_key=(the key)
+  $ sed 's/^key=.*/key=(the key)/' link/links/bala2-remote
+  # The ESP-NOW link bala2-remote: its key and the address of the board of each role.
+  key=(the key)
+  robot=24:0A:C4:12:34:56
+  controller=24:0A:C4:12:34:57
+  $ ls -ld link/links link/links/bala2-remote | cut -c 1-10
+  drwx------
+  -rw-------
+  $ ls -A link/links
+  bala2-remote
+
+The key printed is that of the file, and no build without an upload reads
+a port:
+
+  $ key=$(sed -n 's/^key=//p' link/links/bala2-remote)
+  $ sh scripts/link.sh bala2-remote robot controller 2> /dev/null | grep -c "^esp_now_key=$key$"
+  1
+
+A replaced board is recorded under its role, with the change reported; the
+board of the other role, under a role, is an error, as is a port that
+esptool does not read:
+
+  $ echo 24:0A:C4:12:34:58 > link/robot
+  $ link -p link/robot bala2-remote robot controller | grep -v esp_now
+  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: the robot changed from 24:0A:C4:12:34:56 to 24:0A:C4:12:34:58 in ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:57, the controller
+  $ link -p link/controller bala2-remote robot controller
+  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
+  Error: the board on link/controller, 24:0A:C4:12:34:57, is recorded as the controller in ./link/links/bala2-remote
+  $ link -p link/none bala2-remote robot controller
+  Could not open link/none
+  Error: the address of the board on link/none was not read by ./link/esptool
+
+REMOTE_PEER and REMOTE_KEY, here a fake key, take precedence over the link
+file; a malformed one is an error:
+
+  $ REMOTE_PEER=24:0a:c4:00:00:09 REMOTE_KEY=000102030405060708090a0b0c0d0e0f sh scripts/link.sh bala2-remote robot controller
+  ESP-NOW link bala2-remote: key of REMOTE_KEY
+  ESP-NOW link bala2-remote: peer 24:0A:C4:00:00:09 of REMOTE_PEER
+  esp_now_peer=0x24,0x0A,0xC4,0x00,0x00,0x09
+  esp_now_key=000102030405060708090a0b0c0d0e0f
+  $ (export REMOTE_PEER=24:0a:c4:00:00; link bala2-remote robot controller)
+  Error: REMOTE_PEER is not six bytes in hexadecimal separated by colons
+  $ (export REMOTE_KEY=000102030405060708090a0b0c0d0e0g; link bala2-remote robot controller)
+  Error: REMOTE_KEY is not 32 hexadecimal digits
+
+A malformed link file is an error, at its first malformed line; comments,
+empty lines, spaces, carriage returns, '-' in addresses and lower case are
+read:
+
+  $ printf '# A link\r\n\n key = 000102030405060708090A0B0C0D0E0F \r\nrobot=24-0a-c4-12-34-56\ncontroller=24:0A:C4:12:34:57\n' > link/links/bala2-remote
+  $ sh scripts/link.sh bala2-remote controller robot 2> /dev/null
+  esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x56
+  esp_now_key=000102030405060708090A0B0C0D0E0F
+  $ for content in 'key=0001' 'key 000102030405060708090a0b0c0d0e0f' 'robot=24:0a:c4:12:34' 'robot=24:0a:c4:12:34:5g' 'robot=24:0a:c4:12:34:56\nrobot=24:0a:c4:12:34:57' '2robot=24:0a:c4:12:34:56'; do
+  >   printf "$content\n" > link/links/bala2-remote; link bala2-remote controller robot
+  > done
+  Error: the link file ./link/links/bala2-remote, line 1: the key is not 32 hexadecimal digits
+  Error: the link file ./link/links/bala2-remote, line 1: not NAME=VALUE
+  Error: the link file ./link/links/bala2-remote, line 1: the address of robot is not six bytes in hexadecimal separated by colons
+  Error: the link file ./link/links/bala2-remote, line 1: the address of robot is not six bytes in hexadecimal separated by colons
+  Error: the link file ./link/links/bala2-remote, line 2: the name robot is repeated
+  Error: the link file ./link/links/bala2-remote, line 1: the name "2robot" is not a name
+
+Without a link file, the key is taken over from the key file of the link,
+if it exists:
+
+  $ rm link/links/bala2-remote
+  $ mkdir -p link/keys
+  $ echo 000102030405060708090a0b0c0d0e0f > link/keys/bala2-remote.key
+  $ link -p link/robot bala2-remote robot controller
+  ESP-NOW link bala2-remote: key taken over from ./link/keys/bala2-remote.key into ./link/links/bala2-remote
+  ESP-NOW link bala2-remote: the robot 24:0A:C4:12:34:58 recorded in ./link/links/bala2-remote
+  Error: the link file ./link/links/bala2-remote has no address of the controller: connect the controller and upload to it first, or set REMOTE_PEER
+  $ cat link/links/bala2-remote
+  # The ESP-NOW link bala2-remote: its key and the address of the board of each role.
+  key=000102030405060708090a0b0c0d0e0f
+  robot=24:0A:C4:12:34:58
+
+Concurrent builds agree on one key, generated once:
+
+  $ rm -r link/links link/keys
+  $ export REMOTE_PEER=24:0a:c4:12:34:57
+  $ for i in 1 2 3 4; do sh scripts/link.sh -p link/robot bala2-remote robot controller > printed$i 2> log$i & done; wait
+  $ unset REMOTE_PEER
+  $ cat log* | grep -c generated
+  1
+  $ grep -h esp_now_key printed* | wc -l | tr -d ' '
+  4
+  $ grep -h esp_now_key printed* | sort -u | wc -l | tr -d ' '
+  1
+  $ grep -h esp_now_key printed1 | grep -c "=$(sed -n 's/^key=//p' link/links/bala2-remote)$"
+  1
+  $ ls -A link/links
+  bala2-remote
+  $ rm -r link printed* log*
 
 BRIGHTNESS adds the flag TEMPORE_DISPLAY_BRIGHTNESS to the build flags of
 every target that builds a device project, before those of the example:
@@ -182,7 +334,7 @@ The aggregate targets cover every example:
   11
   $ dry arduino-simulate-all | grep -c tempore
   12
-  $ dry arduino-build-all | grep -c tempore
+  $ make -s --no-print-directory -n arduino-build-all | grep -c '\./tempore '
   12
 
 The help of the examples and that of the diagnostic targets, which are
@@ -191,12 +343,22 @@ listed apart:
   $ make -s examples-help
   Arduino examples, by board:
   M5Stack CoreS3, port PORT_M5STACK_CORES3 = /dev/cu.usbmodem101:
-    NAME one of: bala2-controller calibrated fall level peak starter steps tilt
+    NAME one of: calibrated fall level peak starter steps tilt
+    arduino-NAME-simulate         simulates the project on the host
+    arduino-NAME-build            builds the project with PlatformIO
+    arduino-NAME-upload           builds the project and uploads it to the board
+  M5Stack CoreS3 with the radio, port PORT_M5STACK_CORES3_RADIO = /dev/cu.usbmodem101:
+    NAME one of: bala2-controller
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
   M5Stack Gray, port PORT_M5STACK_GRAY = /dev/cu.usbserial-02012C91:
-    NAME one of: bala2 bala2-regex bala2-remote wheels
+    NAME one of: bala2 bala2-regex wheels
+    arduino-NAME-simulate         simulates the project on the host
+    arduino-NAME-build            builds the project with PlatformIO
+    arduino-NAME-upload           builds the project and uploads it to the board
+  M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = /dev/cu.usbserial-02012C91:
+    NAME one of: bala2-remote
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
@@ -212,17 +374,22 @@ listed apart:
     SIMULATE=                                    when set, the simulated seconds of every example
     MONITOR=                                     when set, the monitor policy of every target
     BRIGHTNESS=                                  when set, the display brightness, 0 to 100 % (default 24), of every build
+  ESP-NOW link bala2-remote, roles controller robot: paired by the link file ~/.config/tempore/links/bala2-remote,
+    or REMOTE_LINK_FILE; REMOTE_PEER and REMOTE_KEY override its address and key
   Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help
   $ make -s arduino-diagnostics-help
   Arduino diagnostic targets, by board:
   M5Stack CoreS3, port PORT_M5STACK_CORES3 = /dev/cu.usbmodem101:
-    NAME one of: bala2-controller calibrated fall level peak starter steps tilt
+    NAME one of: calibrated fall level peak starter steps tilt
     arduino-NAME-profile          uploads the project with the profile and reads the port
     arduino-steps-record          uploads the project with -DSTEPS_RECORD=600 and reads the port
     arduino-steps-capture         reads the recordings from the port into _arduino/recordings/steps-TIME-N.csv
     arduino-steps-erase           erases the recordings on the device
+  M5Stack CoreS3 with the radio, port PORT_M5STACK_CORES3_RADIO = /dev/cu.usbmodem101:
+    NAME one of: bala2-controller
+    arduino-NAME-profile          uploads the project with the profile and reads the port
   M5Stack Gray, port PORT_M5STACK_GRAY = /dev/cu.usbserial-02012C91:
-    NAME one of: bala2 bala2-regex bala2-remote wheels
+    NAME one of: bala2 bala2-regex wheels
     arduino-NAME-profile          uploads the project with the profile and reads the port
     arduino-bala2-log             uploads the project with -DBALANCE_LOG=20 and reads the port
     arduino-bala2-regex-log       uploads the project with -DBALANCE_LOG=20 and reads the port
@@ -230,6 +397,9 @@ listed apart:
     arduino-bala2-capture         reads the recordings from the port into _arduino/recordings/bala2-TIME.csv
     arduino-bala2-regex-record    uploads the project with -DBALANCE_RECORD=20 and reads the port
     arduino-bala2-regex-capture   reads the recordings from the port into _arduino/recordings/bala2-regex-TIME.csv
+  M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = /dev/cu.usbserial-02012C91:
+    NAME one of: bala2-remote
+    arduino-NAME-profile          uploads the project with the profile and reads the port
   Variables, with their values:
     PORT=                                        when set, the port of every upload
     CAPTURE=30                                   the seconds for which the port is read

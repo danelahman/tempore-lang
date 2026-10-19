@@ -17,81 +17,117 @@ arming, within the box of the calibration; an iteration that polls again
 before it applies the message received first, no longer the latest; a
 session that opens the arming window right after the hold and arms the
 robot after the wait for Arm; and a measurement that checks the robot at
-rest before it disarms it and samples the rates after the Disarm:
+rest before it disarms it and samples the readings after the Disarm:
 
   $ for v in stale_tilt stopped polled early unsettled; do packages --typecheck-only $app/balance_remote.tpe bala2-remote/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out; done
   [1]
   Typing error: Variable `arming` is unboxed with the unit grade `{0}` accumulated since it was bound, which is not below its box grade `{Attitude; ([0, 1) & ~(Command | Receive))}`
   [1]
-  Typing error: Variable `calibrated` is unboxed with grade `{ShowTextAt; !1000; (Receive; Report; !400)^[1, 500]; Command}` accumulated since it was bound, which is not below its box grade `{[1000, 600000] & ~Command}`
+  Typing error: Variable `calibrated` is unboxed with grade `{Report; ShowTextAt; !500; Report; !500; ShowTextAt; Beep; (Receive; Report; !400)^[1, 500]; Command}` accumulated since it was bound, which is not below its box grade `{[1000, 600000] & ~Command}`
   [1]
   Typing error: Variable `latest` is unboxed with grade `{Receive; Disarm?}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~Receive}`
   [1]
   Typing error: Variable `arming` is unboxed with grade `{(Receive; Report; !400)^[1, 500]}` accumulated since it was bound, which is not below its box grade `{Attitude; ([0, 1) & ~(Command | Receive))}`
   [1]
-  Typing error: Variable `checked` is unboxed with grade `{Disarm; (Attitude; !10)*}` accumulated since it was bound, which is not below its box grade `{(Attitude; !10)*}`
+  Typing error: Variable `checked` is unboxed with grade `{Disarm; (Reading; !10)*}` accumulated since it was bound, which is not below its box grade `{(Reading; !10)*}`
 
-The PlatformIO project for the M5Stack Gray, its C++ sources checked without
-exceptions and run-time type information:
+The PlatformIO project for the M5Stack Gray with its radio running (profile
+m5stack-gray-radio), its C++ sources checked without exceptions and run-time
+type information:
 
   $ tempore --emit-arduino balance_remote --device $app/balance_remote.device.json $app/balance_remote.tpe > /dev/null
   $ cd _arduino/projects/balance_remote
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
 
+Under the bounds of m5stack-gray-radio the step takes up to 4.6 ms, so that
+its period of 5 ms is the least whole number of milliseconds, and 4 ms is
+rejected:
+
+  $ sed -e 's/"period": 5,/"period": 4,/' -e "s|\"\.\./bala2/|\"$app/../bala2/|g" -e "s|\"controller\.cpp\"|\"$app/controller.cpp\"|" $app/balance_remote.device.json > period.device.json
+  $ tempore --emit-arduino balance_period --device period.device.json $app/balance_remote.tpe 2>&1 | grep error
+  Compilation error: The effect `{ReadImu; ReadEncoders; Setpoints; Publish; SetMotors}` of the function `step` of a periodic task is not below its period: its durations are not all below 4
+
 The host simulation for 12 s. The controller sends Beat until 1.5 s, Arm
 for 1 s, Drive (100, 0) from 2.5 s, Disarm at 3.5 s, Beat, Arm again for
 1 s from 6.2 s, Drive (-100, 0) from 7.2 s, nothing from 7.6 s, and Beat
-again from 10 s. The robot is armed once it is calibrated at rest, held
-upright and a poll finds Arm, and disarmed at the Disarm; it then falls, so
-that the at-rest check fails and it shows "Hold still", until the user
-stands it up at 3.8 s and holds it still; it is calibrated anew, armed
-again and balances; it shows "Link lost" and beeps about 2 s after the last
-message, staying armed, and "Armed" again when messages return. Its status,
-sent at each poll and each iteration of the drive, is shown when its arming
-changes. The tilts of the plant, whose digits depend on the C library, are
-not shown:
+again from 10 s. The robot starts the link before its first step and its
+first report, is calibrated at rest, held upright, beeps at 2 kHz when it
+waits for Arm, is armed once a poll finds
+Arm, and disarmed at the Disarm; it then falls, so that the at-rest check
+fails and it shows "Hold still", until the user stands it up at 3.8 s and
+holds it still; it is calibrated anew, beeps, is armed again and balances;
+it shows "Link lost" and beeps at 880 Hz about 2 s after the last message,
+staying armed, and "Armed" again when messages return. Its status, sent at
+each check at rest, at each failed check, twice in the hold, at each poll
+and at each iteration of the drive, is shown when its phase changes: 2
+calibrating, 3 calibrating after a failed check, 0 ready for Arm, 1
+armed. The gyroscope of the plant reads a constant bias of 25 degrees per
+second about its y axis, which the check at rest, judging the variation of
+the readings, admits. The tilts of the plant, whose digits depend on the C
+library, are not shown:
 
-  $ tempore --emit-arduino balance_remote --device $app/balance_remote.device.json --host-simulate 12 $app/balance_remote.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\|ESP-NOW model\)\|Plant: \(tilt\|largest\)' | awk '/ESP-NOW: sent tag 5,/ { a = $7; sub(/,$/, "", a); if (a == last) next; last = a; print $1, $2, "ESP-NOW: status, armed " a; next } { print }'
+  $ tempore --emit-arduino balance_remote --device $app/balance_remote.device.json --host-simulate 12 $app/balance_remote.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\|ESP-NOW model\)\|Plant: \(tilt\|largest\)' | awk '/ESP-NOW: sent tag 5,/ { a = $7; sub(/,$/, "", a); if (a == last) next; last = a; print $1, $2, "ESP-NOW: status, phase " a; next } { print }'
   [31.245 ms] Display cleared
   [35.045 ms] Display at (0, 2): Remote robot
   [37.805 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [41.585 ms] Display at (0, 102): Calibrating
-  [100.245 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF
-  [563.988 ms] Display at (0, 102): Hold upright
-  [1567.848 ms] Display at (0, 102): Waiting for Arm
-  [1567.948 ms] ESP-NOW: status, armed 0.000
-  [1971.608 ms] Display at (0, 102): Armed
-  [1971.708 ms] ESP-NOW: status, armed 1.000
-  [3525.028 ms] Display at (0, 102): Disarmed
-  [3528.808 ms] Display at (0, 102): Calibrating
-  [4051.679 ms] Display at (0, 102): Hold still
-  [4555.459 ms] Display at (0, 102): Calibrating
-  [5077.862 ms] Display at (0, 102): Hold upright
-  [6081.722 ms] Display at (0, 102): Waiting for Arm
-  [6081.822 ms] ESP-NOW: status, armed 0.000
-  [6885.582 ms] Display at (0, 102): Armed
-  [6885.682 ms] ESP-NOW: status, armed 1.000
-  [9648.722 ms] Display at (0, 102): Link lost
-  [9648.772 ms] Speaker: 880 Hz for 200 ms
-  [10017.832 ms] Display at (0, 102): Armed
+  [88.245 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:02, encrypted (CCMP)
+  [101.585 ms] Display at (0, 102): Calibrating
+  [101.685 ms] ESP-NOW: status, phase 2.000
+  [624.819 ms] Display at (0, 102): Hold upright
+  [1628.779 ms] Display at (0, 102): Waiting for Arm
+  [1628.929 ms] Speaker: 2000 Hz for 80 ms
+  [1629.029 ms] ESP-NOW: status, phase 0.000
+  [2032.689 ms] Display at (0, 102): Armed
+  [2032.789 ms] ESP-NOW: status, phase 1.000
+  [3535.709 ms] Display at (0, 102): Disarmed
+  [3539.489 ms] Display at (0, 102): Calibrating
+  [3539.589 ms] ESP-NOW: status, phase 2.000
+  [4058.292 ms] ESP-NOW: status, phase 3.000
+  [4062.052 ms] Display at (0, 102): Hold still
+  [4565.832 ms] Display at (0, 102): Calibrating
+  [5084.635 ms] ESP-NOW: status, phase 2.000
+  [5088.435 ms] Display at (0, 102): Hold upright
+  [6092.395 ms] Display at (0, 102): Waiting for Arm
+  [6092.545 ms] Speaker: 2000 Hz for 80 ms
+  [6092.645 ms] ESP-NOW: status, phase 0.000
+  [6896.405 ms] Display at (0, 102): Armed
+  [6896.505 ms] ESP-NOW: status, phase 1.000
+  [9659.545 ms] Display at (0, 102): Link lost
+  [9659.695 ms] Speaker: 880 Hz for 200 ms
+  [10016.155 ms] Display at (0, 102): Armed
   [12000.000 ms] End of the simulation
-  [12000.000 ms] Plant: released at 6882.0 ms
+  [12000.000 ms] Plant: released at 6895.0 ms
 
 Held askew at 0.5 rad (28.6 degrees) from the start, the robot is
 calibrated, since it is held still, but not armed at the Arm of 1.5 s: the
 published tilt lies beyond the 10 degrees of upright_limit, and the session
-shows "Not upright" and calibrates anew; the motors are not driven:
+shows "Not upright" and calibrates anew; the body, released at 2 s, falls
+during that calibration, which therefore shows "Hold still"; the motors are
+not driven:
 
   $ cd _arduino/projects/balance_remote
   $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_TILT=0.5 -pthread -I host -I src src/*.cpp host/*.cpp -o askew
   $ ./askew 3000000 | grep 'Display at (0, 102)\|motors were never'
-  [41.585 ms] Display at (0, 102): Calibrating
-  [563.988 ms] Display at (0, 102): Hold upright
-  [1567.848 ms] Display at (0, 102): Waiting for Arm
-  [1971.728 ms] Display at (0, 102): Not upright
-  [1975.508 ms] Display at (0, 102): Calibrating
-  [2497.911 ms] Display at (0, 102): Hold upright
+  [101.585 ms] Display at (0, 102): Calibrating
+  [624.819 ms] Display at (0, 102): Hold upright
+  [1628.779 ms] Display at (0, 102): Waiting for Arm
+  [2032.809 ms] Display at (0, 102): Not upright
+  [2036.589 ms] Display at (0, 102): Calibrating
+  [2559.779 ms] Display at (0, 102): Hold still
   [3000.000 ms] Plant: the motors were never driven
+
+Held and turned steadily by 0.1 rad/s (5.7 degrees per second), the robot
+is never calibrated: the rate is constant, so that the spread of the rates
+and CheckAtRest admit it, but the direction of gravity turns by more than
+the 2 degrees of rest_cosine over the samples:
+
+  $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_HELD_RATE=0.1 -pthread -I host -I src src/*.cpp host/*.cpp -o turned
+  $ ./turned 1900000 | grep 'Display at (0, 102)\|motors were never'
+  [101.585 ms] Display at (0, 102): Calibrating
+  [624.779 ms] Display at (0, 102): Hold still
+  [1128.559 ms] Display at (0, 102): Calibrating
+  [1651.122 ms] Display at (0, 102): Hold still
+  [1900.000 ms] Plant: the motors were never driven
   $ cd ../../..
 

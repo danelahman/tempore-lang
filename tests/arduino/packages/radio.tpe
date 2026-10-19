@@ -11,7 +11,7 @@ let poll () =
   delay 60
 
 let listen () =
-  perform LinkStart 1;
+  let _ = perform LinkStart 1 in
   perform Send (1, 0.5, -0.25);
   poll ();
   poll ();
