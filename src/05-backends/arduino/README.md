@@ -1091,6 +1091,45 @@ which then learns its address. Other choices:
 The build reports what it records and the link file, never the key; a
 malformed link file or override stops it.
 
+A second pair has a link file of its own, and a key file that does not
+exist, so that a new key is generated rather than an earlier one taken
+over:
+
+    export REMOTE_LINK_FILE=~/.config/tempore/links/bala2-remote-2
+    export REMOTE_KEY_FILE=~/.config/tempore/keys/bala2-remote-2.key
+
+with the three uploads of the first pairing in the same shell. With one
+board of each kind connected at a time, the ports are found by their USB
+identifiers ([Ports](#ports)).
+
+#### Using the remote-controlled robot
+
+1. Switch on the controller, at any time; it shows "Encrypted" and, while
+   no status arrives, "Switch on the robot".
+2. Switch on the robot and hold it upright and still. It calibrates,
+   "Hold the robot upright and still" on the controller ("Hold still"
+   while it moves), and sounds one tone when it is ready.
+3. With "Robot ready: tap Arm" shown, tap Arm, within about 200 s of the
+   tone; a high tone acknowledges the tap. The robot arms only upright,
+   within 10 degrees of its balance point, and then balances.
+4. Tilt the controller from the tilt at the tap: forwards drives the robot
+   forwards, to the right turns it to the right; the bubble moves in the
+   direction of the tilt.
+5. Tap Disarm; a low tone acknowledges the tap, the robot stops its
+   motors, and it calibrates again for the next session.
+
+When the wait for Arm ends without one, the robot calibrates again. When
+no message arrives for about 2 s, as when the controller is switched off,
+the robot sounds one tone and keeps balancing in place, with zero
+setpoints, until a message arrives.
+
+A violated running-time bound enters the safe state: the robot stops its
+motors, falls, stays switched on with its lights on and its tasks halted,
+and writes the violation to the serial port; it is restarted by its reset
+button. A robot that falls with its lights off has lost its power: the
+battery in its base, charged through the USB-C port of the Gray, is too
+weak for the motors.
+
 #### Using the digital level
 
 1. Place it on the surface taken as the reference and tap "Set reference".
