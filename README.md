@@ -605,6 +605,9 @@ The two variants are:
   See
   [`examples/regular/upper_bounds_rational.tpe`](examples/regular/upper_bounds_rational.tpe).
 
+Further implementations of these grades, kept for benchmarking, are described
+in [`bench/regular/README.md`](bench/regular/README.md).
+
 #### Bounded repetition
 
 A repetition with a count is written `r^n`, `r^[m, n]` or `r^[m, ∞)` (ASCII
@@ -639,6 +642,9 @@ admits one or two calls of `Ping` only:
 The sprint start system
 ([`examples/arduino/starter/starter.tpe`](examples/arduino/starter/starter.tpe))
 annotates its 200 polls `{(0 | !2.5; ReadImu; ReadClock)^200}`.
+
+#### Implementations for benchmarking
+<!-- web-skip -->
 
 Further implementations of `regex-upper-bound-symbolic`, kept for benchmarking,
 are accepted by `--grades` with one of these suffixes in place of `-symbolic`:

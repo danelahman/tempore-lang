@@ -249,8 +249,13 @@ regular expressions of timed operations and `event-separation`.
 The bounds of the packages and of the examples are measured on the devices
 by their profile ([Measuring running times](#measuring-running-times)): the
 lower bound is the least time measured, rounded down, and the upper bound 1.5
-times the greatest, rounded up. Each declaration states its measurements and
-how the bounds not measured directly, such as those of `i2c`, are derived.
+times the greatest, rounded up. On a profile with the radio, the bounds are
+measured with the radio running and are never narrower than those of the
+board without it. Each declaration states its measurements and how the
+bounds not measured directly, such as those of `i2c`, are derived.
+
+#### The measurements
+<!-- web-skip -->
 
 - The bounds of `ConfigureImu` are measured on the CoreS3 only, those of
   `ReadTouch` on the CoreS3 and `m5stack-cores3-radio`, that of
@@ -358,10 +363,18 @@ handler `simulated_robot` of the BALA2 example with regexes). The handlers
 of the standard library, of the packages and of `run` commands are not
 checked.
 
-#### Compilation of handlers
-
 The handlers are compiled by specialisation, with no indirect calls and no
-allocation:
+allocation. As in the interpreter, they are deep: an operation calls the case
+of the innermost handler of the operation, or its binding if no handler
+handles it. An operation handled by a case is not a call of its binding and
+is not monitored ([Monitors](#monitors)); see the examples
+[`calibrated`](../../../examples/arduino/calibrated/calibrated.tpe) and
+[`steps`](../../../examples/arduino/steps/steps.tpe).
+
+#### Compilation of handlers
+<!-- web-skip -->
+
+The specialisation is as follows:
 
 - each operation case becomes a C++ function of the parameters of the
   handler and the argument of the operation that returns the value of the
@@ -374,18 +387,11 @@ allocation:
   closure thus go to the handlers around its application, as in the
   interpreter.
 
-As in the interpreter, the handlers are deep and a case runs outside its
-handler. An operation performed inside a `handle`, also in the functions it
-calls, calls the case of the innermost handler of the operation, whose own
-operations go to the handlers outside it, or the binding of the operation if
-no handler handles it.
+A case runs outside its handler: its own operations go to the handlers
+outside it.
 
-An operation handled by a case is not a call of its binding and is not
-monitored ([Monitors](#monitors)); an operation that no code performs
-outside all handlers needs no binding. See
-[`tests/arduino/handlers.tpe`](../../../tests/arduino/handlers.tpe) and the
-examples [`calibrated`](../../../examples/arduino/calibrated/calibrated.tpe)
-and [`steps`](../../../examples/arduino/steps/steps.tpe).
+An operation that no code performs outside all handlers needs no binding.
+See [`tests/arduino/handlers.tpe`](../../../tests/arduino/handlers.tpe).
 
 ### Typing of the tasks
 
@@ -583,6 +589,7 @@ the port is found; neither the help nor a dry run `make -n` lists the
 ports.
 
 ### Fragments
+<!-- web-skip -->
 
 The targets are defined by
 [`examples/examples.mk`](../../../examples/examples.mk) from a fragment
@@ -1160,6 +1167,7 @@ The name and the footer are drawn after each clearing in `tilt`, `peak`,
 `level`, which redraws its values by bands and does not clear.
 
 ## Adding a board, a package or an example
+<!-- web-skip -->
 
 - A board is a profile `boards/NAME.json`.
 - A package is a directory `libraries/NAME/` with a descriptor

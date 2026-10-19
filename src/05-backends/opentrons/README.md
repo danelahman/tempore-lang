@@ -151,6 +151,7 @@ Further targets and variables:
 - `MONITOR=warn` sets the monitor policy.
 
 ### Fragments
+<!-- web-skip -->
 
 The targets are defined by
 [`examples/examples.mk`](../../../examples/examples.mk) from a fragment
@@ -216,6 +217,7 @@ each is a minute.
   during a soak.
 
 ## Adding an example
+<!-- web-skip -->
 
 An example is a program `examples/opentrons/NAME.tpe` with its binding file
 `NAME_bindings.py` and a fragment `NAME.mk`, which gives it its targets. Its
