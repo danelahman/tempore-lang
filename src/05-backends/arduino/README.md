@@ -17,8 +17,10 @@ manifest, peripheral packages, and the program with its binding file.
 
 A profile [`boards/NAME.json`](boards/) gives the PlatformIO platform, board,
 libraries and build flags, the number of cores, the I2C buses, the baud rate
-of the serial port and the capabilities of a board (`imu`, `display`,
-`touch`, `speaker`, `battery`, ...). The profiles are `m5stack-gray`,
+of the serial port, the USB identifiers of its serial interface (`usb`, by
+which the make targets find its port, [Ports](#ports)) and the capabilities
+of a board (`imu`, `display`, `touch`, `speaker`, `battery`, ...). The
+profiles are `m5stack-gray`,
 `m5stack-gray-radio`, `m5stack-fire`, `m5stack-core2`, `m5stack-cores3`,
 `m5stack-cores3-radio`, `esp32-devkit` and `esp32s3-devkit`.
 
@@ -551,19 +553,34 @@ environment, are
 
 ### Ports
 
-An upload goes to the serial port `PORT` when it is set, and else to that of
-the board of the manifest, the variable `PORT_BOARD`, the name of the board
-in upper case with `-` replaced by `_`.
+A target that opens the serial port of the board of the manifest (`-upload`,
+`-profile`, `-log`, `-record`, `-capture`, `-erase`) uses `PORT` when it is
+set, else the variable `PORT_BOARD`, the name of the board in upper case
+with `-` replaced by `_`, when it is set, and else finds the port when it
+runs. `PORT_M5STACK_GRAY_RADIO` defaults to `PORT_M5STACK_GRAY` and
+`PORT_M5STACK_CORES3_RADIO` to `PORT_M5STACK_CORES3`.
 
-`PORT_M5STACK_GRAY` defaults to `/dev/cu.usbserial-02012C91`,
-`PORT_M5STACK_GRAY_RADIO` to `PORT_M5STACK_GRAY`, `PORT_M5STACK_CORES3`
-to `/dev/cu.usbmodem101` and `PORT_M5STACK_CORES3_RADIO` to
-`PORT_M5STACK_CORES3`, the ports of the boards of the development
-machine. A board without a default port, such as
-`esp32-devkit`, needs `PORT` or `PORT_ESP32_DEVKIT`:
+The port is found by [`scripts/port.sh`](../../../scripts/port.sh) among
+the serial ports listed by `pio device list --serial --json-output`, by the
+USB identifiers `VID:PID` of the member `usb` of the board profile:
+
+- `m5stack-gray`, `m5stack-gray-radio`, `m5stack-fire` and `m5stack-core2`:
+  `10c4:ea60`, the CP2104 bridge, and `1a86:55d4`, the CH9102 bridge of the
+  later revisions;
+- `m5stack-cores3` and `m5stack-cores3-radio`: `303a:1001`, the USB
+  Serial/JTAG controller of the ESP32-S3.
+
+The port found is reported, as `M5Stack CoreS3 on /dev/cu.usbmodem1101`.
+No matching port, several matching ports, as for two boards of the same
+kind, and a profile without `usb`, such as `esp32-devkit`, are errors that
+ask for `PORT` or `PORT_BOARD`:
 
     make arduino-bala2-upload PORT=/dev/ttyUSB0
     make arduino-tilt-profile PORT_M5STACK_CORES3=/dev/ttyACM0 CAPTURE=60
+
+`make examples-help` shows each port variable, or the identifiers by which
+the port is found; neither the help nor a dry run `make -n` lists the
+ports.
 
 ### Fragments
 
@@ -613,7 +630,7 @@ this file.
   examples, `_arduino` takes about 3 GB, and `make clean-arduino` removes it;
 - the first build of a board downloads its platform and toolchain;
 - uploading needs the USB-serial driver of the board: its port is listed by
-  `ls /dev/cu.*` on macOS once the board is connected.
+  `pio device list` once the board is connected.
 
 ## Measuring running times
 

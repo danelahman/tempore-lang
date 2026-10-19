@@ -3,6 +3,7 @@ fragment of each example, shown by dry runs, which need neither PlatformIO
 nor Python. The variables of the targets are those of the Makefile.
 
   $ unset MAKEFLAGS MFLAGS MAKELEVEL PORT PORT_M5STACK_GRAY PORT_M5STACK_CORES3 \
+  >   PORT_M5STACK_GRAY_RADIO PORT_M5STACK_CORES3_RADIO TEMPORE_DEVICE_LIST \
   >   CAPTURE SIMULATE MONITOR BRIGHTNESS BALANCE_LOG BALANCE_RECORD STEPS_RECORD \
   >   PLATFORMIO_BUILD_FLAGS
   $ cd ../..
@@ -79,7 +80,8 @@ target -simulate, and the packages and the board of its manifest:
 The commands of the README of the Arduino backend, their lines joined: the
 target -simulate of bala2 runs the command of the README that simulates it on
 the host, with the monitor policy abort, the default, given explicitly, and
-the target -profile runs that of the README under CAPTURE=60:
+the target -profile runs that of the README under CAPTURE=60 and the port of
+the README:
 
   $ readme=$(commands src/05-backends/arduino/README.md |
   >   grep -e '--emit-arduino balance')
@@ -87,33 +89,167 @@ the target -profile runs that of the README under CAPTURE=60:
   2
   $ made=$(dry arduino-bala2-simulate | sed 's/ --monitor abort//')
   $ echo "$readme" | grep -qxF "$made" || echo "$made"
-  $ made=$(dry arduino-bala2-profile CAPTURE=60)
+  $ made=$(dry arduino-bala2-profile CAPTURE=60 PORT_M5STACK_GRAY=/dev/cu.usbserial-02012C91)
   $ echo "$readme" | grep -qxF "$made" || echo "$made"
 
-The uploads go to the port of the board of the manifest, PORT_BOARD, or else
-to PORT:
+Without PORT and PORT_BOARD, a target that opens the port of its board
+first finds it by scripts/port.sh, when the recipe runs, and passes it
+through the shell variable port; the board of a profile with the radio is
+found by the identifiers of its hardware:
 
-  $ for n in bala2 bala2-regex fall level peak tilt wheels; do
-  >   dry "arduino-$n-upload" | grep -o -e '--port [^ ]*' | sed "s|^|$n: |"
+  $ make -s --no-print-directory -n arduino-tilt-upload | grep tempore' ' | tr -s ' '
+  port=$(sh scripts/port.sh m5stack-cores3) || exit 1; ./tempore --grades time-interval-rational --emit-arduino tilt --device examples/arduino/tilt/tilt.device.json --monitor abort --upload --port "$port" examples/arduino/tilt/tilt.tpe
+  $ for t in bala2-upload bala2-regex-log bala2-record bala2-capture bala2-remote-upload \
+  >   bala2-controller-profile steps-record steps-capture steps-erase wheels-upload; do
+  >   make -s --no-print-directory -n "arduino-$t" |
+  >     grep -o -e 'port\.sh [^)]*' -e 'link\.sh -p [^ ]*' -e '--port [^ ]*' | tr '\n' ' ' |
+  >     sed "s|^|$t: |; s/ $//"; echo
   > done
-  bala2: --port /dev/cu.usbserial-02012C91
-  bala2-regex: --port /dev/cu.usbserial-02012C91
-  fall: --port /dev/cu.usbmodem101
-  level: --port /dev/cu.usbmodem101
-  peak: --port /dev/cu.usbmodem101
-  tilt: --port /dev/cu.usbmodem101
-  wheels: --port /dev/cu.usbserial-02012C91
+  bala2-upload: port.sh m5stack-gray --port "$port"
+  bala2-regex-log: port.sh m5stack-gray --port "$port"
+  bala2-record: port.sh m5stack-gray --port "$port"
+  bala2-capture: port.sh m5stack-gray --port "$port"
+  bala2-remote-upload: port.sh m5stack-gray-radio link.sh -p "$port" --port "$port"
+  bala2-controller-profile: port.sh m5stack-cores3-radio link.sh -p "$port" --port "$port"
+  steps-record: port.sh m5stack-cores3 --port "$port"
+  steps-capture: port.sh m5stack-cores3 --port "$port"
+  steps-erase: port.sh m5stack-cores3 --port "$port"
+  wheels-upload: port.sh m5stack-gray --port "$port"
+
+The targets that open no port find none, and neither the dry runs nor the
+help run scripts/port.sh, which here would record its run:
+
+  $ for d in examples/arduino/*/; do
+  >   n=$(basename "$d")
+  >   make -s --no-print-directory -n "arduino-$n-simulate" "arduino-$n-build" |
+  >     grep -l 'port\.sh\|--port' > /dev/null && echo "$n"
+  > done
+  [1]
+  $ export TEMPORE_DEVICE_LIST="touch $PWD/listed"
+  $ make -s --no-print-directory -n arduino-bala2-upload arduino-steps-capture > /dev/null
+  $ make -s examples-help > /dev/null; make -s arduino-diagnostics-help > /dev/null
+  $ [ -e listed ] || echo "not run"
+  not run
+  $ unset TEMPORE_DEVICE_LIST
+
+PORT_BOARD, set on the command line or in the environment, takes precedence
+over the detection, and PORT over both; the port of a board of a profile
+with the radio is by default that of its hardware:
+
   $ dry arduino-tilt-upload PORT_M5STACK_CORES3=/dev/ttyACM0
   ./tempore --grades time-interval-rational --emit-arduino tilt --device examples/arduino/tilt/tilt.device.json --monitor abort --upload --port /dev/ttyACM0 examples/arduino/tilt/tilt.tpe
   $ (export PORT_M5STACK_GRAY=/dev/ttyUSB1; dry arduino-wheels-upload)
   ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino wheels --device examples/arduino/wheels/wheels.device.json --monitor abort --upload --port /dev/ttyUSB1 examples/arduino/wheels/wheels.tpe
-  $ dry arduino-bala2-upload PORT=/dev/ttyUSB0
+  $ dry arduino-bala2-upload PORT=/dev/ttyUSB0 PORT_M5STACK_GRAY=/dev/ttyUSB1
   ./tempore --grades time-interval-rational --emit-arduino balance --device examples/arduino/bala2/balance.device.json --monitor abort --upload --port /dev/ttyUSB0 examples/arduino/bala2/balance.tpe
+  $ make -s --no-print-directory -n arduino-bala2-remote-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 | grep -o 'port\.sh\|link\.sh -p [^ ]*\|--port [^ ]*'
+  link.sh -p /dev/ttyUSB1
+  --port /dev/ttyUSB1
+  $ make -s --no-print-directory -n arduino-bala2-remote-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 PORT_M5STACK_GRAY_RADIO=/dev/ttyUSB2 | grep -o -e '--port [^ ]*'
+  --port /dev/ttyUSB2
+  $ (export PORT_M5STACK_CORES3=/dev/ttyACM1
+  >  make -s --no-print-directory -n arduino-steps-erase | grep -o 'port\.sh\|--port [^ ]*')
+  --port /dev/ttyACM1
 
-A board without a port is an error:
+scripts/port.sh finds the port of a board in the serial ports listed by
+PlatformIO, here by a fake list, TEMPORE_DEVICE_LIST, the command that prints
+the file devices in the format of `pio device list --serial --json-output`.
+The port whose identifier VID:PID, in either case, is one of those of the
+profile is printed, and reported on standard error:
 
-  $ make -s -n arduino-peak-upload PORT_M5STACK_CORES3= 2>&1 | grep -o 'No serial.*'
-  No serial port is set for the board m5stack-cores3: set PORT or PORT_M5STACK_CORES3.  Stop.
+  $ mkdir ports
+  $ export TEMPORE_DEVICE_LIST="cat $PWD/ports/devices"
+  $ devices () {
+  >   printf '['; sep=
+  >   for d in "$@"; do printf '%s{"port": "%s", "description": "n/a", "hwid": "%s"}' "$sep" "${d%%=*}" "${d#*=}"; sep=', '; done
+  >   printf ']\n'
+  > } > ports/devices
+  $ found () { sh scripts/port.sh "$@" 2>&1; echo "exit $?"; }
+  $ gray='/dev/cu.usbserial-02012C5D=USB VID:PID=10C4:EA60 SER=02012C5D LOCATION=1-1.1'
+  $ ch9102='/dev/cu.wchusbserial54790=USB VID:PID=1a86:55d4 SER=5479012345 LOCATION=1-1.2'
+  $ cores3='/dev/cu.usbmodem1101=USB VID:PID=303A:1001 SER=F4:12:FA:00:00:01 LOCATION=1-1.3'
+  $ linux='/dev/ttyACM0=USB VID:PID=303a:1001 SER=F4:12:FA:00:00:01 LOCATION=1-1:1.0'
+  $ devices '/dev/cu.Bluetooth-Incoming-Port=n/a' "$gray" "$cores3"
+  $ found m5stack-gray
+  M5Stack Gray on /dev/cu.usbserial-02012C5D
+  /dev/cu.usbserial-02012C5D
+  exit 0
+  $ found m5stack-cores3
+  M5Stack CoreS3 on /dev/cu.usbmodem1101
+  /dev/cu.usbmodem1101
+  exit 0
+  $ found m5stack-gray-radio
+  M5Stack Gray with the radio on /dev/cu.usbserial-02012C5D
+  /dev/cu.usbserial-02012C5D
+  exit 0
+  $ sh scripts/port.sh m5stack-cores3-radio 2> /dev/null
+  /dev/cu.usbmodem1101
+
+The later revision of the Gray, with a CH9102 bridge, and a board on Linux
+are found likewise:
+
+  $ devices "$ch9102" "$linux"
+  $ found m5stack-gray
+  M5Stack Gray on /dev/cu.wchusbserial54790
+  /dev/cu.wchusbserial54790
+  exit 0
+  $ found m5stack-cores3
+  M5Stack CoreS3 on /dev/ttyACM0
+  /dev/ttyACM0
+  exit 0
+
+No match, several matches, a profile without USB identifiers, an unknown
+board and a list that fails are errors:
+
+  $ devices '/dev/cu.Bluetooth-Incoming-Port=n/a' "$cores3"
+  $ found m5stack-gray
+  Error: no M5Stack Gray is connected (USB 10c4:ea60 or 1a86:55d4); connect it, or set PORT or PORT_M5STACK_GRAY
+  exit 1
+  $ devices
+  $ found m5stack-cores3-radio
+  Error: no M5Stack CoreS3 with the radio is connected (USB 303a:1001); connect it, or set PORT or PORT_M5STACK_CORES3_RADIO
+  exit 1
+  $ devices "$gray" "$ch9102" "$cores3"
+  $ found m5stack-gray
+  Error: several ports match the M5Stack Gray: /dev/cu.usbserial-02012C5D, /dev/cu.wchusbserial54790; set PORT or PORT_M5STACK_GRAY to one of them
+  exit 1
+  $ found esp32-devkit
+  Error: the profile esp32-devkit has no USB identifiers to find the port of the ESP32 DevKit by; set PORT or PORT_ESP32_DEVKIT
+  exit 1
+  $ found m5stack-grey
+  Error: no board profile m5stack-grey
+  exit 1
+  $ found 'm5stack gray'
+  Error: the board 'm5stack gray' is not a name
+  exit 1
+  $ TEMPORE_DEVICE_LIST="cat $PWD/ports/none" found m5stack-gray | sed "s|$PWD|.|g"
+  cat: ./ports/none: No such file or directory
+  Error: the serial ports were not listed by cat ./ports/none
+  exit 1
+
+A target runs the detection before its commands, which receive the port
+found, and does not run them without one; here python3 is a fake that prints
+its arguments:
+
+  $ mkdir ports/bin
+  $ printf '#!/bin/sh\necho python3 "$@"\n' > ports/bin/python3
+  $ chmod +x ports/bin/python3
+  $ devices "$linux"
+  $ PATH="$PWD/ports/bin:$PATH" make -s --no-print-directory arduino-steps-erase
+  M5Stack CoreS3 on /dev/ttyACM0
+  python3 -I scripts/steps-recording.py erase --port /dev/ttyACM0 --wait 30
+  $ devices "$gray"
+  $ (PATH="$PWD/ports/bin:$PATH" make -s --no-print-directory arduino-steps-erase 2>&1
+  >  echo "exit $?") | grep -v '^make: \*\*\*'
+  Error: no M5Stack CoreS3 is connected (USB 303a:1001); connect it, or set PORT or PORT_M5STACK_CORES3
+  exit 2
+  $ unset TEMPORE_DEVICE_LIST
+  $ rm -r ports
+
+The remaining targets are shown under the ports of the boards of the
+development machine:
+
+  $ export PORT_M5STACK_GRAY=/dev/cu.usbserial-02012C91 PORT_M5STACK_CORES3=/dev/cu.usbmodem101
 
 Further targets, under variables set on the command line:
 
@@ -340,24 +476,25 @@ The aggregate targets cover every example:
 The help of the examples and that of the diagnostic targets, which are
 listed apart:
 
+  $ unset PORT_M5STACK_GRAY PORT_M5STACK_CORES3
   $ make -s examples-help
   Arduino examples, by board:
-  M5Stack CoreS3, port PORT_M5STACK_CORES3 = /dev/cu.usbmodem101:
+  M5Stack CoreS3, port PORT_M5STACK_CORES3 = found by USB 303a:1001:
     NAME one of: calibrated fall level peak starter steps tilt
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
-  M5Stack CoreS3 with the radio, port PORT_M5STACK_CORES3_RADIO = /dev/cu.usbmodem101:
+  M5Stack CoreS3 with the radio, port PORT_M5STACK_CORES3_RADIO = found by USB 303a:1001:
     NAME one of: bala2-controller
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
-  M5Stack Gray, port PORT_M5STACK_GRAY = /dev/cu.usbserial-02012C91:
+  M5Stack Gray, port PORT_M5STACK_GRAY = found by USB 10c4:ea60 or 1a86:55d4:
     NAME one of: bala2 bala2-regex wheels
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
-  M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = /dev/cu.usbserial-02012C91:
+  M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = found by USB 10c4:ea60 or 1a86:55d4:
     NAME one of: bala2-remote
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
@@ -370,7 +507,7 @@ listed apart:
     opentrons-NAME-simulate       writes the protocol and runs the Opentrons simulator
     opentrons-simulate-all        opentrons-NAME-simulate for every example
   Variables, with their values:
-    PORT=                                        when set, the port of every upload
+    PORT=                                        when set, the port of every board
     SIMULATE=                                    when set, the simulated seconds of every example
     MONITOR=                                     when set, the monitor policy of every target
     BRIGHTNESS=                                  when set, the display brightness, 0 to 100 % (default 24), of every build
@@ -379,16 +516,16 @@ listed apart:
   Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help
   $ make -s arduino-diagnostics-help
   Arduino diagnostic targets, by board:
-  M5Stack CoreS3, port PORT_M5STACK_CORES3 = /dev/cu.usbmodem101:
+  M5Stack CoreS3, port PORT_M5STACK_CORES3 = found by USB 303a:1001:
     NAME one of: calibrated fall level peak starter steps tilt
     arduino-NAME-profile          uploads the project with the profile and reads the port
     arduino-steps-record          uploads the project with -DSTEPS_RECORD=600 and reads the port
     arduino-steps-capture         reads the recordings from the port into _arduino/recordings/steps-TIME-N.csv
     arduino-steps-erase           erases the recordings on the device
-  M5Stack CoreS3 with the radio, port PORT_M5STACK_CORES3_RADIO = /dev/cu.usbmodem101:
+  M5Stack CoreS3 with the radio, port PORT_M5STACK_CORES3_RADIO = found by USB 303a:1001:
     NAME one of: bala2-controller
     arduino-NAME-profile          uploads the project with the profile and reads the port
-  M5Stack Gray, port PORT_M5STACK_GRAY = /dev/cu.usbserial-02012C91:
+  M5Stack Gray, port PORT_M5STACK_GRAY = found by USB 10c4:ea60 or 1a86:55d4:
     NAME one of: bala2 bala2-regex wheels
     arduino-NAME-profile          uploads the project with the profile and reads the port
     arduino-bala2-log             uploads the project with -DBALANCE_LOG=20 and reads the port
@@ -397,11 +534,11 @@ listed apart:
     arduino-bala2-capture         reads the recordings from the port into _arduino/recordings/bala2-TIME.csv
     arduino-bala2-regex-record    uploads the project with -DBALANCE_RECORD=20 and reads the port
     arduino-bala2-regex-capture   reads the recordings from the port into _arduino/recordings/bala2-regex-TIME.csv
-  M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = /dev/cu.usbserial-02012C91:
+  M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = found by USB 10c4:ea60 or 1a86:55d4:
     NAME one of: bala2-remote
     arduino-NAME-profile          uploads the project with the profile and reads the port
   Variables, with their values:
-    PORT=                                        when set, the port of every upload
+    PORT=                                        when set, the port of every board
     CAPTURE=30                                   the seconds for which the port is read
     MONITOR=                                     when set, the monitor policy of every target
     BRIGHTNESS=                                  when set, the display brightness, 0 to 100 % (default 24), of every build

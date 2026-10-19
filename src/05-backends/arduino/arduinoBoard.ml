@@ -16,6 +16,7 @@ type t = {
   imu_frequency : int option;
   capabilities : string list;
   serial_baud : int;
+  usb : string list;
   i2c : i2c list;
   includes : string list;
   init : string list;
@@ -39,6 +40,23 @@ let i2c ~what v =
     frequency = Json.required f "frequency" Json.int;
   }
 
+(* A USB identifier VID:PID, four lower-case hexadecimal digits each. *)
+let usb_id ~what v =
+  let id = Json.string ~what v in
+  let hex c = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') in
+  let valid =
+    String.length id = 9
+    && id.[4] = ':'
+    && String.for_all hex (String.sub id 0 4)
+    && String.for_all hex (String.sub id 5 4)
+  in
+  if not valid then
+    Utils.Error.compilation ~loc:v.Json.at
+      "%s is not a USB identifier VID:PID, of four lower-case hexadecimal \
+       digits each"
+      (String.capitalize_ascii what);
+  id
+
 let parse name text =
   let v = Json.parse ~filename:("boards/" ^ name ^ ".json") text in
   let f =
@@ -57,6 +75,7 @@ let parse name text =
           "imu_frequency";
           "capabilities";
           "serial_baud";
+          "usb";
           "i2c";
           "includes";
           "init";
@@ -88,6 +107,7 @@ let parse name text =
       @ (if i2c <> [] then [ "i2c" ] else [])
       @ Json.required f "capabilities" strings;
     serial_baud = Json.required f "serial_baud" Json.int;
+    usb = Option.value ~default:[] (Json.optional f "usb" (Json.list usb_id));
     i2c;
     includes = Json.required f "includes" strings;
     init = Json.required f "init" strings;

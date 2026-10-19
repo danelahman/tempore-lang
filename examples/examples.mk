@@ -22,7 +22,7 @@
 #   EXAMPLE_LINK and EXAMPLE_LINK_ROLE, the name of the encrypted ESP-NOW
 #   link of its device builds and the role of its board in the link, whose
 #   peer and key, ESP_NOW_PEER and ESP_NOW_KEY, are printed by
-#   scripts/link.sh from the link file. The board is that of the manifest, and its port the variable PORT_BOARD, the
+#   scripts/link.sh from the link file. The board is that of the manifest, and its port variable PORT_BOARD, the
 #   name of the board in upper case with '-' replaced by '_'. 'make
 #   examples-help' and 'make arduino-diagnostics-help' group the Arduino
 #   targets by board, named by the member "title" of the board profile.
@@ -32,12 +32,12 @@
 # arduino-deps. tests/make/examples.t checks that every example has its
 # fragment.
 
-# The serial ports of the boards, by default those of the boards connected to
-# the development machine: an M5Stack Gray, the core of the BALA2, through its
-# CP2104 USB-serial bridge, also that of the profile m5stack-gray-radio, and
-# an M5Stack CoreS3 Lite through its USB port, also that of the profile
-# m5stack-cores3-radio.
-# PORT, when set, is the port of every upload. CAPTURE is the time, in
+# The serial ports of the boards: PORT, when set, is the port of every
+# target that opens one, and else PORT_BOARD, the port of the board BOARD, if
+# set; PORT_M5STACK_GRAY_RADIO and PORT_M5STACK_CORES3_RADIO default to the
+# ports of the boards of their hardware. Without either, the port is found by
+# scripts/port.sh, from the USB identifiers of the board profile, when the
+# recipe runs. CAPTURE is the time, in
 # seconds, for which the serial port is read after an upload that captures,
 # and by a target -capture;
 # SIMULATE, when set, the simulated time, in seconds, of every host
@@ -46,9 +46,7 @@
 # BRIGHTNESS, when set, the brightness of the display, a percentage from 0 to
 # 100, of every device build, by default 24. Each can be set on the command line or in the
 # environment.
-PORT_M5STACK_GRAY ?= /dev/cu.usbserial-02012C91
 PORT_M5STACK_GRAY_RADIO ?= $(PORT_M5STACK_GRAY)
-PORT_M5STACK_CORES3 ?= /dev/cu.usbmodem101
 PORT_M5STACK_CORES3_RADIO ?= $(PORT_M5STACK_CORES3)
 PORT ?=
 CAPTURE ?= 30
@@ -157,7 +155,7 @@ arduino_board = $(shell sed -n 's/.*"board": *"\([^"]*\)".*/\1/p' \
 port_variable = PORT_$(shell echo $(1) | tr a-z- A-Z_)
 
 # The Arduino example $(1) of the directory $(2), whose program is $(3) and
-# board $(4), uploaded through the port PORT, or else PORT_BOARD. The project
+# board $(4), uploaded through the port of the board, as in port. The project
 # is written to _arduino/projects/$(3): -simulate simulates it on the host,
 # -build builds it with PlatformIO, -upload builds and uploads it, and
 # -profile builds and uploads the project _arduino/projects/$(3)-profile
@@ -183,7 +181,7 @@ arduino-$(1)-build: tempore-cli arduino-deps
 	  $(2)/$(3).tpe
 
 arduino-$(1)-upload: tempore-cli arduino-deps
-	$$(call link_setup,$(1),$$(call port,$(4)))$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	$$(call port_setup,$(4))$$(call link_setup,$(1),$$(call port,$(4)))$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3) \
 	  --device $(2)/$(3).device.json \
 	  --monitor $$(or $$(MONITOR),abort) \
@@ -191,7 +189,7 @@ arduino-$(1)-upload: tempore-cli arduino-deps
 	  $(2)/$(3).tpe
 
 arduino-$(1)-profile: tempore-cli arduino-deps
-	$$(call link_setup,$(1),$$(call port,$(4)))$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	$$(call port_setup,$(4))$$(call link_setup,$(1),$$(call port,$(4)))$$(call build_flags,$$(ARDUINO_BUILD_FLAGS_$(1)))$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-profile \
 	  --device $(2)/$(3).device.json \
 	  --monitor $$(or $$(MONITOR),warn) \
@@ -216,7 +214,7 @@ endef
 # The target -log of the Arduino example $(1), as in arduino_template.
 define arduino_log
 arduino-$(1)-log: tempore-cli arduino-deps
-	$$(call link_setup,$(1),$$(call port,$(4)))PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$$(ARDUINO_BUILD_FLAGS_$(1)) $(EXAMPLE_LOG_FLAGS))" \
+	$$(call port_setup,$(4))$$(call link_setup,$(1),$$(call port,$(4)))PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$$(ARDUINO_BUILD_FLAGS_$(1)) $(EXAMPLE_LOG_FLAGS))" \
 	  $$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-log \
 	  --device $(2)/$(3).device.json \
@@ -244,7 +242,7 @@ endef
 # full.
 define arduino_record
 arduino-$(1)-record: tempore-cli arduino-deps
-	$$(call link_setup,$(1),$$(call port,$(4)))PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$$(ARDUINO_BUILD_FLAGS_$(1)) $(EXAMPLE_RECORD_FLAGS))" \
+	$$(call port_setup,$(4))$$(call link_setup,$(1),$$(call port,$(4)))PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$$(ARDUINO_BUILD_FLAGS_$(1)) $(EXAMPLE_RECORD_FLAGS))" \
 	  $$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-record \
 	  --device $(2)/$(3).device.json \
@@ -265,7 +263,7 @@ endef
 define arduino_record_filter
 arduino-$(1)-capture: tempore-cli
 	mkdir -p _arduino/recordings
-	name=_arduino/recordings/$(1)-$$$$(date +%Y%m%d-%H%M%S); \
+	$$(call port_setup,$(4))name=_arduino/recordings/$(1)-$$$$(date +%Y%m%d-%H%M%S); \
 	$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-record \
 	  --device $(2)/$(3).device.json \
@@ -288,11 +286,11 @@ endef
 define arduino_record_tool
 arduino-$(1)-capture:
 	mkdir -p _arduino/recordings
-	python3 -I $(EXAMPLE_RECORD_TOOL) capture --port $$(call port,$(2)) \
+	$$(call port_setup,$(2))python3 -I $(EXAMPLE_RECORD_TOOL) capture --port $$(call port,$(2)) \
 	  --wait $$(CAPTURE) _arduino/recordings/$(1)-$$$$(date +%Y%m%d-%H%M%S)
 
 arduino-$(1)-erase:
-	python3 -I $(EXAMPLE_RECORD_TOOL) erase --port $$(call port,$(2)) \
+	$$(call port_setup,$(2))python3 -I $(EXAMPLE_RECORD_TOOL) erase --port $$(call port,$(2)) \
 	  --wait $$(CAPTURE)
 
 ARDUINO_CAPTURED_$(1) = _arduino/recordings/$(1)-TIME-N.csv
@@ -303,9 +301,13 @@ endef
 arduino_example = $(call arduino_template,$(1),$(2),$(call \
   arduino_program,$(2)),$(call arduino_board,$(2)))
 
-# The port of an upload to the board $(1): PORT, or else PORT_BOARD.
-port = $(or $(PORT),$($(call port_variable,$(1))),$(error No serial port \
-  is set for the board $(1): set PORT or $(call port_variable,$(1))))
+# The port of the board $(1): PORT, or else PORT_BOARD, or else the shell
+# variable port, set by the command port_setup, prefixed to the commands that
+# open the port, to the port found by scripts/port.sh.
+port_set = $(or $(PORT),$($(call port_variable,$(1))))
+port = $(or $(call port_set,$(1)),"$$port")
+port_setup = $(if $(call port_set,$(1)),,port=$$(sh scripts/port.sh $(1)) \
+  || exit 1; )
 
 $(foreach name,$(OPENTRONS_EXAMPLES),$(eval $(call \
   load_example,opentrons,$(name))))
@@ -316,9 +318,17 @@ opentrons-simulate-all: $(OPENTRONS_EXAMPLES:%=opentrons-%-simulate)
 arduino-simulate-all: $(ARDUINO_EXAMPLES:%=arduino-%-simulate)
 arduino-build-all: $(ARDUINO_EXAMPLES:%=arduino-%-build)
 
-# The title of the board $(1), the member "title" of its profile.
+# The title of the board $(1), the member "title" of its profile, and its
+# USB identifiers, the member "usb", separated by ' or '.
 board_title = $(shell sed -n 's/^ *"title": *"\([^"]*\)".*/\1/p' \
   src/05-backends/arduino/boards/$(1).json)
+board_usb = $(shell sed -n 's/^ *"usb": *\[\(.*\)\].*/\1/p' \
+  src/05-backends/arduino/boards/$(1).json | tr -d '" ' | sed 's/,/ or /g')
+
+# The port of the board $(1) in the help: PORT_BOARD if set, and else how it
+# is found.
+board_port_help = $(or $($(call port_variable,$(1))),$(if $(call \
+  board_usb,$(1)),found by USB $(call board_usb,$(1)),not set))
 
 # A newline, which ends the lines of the recipe of each board below.
 define newline
@@ -329,7 +339,7 @@ endef
 # The help of the Arduino examples of the board $(1): its title, port
 # variable and port, and the targets of its examples.
 define arduino_board_help
-	@echo "$(call board_title,$(1)), port $(call port_variable,$(1)) = $($(call port_variable,$(1))):"
+	@echo "$(call board_title,$(1)), port $(call port_variable,$(1)) = $(call board_port_help,$(1)):"
 	@echo "  NAME one of: $(ARDUINO_EXAMPLES_$(1))"
 	@echo "  arduino-NAME-simulate         simulates the project on the host"
 	@echo "  arduino-NAME-build            builds the project with PlatformIO"
@@ -339,7 +349,7 @@ endef
 # The help of the diagnostic targets of the Arduino examples of the board
 # $(1): its title, port variable and port, and the targets of its examples.
 define arduino_diagnostics_board_help
-	@echo "$(call board_title,$(1)), port $(call port_variable,$(1)) = $($(call port_variable,$(1))):"
+	@echo "$(call board_title,$(1)), port $(call port_variable,$(1)) = $(call board_port_help,$(1)):"
 	@echo "  NAME one of: $(ARDUINO_EXAMPLES_$(1))"
 	@echo "  arduino-NAME-profile          uploads the project with the profile and reads the port"
 	@$(foreach name,$(ARDUINO_LOGS_$(1)),printf '  %-29s %s\n' \
@@ -366,7 +376,7 @@ examples-help:
 	@echo "  opentrons-simulate-all        opentrons-NAME-simulate for every example"
 	@echo "Variables, with their values:"
 	@printf '  %-44s %s\n' \
-	  "PORT=$(PORT)" "when set, the port of every upload" \
+	  "PORT=$(PORT)" "when set, the port of every board" \
 	  "SIMULATE=$(SIMULATE)" "when set, the simulated seconds of every example" \
 	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target" \
 	  "BRIGHTNESS=$(BRIGHTNESS)" "when set, the display brightness, 0 to 100 % (default 24), of every build"
@@ -379,7 +389,7 @@ arduino-diagnostics-help:
 	$(foreach board,$(sort $(ARDUINO_BOARDS)),$(call arduino_diagnostics_board_help,$(board))$(newline))
 	@echo "Variables, with their values:"
 	@printf '  %-44s %s\n' \
-	  "PORT=$(PORT)" "when set, the port of every upload" \
+	  "PORT=$(PORT)" "when set, the port of every board" \
 	  "CAPTURE=$(CAPTURE)" "the seconds for which the port is read" \
 	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target" \
 	  "BRIGHTNESS=$(BRIGHTNESS)" "when set, the display brightness, 0 to 100 % (default 24), of every build"

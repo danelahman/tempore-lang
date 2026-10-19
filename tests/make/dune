@@ -1,7 +1,8 @@
 ; The make targets of the examples of the Arduino and Opentrons backends:
 ; their fragments, the commands of their dry runs, and the commands of the
 ; README of the Arduino backend that they run; the keys of the ESP-NOW links
-; of the paired builds.
+; of the paired builds; the serial ports found by the USB identifiers of the
+; boards.
 
 (cram
  (deps
@@ -9,6 +10,7 @@
   %{project_root}/src/05-backends/arduino/README.md
   %{project_root}/examples/examples.mk
   %{project_root}/scripts/link.sh
+  %{project_root}/scripts/port.sh
   (glob_files %{project_root}/src/05-backends/arduino/boards/*.json)
   (source_tree %{project_root}/examples/opentrons)
   (source_tree %{project_root}/examples/arduino)))

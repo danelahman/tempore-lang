@@ -27,6 +27,9 @@
       [M5.Power.getBatteryLevel] and [M5.Power.isCharging], which the battery
       indicator of a device manifest requires ({!ArduinoDevice});
     - ["serial_baud"]: the baud rate of the serial port of the log;
+    - ["usb"], optional: an array of the USB identifiers ["VID:PID"], each four
+      lower-case hexadecimal digits, of the serial interface of the board, by
+      which the make targets of the examples find its port;
     - ["i2c"]: an array of I2C buses, each an object of the ["port"] (the
       [TwoWire] object, e.g. ["Wire"]), the pins ["sda"] and ["scl"] and the
       ["frequency"] in hertz, started by [begin] after the initialisation of
@@ -57,6 +60,8 @@ type t = {
           M5Unified, ["i2c"] if it has an I2C bus, and those of the member
           ["capabilities"] *)
   serial_baud : int;
+  usb : string list;
+      (** the USB identifiers of the serial interface, by default none *)
   i2c : i2c list;
   includes : string list;
   init : string list;
@@ -65,6 +70,11 @@ type t = {
 
 val names : string list
 (** The names of the board profiles, in alphabetical order. *)
+
+val parse : string -> string -> t
+(** [parse name text] is the board profile [name] of the JSON text [text].
+
+    @raise Utils.Error.Error if the profile is malformed. *)
 
 val find : string -> t option
 (** [find name] is the board profile named [name], if any.

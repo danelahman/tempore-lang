@@ -21,3 +21,10 @@
  (name test_package)
  (modules test_package)
  (libraries utils grades sugaredAst parser loader arduinoBackend))
+
+; The USB identifiers of the board profiles, compared with test_board.expected.
+
+(test
+ (name test_board)
+ (modules test_board)
+ (libraries utils arduinoBackend))

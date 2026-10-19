@@ -1729,8 +1729,9 @@ The examples in [`examples/arduino/`](examples/arduino/), by board:
 install PlatformIO, list the targets of the examples, simulate the tilt
 display on the host, and build and upload it. Each example `NAME` has the
 targets `arduino-NAME-simulate` and `arduino-NAME-upload`; an upload goes to
-the port `PORT` when it is set, and else to that of the board of the
-manifest, such as `PORT_M5STACK_CORES3`.
+the port `PORT` when it is set, else to that of the board of the manifest,
+such as `PORT_M5STACK_CORES3`, and else to the port of the connected board,
+found by its USB identifiers.
 
 ### Opentrons
 

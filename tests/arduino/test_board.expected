@@ -1,0 +1,17 @@
+esp32-devkit: none
+esp32s3-devkit: none
+m5stack-core2: 10c4:ea60 1a86:55d4
+m5stack-cores3: 303a:1001
+m5stack-cores3-radio: 303a:1001
+m5stack-fire: 10c4:ea60 1a86:55d4
+m5stack-gray: 10c4:ea60 1a86:55d4
+m5stack-gray-radio: 10c4:ea60 1a86:55d4
+no member: none
+[]: none
+["303a:1001", "10c4:ea60"]: 303a:1001 10c4:ea60
+["303A:1001"]: Error: Element 1 of the member `usb` of a board profile is not a USB identifier VID:PID, of four lower-case hexadecimal digits each
+["303a1001"]: Error: Element 1 of the member `usb` of a board profile is not a USB identifier VID:PID, of four lower-case hexadecimal digits each
+["303a:100"]: Error: Element 1 of the member `usb` of a board profile is not a USB identifier VID:PID, of four lower-case hexadecimal digits each
+["303a:100g"]: Error: Element 1 of the member `usb` of a board profile is not a USB identifier VID:PID, of four lower-case hexadecimal digits each
+[4097]: Error: Element 1 of the member `usb` of a board profile is a number, not a string
+"303a:1001": Error: The member `usb` of a board profile is a string, not an array

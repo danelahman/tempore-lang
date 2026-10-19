@@ -10,6 +10,7 @@
   "m5unified": true,
   "capabilities": ["imu", "display", "touch", "speaker", "battery"],
   "serial_baud": 115200,
+  "usb": ["303a:1001"],
   "i2c": [{ "port": "Wire", "sda": 2, "scl": 1, "frequency": 400000 }],
   "includes": [],
   "init": []
