@@ -556,29 +556,11 @@ programmed, without PlatformIO.
 The BALA2 examples record a run without the USB cable under the build flag
 `BALANCE_RECORD` of
 [`bala2/bindings.cpp`](../../../examples/arduino/bala2/bindings.cpp), the
-interval of the samples in milliseconds.
-
-### The recording
-
-From the first arming after start-up, a task of core 0 takes 3000 samples
-(`BALANCE_RECORD_SAMPLES`), a minute at 20 ms, of the tilt, the rate of the
-gyroscope, the filtered speed of the wheels, the reference tilt of the speed
-loop, the drives of the motors and the counts of the encoders; the control
-step only publishes the values.
-
-Once complete, the recording is printed over the serial port as CSV every 10
-seconds (`BALANCE_RECORD_REPEAT_MS`), between a line
-`# Recording N, run ID, ...` and a line `# End of recording N`, N its
-sequence number and ID a random identifier drawn at the arming.
-
-The core keeps running on its battery when the cable is removed, the
-USB-serial bridge of the M5Stack Gray being powered by USB, so that the
-recording is read once the cable is connected again.
-
-The recordings of the last two start-ups are kept in memory that is not
-initialised at start-up: a recording survives a reset, such as one by the
-serial port or a brownout, and is then printed with the recording of the new
-start-up, but not a loss of power.
+interval of the samples in milliseconds. From the first arming after
+start-up, the recording holds the tilt, the rate of the gyroscope, the speed
+of the wheels, the reference tilt of the speed loop, the drives of the motors
+and the counts of the encoders. Once complete, it is printed over the serial
+port as CSV, repeatedly. It survives a reset, but not a loss of power.
 
 ### Recording and reading a run
 
@@ -587,7 +569,8 @@ start-up, but not a loss of power.
 builds and uploads the project `_arduino/projects/balance-record` and reads
 the port for `CAPTURE` seconds. The robot then calibrates, arms and records
 on the cable. To record a run without it, remove the cable and reset the
-core with its power button, which starts a new recording at the next arming.
+core with its power button, which starts a new recording at the next arming;
+the core keeps running on its battery.
 
 After the run, with the core still on, connect the cable and run
 
@@ -597,8 +580,7 @@ which reads the port for 60 seconds without an upload, and writes
 
 - its output to `_arduino/recordings/bala2-TIME.log`, TIME the date and time;
 - the last complete copy of each recording to
-  `_arduino/recordings/bala2-TIME.csv`; a copy takes about 11 seconds at
-  115200 baud.
+  `_arduino/recordings/bala2-TIME.csv`.
 
 The targets `arduino-bala2-regex-record` and `arduino-bala2-regex-capture`
 do the same for `bala2-regex`.
@@ -622,21 +604,11 @@ Under the build flag `STEPS_RECORD`, a bound in seconds,
 [`steps/bindings.cpp`](../../../examples/arduino/steps/bindings.cpp) records
 every reading of the unit, its time and its raw acceleration and angular
 rate, and the events of the counter in the flash memory of the CoreS3, so
-that the recordings persist across resets and losses of power. The readings
-reach it through `m5_imu_observe`, a function of the package `m5-imu` that
-an application may define; the program and its grades are unchanged.
-
-- Each calibration, at start-up and at each tap on Calibrate, begins a new
-  numbered recording; the screen shows "REC n" in red at the right end of
-  the row 134, and "FULL" once the recordings hold `STEPS_RECORD` seconds,
-  after which nothing more is recorded.
-- A record takes 16 bytes, about 1.6 KB a second; the records are buffered
-  in RAM and written to the data partition `spiffs` a page at a time, after
-  a reading, so that the programming of the flash memory, which stops both
-  cores for under a millisecond a page, falls between the readings.
-- The first start-up of a record build formats the partition, which stalls
-  the readings for about 15 seconds, and restarts. Each start-up logs its
-  reset reason.
+that the recordings persist across resets and losses of power; the program
+and its grades are unchanged. Each calibration, at start-up and at each tap
+on Calibrate, begins a new numbered recording; the screen shows "REC n", and
+"FULL" once the recordings hold `STEPS_RECORD` seconds. The first start-up
+of a record build formats the flash partition and restarts.
 
 The procedure, with the cable connected:
 
@@ -650,20 +622,15 @@ Connect the cable and run
 
     make arduino-steps-capture
 
-which asks the device for its recordings through
+which reads the recordings from the device through
 [`scripts/steps-recording.py`](../../../scripts/steps-recording.py) and
 writes them to `_arduino/recordings/steps-TIME-N.csv`, N the number of the
 recording, with the columns `t_ms`, `ax`, `ay`, `az` (g), `gx`, `gy`, `gz`
 (degrees per second) and `event` (a count of steps, a reset, the start and
 the end of a calibration), and the lines read to
-`_arduino/recordings/steps-TIME.log`. The device answers a command line,
-sent again until the first line of the answer arrives, so that a reset by
-the opening of the port does not matter. Each line of the dump carries a
-CRC-16 and is written once the transmit buffer of the port has room for
-it; a recording that arrives damaged or incomplete is requested again by
-its number. `make arduino-steps-erase` erases the recordings and restarts
-the device. With `STEPS_REPLAY=FILE`, the host simulation of `steps` reads
-the accelerometer readings of a recording.
+`_arduino/recordings/steps-TIME.log`. `make arduino-steps-erase` erases the
+recordings and restarts the device. With `STEPS_REPLAY=FILE`, the host
+simulation of `steps` reads the accelerometer readings of a recording.
 
 ## Host simulation
 

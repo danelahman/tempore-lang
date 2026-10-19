@@ -49,6 +49,7 @@
 //   sets it); a recording begins with a line "# Recording", which gives its
 //   sequence number, the identifier of its run, a random number drawn at its
 //   arming, and its number of samples, and ends with "# End of recording".
+//   At 115200 baud a copy of 3000 samples takes about 11 seconds.
 //
 // The two recordings of the last two start-ups are kept in two slots of
 // memory that is not initialised at start-up; a slot whose check word is that

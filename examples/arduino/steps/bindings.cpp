@@ -12,7 +12,8 @@
 //   bytes: the time of millis(), the clock of ReadClock, in its low 28 bits
 //   and the kind of the record in its high 4, and the acceleration in units
 //   of 1/4096 g and the angular rate in units of 1/16 degree per second, each
-//   saturated to 16 bits. The events are records of other kinds: a count of
+//   saturated to 16 bits, about 1.6 KB a second at 100 readings a second.
+//   The events are records of other kinds: a count of
 //   n steps, a reset, the start of a calibration, drawn as the Calibrate
 //   button active, which begins a new numbered recording, the end of a
 //   calibration, the button drawn idle, and the records dropped.
@@ -32,7 +33,8 @@
 //   "REC n", in red text of size 1 at the right end of the row 134.
 // - A partition whose header is not that of the format is erased and
 //   formatted at start-up, after which the device restarts: an erase stops
-//   both cores for each sector, so that the readings stall meanwhile.
+//   both cores for each sector, so that the readings stall meanwhile, for
+//   about 15 seconds.
 // - A task of core 0 reads commands from the serial port: "dump" prints the
 //   recordings, "dump N" the recording N only, and "erase" erases them and
 //   restarts the device. The dump begins with the line "# Recordings: R
