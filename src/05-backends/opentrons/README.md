@@ -79,22 +79,13 @@ A unit of duration of the program is a second unless `--time-unit` sets it.
 
 ## The simulator
 
-- The simulator is `opentrons_simulate` of the `opentrons` Python package
-  (tested with version 10.0.0), which needs Python 3.10 or later.
-- `make opentrons-deps` installs it in the virtual environment `_opentrons`
-  of the repository with the first of `python3.13`, `python3.12`,
-  `python3.11`, `python3.10` and `python3` of version 3.10 or later, and
-  fails if there is none; `make clean-opentrons` removes it, together with
-  the protocols written to `_opentrons/protocols`.
-- It can also be installed by hand, e.g.
-  `python3 -m venv venv && venv/bin/pip install opentrons==10.0.0`, and then
-  named by `--simulator` or placed on the `PATH`.
-- The simulator writes its configuration to `~/.opentrons` unless the
-  environment variable `OT_API_CONFIG_DIR` names another directory; for the
-  simulator of `_opentrons`, `--simulate` sets it to `_opentrons/config`
-  unless it is set.
-- A protocol run as a script needs Python 3.10 or later only, not the
-  `opentrons` package.
+The simulator is `opentrons_simulate` of the `opentrons` Python package
+(tested with version 10.0.0), which needs Python 3.10 or later.
+`make opentrons-deps` installs it in the virtual environment `_opentrons`,
+and `make clean-opentrons` removes it, with the protocols in
+`_opentrons/protocols`. A simulator installed otherwise is named by
+`--simulator` or found on the `PATH`. A protocol run as a script needs only
+Python 3.10 or later.
 
 ## Command line
 
@@ -172,15 +163,9 @@ each is a minute.
   immunosorbent assay under `time-interval`.
 - [`washes.tpe`](../../../examples/opentrons/washes.tpe): a bead clean-up
   with two or more ethanol washes, under
-  `regex-timed-rigid-interval-rational-symbolic`,
-  whose recursion `washes n` has the grade `{(Wash; ChangeTip)*}`: each wash
-  is followed by a fresh tip and nothing else. The operations take the
-  beads and the eluates they act on, and boxes release them: the beads to the
-  removal of the supernatant after the binding
-  `{AddBeads; ![5, 10]; MagnetOn}`, waiting only, and to the elution after
-  the washes and a strict air-dry, and the eluates to the transfer after a
-  settling of `{![2, 5]}`. The annotated grade of the clean-up excludes a
-  removal of liquid with the plate off the magnet by restricted budgets.
+  `regex-timed-rigid-interval-rational-symbolic`, each wash followed by a
+  fresh tip and nothing else, with a strict binding, a strict air-dry and no
+  removal of liquid off the magnet.
 - [`contamination.tpe`](../../../examples/opentrons/contamination.tpe): a
   ddPCR plate set-up under `time-upper-bound-levels`, whose master mix is
   boxed `(30, High)` and unboxed for each dispensing.
@@ -201,20 +186,10 @@ each is a minute.
   whose compound operations are performed by a handler through the atomic
   operations, under `regex-timed-rigid-interval-rational-symbolic`.
 - [`purification.tpe`](../../../examples/opentrons/purification.tpe): a
-  bead purification under `regex-timed-rigid-interval-rational-symbolic` whose
-  steps each take the beads in a box and return them in the box of the next
-  step, its grade the window of that step, e.g. `{[3, 5]; MagnetOff}` for
-  the air-dry before the elution buffer. The box after the first ethanol
-  wash spans the whole second wash, so that exactly two washes are accepted.
-  The ethanol soaks are strict waits, `{AddEthanol; ![1/2, 3/2]}`, during
-  which the plate stays on the magnet.
-  The eluates are boxed `{Transfer}` with a function whose call creates
-  their box `[2, 5]` of the master mix, so that its window starts on the
-  cold block. A box `[0, 40]` of the samples, whose scope encloses the
-  steps, bounds their time at room temperature, below the 47 minutes the
-  windows of the steps allow in all. Its rejected variants take the upper
-  end of several windows, wash once, and move the plate off the magnet
-  during a soak.
+  bead purification under `regex-timed-rigid-interval-rational-symbolic`
+  whose steps each take the beads in a box and return them in the box of the
+  next step, exactly two washes accepted, and whose eluates are boxed in two
+  successive stages, all within a box of the time at room temperature.
 
 ## Adding an example
 <!-- web-skip -->

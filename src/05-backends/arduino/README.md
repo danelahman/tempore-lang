@@ -346,41 +346,21 @@ durations, such as the operation counts, the period is checked by the
 monitor only, and the operations have no running-time bounds.
 
 Boxes specify how long a reading may be used and, under other grades, which
-operations must or may not precede its use.
-
-The examples under the regular expressions of timed operations use their
-rigid variants and write a grade as one expression, which is both bounds:
-
-- the operations it names are demanded, in its order;
-- the delays between them are bounded below and above;
-- another operation may come between them only within a budget, at the
-  upper bound of its running time, not within a strict wait `!d`, and
-  within a restricted budget `≥0 & ~A` only if it is not `A`;
-- a Kleene star of rounds permits these rounds only.
-
-A box grade without delays therefore excludes every operation it does not
-name, while a box grade with a delay bounds the time, and the operations
-within it only by their running times. These guarantees are relative to the
-declared bounds of the operations.
+operations must or may not precede its use. The examples under the regular
+expressions of timed operations use their rigid variants
+([Rigid regular expressions of timed operations](../../../README.md#rigid-regular-expressions-of-timed-operations)),
+whose grades demand the operations they name, in their order.
 
 ## Monitors
 
 ### Guarantees of the typing
 
-The typing is static and relative to the declared grades of the operations.
-The effect grade of each computation, accumulated from the grades of its
-operations and delays, is checked against the annotations of the functions
-and the periods of the tasks.
-
-Each boxed value, of a type `[ρ]A`, is unboxed only after a computation
-whose grade since the boxing lies below `ρ`:
-
-- under the time grades, within its window of time;
-- under the regular expressions, only after the operations they admit, in
-  the order they admit;
-- under the operation counts, after at most the operations they count.
-
-These guarantees hold of the device provided each operation behaves as its
+The typing is static and relative to the declared grades of the operations:
+the effect grade of each computation is checked against the annotations of
+the functions and the periods of the tasks, and each boxed value is unboxed
+only within its box grade
+([Temporal resources](../../../README.md#temporal-resources)). These
+guarantees hold of the device provided each operation behaves as its
 declared grade states.
 
 ### What the monitors check
@@ -439,9 +419,14 @@ directory in `_arduino/projects`. The options are:
 - `--monitor abort|warn|off` sets the monitor policy (default `abort`);
 - `--host-simulate <seconds>` builds the project on the host with `c++` and
   runs it for the given simulated time;
-- `--build` builds the project with PlatformIO; `--upload` builds it and
-  uploads it to the board, through the serial port `--port <port>` if given;
-  `--pio <path>` names the PlatformIO executable;
+- `--build` builds the project with PlatformIO (`pio run`); `--upload` builds
+  it and uploads it to the board (`pio run -t upload`), through the serial
+  port `--port <port>` if given; each passes the output of PlatformIO through
+  and exits with its exit code;
+- `--pio <path>` names the PlatformIO executable, by default `pio` on the
+  `PATH`, or else that of `_arduino/venv` in the directory of `tempore` or in
+  the current directory, run with `PLATFORMIO_CORE_DIR` set to
+  `_arduino/platformio` unless the environment sets it;
 - `--profile` builds the project with the profile;
 - `--capture <seconds>` reads the serial port (below);
 - `--package <name>`, repeatable, loads the declarations of a package for the
@@ -559,18 +544,10 @@ under the grades of its run command, and that the targets
 this file.
 
 ### Requirements
+<!-- web-skip -->
 
-- `make arduino-deps` installs PlatformIO Core 6.2.0 in the virtual
-  environment `_arduino/venv`, with the first Python of version 3.10 or
-  later; without `--pio`, `pio` on the `PATH` is used, or else that of
-  `_arduino/venv`;
-- PlatformIO keeps its platforms, toolchains and libraries in
-  `PLATFORMIO_CORE_DIR`, set to `_arduino/platformio` for the `pio` of
-  `_arduino/venv` unless the environment sets it; after building the
-  examples, `_arduino` takes about 3 GB, and `make clean-arduino` removes it;
-- the first build of a board downloads its platform and toolchain;
-- uploading needs the USB-serial driver of the board: its port is listed by
-  `pio device list` once the board is connected.
+PlatformIO Core, installed by `make arduino-deps`, and the other requirements
+are listed under [Building](../../../README.md#building) in the main README.
 
 ## Measuring running times
 
@@ -731,7 +708,8 @@ of the physical world, in simulated time, and the log is printed.
 
 The directory [`examples/arduino/`](../../../examples/arduino/) holds the
 following examples, each with its manifest, binding file and fragment,
-grouped by the board of their manifest.
+grouped by the board of their manifest. The header of each example describes
+it and names its make targets.
 
 ### M5Stack Gray
 
@@ -740,90 +718,21 @@ port variable `PORT_M5STACK_GRAY`; for `bala2-remote`, which runs the radio,
 profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
 
 - [`bala2`](../../../examples/arduino/bala2/balance.tpe): a 5 ms balancing
-  step of the robot with its supervision and calibration, and the host model
-  of a wheeled inverted pendulum.
-  - The constant `balance_point` sets the tilt at which the robot is upright.
-  - The build flag `BALANCE_LOG` logs the tilt, the gyroscope rate, the
-    drives and the encoder counts from a task of the lowest priority, whose
-    start, outside the bounds of `Publish`, the target `-log` reports under
-    the monitor policy `warn`.
-  - The build flag `BALANCE_RECORD` records them, with the speed and the
-    reference tilt of the speed loop ([Recording a run](#recording-a-run)).
+  step of the robot with its supervision and calibration; the constant
+  `balance_point` sets the tilt at which the robot is upright, and the build
+  flags `BALANCE_LOG` and `BALANCE_RECORD` log and record a run
+  ([Recording a run](#recording-a-run)).
 - [`bala2-regex`](../../../examples/arduino/bala2-regex/balance_regex.tpe):
-  the same robot under the regular expressions of timed operations, sharing
-  the binding file and host model of `bala2`.
-  - The step reads the unit, the encoders and the setpoints before it
-    commands the motors, and uses the reading of the unit only if no command
-    of the motors and no delay came between, across any number of reads of
-    the encoders and setpoints.
-  - The bias is measured from readings of the attitude at most 10 ms apart,
-    with no other operation between.
-  - The supervision disarms, calibrates, arms at least a second after its
-    prompt, drives and disarms, in this order; while it drives, each command
-    is sent again from its box within 200 ms, before it expires.
-  - Handlers, which the device does not use, simulate the robot and a fault
-    of its gyroscope in the interpreter, each case of an operation performing
-    that operation.
+  the same robot under the regular expressions of timed operations, which
+  fix the order of the operations of its step and its supervision.
 - [`bala2-remote`](../../../examples/arduino/bala2-remote/balance_remote.tpe):
-  the robot of `bala2-regex` driven by a controller over ESP-NOW, under the
-  rigid regular expressions of timed operations, with the packages
-  `esp-now` and `bala2-remote`, sharing the binding file and host model of
-  `bala2`.
-  - Under the bounds of `m5stack-gray-radio`, the step takes 1.15 to 4.6 ms,
-    and its period is 5 ms. Both tasks run on core 1, apart from the radio
-    on core 0, the step at the higher priority. The initial function of the
-    step starts the link before the first period, and the supervision
-    reports only after the first reading of the unit, which follows it.
-  - The calibration is boxed in two nested boxes. The outer box,
-    `[{≥1000 & ~Command}, {≤600000 & ~Command}]`, opens the arming at least
-    a second and at most 10 minutes after the calibration, the bias
-    drifting with the temperature, with no motion commanded since; it holds
-    a function that opens the arming window, the inner box
-    `{Attitude; ([0, 1) & ~(Receive | Command))}`, in which the robot reads
-    its tilt first and is armed less than a millisecond later, with no
-    `Receive` or `Command` in between. The calibration is of a non-eternal
-    type, built inside the inner box, so that once unboxed it is used at
-    once. The bias is the mean rate of the readings of the step, sampled
-    50 times about 10 ms apart by the operation `Reading` of the example,
-    each reading at most once by its number, without a further access to
-    the bus; the samples are taken only after `CheckAtRest` finds the robot
-    at rest, its verdict boxed with `{(Reading; !10)*}` over the samples.
-    The samples are judged at rest as `CheckAtRest` judges its readings, by
-    their variation, so that a constant bias passes, and the direction of
-    gravity over the whole window also detects a slow steady turn; else the
-    robot shows "Hold still" and measures again. The robot is
-    armed only within 10 degrees of the balance point, and else shows "Not
-    upright". The wait
-    for Arm is therefore bounded, 500 polls 400 ms apart, about 203 s,
-    written without a recursion so that its grade is a bounded repetition,
-    and each session calibrates anew.
-  - The robot sends its phase to the controller by the operation `Report`
-    of the example, bound in `bala2/bindings.cpp` for the programs that
-    perform it: calibrating at each check at rest and twice in the hold
-    that follows, calibrating after a failed check, ready at each poll for
-    Arm and armed at each iteration of the drive, at least every 572 ms.
-  - When the calibration succeeds and the wait for Arm begins, the robot
-    beeps once, 2 kHz for 80 ms.
-  - Each iteration of the drive applies the message it receives, with its
-    setpoints, within 150 ms and before any further `Receive`: a Drive
-    command, Disarm, which returns to waiting for Arm, or zero setpoints.
-  - The grade of a session is its protocol: Arm, commands and Disarm, in
-    this order; it fixes each iteration of the drive, which takes 12.5 to
-    52.8 ms. After about 2 s without a message the robot shows "Link lost"
-    and beeps once, and stays armed, and shows "Armed" again when messages
-    return.
-  - The link to the controller is encrypted, its address and key kept in
-    a link file (see
-    [Pairing the robot and the controller](#pairing-the-robot-and-the-controller));
-    the host model `controller.cpp` scripts the controller.
+  the robot of `bala2-regex` driven by the controller `bala2-controller` over
+  an encrypted ESP-NOW link, under the rigid regular expressions of timed
+  operations; the grade of a session is its protocol, Arm, commands and
+  Disarm, in this order.
 - [`wheels`](../../../examples/arduino/wheels/wheels.tpe): a wheel check of
-  the robot on a stand, under the regular expressions of timed operations.
-  - The counts of the encoders are divided by the length of the window only
-    after a drive command, 100 to 101 ms and a reading of the encoders, in
-    this order.
-  - A spin-up profile samples the encoders after the drive command, each
-    sample after a wait of 19 to 21 ms with no other operation, and shows
-    the time of each wheel to reach 90 % of its final speed.
+  the robot on a stand, its speeds and spin-up times measured over windows of
+  fixed traces.
 
 ### M5Stack CoreS3 and CoreS3 Lite
 
@@ -834,146 +743,28 @@ port variable `PORT_M5STACK_CORES3_RADIO`.
 - [`tilt`](../../../examples/arduino/tilt/tilt.tpe): a tilt display, with a
   20 ms filter step and a display task.
 - [`calibrated`](../../../examples/arduino/calibrated/calibrated.tpe): the
-  tilt display with a gyroscope bias measured at start-up and removed from
-  every reading by a tail-resumptive handler around the step, whose case of
-  `ReadImu` is checked against the grade of the operation and compiled to a
-  direct call; its host model holds the unit at rest with a biased
-  gyroscope.
+  tilt display with a gyroscope bias removed from every reading by a
+  tail-resumptive handler, compiled to a direct call.
 - [`peak`](../../../examples/arduino/peak/peak.tpe): a recorder of the peak
-  tilt in the flash memory, under the operation counts: the step performs one
-  reading and one publication and no write of the flash, and a copy of the
-  record is used only while no write of the flash has followed it.
+  tilt in the flash memory, under the operation counts.
 - [`level`](../../../examples/arduino/level/level.tpe): a digital level,
-  under the regular expressions of timed operations: a bubble vial, the pitch
-  and the roll less the offsets of a reference, the button "Set reference"
-  and the sensor button, labelled with the current and the next rate.
-  - A reference is taken after the unit is held still for a second and
-    installed only after a check at rest.
-  - The reconfiguration of the unit keeps it only after a new check at
-    rest, with no operation between.
-  - It is applied only to a reading that no reconfiguration or new reference
-    precedes within its 250 ms step, and expires after 30 seconds.
-- [`fall`](../../../examples/arduino/fall/fall.tpe): a fall detector, under
-  the regular expressions of timed operations.
-  - A free fall of at least 100 ms followed within a second by an impact is
-    a fall; it is confirmed from exactly ten readings alone, each after a
-    wait of 9.5 to 10.5 ms.
-  - After a fall, a prompt, in orange, a tone and a countdown of 10 seconds
-    with a shrinking bar precede the alarm, in red, raised only 10 to 30
-    seconds after the prompt unless a tap cancels, sounding a tone after
-    every twenty polls of the screen, 50 ms apart, until a tap stops it; it
-    shows the peak of the impact and the least magnitude of the free fall.
-  - While watching, in green, the screen shows the falls counted, the time
-    since the last event and a bar of the acceleration.
-- [`steps`](../../../examples/arduino/steps/steps.tpe): a step counter,
-  under `event-separation`: one loop reads the unit at least every 50 ms
-  and the touch screen while it redraws the screen, one band per round: the
-  state, the steps, the prompt of a reset, the Reset button, the cadence,
-  the distance at a stride of 0.7 m, and a bar of the smoothed magnitude of
-  the acceleration with its thresholds. Two buttons of 156 by 40 pixels, "Calibrate" and
-  "Reset", fill the band above the footer; a touch counts for a button when
-  it begins inside it, and elsewhere does nothing.
-  - At start-up and at each tap on Calibrate, with "Hold still" shown, the
-    Calibrate button active and no step counted, 50 readings 10 to 45 ms
-    apart give the gain and the direction of gravity. The number of samples
-    is boxed with exactly these readings, and the calibration then with the
-    beep that starts the counting; each box is returned by the function
-    that binds it. A tail-resumptive handler, applied for each session of
-    counting, applies the gain to every reading. The steps are kept from
-    one session to the next, and the loop of the sessions proves the counts
-    250 ms apart across the calibrations.
-  - The step signal is the magnitude of the acceleration, smoothed by two
-    exponential moving averages, less its slow mean, so that no orientation
-    is assumed. A step is a rise of the signal through a hysteresis of
-    0.35 times its root mean square, at least 0.03 g, decided at the second
-    reading of a round, boxed 10 to 45 ms after the first, a new sample of
-    the unit at 100 Hz, its time read by the operation `ReadClock` within
-    0.1 ms of the decision.
-  - A rise in a motion along a line, the effective dimension of the recent
-    covariance of the acceleration below 1.4, is no step and ends the run,
-    so that moving the device up and down, bouncing or shaking it counts
-    none.
-  - A rise within 0.25 s of the last is ignored, a gap above 1.5 s ends the
-    run, and a gap outside 0.5 to 1.5 times the last restarts it; steps
-    count after a run of four, then added at once. The host model plays
-    these motions and walks, and replays recordings.
-  - Each count goes through the operation `CountStep` of the example and is
-    followed by a cooldown of twelve rounds, so that the typechecker proves
-    the counts at least 250 ms apart.
-  - A tap on Reset shows "Tap Reset again to reset", with the button
-    active; a second tap on Reset within 2 s, at least 300 ms after the
-    first, resets the count through `ResetSteps`, and a tap on Calibrate
-    clears the prompt. The button of the first tap is boxed over the
-    recursive wait, which reads the unit at least every 50 ms; the steps
-    found meanwhile are passed to `CountStep` with the next count. The
-    confirming tap beeps, the counter boxed with the beep before any band
-    of the screen is redrawn.
-  - The operation `ShowButton` of the example draws a button, idle or
-    active.
-  - The handler `walk`, not compiled, replays a walk in the interpreter.
-  - Under `-DSTEPS_RECORD` the readings and the events are recorded in flash
-    memory ([Recording the step counter](#recording-the-step-counter)).
-- [`starter`](../../../examples/arduino/starter/starter.tpe): a sprint
-  start system and false-start judge, under the regular expressions of timed
-  operations.
-  - The protocol of a start is three boxes nested in each other, each holding
-    a closure that creates the next: Set at least a second after On your
-    marks, the gun 1.5 to 3 s after Set, and the athlete judged within a
-    second of the gun.
-  - The gun follows the Set command after a hold of 80 polls and as many
-    further polls as the clock gives, 1576 to 2919 ms; the time of the gun is
-    read at once, with no operation between.
-  - A box over the reaction window admits the reaction time only after
-    nothing but polls, each reading stamped at once and taken at most 2.5 ms
-    after the last stamp, so that a push is seen within about 4 ms; no push
-    in 200 polls, 540 to 810 ms, is a start without a push.
-  - The session consists of rounds of a poll of the touch screen followed by
-    a start, a reset or a wait of 50 ms.
-  - A reaction under 100 ms or a movement in Set is a false start: a warning
-    for the first, a disqualification for the second. "Stand up" abandons a
-    start before the gun, and "Reset" clears the tally.
-  - The host model observes the tones of the Set command and of the gun
-    through `m5_speaker_observe` and scripts the pushes after them.
+  under the regular expressions of timed operations, whose reference is
+  applied only to readings that no reconfiguration of the unit precedes
+  unchecked; its header describes its use.
+- [`fall`](../../../examples/arduino/fall/fall.tpe): a fall detector, a free
+  fall and an impact within a second, with an alarm raised 10 to 30 seconds
+  after a prompt that a tap cancels.
+- [`steps`](../../../examples/arduino/steps/steps.tpe): a step counter, under
+  `event-separation`, which reads the unit at least every 50 ms and proves the
+  counts at least 250 ms apart; under `-DSTEPS_RECORD` it records its
+  readings ([Recording the step counter](#recording-the-step-counter)).
+- [`starter`](../../../examples/arduino/starter/starter.tpe): a sprint start
+  system and false-start judge, the gun 1.5 to 3 s after Set and the start
+  judged within a second of it.
 - [`bala2-controller`](../../../examples/arduino/bala2-controller/controller.tpe):
-  the controller of [`bala2-remote`](#m5stack-gray), under the rigid
-  regular expressions of timed operations, with the packages `esp-now` and
-  `bala2-remote`.
-  - The grade of a session is its protocol: Beat until a tap on Arm, Arm 80
-    times, for 1 s, and then until the status of the robot confirms, Drive
-    or Beat until a tap on Disarm, and Disarm 20 times, each message under
-    50 ms after the last.
-  - A tone of 60 ms, `Beep`, acknowledges an accepted tap: 1760 Hz on Arm
-    and 880 Hz on Disarm, before the first message that follows it.
-  - An armed iteration drives only on the latest status of the robot,
-    received at most 200 ms earlier, if it is armed, and else sends Beat
-    and shows "No link"; the tilt of the robot is shown from that status.
-  - Drive takes the speed from the pitch and the turn from the roll, so
-    that a tilt forwards drives the robot forwards and a tilt to the right
-    turns it to the right, each with a dead zone of 5 degrees and bounded,
-    of a reading boxed so that it is the latest and at most 2 ms old,
-    measured from the neutral tilt recorded at the tap on Arm, boxed with
-    `{≥0 & ~SendDisarm}` so that it is used only within its session.
-  - A bubble level, `DrawLevel`, shows the tilt beyond the neutral tilt in
-    its direction, a tilt forwards moving the bubble up and a tilt to the
-    right moving it right: the dead zone fills the inner circle and the
-    bounds of the speed and the turn reach the edge; green while the robot
-    confirms, grey without a link, dark grey while disarmed. The buttons
-    Arm and Disarm stay below it.
-  - An armed iteration redraws at most one item: the state when it
-    changes, else the guidance line, cleared once, or else the bubble or
-    the tilt of the robot, in turn.
-  - It shows at the start, right of the bubble level, whether `LinkStart`
-    reports the link encrypted: "Encrypted" in green, as every link of
-    `esp-now` is, or else "Not encrypted" in amber.
-  - While disarmed, it receives the status of the robot after each Beat and
-    shows a line of guidance above the bubble level, redrawn when it
-    changes, from the phase of the latest status: "Hold the robot upright
-    and still", "Hold still", "Robot ready: tap Arm" in green, or "Switch
-    on the robot" after about 1 s without a status, 90 iterations.
-  - The link to the robot is encrypted, its address and key kept in a
-    link file (see
-    [Pairing the robot and the controller](#pairing-the-robot-and-the-controller));
-    the host model `world.cpp` tilts and taps the device.
+  the controller of [`bala2-remote`](#m5stack-gray), driving the robot by the
+  tilt of the device and arming and disarming it by touch, under the rigid
+  regular expressions of timed operations.
 
 #### Pairing the robot and the controller
 
@@ -1053,27 +844,6 @@ and writes the violation to the serial port; it is restarted by its reset
 button. A robot that falls with its lights off has lost its power: the
 battery in its base, charged through the USB-C port of the Gray, is too
 weak for the motors.
-
-#### Using the digital level
-
-1. Place it on the surface taken as the reference and tap "Set reference".
-   It asks to hold still, and a second later reads the unit and checks that
-   it is at rest, with a high tone, or rejects the reference as moved during
-   the check, with a low tone.
-2. Placed on another surface, it then shows the angles relative to the
-   reference, the bubble green and "LEVEL" within half a degree.
-
-The reference becomes invalid, and must be set again,
-
-- when it is rejected;
-- when the sensor button reconfigures the unit, which switches the output
-  data rate of its accelerometer between 100 and 400 Hz, the current and the
-  next rate shown on the button (`Sensor 100->400Hz`);
-- when it expires 30 seconds after it was set, its time left shown
-  meanwhile.
-
-Without a valid reference the bubble is grey and the angles are those of the
-unit.
 
 ## Adding a board, a package or an example
 <!-- web-skip -->

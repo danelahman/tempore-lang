@@ -52,7 +52,9 @@ with its platforms, toolchains and libraries in `_arduino/platformio`:
 
     make arduino-deps
 
-Only the options `--build` and `--upload` need it; `make clean-arduino`
+Only the options `--build` and `--upload` need it. The first build for a board
+downloads its platform and toolchain, and an upload needs the USB-serial driver
+of the board, whose port `pio device list` then lists. `make clean-arduino`
 removes `_arduino`, together with the projects written to `_arduino/projects`.
 
 The Opentrons simulator, used only to simulate the protocols of the
@@ -104,26 +106,10 @@ Command-line options:
   Opentrons protocol (see [Opentrons](#opentrons));
 - `--emit-arduino <directory>` typechecks the files and writes them, compiled to
   C++, to the given directory, without running them; a name without a
-  directory component names a directory in `_arduino/projects`. Further
-  options of the Arduino backend (see [Arduino](#arduino)):
-  - `--host-runs` also writes the `run` commands and a main program for the
-    host that executes them;
-  - `--device <manifest.json>` writes a PlatformIO project of the device the
-    manifest describes, monitored under `--monitor abort|warn|off` (default
-    `abort`); the declarations of the peripheral packages the manifest lists
-    are loaded before the files;
-  - `--host-simulate <seconds>` builds the project and runs it on the host
-    for the given simulated time;
-  - `--build` builds the project with PlatformIO (`pio run`), and `--upload`
-    builds it and uploads it to the board (`pio run -t upload`), through the
-    serial port of `--port <port>` if given, each passing the output of
-    PlatformIO through and exiting with its exit code;
-  - `--profile` builds the project with the profile of its running times,
-    and `--capture <seconds>` reads the serial port after the upload;
-  - `--pio <path>` names the executable, by default `pio` on the `PATH`, or
-    else that of `_arduino/venv` in the directory of `tempore` or in the
-    current directory, run with `PLATFORMIO_CORE_DIR` set to
-    `_arduino/platformio` unless the environment sets it;
+  directory component names a directory in `_arduino/projects`; the further
+  options of the Arduino backend, such as `--device`, `--host-simulate`,
+  `--build` and `--upload`, are listed in its
+  [README](src/05-backends/arduino/README.md#command-line);
 - `--package <name>`, repeatable, loads the declarations of a peripheral
   package of the Arduino backend before the files, so that a program run by
   the interpreter performs its operations by their default implementations;
@@ -191,14 +177,6 @@ e.g., <https://tempore-lang.ee/?example=arduino/bala2/balance.tpe&line=42>.
   `line` other than a decimal number of a line of the example (leading zeros
   allowed), or without `example`. The choices not given by the address are
   those the browser remembers.
-
-#### Run timelines
-
-A run shows its [timeline](#interpreter) above the reductions, folded under its
-title under Interpreter and unfolded under Arduino and Opentrons; the events inside default
-implementations are greyed; under Opentrons the title states the time unit,
-`Timeline (one time unit = 1 min)`. Long grades are shortened; a shortened cell shows
-its full text as a tooltip and, when clicked, in place.
 
 ## Temporal resources
 
@@ -1669,46 +1647,22 @@ Long grades are shortened for display between their events, the grade
 accumulated to its last events and a box grade to its first;
 `--timeline-full` prints them in full.
 
+The web interface shows the timeline of a run above its reductions, folded
+under Interpreter and unfolded under Arduino and Opentrons, the events inside
+default implementations greyed; a shortened cell shows its full grade as a
+tooltip and, when clicked, in place.
+
 ### Arduino
 
-The proof-of-concept Arduino backend compiles a fragment of
-Tempore to allocation-free C++ and generates a PlatformIO project for an
-Arduino or ESP32 board, with FreeRTOS tasks. A device manifest names the
-board, the periodic and free tasks and the peripheral packages, which declare
-operations with running-time bounds measured on the boards. The program is
-typed against those bounds and the periods of its tasks. The details are in
+The proof-of-concept Arduino backend compiles a fragment of Tempore to
+allocation-free C++ and generates a PlatformIO project for an Arduino or ESP32
+board, with FreeRTOS tasks. A device manifest names the board, the periodic
+and free tasks and the peripheral packages, which declare operations with
+running-time bounds measured on the boards. The program is typed against those
+bounds and the periods of its tasks, and run-time monitors on the device check
+them. The details and the examples, in
+[`examples/arduino/`](examples/arduino/), are in
 [`src/05-backends/arduino/README.md`](src/05-backends/arduino/README.md).
-
-- The guarantees of the typing, on effects, boxes and their grades, are
-  relative to the declared bounds of the operations. The grades are erased
-  in the compiled code, and run-time monitors on the device check those
-  bounds and the periods of the tasks: a violation puts it in its safe state,
-  is logged, or is not checked, under the monitor policy `abort`, `warn` or
-  `off`.
-- Watchdogs and the safe state are mechanisms of the C++
-  packages and of the application, outside the typing.
-- Local functions, functions as values, lists, recursion other than self
-  calls in tail position, and handlers that are not tail-resumptive are
-  refused; tail-resumptive handlers are compiled to direct calls.
-
-The examples in [`examples/arduino/`](examples/arduino/), by board:
-
-- M5Stack Gray, the core of the BALA2 robot:
-  [`bala2`](examples/arduino/bala2/balance.tpe), a balancing step;
-  [`bala2-regex`](examples/arduino/bala2-regex/balance_regex.tpe), the same
-  under the regular expressions of timed operations;
-  [`bala2-remote`](examples/arduino/bala2-remote/balance_remote.tpe), the
-  robot driven over ESP-NOW, under the rigid regular expressions;
-  [`wheels`](examples/arduino/wheels/wheels.tpe), a wheel check.
-- M5Stack CoreS3: [`tilt`](examples/arduino/tilt/tilt.tpe), a tilt display;
-  [`calibrated`](examples/arduino/calibrated/calibrated.tpe), with a
-  gyroscope bias removed by a handler; [`peak`](examples/arduino/peak/peak.tpe),
-  a peak recorder; [`level`](examples/arduino/level/level.tpe), a digital
-  level; [`fall`](examples/arduino/fall/fall.tpe), a fall detector;
-  [`steps`](examples/arduino/steps/steps.tpe), a step counter;
-  [`starter`](examples/arduino/starter/starter.tpe), a sprint start system;
-  [`bala2-controller`](examples/arduino/bala2-controller/controller.tpe),
-  the controller of `bala2-remote`, under the rigid regular expressions.
 
 #### Quick start
 <!-- web-skip -->
@@ -1732,43 +1686,9 @@ Opentrons Python protocol for the Opentrons Flex, accepted by the Opentrons
 App and by the simulator `opentrons_simulate`. A binding file in Python loads
 the labware, pipettes and modules and implements the operations. The program
 is executed by an abstract machine included in the file, and run-time
-monitors check the running-time bounds of the operations. The details are in
+monitors check the running-time bounds of the operations. The details and the
+examples, in [`examples/opentrons/`](examples/opentrons/), are in
 [`src/05-backends/opentrons/README.md`](src/05-backends/opentrons/README.md).
-
-- Handlers, continuations and recursion behave as in the small-step
-  interpreter; grades are erased.
-- A call of a binding function outside the running-time bounds of its
-  operation ends the protocol with an error, is reported by a comment, or is
-  not checked, under the monitor policy `abort`, `warn` or `off`.
-- A protocol is refused when the code of a `run` command may perform an
-  operation that has neither a binding function, nor a default
-  implementation, nor a case in a handler of that code.
-
-The examples in [`examples/opentrons/`](examples/opentrons/), each with a
-binding file and a rejected variant:
-
-- [`elisa`](examples/opentrons/elisa.tpe), an enzyme-linked immunosorbent
-  assay;
-- [`washes`](examples/opentrons/washes.tpe), a bead clean-up with two or more
-  ethanol washes, each followed by a fresh tip;
-- [`contamination`](examples/opentrons/contamination.tpe), a ddPCR plate
-  set-up;
-- [`reagents`](examples/opentrons/reagents.tpe), a tagmentation with boxed
-  reagents;
-- [`staggered`](examples/opentrons/staggered.tpe), a fixation of columns at
-  staggered times;
-- [`beads`](examples/opentrons/beads.tpe), a bead clean-up with boxed beads;
-- [`binding`](examples/opentrons/binding.tpe), a bead binding with the beads
-  mixed every 2 to 5 minutes;
-- [`enzyme`](examples/opentrons/enzyme.tpe), a reaction set-up with an
-  enzyme mix at most 30 minutes out of the cold block;
-- [`stopread`](examples/opentrons/stopread.tpe), a stop and read with boxed
-  plates;
-- [`cleanup`](examples/opentrons/cleanup.tpe), a bead clean-up by compound
-  operations implemented by a handler;
-- [`purification`](examples/opentrons/purification.tpe), a bead purification
-  whose steps unbox and rebox the beads, within a box of the whole run, and
-  whose eluates are boxed in two successive stages.
 
 #### Quick start
 <!-- web-skip -->
