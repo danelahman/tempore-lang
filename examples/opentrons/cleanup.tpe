@@ -1,15 +1,18 @@
 (* A bead clean-up on the Opentrons Flex whose steps are compound operations,
    implemented by a handler in terms of the atomic operations of the robot.
 
-   Run this example with the 'regex-timed-rigid-interval-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-rigid-interval-symbolic \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        examples/opentrons/cleanup.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 (* Modelled on the Opentrons Protocol Library protocols kapa-amp-cleanup (a
@@ -26,7 +29,7 @@
    A tick is a minute. The protocol for the Flex, with the atomic operations
    performed by the functions of 'cleanup_bindings.py', is written by
 
-     ./tempore --grades regex-timed-rigid-interval-symbolic \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        --emit-opentrons cleanup.py \
        --bind examples/opentrons/cleanup_bindings.py \
        --time-unit minutes \
@@ -51,16 +54,16 @@ type beads = string
 operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
 default AddBeads () = delay 2
 
-operation MagnetOn : unit ~> unit # {MagnetOn} within [0, 1]
+operation MagnetOn : unit ~> unit # {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1
 
-operation MagnetOff : unit ~> unit # {MagnetOff} within [0, 1]
+operation MagnetOff : unit ~> unit # {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1
 
 operation RemoveLiquid : unit ~> unit # {RemoveLiquid} within [1, 2]
 default RemoveLiquid () = delay 1
 
-operation AddEthanol : unit ~> unit # {AddEthanol} within [0, 1]
+operation AddEthanol : unit ~> unit # {AddEthanol} within (0, 1]
 default AddEthanol () = delay 1
 
 operation RemoveEthanol : unit ~> unit # {RemoveEthanol} within [1, 2]
@@ -130,13 +133,11 @@ let cleanup (beads : beads) =
    without the minute of washing:
 
      Typing error: Variable `k` is unboxed with grade
-       `[{AddEthanol; RemoveEthanol}, {AddEthanol; RemoveEthanol}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]`
+       `{AddEthanol; RemoveEthanol}` accumulated since it was bound, which is
+       not below its box grade `{AddEthanol; 1; RemoveEthanol}`
        Note: the resource inequality
-       `[{AddEthanol; RemoveEthanol}, {AddEthanol; RemoveEthanol}] <=
-       [{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]`
-       does not hold
+       `{AddEthanol; RemoveEthanol} <= {AddEthanol; 1; RemoveEthanol}` does
+       not hold
 *)
 (*
 let no_wait =

@@ -400,28 +400,7 @@ let rec of_regex : GradeLiteral.regex -> t = function
   | Star r -> star (of_regex r)
   | Repeat (r, c) -> repeat (of_regex r) c
   | Strict _ as r -> GradeLiteral.strict_unsupported r
-
-(** The strict delays of the rigid grades. *)
-module Strict = StrictDelays.Make (struct
-  type nonrec t = t
-
-  let eps = eps
-  let name n = names_atom (Letters.name n)
-  let operations = names_atom (Letters.others StrictDelays.markers)
-  let delay = delays_atom DelaySet.positive
-  let positive = delay
-  let of_delays = of_regex
-  let nullable = nullable
-  let concat = concat
-  let union = union
-  let inter = inter
-  let compl = compl
-  let star = star
-  let repeat = repeat
-end)
-
-let of_strict_regex = Strict.of_regex
-let strict_top = Strict.words
+  | (Below _ | Above _) as r -> GradeLiteral.one_sided_unsupported r
 
 (** {1 Traversals} *)
 

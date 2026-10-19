@@ -135,8 +135,8 @@ let rec unroll = function
   | Grade.Star r -> Grade.Star (unroll r)
   | Grade.Compl r -> Grade.Compl (unroll r)
   | Grade.Strict r -> Grade.Strict (unroll r)
-  | (Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _ | Grade.Any)
-    as r ->
+  | ( Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _ | Grade.Any
+    | Grade.Below _ | Grade.Above _ ) as r ->
       r
 
 (* Random expressions with bounded repetitions over the names [A] and [B]. *)
@@ -181,7 +181,8 @@ let rec matches r w =
   | Grade.Union (r, s) -> matches r w || matches s w
   | Grade.Inter (r, s) -> matches r w && matches s w
   | Grade.Compl r -> not (matches r w)
-  | Grade.Strict _ -> invalid_arg "matches: a strict delay"
+  | Grade.Strict _ | Grade.Below _ | Grade.Above _ ->
+      invalid_arg "matches: a strict delay"
   | Grade.Star r' ->
       w = []
       || List.exists
@@ -340,7 +341,7 @@ struct
       rejects "{(1, 2)}" "`(1, 2)` contains no whole number of time steps";
       rejects "{[1/2, 2]}" "whole numbers of time steps";
       rejects "{(1, 1]}" "n < m at an open endpoint";
-      rejects "{<1}" "parser error";
+      rejects "{<1}" "one-sided lengths `<1` are read by the rigid grades";
     ]
 
   (* Interval atoms abbreviate sets of numbers of ticks. *)

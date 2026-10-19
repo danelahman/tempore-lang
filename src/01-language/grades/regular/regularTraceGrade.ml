@@ -69,6 +69,7 @@ let dfa_of_regex names =
     | Repeat (r, c) -> go (unrolled r c)
     | Compl r -> Dfa.complement (go r)
     | Strict _ as r -> strict_unsupported r
+    | (Below _ | Above _) as r -> one_sided_unsupported r
   in
   go
 

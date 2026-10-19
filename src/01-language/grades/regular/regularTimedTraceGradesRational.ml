@@ -64,9 +64,9 @@ end
 module type DECISIONS = sig
   type t
 
-  val in_allowance : rigid:bool -> World.t -> t -> t -> bool
+  val in_allowance : World.t -> t -> t -> bool
   val in_coverage : World.t -> t -> t -> bool
-  val allowance : rigid:bool -> World.t -> t -> t -> A.symbol list option
+  val allowance : World.t -> t -> t -> A.symbol list option
   val coverage : World.t -> t -> t -> A.symbol list option
   val min_weight : World.t -> t -> (Rational.t * bool) option
   val max_weight : World.t -> t -> (Rational.t * bool) option
@@ -83,12 +83,9 @@ module ByAutomata = struct
   let on decide (world : World.t) rho rho' =
     decide world.operations (L.automaton rho) (L.automaton rho')
 
-  let allowance ~rigid = on (Closure.allowance ~rigid)
+  let allowance = on Closure.allowance
   let coverage = on Closure.coverage
-
-  let in_allowance ~rigid world rho rho' =
-    Option.is_none (allowance ~rigid world rho rho')
-
+  let in_allowance world rho rho' = Option.is_none (allowance world rho rho')
   let in_coverage world rho rho' = Option.is_none (coverage world rho rho')
 
   let on_one decide (world : World.t) rho =
@@ -133,16 +130,9 @@ module ByGaps = struct
           RationalRegex.hash (L.form rho') )
         (fun () -> f world rho rho')
 
-  (* [by_order decide] is [decide ~rigid] for each [rigid], tabulated
-     separately. *)
-  let by_order decide =
-    let loose = tabulated (on_pair (decide ~rigid:false))
-    and rigid = tabulated (on_pair (decide ~rigid:true)) in
-    fun ~rigid:r -> if r then rigid else loose
-
-  let in_allowance = by_order Closure.Graph.in_allowance
+  let in_allowance = tabulated (on_pair Closure.Graph.in_allowance)
   let in_coverage = tabulated (on_pair Closure.Graph.in_coverage)
-  let allowance = by_order Closure.Graph.allowance
+  let allowance = tabulated (on_pair Closure.Graph.allowance)
   let coverage = tabulated (on_pair Closure.Graph.coverage)
   let min_weight = on Closure.Graph.min_weight
   let max_weight = on Closure.Graph.max_weight
@@ -150,15 +140,15 @@ module ByGaps = struct
 end
 
 (* The grades over the languages [L], decided by [D], their names ending in
-   [N.suffix], the rigid ones reading the literals, delays and top [S]. *)
+   [N.suffix]. *)
 module Make
     (L : Grade.S with type Delay.t = Delay.Rational.t)
-    (S : StrictDelays.GRADE with type grade = L.t and type delay = Rational.t)
     (D : DECISIONS with type t = L.t)
     (N : sig
       val suffix : string
     end) =
-  RegularTimedOrders.Make (L) (S)
+  RegularTimedOrders.Make
+    (L)
     (struct
       type grade = L.t
       type delay = L.Delay.t
@@ -168,11 +158,9 @@ module Make
       let suffix = "-rational" ^ N.suffix
 
       (* [running_time endpoint bounds name] is the extremal value of the
-         [endpoint] of the running-time bounds of the operation [name]; the
-         names that encode strict delays take no time. *)
+         [endpoint] of the running-time bounds of the operation [name]. *)
       let running_time endpoint bounds name =
-        if GradeLiteral.is_marker name then DelaySet.Finite (Rational.zero, true)
-        else extremum (endpoint (bounds.running_time name))
+        extremum (endpoint (bounds.running_time name))
 
       (* [classes running_time names] is the classes of the names [names] of
          equal running times, each with its running time and its names in
@@ -229,8 +217,8 @@ module Make
          grades [rhos]: its operations, each with the extremal value of the
          [endpoint] of its running-time bounds as its running time, are the
          names [rhos] mention, and of the other declared operations, which
-         [rhos] do not tell apart, the least name of each running time; the
-         names that encode strict delays take no time. *)
+         [rhos] do not tell apart, the least name of each running time. *)
+
       let world endpoint bounds rhos =
         worlds bounds endpoint
           (List.sort_uniq String.compare (List.concat_map L.events rhos))
@@ -281,16 +269,13 @@ module Make
     end)
 
 include
-  Make (RegularTraceGradeRational) (RegularTraceGradeRational.Strict) (ByGaps)
+  Make (RegularTraceGradeRational) (ByGaps)
     (struct
       let suffix = "-symbolic"
     end)
 
 module Automata =
-  Make
-    (RegularTraceGradeRational.Automata)
-    (StrictDelays.Without (RegularTraceGradeRational.Automata))
-    (ByAutomata)
+  Make (RegularTraceGradeRational.Automata) (ByAutomata)
     (struct
       let suffix = "-automata"
     end)

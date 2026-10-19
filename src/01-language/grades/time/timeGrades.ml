@@ -60,6 +60,7 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let plus n = Some n
     let commutative = true
     let needs_op_bounds = false
+    let duration_ends = Grade.Both_ends
     let events _ = []
     let duration_bounds _bounds n = Some (Closed (D.to_rational n), Unbounded)
     let inhabited _bounds _ = true
@@ -99,6 +100,7 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let plus n = Some (if Ext.equal n one then one else Ext.Inf)
     let commutative = true
     let needs_op_bounds = false
+    let duration_ends = Grade.Both_ends
     let events _ = []
 
     let duration_bounds _bounds = function
@@ -207,6 +209,7 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
 
     let commutative = true
     let needs_op_bounds = false
+    let duration_ends = Grade.Both_ends
     let events _ = []
 
     let duration_bounds _bounds c =

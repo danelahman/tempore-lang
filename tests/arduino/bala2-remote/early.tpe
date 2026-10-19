@@ -3,12 +3,11 @@
    balance_remote.tpe. *)
 
 let session_early () =
-  let aged, still = calibrate () in
+  let calibrated = calibrate () in
   perform ShowTextAt (0, 100, 2, "Hold upright");
   delay 1000;
-  unbox aged as calibration in
+  unbox calibrated as calibration in
   if wait_arm () then (
-    unbox still as _ in
     perform Arm calibration;
     drive 4000000000 0)
   else ()

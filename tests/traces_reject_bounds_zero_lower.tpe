@@ -1,0 +1,10 @@
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound \
+       tests/traces_reject_bounds_zero_lower.tpe
+
+   Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
+   grading monoid: an operation's running time must be positive, its lower
+   running-time bound above 0 or open at 0. *)
+
+operation Heat : unit ~> unit # {Heat} within [0, 2]

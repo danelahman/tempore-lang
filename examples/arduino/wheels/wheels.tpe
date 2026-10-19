@@ -10,10 +10,13 @@
        --board m5stack-gray \
        examples/arduino/wheels/wheels.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces with rational durations
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 (* Runs on the M5Stack Gray core of the BALA2 on a stand, its wheels off the
@@ -32,10 +35,10 @@
    bindings are those of examples/arduino/tilt, and their bounds those
    measured there. *)
 
-operation Publish : float ~> unit # {Publish} within [0, 0.05]
+operation Publish : float ~> unit # {Publish} within (0, 0.05]
 default Publish _ = delay 1/100
 
-operation Latest : unit ~> float # {Latest} within [0, 0.05]
+operation Latest : unit ~> float # {Latest} within (0, 0.05]
 default Latest () = delay 1/100; 0.0
 
 (* The period of the step, in seconds, and the weight of the gyroscope in the
@@ -81,11 +84,9 @@ let spin (drive : int) : float * float =
    wait, just before the encoders are read, so that the counts are read 0.2
    to 0.45 ms after the drive command, not 100 to 101 ms:
 
-     Typing error: Variable `window` is unboxed with grade `[{!100.5;
-       SetMotors; ReadEncoders}, {!100.5; SetMotors; ReadEncoders}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101];
-       ReadEncoders}]`
+     Typing error: Variable `window` is unboxed with grade `{!100.5;
+       SetMotors; ReadEncoders}` accumulated since it was bound, which is not
+       below its box grade `{SetMotors; [100, 101]; ReadEncoders}`
        ...
 *)
 (*
@@ -104,11 +105,9 @@ let spin_unordered (drive : int) : float * float =
    within the window, which takes up to 12.5 ms, so that the counts may be
    read up to 113 ms after the drive command:
 
-     Typing error: Variable `window` is unboxed with grade `[{SetMotors;
-       ShowNumber; !100.5; ReadEncoders}, {SetMotors; ShowNumber; !100.5;
-       ReadEncoders}]` accumulated since it was bound, which is not below its
-       box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors;
-       [100, 101]; ReadEncoders}]`
+     Typing error: Variable `window` is unboxed with grade `{SetMotors;
+       ShowNumber; !100.5; ReadEncoders}` accumulated since it was bound, which
+       is not below its box grade `{SetMotors; [100, 101]; ReadEncoders}`
        ...
 *)
 (*
@@ -178,14 +177,11 @@ let profile (drive : int) : float * float =
    budget delays in place of the strict ones, the box would admit the
    command, of at most 0.45 ms, beside a wait of 19.75 ms:
 
-     Typing error: Variable `spaced` is unboxed with grade `[{SetMotors;
+     Typing error: Variable `spaced` is unboxed with grade `{SetMotors;
        !19.75; ReadEncoders; SetMotors; !19.75; ReadEncoders; !19.75;
-       ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}, {SetMotors;
-       !19.75; ReadEncoders; SetMotors; !19.75; ReadEncoders; !19.75;
-       ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{SetMotors; (![19, 21]; ReadEncoders)*}, {SetMotors; (![19, 21];
-       ReadEncoders)*}]`
+       ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}` accumulated
+       since it was bound, which is not below its box grade `{SetMotors;
+       (![19, 21]; ReadEncoders)*}`
        ...
 *)
 (*

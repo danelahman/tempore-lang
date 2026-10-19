@@ -24,7 +24,7 @@ followed by the cooldown, so that two counts may be 10.05 ms apart:
   [1]
   $ grep -o 'Typing error: This function.s body has grade\|CountStep: active ([^;]*' eager.log
   Typing error: This function's body has grade
-  CountStep: active ([10.4, ∞), [10.05, ∞), [0, ∞))
+  CountStep: active ((10.4, ∞), (10.05, ∞), [0, ∞))
 
 The second: the wait for the second tap on Reset reads only the touch
 screen, so that the unit is not read while the prompt is shown:

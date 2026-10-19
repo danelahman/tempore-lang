@@ -123,6 +123,12 @@ type completeness = Delay.completeness =
           grade *)
   | Partial  (** a condition may hold at every witness and fail elsewhere *)
 
+(** The ends of the durations of a grade that it bounds ({!S.duration_ends}). *)
+type ends = Both_ends | Lower_end | Upper_end
+
+val union_ends : ends -> ends -> ends
+(** [union_ends e e'] is the ends bounded by [e] or by [e']. *)
+
 module type S = sig
   type t
   (** The carrier. *)
@@ -194,6 +200,13 @@ module type S = sig
   val needs_op_bounds : bool
   (** Whether operation signatures must carry their running-time bounds
       [within [lo, hi]]. *)
+
+  val duration_ends : ends
+  (** The ends of {!duration_bounds} that the grade bounds, against which the
+      duration of a default implementation is checked against the declared
+      running-time bounds of its operation: [Upper_end] for a grade that bounds
+      durations above only, [Lower_end] for one that bounds them below only,
+      [Both_ends] otherwise. *)
 
   val duration_bounds :
     bounds -> t -> (Rational.t bound * Rational.t bound) option

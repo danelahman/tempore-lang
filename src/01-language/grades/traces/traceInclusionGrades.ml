@@ -32,6 +32,7 @@ module Make (D : Delay.S) (N : TimedTraceGrades.NAMES) = struct
     let plus _ = None
     let commutative = false
     let needs_op_bounds = false
+    let duration_ends = Grade.Both_ends
     let duration_bounds _bounds _ = None
     let inhabited _bounds _ = true
 
@@ -42,7 +43,7 @@ module Make (D : Delay.S) (N : TimedTraceGrades.NAMES) = struct
       let lo, hi = hull b in
       if D.equal lo hi then of_delay lo else Unbounded
 
-    let of_lit = of_lit ~strict:false ~number:N.number
+    let of_lit = of_lit ~number:N.number
     let accepts = Grade.reads_lit of_lit
     let is_atomic name p = compare p (Within [ [ Trace.Ev name ] ]) = 0
     let witnesses ~degree:_ _bounds = sampled mul

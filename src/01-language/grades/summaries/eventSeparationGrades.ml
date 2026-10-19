@@ -241,6 +241,7 @@ let unit_least = false
 let plus _ = None
 let commutative = false
 let needs_op_bounds = true
+let duration_ends = Grade.Both_ends
 let of_delay = Terms.of_delay
 let witnesses ~degree:_ _bounds = sampled mul
 
@@ -264,6 +265,8 @@ let of_braces lit r =
     | Seq (r, s) -> mul (go r) (go s)
     | Union (r, s) -> join (go r) (go s)
     | Strict _ as r -> component_of_lit lit ~context:"" strict_unsupported r
+    | (Below _ | Above _) as r ->
+        component_of_lit lit ~context:"" one_sided_unsupported r
     | Repeat (r, ({ most = Some _; _ } as c)) -> go (unrolled r c)
     | Any | Star _ | Repeat _ | Inter _ | Compl _ ->
         invalid_lit lit

@@ -126,13 +126,6 @@ let group key rs =
     (fun (k, members) -> (k, List.rev members))
     (List.fold_left add [] rs)
 
-(** [is_marker r] is whether [r] is the one-letter word of a name that encodes a
-    strict delay ({!StrictDelays}). *)
-let is_marker = function
-  | Letters { tick = false; names = Only [ name ] } ->
-      GradeLiteral.is_marker name
-  | _ -> false
-
 (** [first_part rs] splits the factors [rs] after their first part: a maximal
     run of ticks, printed as one integer, or else their first factor. *)
 let first_part = function
@@ -195,13 +188,7 @@ and absorb_eps rs =
     common factors factored out. *)
 and factor rs =
   let factored split join =
-    let groups =
-      List.concat_map
-        (fun (x, members) ->
-          if is_marker x then List.map (fun r -> (x, [ r ])) members
-          else [ (x, members) ])
-        (group (fun r -> fst (split r)) rs)
-    in
+    let groups = group (fun r -> fst (split r)) rs in
     if List.length groups = List.length rs then None
     else
       Some
@@ -302,7 +289,7 @@ let rec reverse = function
 
 (** {1 Printing} *)
 
-type factor = Ticks of int | Factor of t | Strict of t list
+type factor = Ticks of int | Factor of t
 
 (** [group_ticks rs] joins the runs of ticks of the factors [rs] into their
     number. *)
@@ -328,11 +315,7 @@ let rec size = function
   | Eps -> 1
   | Letters p -> letters_size p
   | Seq rs ->
-      let part = function
-        | Ticks _ -> 1
-        | Factor r -> size r
-        | Strict rs -> 1 + size (seq rs)
-      in
+      let part = function Ticks _ -> 1 | Factor r -> size r in
       let parts = group_ticks rs in
       List.fold_left (fun n p -> n + part p) (List.length parts - 1) parts
   | Union rs | Inter rs ->
@@ -357,104 +340,21 @@ let alternatives = function
   | [ item ] -> atom item
   | items -> { text = String.concat " | " items; level = 0 }
 
-(* A cofinite letter set that leaves out the names encoding strict delays is
-   printed as one of the rigid grades, whose [_] has strict delays too. *)
 let print_letters (p : Letters.t) =
   let ticks tick = if tick then [ "1" ] else [] in
   match p.names with
   | Only names -> alternatives (ticks p.tick @ names)
   | Except [] when p.tick -> atom "_"
-  | Except names when StrictDelays.has_markers names ->
-      let delays = if p.tick then [] else [ "(0, ∞)" ] in
-      let excluded =
-        alternatives (delays @ ("!(0, ∞)" :: StrictDelays.operations names))
-      in
-      { text = "_ & ~" ^ at 3 excluded; level = 1 }
   | Except names ->
       let excluded = alternatives (ticks (not p.tick) @ names) in
       { text = "_ & ~" ^ at 3 excluded; level = 1 }
-
-(** [strict_parts rs] is the factors [rs] with each strict delay, the factors
-    between a name that opens one and the next that closes it, taken together.
-*)
-let strict_parts rs =
-  let opening = letters (Letters.name GradeLiteral.strict_opening)
-  and closing = letters (Letters.name GradeLiteral.strict_closing) in
-  let rec go = function
-    | r :: rest when equal r opening -> (
-        let rec body acc = function
-          | c :: rest' when equal c closing -> Some (List.rev acc, rest')
-          | c :: _ when is_marker c -> None
-          | x :: rest' -> body (x :: acc) rest'
-          | [] -> None
-        in
-        match body [] rest with
-        | Some (body, rest') -> Strict body :: go rest'
-        | None -> Factor r :: go rest)
-    | r :: rest -> Factor r :: go rest
-    | [] -> []
-  in
-  go rs
-
-(** [tick_count rs] is the number of the factors [rs] if they are all ticks. *)
-let tick_count rs =
-  if List.for_all is_tick rs then Some (List.length rs) else None
-
-(** [any_parts rs] is the operands [rs] of a union with the letter set that
-    leaves out the names encoding strict delays and the strict delays of any
-    positive duration replaced by the wildcard of the rigid grades, printed: [_]
-    if the letter set holds [tick], [!_] otherwise. *)
-let any_parts rs =
-  let positive =
-    seq
-      [
-        letters (Letters.name GradeLiteral.strict_opening);
-        letters Letters.tick;
-        star (letters Letters.tick);
-        letters (Letters.name GradeLiteral.strict_closing);
-      ]
-  in
-  let cofinite = function
-    | Letters ({ names = Except names; _ } as p)
-      when StrictDelays.has_markers names ->
-        Some p
-    | _ -> None
-  in
-  match List.find_map cofinite rs with
-  | Some p when mem positive rs ->
-      let others =
-        List.filter (fun r -> not (equal r positive || cofinite r <> None)) rs
-      in
-      let wildcard = if p.tick then "_" else "!_" in
-      let excluded =
-        match p.names with
-        | Except names -> StrictDelays.operations names
-        | Only _ -> []
-      in
-      let text =
-        match excluded with
-        | [] -> wildcard
-        | names -> wildcard ^ " & ~" ^ at 3 (alternatives names)
-      in
-      Some ({ text; level = (if excluded = [] then 5 else 1) }, others)
-  | _ -> None
 
 let rec print = function
   | Empty -> { text = "~_*"; level = 3 }
   | Eps -> atom "0"
   | Letters p -> print_letters p
   | Seq rs -> print_seq rs
-  | Union rs -> (
-      match any_parts rs with
-      | Some (wildcard, []) -> wildcard
-      | Some (wildcard, rs) ->
-          {
-            text =
-              String.concat " | "
-                (at 0 wildcard :: List.map (fun r -> at 0 (print r)) rs);
-            level = 0;
-          }
-      | None -> nary " | " 0 rs)
+  | Union rs -> nary " | " 0 rs
   | Inter rs -> nary " & " 1 rs
   | Compl r -> { text = "~" ^ at 3 (print r); level = 3 }
   | Star r -> { text = at 4 (print r) ^ "*"; level = 4 }
@@ -470,16 +370,8 @@ and print_seq rs =
   let part = function
     | Ticks n -> string_of_int n
     | Factor r -> at 3 (print r)
-    | Strict body -> (
-        match tick_count body with
-        | Some n -> "!" ^ string_of_int n
-        | None -> "!" ^ at 4 (print_seq body))
   in
-  let parts =
-    List.concat_map
-      (function Factor r -> group_ticks [ r ] | p -> [ p ])
-      (strict_parts rs)
-  in
+  let parts = group_ticks rs in
   let rec join = function
     | Ticks m :: Ticks n :: rest -> join (Ticks (m + n) :: rest)
     | x :: rest -> x :: join rest
@@ -487,7 +379,6 @@ and print_seq rs =
   in
   match join parts with
   | [ Ticks n ] -> atom (string_of_int n)
-  | [ (Strict _ as p) ] -> { text = part p; level = 3 }
   | parts -> { text = String.concat "; " (List.map part parts); level = 2 }
 
 let to_string r = (print r).text

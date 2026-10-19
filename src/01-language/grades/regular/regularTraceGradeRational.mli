@@ -73,11 +73,6 @@ val form : t -> RationalRegex.t
 val expression : t -> GradeLiteral.regex
 (** [expression rho] is the expression [rho] is printed as. *)
 
-(** The literals, delays and top of the grade under the rigid grades of timed
-    operations, with strict delays. *)
-module Strict :
-  StrictDelays.GRADE with type grade = t and type delay = Rational.t
-
 (** The same grade over the canonical automata of the languages
     ({!DelayAutomaton}), named ["regex-upper-bound-rational-automata"]: a grade
     keeps the automaton of its language, which {!Grade.S.equal},

@@ -59,9 +59,9 @@ end
 module type DECISIONS = sig
   type t
 
-  val in_allowance : rigid:bool -> World.t -> t -> t -> bool
+  val in_allowance : World.t -> t -> t -> bool
   val in_coverage : World.t -> t -> t -> bool
-  val allowance : rigid:bool -> World.t -> t -> t -> regex list option
+  val allowance : World.t -> t -> t -> regex list option
   val coverage : World.t -> t -> t -> regex list option
   val min_weight : World.t -> t -> int option
   val max_weight : World.t -> t -> int option
@@ -155,17 +155,12 @@ module ByLetters (L : LANGUAGE) = struct
          [] word)
 
   let allowance =
-    let decide rigid =
-      tabulated (fun (world : World.t) rho rho' ->
-          let running_time = letter_running_time world.running_times
-          and letters = letters world.names in
-          Option.map (symbols world.names)
-            (Closed.counterexample letters (traces world rho)
-               (Allowance.closure ~rigid ~running_time ~letters
-                  (traces world rho'))))
-    in
-    let loose = decide false and rigid = decide true in
-    fun ~rigid:r -> if r then rigid else loose
+    tabulated (fun (world : World.t) rho rho' ->
+        let running_time = letter_running_time world.running_times
+        and letters = letters world.names in
+        Option.map (symbols world.names)
+          (Closed.counterexample letters (traces world rho)
+             (Allowance.closure ~running_time ~letters (traces world rho'))))
 
   let coverage =
     tabulated (fun (world : World.t) rho rho' ->
@@ -175,9 +170,7 @@ module ByLetters (L : LANGUAGE) = struct
                 ~running_time:(letter_running_time world.running_times)
                 (traces world rho'))))
 
-  let in_allowance ~rigid world rho rho' =
-    Option.is_none (allowance ~rigid world rho rho')
-
+  let in_allowance world rho rho' = Option.is_none (allowance world rho rho')
   let in_coverage world rho rho' = Option.is_none (coverage world rho rho')
 
   let weight extreme (world : World.t) rho =
@@ -251,25 +244,13 @@ module ByGaps = struct
                    names"))
       word
 
-  (** [by_order decide] is [decide ~rigid] for each [rigid], tabulated
-      separately. *)
-  let by_order decide =
-    let loose = decide ~rigid:false and rigid = decide ~rigid:true in
-    fun ~rigid:r -> if r then rigid else loose
-
-  let in_allowance =
-    by_order (fun ~rigid ->
-        tabulated (on_graphs (DelayTimedClosure.Graph.in_allowance ~rigid)))
-
+  let in_allowance = tabulated (on_graphs DelayTimedClosure.Graph.in_allowance)
   let in_coverage = tabulated (on_graphs DelayTimedClosure.Graph.in_coverage)
 
   let allowance =
-    by_order (fun ~rigid ->
-        tabulated (fun world rho rho' ->
-            Option.map symbols
-              (on_graphs
-                 (DelayTimedClosure.Graph.allowance ~rigid)
-                 world rho rho')))
+    tabulated (fun world rho rho' ->
+        Option.map symbols
+          (on_graphs DelayTimedClosure.Graph.allowance world rho rho'))
 
   let coverage =
     tabulated (fun world rho rho' ->
@@ -287,16 +268,15 @@ module ByGaps = struct
 end
 
 (** The grades over [L], decided by [D] over the least names of the classes of
-    the names of a comparison and their running times, the rigid ones reading
-    the literals, delays and top [S]. *)
+    the names of a comparison and their running times. *)
 module Over
     (L : LANGUAGE)
-    (S : StrictDelays.GRADE with type grade = L.t and type delay = L.Delay.t)
     (D : DECISIONS with type t = L.t)
     (Variant : sig
       val suffix : string
     end) =
-  RegularTimedOrders.Make (L) (S)
+  RegularTimedOrders.Make
+    (L)
     (struct
       type grade = L.t
       type delay = L.Delay.t
@@ -338,14 +318,11 @@ module Over
 
       (* The running time of an operation is the value of the [endpoint] of
          its running-time bounds, in time steps; over whole time steps, the ends
-         are closed where the bounds are declared ({!Grade.close_running_time}).
-         The names that encode strict delays take no time. *)
+         are closed where the bounds are declared ({!Grade.close_running_time}). *)
       let running_time endpoint bounds name =
-        if GradeLiteral.is_marker name then 0
-        else
-          Delay.Nat.to_int
-            (read_bound L.Delay.read
-               (end_value (endpoint (bounds.running_time name))))
+        Delay.Nat.to_int
+          (read_bound L.Delay.read
+             (end_value (endpoint (bounds.running_time name))))
 
       (** [declared running_time bounds] is the operations [bounds] declares, in
           increasing order, each with its running time [running_time]. *)
@@ -391,20 +368,9 @@ module Over
         let no_time = Fun.const 0 in
         D.inhabited (classes no_time (declared no_time bounds) [ rho ]) rho
 
-      (* The literal of the single trace of the delays and names [word], the
-         delays between the names that encode a strict delay written as one,
-         runs of equal factors joined into bounded repetitions. *)
-      let literal_of_word word =
-        let rec atoms = function
-          | Letter o :: (Tick _ as d) :: Letter c :: word
-            when String.equal o strict_opening && String.equal c strict_closing
-            ->
-              Strict d :: atoms word
-          | r :: word -> r :: atoms word
-          | [] -> []
-        in
-        Braces (sequence (atoms word))
-
+      (* The literal of the single trace of the delays and names [word], runs
+         of equal factors joined into bounded repetitions. *)
+      let literal_of_word word = Braces (sequence word)
       let single = function Int _ | Braces _ -> true | _ -> false
       let number = function Int n -> Some (Rational.of_int n) | _ -> None
       let close = close_integer
@@ -516,7 +482,7 @@ module PlainDerivatives = struct
   let representatives = every_name
 end
 
-module Make (L : LANGUAGE) = Over (L) (StrictDelays.Without (L)) (ByLetters (L))
+module Make (L : LANGUAGE) = Over (L) (ByLetters (L))
 
 include
   Make
@@ -526,7 +492,7 @@ include
     end)
 
 module Symbolic =
-  Over (Derivatives) (Derivatives.Strict) (ByGaps)
+  Over (Derivatives) (ByGaps)
     (struct
       let suffix = "-symbolic"
     end)

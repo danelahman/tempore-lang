@@ -172,16 +172,16 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
     after it was sent;
   - declared under `time-interval-rational` and the regular expressions of
     timed operations with intervals or upper bounds;
-  - under the rigid grades, `remote_receive` returns two boxes, as a grade
-    has a single upper bound and a box of a box is refused: the message, its
-    setpoints zero, boxed with `{(!_ & ~Receive)*}`, usable only before the
-    next `Receive`, and its setpoints, of the non-eternal type `setpoints`,
-    boxed with `[0, 150)`, so that once unboxed they are matched at once;
+  - under the rigid grades, `remote_receive` returns two boxes: the
+    message, its setpoints zero, boxed with `{≥0 & ~Receive}`, usable only
+    before the next `Receive`, and its setpoints, of the non-eternal type
+    `setpoints`, boxed with `[0, 150)`, so that once unboxed they are
+    matched at once;
   - the status of the robot, `Status (armed, tilt)` or `NoStatus`, tag 5:
     `SendStatus` sends it, and `bala2_remote_send_status` of the header
     `bala2_remote.h` for the bindings of an application; `remote_status`
     returns the latest status received at most 50 ms ago, boxed with
-    `[0, 200)`, and under the rigid grades also with `{(!_ & ~Receive)*}`.
+    `[0, 200)`, and under the rigid grades also with `{≥0 & ~Receive}`.
 
 ### Bounds per board
 
@@ -358,8 +358,9 @@ rigid variants and write a grade as one expression, which is both bounds:
 
 - the operations it names are demanded, in its order;
 - the delays between them are bounded below and above;
-- another operation may come between them only within a delay, at the upper
-  bound of its running time, and not within a strict delay `!d`;
+- another operation may come between them only within a budget, at the
+  upper bound of its running time, not within a strict wait `!d`, and
+  within a restricted budget `≥0 & ~A` only if it is not `A`;
 - a Kleene star of rounds permits these rounds only.
 
 A box grade without delays therefore excludes every operation it does not
@@ -771,10 +772,10 @@ port variable `PORT_M5STACK_GRAY`).
   rigid regular expressions of timed operations, with the packages
   `esp-now` and `bala2-remote`, sharing the binding file and host model of
   `bala2`.
-  - The calibration is boxed twice: with `[{[1000, ∞)}, {[0, 600000]}]`,
-    so that the robot is armed at least a second and at most 10 minutes
-    after it, the bias drifting with the temperature; and with
-    `{(!_ & ~Command)*}`, so that no motion was commanded since. The
+  - The calibration is boxed with
+    `[{≥1000 & ~Command}, {≤600000 & ~Command}]`, so that the robot is
+    armed at least a second and at most 10 minutes after it, the bias
+    drifting with the temperature, and no motion is commanded since. The
     calibration is of a non-eternal type, built inside each box, so that
     once unboxed it is used at once, not after the wait for Arm. The bias
     is measured only after `CheckAtRest` finds the robot at rest, its
@@ -928,7 +929,7 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   - Drive takes the speed from the pitch and the turn from the roll, each
     with a dead zone of 5 degrees and bounded, of a reading boxed so that
     it is the latest and at most 2 ms old, measured from the neutral tilt
-    recorded at the tap on Arm, boxed with `{(!_ & ~SendDisarm)*}` so that
+    recorded at the tap on Arm, boxed with `{≥0 & ~SendDisarm}` so that
     it is used only within its session.
   - A bubble level, `DrawLevel`, shows the tilt beyond the neutral tilt,
     pitch forwards moving the bubble up and roll to the right moving it

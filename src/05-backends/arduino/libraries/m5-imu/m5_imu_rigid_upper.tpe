@@ -8,10 +8,10 @@
    attitude filter are defined in m5_imu_filter.tpe.
 
    read_imu_boxed () reads the unit once and returns the reading in two
-   boxes: with {(!_ & ~ReadImu)*}, usable only while no further reading of
+   boxes: with {≥0 & ~ReadImu}, usable only while no further reading of
    the unit has come, so that it is the latest; and with {[0, 2]}, usable
-   within 2 ms of the reading. A grade has a single upper bound and a
-   box of a box is refused, so the two conditions are two boxes. The recency
+   within 2 ms of the reading. The two conditions are two boxes, so that a
+   program may rely on either alone. The recency
    of 2 ms suits a reading used at once, such as a command sent after a
    reading of the touch screen; a program that needs another bound boxes
    ReadImu itself. *)
@@ -26,7 +26,7 @@ operation CheckAtRest : unit ~> bool # {CheckAtRest} within [17.95, 28.5]
 default CheckAtRest () = delay 18; true
 
 (* A reading of the unit, to be used before the next reading. *)
-type latest_imu = [{(!_ & ~ReadImu)*}]imu
+type latest_imu = [{≥0 & ~ReadImu}]imu
 
 (* A reading of the unit, to be used within 2 ms. *)
 type recent_imu = [{[0, 2]}]imu
@@ -35,6 +35,6 @@ type recent_imu = [{[0, 2]}]imu
    recent. *)
 let read_imu_boxed () : latest_imu * recent_imu =
   let reading = perform ReadImu () in
-  box {(!_ & ~ReadImu)*} reading as latest in
+  box {≥0 & ~ReadImu} reading as latest in
   box {[0, 2]} reading as recent in
   (latest, recent)

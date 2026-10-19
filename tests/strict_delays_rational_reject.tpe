@@ -4,9 +4,10 @@
        tests/strict_delays_rational_reject.tpe
 
    Rejected under the 'regex-timed-rigid-interval-rational-symbolic' grading
-   monoid: a strict delay `!d` admits waiting only. Each budget form is
-   accepted and the strict form after it rejected; the bound of strict delays
-   without `Reset` admits no reset, and its complement is accepted. *)
+   monoid: a strict wait `!d` admits waiting only. Each budget form is
+   accepted and the strict form after it rejected; the budget restricted to
+   the operations other than `Reset` admits readings and waits, and no
+   reset. *)
 
 type token = Token of string
 
@@ -59,7 +60,7 @@ let sampling_strict () =
 
 (* Readings and waits only: no reset. *)
 let without_reset () =
-  box {(!_ & ~Reset)*} (Token "r") as r in
+  box {≥0 & ~Reset} (Token "r") as r in
   let a = perform Read () in
   delay 2;
   let b = perform Read () in
@@ -67,7 +68,7 @@ let without_reset () =
   tok
 
 let with_reset () =
-  box {(!_ & ~Reset)*} (Token "r") as r in
+  box {≥0 & ~Reset} (Token "r") as r in
   let a = perform Read () in
   delay 2;
   perform Reset ();

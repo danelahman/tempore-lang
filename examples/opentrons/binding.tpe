@@ -47,10 +47,10 @@ default FillWashPlate () = delay 3
 
 (* Moving the plate onto and off the magnetic block takes at most a minute,
    and removing the liquid one to two minutes. *)
-operation MagnetOn : unit ~> unit # {MagnetOn} within [0, 1]
+operation MagnetOn : unit ~> unit # {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1
 
-operation MagnetOff : unit ~> unit # {MagnetOff} within [0, 1]
+operation MagnetOff : unit ~> unit # {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1
 
 operation RemoveLiquid : unit ~> unit # {RemoveLiquid} within [1, 2]

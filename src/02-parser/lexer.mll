@@ -150,8 +150,9 @@ rule token = parse
                             "Unexpected character `%s`" (Lexing.lexeme lexbuf) }
 
 (* Inside a brace literal each of the regular-expression operators [*], [^],
-   [|], [&] and [~] is a token of its own, so that, e.g., [A*|~B^2] needs no
-   spaces; any other input is lexed as outside. *)
+   [|], [&], [~], [!] and [?] and each of the signs [≤] ([<=]), [≥] ([>=]),
+   [<] and [>] is a token of its own, so that, e.g., [A*|~B^2] and [!<=3]
+   need no spaces; any other input is lexed as outside. *)
 and brace_token = parse
   | '\n'                { Lexing.new_line lexbuf; brace_token lexbuf }
   | [' ' '\r' '\t']     { brace_token lexbuf }
@@ -161,6 +162,12 @@ and brace_token = parse
   | '|'                 { BAR }
   | '&'                 { AMPER }
   | '~'                 { PREFIXOP "~" }
+  | '!'                 { BANG }
+  | '?'                 { QUESTION }
+  | "<=" | "≤"          { LEQ }
+  | ">=" | "≥"          { GEQ }
+  | '<'                 { LT }
+  | '>'                 { GT }
   | ""                  { token lexbuf }
 
 (* A comment nested [n] deep, after which lexing resumes with [continue]. *)

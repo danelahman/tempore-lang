@@ -38,6 +38,7 @@ module OfLattice (D : Delay.S) (L : LATTICE) = struct
   let plus l = Some l
   let commutative = true
   let needs_op_bounds = false
+  let duration_ends = Grade.Both_ends
   let duration_bounds _bounds _ = None
   let inhabited _bounds _ = true
   let events _ = []
@@ -89,6 +90,7 @@ struct
 
   let commutative = G1.commutative && G2.commutative
   let needs_op_bounds = G1.needs_op_bounds || G2.needs_op_bounds
+  let duration_ends = Grade.union_ends G1.duration_ends G2.duration_ends
 
   let duration_bounds bounds (a, b) =
     Grade.intersect_durations
@@ -202,6 +204,7 @@ struct
   let plus _ = None
   let commutative = false
   let needs_op_bounds = M.needs_op_bounds
+  let duration_ends = M.duration_ends
   let duration_bounds bounds (m, _) = M.duration_bounds bounds m
   let inhabited bounds (m, _) = M.inhabited bounds m
   let events (m, _) = M.events m
@@ -486,6 +489,7 @@ module Indexed = struct
     let plus _ = None
     let commutative = G.commutative
     let needs_op_bounds = G.needs_op_bounds
+    let duration_ends = G.duration_ends
     let duration_bounds _bounds _ = None
     let inhabited bounds = for_all (G.inhabited bounds)
 

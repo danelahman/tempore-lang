@@ -354,8 +354,11 @@ void tempore_monitor_operation(tempore_operation_monitor *operation,
 #endif
   if (bounds == nullptr || tempore_monitor == tempore_monitor_policy::off)
     return;
-  const bool below = bounds->lower_open ? elapsed_us <= bounds->lower
-                                        : elapsed_us < bounds->lower;
+  // A time measured at 0 is positive below the resolution of the clock, and
+  // meets a lower end open at 0.
+  const bool below = bounds->lower_open
+                         ? bounds->lower > 0 && elapsed_us <= bounds->lower
+                         : elapsed_us < bounds->lower;
   const bool above = bounds->upper_finite &&
                      (bounds->upper_open ? elapsed_us >= bounds->upper
                                          : elapsed_us > bounds->upper);

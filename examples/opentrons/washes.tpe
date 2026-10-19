@@ -1,14 +1,17 @@
 (* A bead clean-up on the Opentrons Flex: two or more ethanol washes, each with a fresh tip.
 
-   Run this example with the 'regex-timed-rigid-interval-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-rigid-interval-symbolic \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        examples/opentrons/washes.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 (* Modelled on the Opentrons Protocol Library protocols kapa-amp-cleanup (a
@@ -24,7 +27,7 @@
    A tick is a minute. The protocol for the Flex, with the operations
    performed by the functions of 'washes_bindings.py', is written by
 
-     ./tempore --grades regex-timed-rigid-interval-symbolic \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        --emit-opentrons washes.py \
        --bind examples/opentrons/washes_bindings.py \
        --time-unit minutes \
@@ -46,10 +49,10 @@ type eluates = string
 operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
 default AddBeads () = delay 2
 
-operation MagnetOn : unit ~> unit # {MagnetOn} within [0, 1]
+operation MagnetOn : unit ~> unit # {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1
 
-operation MagnetOff : unit ~> unit # {MagnetOff} within [0, 1]
+operation MagnetOff : unit ~> unit # {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1
 
 (* Removing the supernatant from the beads, an ethanol wash of the beads,
@@ -62,7 +65,7 @@ default RemoveLiquid beads = delay 2
 operation Wash : beads ~> unit # {Wash} within [1, 2]
 default Wash beads = delay 1
 
-operation ChangeTip : unit ~> unit # {ChangeTip} within [0, 1]
+operation ChangeTip : unit ~> unit # {ChangeTip} within (0, 1]
 default ChangeTip () = delay 1
 
 operation EluteDNA : beads ~> eluates # {EluteDNA} within [1, 2]
@@ -82,7 +85,7 @@ let rec washes (beads : beads) (n : nat) : unit # {(Wash; ChangeTip)*} =
 
 (* The grade of the clean-up demands nothing and allows no removal of the
    supernatant, wash or transfer after a move off the magnet without a move
-   onto it in between, every delay being a wait. The beads are boxed twice.
+   onto it in between. The beads are boxed twice.
    The first box releases them to the removal of the supernatant after five
    to ten minutes of binding, waiting only, before the plate goes on the
    magnet; the upper bound of ten minutes is the example's own. The second
@@ -95,8 +98,13 @@ let rec washes (beads : beads) (n : nat) : unit # {(Wash; ChangeTip)*} =
    magnet, and released to the transfer after two to five minutes of
    settling, waiting only. *)
 let cleanup (beads : beads) (n : nat)
-    : unit # [{0}, {!_* & ~(_*; MagnetOff; (_ & ~MagnetOn)*;
-                            (RemoveLiquid | Wash | Transfer); _*)}] =
+    : unit # [{≥0},
+              {((≥0 & ~MagnetOff)
+                | MagnetOff;
+                  (≥0 & ~(MagnetOn | RemoveLiquid | Wash | Transfer));
+                  MagnetOn)*;
+               (MagnetOff;
+                (≥0 & ~(MagnetOn | RemoveLiquid | Wash | Transfer)))?}] =
   box {AddBeads; ![5, 10]; MagnetOn} beads as binding in
   perform AddBeads ();
   delay 7;
@@ -104,7 +112,7 @@ let cleanup (beads : beads) (n : nat)
   unbox binding as bound in
   delay 3;
   perform RemoveLiquid bound;
-  box [{Wash; ChangeTip; Wash; !2; ChangeTip},
+  box [{(Wash; ChangeTip)^[1, ∞); Wash; !2; ChangeTip},
        {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}] bound as washed in
   perform Wash bound;
   perform ChangeTip ();
@@ -123,19 +131,15 @@ let cleanup (beads : beads) (n : nat)
   perform Transfer settled
 
 (* Correctly rejected by the typechecker: the further washes share a tip.
-   Under 'regex-timed-interval-symbolic' it is accepted, the tip changes of
-   the upper bound being left out:
+   Under 'regex-timed-interval-symbolic' the function is accepted, the tip
+   changes of the upper bound being left out:
 
-     Typing error: This function's body has grade `[{0 | Wash;
-       (Wash; ChangeTip)*}, {0 | Wash; (Wash; ChangeTip)*}]`, which does not
-       match its annotated grade `[{(Wash; ChangeTip)*},
-       {(Wash; ChangeTip)*}]`
-       Note: the effect inequality `[{0 | Wash; (Wash; ChangeTip)*},
-       {0 | Wash; (Wash; ChangeTip)*}] <= [{(Wash; ChangeTip)*},
-       {(Wash; ChangeTip)*}]` does not hold
-       Note: the grade `[{0 | Wash; (Wash; ChangeTip)*}, {Wash}]` is below
-       `[{0 | Wash; (Wash; ChangeTip)*}, {0 | Wash; (Wash; ChangeTip)*}]` but
-       not below `[{(Wash; ChangeTip)*}, {(Wash; ChangeTip)*}]`
+     Typing error: This function's body has grade `{(Wash; …)?}`, which
+       does not match its annotated grade `{(Wash; ChangeTip)*}`
+       Note: the effect inequality `{(Wash; …)?} <= {(Wash; ChangeTip)*}`
+       does not hold
+       Note: the grade `[{Wash}, {(Wash; …)?}]` is below `{(Wash; …)?}` but
+       not below `{(Wash; ChangeTip)*}`
 *)
 (*
 let rec washes_shared_tip (beads : beads) (n : nat)
@@ -150,18 +154,21 @@ let rec washes_shared_tip (beads : beads) (n : nat)
 (* Correctly rejected by the typechecker: the plate is not moved back onto
    the magnet after the elution, and the eluates are taken off the magnet,
    which aspirates the beads. The box of the eluates holds; the grade of the
-   function does not. Under 'regex-timed-interval-symbolic', and with `_*`
-   and `[2, 5]` in place of `!_*` and `![2, 5]`, it is accepted, the
-   transfer fitting in a budget delay:
+   function does not: the transfer is excluded from the time after the move
+   off the magnet:
 
-     Typing error: This function's body has grade `[{MagnetOff; EluteDNA;
-       !2; !3; Transfer}, {MagnetOff; EluteDNA; !2; !3; Transfer}]`, which
-       does not match its annotated grade ...
+     Typing error: This function's body has grade `{MagnetOff; EluteDNA; !5;
+       Transfer}`, which does not match its annotated grade ...
 *)
 (*
 let elute_off_magnet (beads : beads)
-    : unit # [{0}, {!_* & ~(_*; MagnetOff; (_ & ~MagnetOn)*;
-                            (RemoveLiquid | Wash | Transfer); _* )}] =
+    : unit # [{≥0},
+              {((≥0 & ~MagnetOff)
+                | MagnetOff;
+                  (≥0 & ~(MagnetOn | RemoveLiquid | Wash | Transfer));
+                  MagnetOn)*;
+               (MagnetOff;
+                (≥0 & ~(MagnetOn | RemoveLiquid | Wash | Transfer)))?}] =
   perform MagnetOff ();
   let eluates = perform EluteDNA beads in
   delay 2;
@@ -174,20 +181,19 @@ let elute_off_magnet (beads : beads)
 (* Correctly rejected by the typechecker: the residual ethanol is removed
    within the air-dry, which leaves a minute of drying. Under
    'regex-timed-interval-symbolic', and with the budgets `2` and `[2, 3]` in
-   place of `!2` and `![2, 3]`, it is accepted, the removal counting towards
-   the air-dry:
+   place of `!2` and `![2, 3]`, the function is accepted, the removal
+   counting towards the air-dry:
 
-     Typing error: Variable `washed` is unboxed with grade `[{Wash; ChangeTip;
-       (Wash; ChangeTip)*; Wash; RemoveLiquid; !1; ChangeTip}, {Wash;
-       ChangeTip; (Wash; ChangeTip)*; Wash; RemoveLiquid; !1; ChangeTip}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{Wash; ChangeTip; Wash; !2; ChangeTip}, {(Wash; ChangeTip)*; Wash;
-       ![2, 3]; ChangeTip}]`
+     Typing error: Variable `washed` is unboxed with grade `{Wash; ChangeTip;
+       (Wash; ChangeTip)*; Wash; RemoveLiquid; !1; ChangeTip}` accumulated
+       since it was bound, which is not below its box grade `[{(Wash;
+       ChangeTip)^[1, ∞); Wash; !≥2; ChangeTip}, {(Wash; ChangeTip)*; Wash;
+       !≤3; ChangeTip}]`
        ...
 *)
 (*
 let cleanup_short_dry (beads : beads) (n : nat) =
-  box [{Wash; ChangeTip; Wash; !2; ChangeTip},
+  box [{(Wash; ChangeTip)^[1, ∞); Wash; !2; ChangeTip},
        {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}] beads as washed in
   perform Wash beads;
   perform ChangeTip ();

@@ -22,6 +22,12 @@ type regex =
   | Delays of Rational.t bound * Rational.t bound
       (** The delays in an interval with a finite lower endpoint, e.g. [\[0, 1)]
           or [(1/2, ∞)] *)
+  | Below of Rational.t bound
+      (** The lengths up to an upper end, [≤d] ([Closed d]), [<d] ([Open d]) or
+          [≤∞] ([Unbounded]), ASCII [<=d] *)
+  | Above of Rational.t bound
+      (** The lengths from a lower end, [≥d] ([Closed d]) or [>d] ([Open d]),
+          ASCII [>=d] *)
   | Any
       (** Any single operation or time step, [_]; over rational delays, any
           single operation or positive delay *)
@@ -41,6 +47,12 @@ val delays_only : regex -> bool
 (** [delays_only r] is whether [r] is built from delays and intervals of delays
     by [;], [|], [&] and [*] alone, so that its words are delays. *)
 
+val show_below : Rational.t bound -> string
+(** [show_below b] prints the letter [Below b], e.g. [≤3] or [<1/2]. *)
+
+val show_above : Rational.t bound -> string
+(** [show_above b] prints the letter [Above b], e.g. [≥3] or [>1/2]. *)
+
 val unrolled : regex -> Count.t -> regex
 (** [unrolled r c] is an expression of [r^c] without bounded repetition:
     [r; …; r; (0 | r; (0 | r; …))] for [c = [m, n]], with [m] factors [r] and
@@ -54,17 +66,6 @@ val sequence : regex list -> regex
     every run of two or more adjacent factors of the same base joined into one
     bounded repetition: [x; x; x] is [x^3], and [x^c; x] is [x^(c + 1)]. The
     factors are not split into further factors. *)
-
-val strict_opening : string
-(** The name that opens a strict delay in the languages of the rigid grades of
-    timed operations, no operation name. *)
-
-val strict_closing : string
-(** The name that closes a strict delay, no operation name. *)
-
-val is_marker : string -> bool
-(** [is_marker name] is whether [name] is {!strict_opening} or
-    {!strict_closing}. *)
 
 val regex_names : regex -> string list
 (** [regex_names r] is the list of the operation names [r] mentions, in
@@ -139,6 +140,12 @@ val distinct_entries :
 val strict_unsupported : regex -> 'a
 (** [strict_unsupported r] rejects the strict delay [r], [!d], under a grade
     other than the rigid grades of timed operations.
+
+    @raise Invalid_literal on the brace literal of [r]. *)
+
+val one_sided_unsupported : regex -> 'a
+(** [one_sided_unsupported r] rejects the one-sided letter [r], [≤d] or [≥d],
+    under a grade other than the rigid grades of timed operations.
 
     @raise Invalid_literal on the brace literal of [r]. *)
 

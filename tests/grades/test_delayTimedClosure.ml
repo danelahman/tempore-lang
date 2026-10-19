@@ -10,9 +10,7 @@
    to a resolution of fractions of a time step as the grades over whole steps of
    a program resolution read them; the decisions on graphs given by their rows
    against those on automata; and the grades decided on the graphs of the gap
-   derivatives against those decided on automata; each also in the rigid
-   allowance order, and examples of the rigid allowance order against the
-   allowance order. *)
+   derivatives against those decided on automata. *)
 
 module Grade = Grades.Grade
 module Rational = Grades.Rational
@@ -165,7 +163,7 @@ let open_delays =
   List.concat_map
     (fun k ->
       let within gap n =
-        Option.is_none (C.allowance ~rigid:false world (traces k gap) (delay n))
+        Option.is_none (C.allowance world (traces k gap) (delay n))
       in
       [
         is
@@ -245,12 +243,12 @@ let open_running_times =
       (G.Lower.leq open_below (lit "{X}") (lit "{1}"));
     is "open running times: the allowance closure reads a strict running time"
       (Option.is_none
-         (C.allowance ~rigid:false
+         (C.allowance
             [ ("X", DelaySet.Finite (qi 2, false)) ]
             (automaton "{X}") (automaton "{[0, 2)}")));
     is "open running times: and an attained one"
       (Option.is_some
-         (C.allowance ~rigid:false
+         (C.allowance
             (exact [ ("X", qi 2) ])
             (automaton "{X}") (automaton "{[0, 2)}")));
     expect "open running times: counterexample of a strict running time" Fun.id
@@ -348,10 +346,9 @@ let classes =
       (show
          (A.Class.choose (A.Class.inter (A.Class.name "A") (A.Class.name "B"))));
     is "classes: a cofinite class read as its name of the world"
-      (C.permits ~rigid:false world m (word (L.others [ "B" ])));
+      (C.permits world m (word (L.others [ "B" ])));
     is "classes: a class without a name of the world rejected"
-      (rejected (fun () ->
-           C.permits ~rigid:false world m (word (L.others [ "A" ]))));
+      (rejected (fun () -> C.permits world m (word (L.others [ "A" ]))));
     is "classes: a name outside the world rejected"
       (rejected (fun () -> C.covers world m (word (A.Class.name "B"))));
   ]
@@ -449,10 +446,10 @@ let least s =
   | Some (DelaySet.Finite (x, _)) -> x
   | Some DelaySet.Infinite | None -> qi 0
 
-let in_down ?(rigid = false) bound word =
+let in_down bound word =
   List.exists
     (fun items ->
-      Trace.allowance ~rigid
+      Trace.allowance
         (fun o -> List.assoc o running_times_hi)
         Rational.zero (trace_of_word word)
         (extreme_word greatest items))
@@ -666,24 +663,17 @@ let against_recursions name ~seed ~closed_top ~world ~decide ~reads ~member =
    covers at every running time above an infimum iff at the infimum. *)
 let recursions =
   against_recursions "allowance" ~seed:5 ~closed_top:true
-    ~world:(exact running_times_hi) ~decide:(C.allowance ~rigid:false)
-    ~reads:(C.permits ~rigid:false) ~member:in_down
+    ~world:(exact running_times_hi) ~decide:C.allowance ~reads:C.permits
+    ~member:in_down
   @ against_recursions "coverage" ~seed:7 ~closed_top:false
       ~world:(exact running_times_lo) ~decide:C.coverage ~reads:C.covers
       ~member:in_up
   @ against_recursions "allowance, open running times" ~seed:17 ~closed_top:true
-      ~world:(strict running_times_hi) ~decide:(C.allowance ~rigid:false)
-      ~reads:(C.permits ~rigid:false) ~member:in_down
+      ~world:(strict running_times_hi) ~decide:C.allowance ~reads:C.permits
+      ~member:in_down
   @ against_recursions "coverage, open running times" ~seed:19 ~closed_top:false
       ~world:(strict running_times_lo) ~decide:C.coverage ~reads:C.covers
       ~member:in_up
-  @ against_recursions "rigid allowance" ~seed:23 ~closed_top:true
-      ~world:(exact running_times_hi) ~decide:(C.allowance ~rigid:true)
-      ~reads:(C.permits ~rigid:true) ~member:(in_down ~rigid:true)
-  @ against_recursions "rigid allowance, open running times" ~seed:29
-      ~closed_top:true ~world:(strict running_times_hi)
-      ~decide:(C.allowance ~rigid:true) ~reads:(C.permits ~rigid:true)
-      ~member:(in_down ~rigid:true)
 
 (* {1 The grades by gap graphs against the grades by automata}
 
@@ -760,30 +750,6 @@ let gap_agreement =
             Gaps.Interval.leq bounds (x, y) (y, x)
             = G.Interval.leq bounds (a, b) (b, a))
           gap_cases;
-        every "gaps: rigid upper verdicts as by automata" show_case
-          (fun ((_, x, a), (_, y, b)) ->
-            Gaps.Rigid.Upper.leq bounds x y = G.Rigid.Upper.leq bounds a b
-            && Gaps.Rigid.Upper.equal bounds x y
-               = G.Rigid.Upper.equal bounds a b)
-          gap_cases;
-        every "gaps: rigid interval verdicts as by automata" show_case
-          (fun ((_, x, a), (_, y, b)) ->
-            Gaps.Rigid.Interval.leq bounds (x, y) (y, x)
-            = G.Rigid.Interval.leq bounds (a, b) (b, a))
-          gap_cases;
-        every "gaps: rigid upper counterexamples valid and no longer" show_case
-          (fun ((_, x, a), (_, y, b)) ->
-            match
-              ( Gaps.Rigid.Upper.counterexample bounds x y,
-                G.Rigid.Upper.counterexample bounds a b )
-            with
-            | None, None -> true
-            | Some c, Some c' ->
-                valid G.Rigid.Upper.leq bounds c a b
-                && operations (Expr.expression c)
-                   <= operations (Plain.expression c')
-            | _ -> false)
-          gap_cases;
         every "gaps: tops, implied bounds and inhabitation as by automata"
           show_case
           (fun ((_, x, a), _) ->
@@ -840,9 +806,7 @@ let preorders =
   and lo o = List.assoc o running_times_lo in
   let orders =
     [
-      ("allowance", fun s t -> Trace.allowance ~rigid:false hi Rational.zero s t);
-      ( "rigid allowance",
-        fun s t -> Trace.allowance ~rigid:true hi Rational.zero s t );
+      ("allowance", fun s t -> Trace.allowance hi Rational.zero s t);
       ("coverage", fun s t -> Trace.coverage lo Rational.zero s t);
     ]
   in
@@ -877,36 +841,15 @@ let preorders =
    the operations [_ & ~(>0)], the identity elsewhere. Scaling every delay and
    every running time by [1/N] keeps the verdicts: the grades over whole steps
    of a program resolution [N] read a delay [q] as [qN] steps of [1/N], [_] as
-   [1/N | ops] and complements among the traces of steps of [1/N]. Under the
-   rigid grades, with strict delays, [_] also holds the strict delays of whole
-   numbers of steps, and [ops] leaves them out. *)
+   [1/N | ops] and complements among the traces of steps of [1/N]. *)
 
 let ops =
   Grade.Inter
     ( Grade.Any,
       Grade.Compl (Grade.Delays (Grade.Open Rational.zero, Grade.Unbounded)) )
 
-(* [steps n] is the strict delays of whole numbers of steps of [1/n]. *)
-let steps n =
-  let step = Grade.rational_tick (q 1 n) in
-  Grade.Strict (Grade.Seq (step, Grade.Star step))
-
-let rec iota ~strict n =
-  let iota = iota ~strict in
-  let symbols =
-    if strict then
-      Grade.Union
-        ( Grade.Union
-            ( Grade.Inter
-                ( ops,
-                  Grade.Compl
-                    (Grade.Strict
-                       (Grade.Delays (Grade.Open Rational.zero, Grade.Unbounded)))
-                ),
-              steps n ),
-          Grade.rational_tick (q 1 n) )
-    else Grade.Union (ops, Grade.rational_tick (q 1 n))
-  in
+let rec iota n =
+  let symbols = Grade.Union (ops, Grade.rational_tick (q 1 n)) in
   function
   | Grade.Any -> symbols
   | Grade.Compl r -> Grade.Inter (Grade.Compl (iota n r), Grade.Star symbols)
@@ -917,7 +860,9 @@ let rec iota ~strict n =
   | Grade.Repeat (r, c) -> Grade.Repeat (iota n r, c)
   | Grade.Strict r -> Grade.Strict (iota n r)
   | Grade.Tick k -> Grade.rational_tick (q k n)
-  | (Grade.Letter _ | Grade.Frac _ | Grade.Delays _) as r -> r
+  | ( Grade.Letter _ | Grade.Frac _ | Grade.Delays _ | Grade.Below _
+    | Grade.Above _ ) as r ->
+      r
 
 let whole_names = [ "A"; "B"; "C" ]
 let whole_running_times = [ ("A", (1, 3)); ("B", (0, 2)); ("C", (2, 2)) ]
@@ -943,16 +888,14 @@ let whole_steps =
     | _ -> Grade.Star (sub ())
   in
   let expressions = List.init 36 (fun _ -> whole 3) in
-  let agree ?(strict = false) order name (module Wg : Grade.S)
-      (module Gg : Grade.S) n =
+  let agree order name (module Wg : Grade.S) (module Gg : Grade.S) n =
     let bounds = scaled_bounds n in
     let whole_bounds = scaled_bounds 1 in
     let grades =
       List.filter_map
         (fun r ->
           match
-            ( Wg.of_lit (Grade.Braces r),
-              Gg.of_lit (Grade.Braces (iota ~strict n r)) )
+            (Wg.of_lit (Grade.Braces r), Gg.of_lit (Grade.Braces (iota n r)))
           with
           | w, g when Wg.inhabited whole_bounds w && Gg.inhabited bounds g ->
               Some (r, w, g)
@@ -982,10 +925,6 @@ let whole_steps =
           (module W.Lower : Grade.S)
           (module G.Lower : Grade.S)
           n;
-        agree ~strict:true "rigid upper" "rigid allowance"
-          (module W.Rigid.Upper : Grade.S)
-          (module G.Rigid.Upper : Grade.S)
-          n;
       ])
     [ 1; 3 ]
 
@@ -1002,19 +941,17 @@ let timing =
   [
     quickly "a cycle of small weight against a large bound" (fun () ->
         Option.is_some
-          (C.allowance ~rigid:false world (automaton "{A*}") (automaton "{100}")));
+          (C.allowance world (automaton "{A*}") (automaton "{100}")));
     quickly "a cycle of small weight within a bound" (fun () ->
         Option.is_none
-          (C.allowance ~rigid:false world (automaton "{(A; B)*; B}")
+          (C.allowance world (automaton "{(A; B)*; B}")
              (automaton "{(A | B | 1)*}")));
     quickly "a long sum of thirds" (fun () ->
         let trace = String.concat "; " (List.init 30 (Fun.const "B; 1/3")) in
         Option.is_none
-          (C.allowance ~rigid:false world
-             (automaton ("{" ^ trace ^ "}"))
-             (automaton "{40}"))
+          (C.allowance world (automaton ("{" ^ trace ^ "}")) (automaton "{40}"))
         && Option.is_some
-             (C.allowance ~rigid:false world
+             (C.allowance world
                 (automaton ("{" ^ trace ^ "}"))
                 (automaton "{39.99}")));
   ]
@@ -1056,11 +993,8 @@ let graphs =
   in
   [
     same "graphs: allowance"
-      (fun l -> C.Graph.allowance ~rigid:false world l m)
-      (fun l -> C.allowance ~rigid:false world l m');
-    same "graphs: rigid allowance"
-      (fun l -> C.Graph.allowance ~rigid:true world l m)
-      (fun l -> C.allowance ~rigid:true world l m');
+      (fun l -> C.Graph.allowance world l m)
+      (fun l -> C.allowance world l m');
     same "graphs: coverage"
       (fun l -> C.Graph.coverage world l m)
       (fun l -> C.coverage world l m');
@@ -1071,123 +1005,11 @@ let graphs =
       ((not (C.Graph.inhabited dead)) && C.Graph.inhabited m);
   ]
 
-(* {1 The rigid allowance order}
-
-   The rigid allowance order against the allowance order, side by side, on the
-   traces of a reaction timer with the running times of its devices: a poll
-   loop, an operation between two without a delay, a session of rounds and a
-   gap between washes; and the two ends, bounds without delays and without
-   operations. Each verdict of the rigid order is checked on the gap graphs and
-   on the automata. *)
-
-let rigid_bounds =
-  bounds_of
-    (List.map
-       (fun (name, b) -> (name, closed b))
-       [
-         ("Beep", (qi 0, q 15 100));
-         ("ChangeTip", (qi 1, qi 1));
-         ("ClearDisplay", (qi 31, qi 48));
-         ("ConfigureImu", (q 1 10, q 4 10));
-         ("ReadClock", (qi 0, q 5 100));
-         ("ReadImu", (q 2 10, q 15 10));
-         ("ReadTouch", (q 1 10, qi 1));
-         ("ShowColourTextAt", (q 5 100, qi 33));
-         ("Wash", (qi 1, qi 2));
-       ])
-
-module ExprGS = Grades.GradeSystem.Identity (Expr)
-module ExprGrammar = Parser.Grammar.Make (ExprGS)
-
-(* [expr text] is the grade of the gap graphs the parser reads [text] as. *)
-let expr text =
-  let lexbuf = Lexing.from_string ("box " ^ text ^ " ()") in
-  match ExprGrammar.payload (Parser.Lexer.tokens ()) lexbuf with
-  | { it = SugaredAst.GenBox ({ it = SugaredAst.GradeLit rho; _ }, _); _ } ->
-      rho
-  | _ -> failwith ("not a box of a literal: " ^ text)
-
-(* [rigid a b] is the verdict of [a ≾ b] in the rigid allowance order, the
-   same on the gap graphs and on the automata, and [loose a b] that of the
-   allowance order. *)
-let rigid a b =
-  let verdict = Gaps.Rigid.Upper.leq rigid_bounds (expr a) (expr b) in
-  if verdict = G.Rigid.Upper.leq rigid_bounds (lit a) (lit b) then verdict
-  else failwith ("the implementations disagree on " ^ a ^ " <= " ^ b)
-
-let loose a b = Gaps.Upper.leq rigid_bounds (expr a) (expr b)
-
-let rigid_examples =
-  let polls = "{(2.5; ReadImu; ReadClock)*}" in
-  let sides name ~rigid:r ~loose:l a b =
-    [
-      is ("rigid: " ^ name) (rigid a b = r);
-      is ("rigid: " ^ name ^ ", by the allowance order") (loose a b = l);
-    ]
-  in
-  sides "three polls" ~rigid:true ~loose:true
-    "{ReadImu; ReadClock; 2; ReadImu; ReadClock; 2; ReadImu; ReadClock}" polls
-  @ sides "a redraw between polls" ~rigid:false ~loose:true
-      "{ReadImu; ReadClock; ShowColourTextAt; ReadImu; ReadClock}" polls
-  @ sides "a delay of 300 against polls" ~rigid:false ~loose:true "{300}" polls
-  @ sides "the stamp adjacent to the gun" ~rigid:true ~loose:true
-      "{Beep; ReadClock; 2; ReadImu; ReadClock}" "{Beep; ReadClock; [0, 1000]}"
-  @ sides "an operation between the gun and the stamp" ~rigid:false ~loose:true
-      "{Beep; ClearDisplay; ReadClock; 2; ReadImu; ReadClock}"
-      "{Beep; ReadClock; [0, 1000]}"
-  @ sides "an operation bought in an idle round" ~rigid:true ~loose:true
-      "{ReadTouch; ConfigureImu; 49; ReadTouch}" "{(ReadTouch; 50)*}"
-  @ sides "an operation that does not fit in an idle round" ~rigid:false
-      ~loose:true "{ReadTouch; ConfigureImu; 50; ReadTouch}"
-      "{(ReadTouch; 50)*}"
-  @ sides "a gap of 6 between washes" ~rigid:false ~loose:true
-      "{Wash; ChangeTip; Wash; 6; ChangeTip}"
-      "{_*; Wash; _*; Wash; [2, 5]; ChangeTip}"
-  @ sides "a gap of 3 between washes" ~rigid:true ~loose:true
-      "{Wash; ChangeTip; Wash; 3; ChangeTip}"
-      "{_*; Wash; _*; Wash; [2, 5]; ChangeTip}"
-  @ sides "without delays: an operation left out" ~rigid:false ~loose:true
-      "{Wash}" "{Wash; ChangeTip}"
-  @ sides "without delays: inclusion" ~rigid:true ~loose:true
-      "{Wash; Wash; ChangeTip}" "{(Wash | ChangeTip)*}"
-  @ sides "without delays: a further operation" ~rigid:false ~loose:false
-      "{Wash; Wash}" "{Wash}"
-  @ sides "without operations: an operation bought" ~rigid:true ~loose:true
-      "{Wash; 1}" "{3}"
-  @ sides "without operations: beyond the delay" ~rigid:false ~loose:false
-      "{Wash; 1.5}" "{3}"
-  @ [
-      is "rigid: the unit is not least" (not (rigid "{0}" "{Wash}"));
-      is "rigid: equal up to the closure"
-        (Gaps.Rigid.Upper.equal rigid_bounds (expr "{Wash | 2}") (expr "{2}"));
-      is "rigid: a complement of a delay is the top"
-        (Gaps.Rigid.Upper.is_top rigid_bounds (expr "{~1}")
-        && G.Rigid.Upper.is_top rigid_bounds (lit "{~1}"));
-      is "rigid: a star of operations is not the top"
-        (not
-           (Gaps.Rigid.Upper.is_top rigid_bounds
-              (expr "{(2.5; ReadImu; ReadClock)*}")));
-      expect "rigid: counterexample of a redraw between polls" Fun.id
-        ~expected:"{ReadImu; ReadClock; ShowColourTextAt; ReadImu; ReadClock}"
-        (show_counterexample Gaps.Rigid.Upper.show
-           (Gaps.Rigid.Upper.counterexample rigid_bounds
-              (expr
-                 "{ReadImu; ReadClock; (0 | ShowColourTextAt); ReadImu; \
-                  ReadClock}")
-              (expr polls)));
-      expect "rigid: counterexample of an open gap" Fun.id
-        ~expected:"{Wash; 5.5; ChangeTip}"
-        (show_counterexample Gaps.Rigid.Upper.show
-           (Gaps.Rigid.Upper.counterexample rigid_bounds
-              (expr "{Wash; [0, 6); ChangeTip}")
-              (expr "{Wash; [2, 5]; ChangeTip}")));
-    ]
-
 let () =
   let checks =
     examples @ open_delays @ implied @ open_running_times @ closed_world
     @ classes @ literals @ recursions @ gap_agreement @ preorders @ whole_steps
-    @ timing @ graphs @ rigid_examples
+    @ timing @ graphs
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

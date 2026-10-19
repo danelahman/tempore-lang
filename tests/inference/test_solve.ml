@@ -74,15 +74,15 @@ let expected_rejections =
     ("examples/handlers/nested_reject.tpe", [ 18 ]);
     ("examples/opentrons/beads_reject.tpe", [ 32 ]);
     ("examples/opentrons/binding_reject.tpe", [ 42 ]);
-    ("examples/opentrons/cleanup_reject.tpe", [ 30 ]);
+    ("examples/opentrons/cleanup_reject.tpe", [ 33 ]);
     ("examples/opentrons/contamination_reject.tpe", [ 39 ]);
     ("examples/opentrons/elisa_reject.tpe", [ 31 ]);
     ("examples/opentrons/enzyme_reject.tpe", [ 44 ]);
-    ("examples/opentrons/purification_reject.tpe", [ 122; 145; 164 ]);
+    ("examples/opentrons/purification_reject.tpe", [ 125; 148; 167 ]);
     ("examples/opentrons/reagents_reject.tpe", [ 41 ]);
     ("examples/opentrons/staggered_reject.tpe", [ 30 ]);
     ("examples/opentrons/stopread_reject.tpe", [ 41 ]);
-    ("examples/opentrons/washes_reject.tpe", [ 31 ]);
+    ("examples/opentrons/washes_reject.tpe", [ 32 ]);
     ("tests/comp_type_annotation_reject.tpe", [ 3 ]);
     ("tests/comparison_reject_box.tpe", [ 3 ]);
     ("tests/comparison_reject_function.tpe", [ 5 ]);
@@ -200,7 +200,7 @@ let expected_rejections =
     ("tests/resource_levels_by_resource_reject.tpe", [ 16; 23; 33 ]);
     ("tests/resource_levels_reject.tpe", [ 13; 22; 31; 34; 42; 45; 53 ]);
     ("tests/strict_delays_lower_reject.tpe", [ 27 ]);
-    ("tests/strict_delays_rational_reject.tpe", [ 30; 50; 69 ]);
+    ("tests/strict_delays_rational_reject.tpe", [ 31; 51; 70 ]);
     ("tests/strict_delays_traces_reject.tpe", [ 26 ]);
     ("tests/strict_delays_whole_reject.tpe", [ 27 ]);
     ("tests/termination_reject_ackermann.tpe", [ 4 ]);
@@ -217,6 +217,7 @@ let expected_rejections =
     ("tests/traces_reject_bounds.tpe", [ 8 ]);
     ("tests/traces_reject_bounds_declared.tpe", [ 11 ]);
     ("tests/traces_reject_bounds_zero.tpe", [ 9 ]);
+    ("tests/traces_reject_bounds_zero_lower.tpe", [ 10 ]);
     ("tests/traces_reject_default_bounds.tpe", [ 13 ]);
     ("tests/traces_reject_default_nonatomic.tpe", [ 19 ]);
     ("tests/traces_reject_missing_within.tpe", [ 10 ]);

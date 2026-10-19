@@ -25,7 +25,7 @@ let concatenation r s =
   sequence
     (merge
        (List.filter
-          (function Tick 0 | Strict (Tick 0) -> false | _ -> true)
+          (function Tick 0 -> false | _ -> true)
           (factors r @ factors s)))
 
 (* The languages of the grades. *)
@@ -33,8 +33,6 @@ module type LANGUAGE = sig
   type t
 
   val of_regex : regex -> t
-  val of_strict_regex : regex -> t
-  val strict_top : t
   val concat : t -> t -> t
   val union : t -> t -> t
   val is_empty : t -> bool
@@ -99,6 +97,7 @@ struct
   let plus _ = None
   let commutative = false
   let needs_op_bounds = false
+  let duration_ends = Grade.Both_ends
   let duration_bounds _bounds _ = None
   let inhabited _bounds _rho = true
   let events rho = L.names rho.language
@@ -138,43 +137,7 @@ struct
   let accepts = reads_lit of_lit
 
   let show rho =
-    if L.is_top rho.language || L.compare rho.language L.strict_top = 0 then "⊤"
-    else "{" ^ show_regex rho.expression ^ "}"
-
-  (** The literals, the delays and the top of the rigid grades of timed
-      operations, with strict delays. *)
-  module Strict = struct
-    type grade = t
-    type delay = Rational.t
-
-    let of_regex expression =
-      { language = L.of_strict_regex expression; expression }
-
-    let top = { language = L.strict_top; expression = Star Any }
-    let of_delay d = of_regex (Strict (rational_tick d))
-
-    let of_lit = function
-      | (Int _ | Rat _) as lit -> (
-          match Delay.read lit with
-          | Some d -> of_regex (rational_tick d)
-          | None -> invalid_lit lit "grades must be non-negative")
-      | Top -> top
-      | Braces r as lit ->
-          check_delays lit r;
-          let rho = of_regex r in
-          if L.is_empty rho.language then
-            invalid_lit lit
-              "this regular expression denotes the empty language, but grades \
-               are non-empty"
-          else rho
-      | lit ->
-          invalid_lit lit
-            "grades are regular expressions `{...}`, non-negative numbers or \
-             `⊤`, not %s"
-            (describe_lit lit)
-
-    let accepts = reads_lit of_lit
-  end
+    if L.is_top rho.language then "⊤" else "{" ^ show_regex rho.expression ^ "}"
 
   let witnesses ~degree:_ _bounds = Grade.sampled mul
 end
@@ -188,8 +151,6 @@ module Automata = struct
 
         let of_regex = DelayRegex.automaton
         let universal = of_regex (Star Any)
-        let of_strict_regex = of_regex
-        let strict_top = universal
         let is_top a = equal a universal
       end)
       (struct

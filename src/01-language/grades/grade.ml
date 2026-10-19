@@ -61,6 +61,13 @@ type bounds = {
 }
 
 type completeness = Delay.completeness = Complete | Partial
+type ends = Both_ends | Lower_end | Upper_end
+
+let union_ends e e' =
+  match (e, e') with
+  | Both_ends, _ | _, Both_ends -> Both_ends
+  | Lower_end, Upper_end | Upper_end, Lower_end -> Both_ends
+  | e, _ -> e
 
 module type S = sig
   type t
@@ -85,6 +92,7 @@ module type S = sig
   val unit_least : bool
   val commutative : bool
   val needs_op_bounds : bool
+  val duration_ends : ends
 
   val duration_bounds :
     bounds -> t -> (Rational.t bound * Rational.t bound) option
@@ -145,7 +153,10 @@ let rec negative_delay = function
   | Delays (((Closed a | Open a) as lo), hi) when Rational.sign a < 0 ->
       Some (show_interval Rational.show lo hi)
   | Delays ((Unbounded as lo), hi) -> Some (show_interval Rational.show lo hi)
-  | Letter _ | Tick _ | Frac _ | Delays _ | Any -> None
+  | (Below (Closed a | Open a) | Above (Closed a | Open a)) as r
+    when Rational.sign a < 0 ->
+      Some (show_regex r)
+  | Letter _ | Tick _ | Frac _ | Delays _ | Below _ | Above _ | Any -> None
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> (
       match negative_delay r with Some d -> Some d | None -> negative_delay s)
   | Star r | Repeat (r, _) | Compl r | Strict r -> negative_delay r
@@ -159,6 +170,7 @@ let rec whole_delays ~names = function
   | Letter _ -> names
   | Tick _ | Any -> true
   | Frac _ -> false
+  | Below _ | Above _ -> false
   | Delays (lo, hi) -> (
       match tick_interval lo hi with
       | _ -> true
@@ -171,7 +183,7 @@ let whole_braces ~names r =
   Option.is_none (negative_delay r) && whole_delays ~names r
 
 let rec positive = function
-  | Letter _ | Tick _ | Frac _ | Delays _ | Any -> true
+  | Letter _ | Tick _ | Frac _ | Delays _ | Below _ | Above _ | Any -> true
   | Seq (r, s) | Union (r, s) -> positive r && positive s
   | Star r | Repeat (r, _) -> positive r
   | Inter _ | Compl _ | Strict _ -> false

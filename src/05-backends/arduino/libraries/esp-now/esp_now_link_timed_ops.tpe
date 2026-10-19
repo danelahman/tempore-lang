@@ -5,11 +5,11 @@
    The operations, their provisional bounds and their default implementations
    are those of esp_now_link.tpe. *)
 
-operation LinkStart : nat ~> unit # {LinkStart} within [0, 1500]
+operation LinkStart : nat ~> unit # {LinkStart} within (0, 1500]
 default LinkStart _ = delay 100
 
-operation Send : nat * float * float ~> unit # {Send} within [0, 1]
+operation Send : nat * float * float ~> unit # {Send} within (0, 1]
 default Send _ = delay 1/10
 
-operation Receive : nat ~> bool * nat * float * float # {Receive} within [0, 1/10]
+operation Receive : nat ~> bool * nat * float * float # {Receive} within (0, 1/10]
 default Receive _ = delay 1/100; (false, 0, 0.0, 0.0)

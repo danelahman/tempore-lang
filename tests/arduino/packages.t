@@ -406,12 +406,12 @@ operation is refused:
   >   match setpoints with Setpoints (speed, turn) -> speed +. turn
   > EOF
   $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-remote --typecheck-only latest.tpe 2>&1 | grep error; done
-  Typing error: Variable `fresh` is unboxed with grade `{Send; !150}` accumulated since it was bound, which is not below its box grade `{[0, 150)}`
-  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{(!_ & ~Receive)*}`
+  Typing error: Variable `fresh` is unboxed with grade `{Send; !≤150}` accumulated since it was bound, which is not below its box grade `{<150}`
+  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{≥0 & ~Receive}`
   Typing error: Variable `setpoints` is used with grade `{Send}` accumulated since it was bound, but its type `setpoints` is not eternal
-  Typing error: Variable `fresh` is unboxed with grade `[{Send; !150}, {Send; !150}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 150)}]`
-  Typing error: Variable `latest` is unboxed with grade `[{Receive}, {Receive}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~Receive)*}, {(!_ & ~Receive)*}]`
-  Typing error: Variable `setpoints` is used with grade `[{Send}, {Send}]` accumulated since it was bound, but its type `setpoints` is not eternal
+  Typing error: Variable `fresh` is unboxed with grade `{Send; !150}` accumulated since it was bound, which is not below its box grade `{[0, 150)}`
+  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{≥0 & ~Receive}`
+  Typing error: Variable `setpoints` is used with grade `{Send}` accumulated since it was bound, but its type `setpoints` is not eternal
 
 The status of the robot, sent by SendStatus as tag 5 and received by
 remote_status, under the rigid grades in two boxes: the status, usable
@@ -437,10 +437,10 @@ while no further Receive has come, and usable within 200 ms:
   >   remote_armed s
   > EOF
   $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-remote --typecheck-only status.tpe 2>&1 | grep error; done
+  Typing error: Variable `fresh` is unboxed with grade `{!≤200}` accumulated since it was bound, which is not below its box grade `{<200}`
+  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{≥0 & ~Receive}`
   Typing error: Variable `fresh` is unboxed with grade `{!200}` accumulated since it was bound, which is not below its box grade `{[0, 200)}`
-  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{(!_ & ~Receive)*}`
-  Typing error: Variable `fresh` is unboxed with grade `[{!200}, {!200}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 200)}]`
-  Typing error: Variable `latest` is unboxed with grade `[{Receive}, {Receive}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~Receive)*}, {(!_ & ~Receive)*}]`
+  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{≥0 & ~Receive}`
 
 Under the rigid grades, read_imu_boxed of the package m5-imu reads the unit
 once and returns the reading as the latest and as recent: a use after a
@@ -465,10 +465,10 @@ further reading fails the first box, and a use after a display call of up to
   >   b
   > EOF
   $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package m5-imu --package m5-display --board m5stack-cores3 --typecheck-only boxed.tpe 2>&1 | grep error; done
-  Typing error: Variable `latest` is unboxed with grade `{ReadImu}` accumulated since it was bound, which is not below its box grade `{(!_ & ~ReadImu)*}`
+  Typing error: Variable `latest` is unboxed with grade `{ReadImu}` accumulated since it was bound, which is not below its box grade `{≥0 & ~ReadImu}`
+  Typing error: Variable `recent` is unboxed with grade `{ShowTextAt}` accumulated since it was bound, which is not below its box grade `{≤2}`
+  Typing error: Variable `latest` is unboxed with grade `{ReadImu}` accumulated since it was bound, which is not below its box grade `{≥0 & ~ReadImu}`
   Typing error: Variable `recent` is unboxed with grade `{ShowTextAt}` accumulated since it was bound, which is not below its box grade `{[0, 2]}`
-  Typing error: Variable `latest` is unboxed with grade `[{ReadImu}, {ReadImu}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~ReadImu)*}, {(!_ & ~ReadImu)*}]`
-  Typing error: Variable `recent` is unboxed with grade `[{ShowTextAt}, {ShowTextAt}]` accumulated since it was bound, which is not below its box grade `[{0}, {2}]`
 
 The package needs esp-now, listed before it:
 

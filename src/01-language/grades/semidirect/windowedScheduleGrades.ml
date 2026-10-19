@@ -41,6 +41,8 @@ let of_braces lit r =
     | Grade.Compl r -> R.inter [ R.compl (go r); naturals ]
     | Grade.Strict _ as r ->
         Grade.component_of_lit lit ~context:"" Grade.strict_unsupported r
+    | (Grade.Below _ | Grade.Above _) as r ->
+        Grade.component_of_lit lit ~context:"" Grade.one_sided_unsupported r
   in
   go r
 
@@ -73,6 +75,7 @@ module Durations = struct
   let plus _ = None
   let commutative = true
   let needs_op_bounds = false
+  let duration_ends = Grade.Both_ends
   let duration_bounds _bounds _ = None
   let inhabited _bounds _ = true
   let events _ = []

@@ -18,13 +18,7 @@
       i.e. [ρ ⊆ ↑ρ'], operations counting at their lower running-time bound
       [lo];
     - intervals: closed intervals of a lower and an upper bound, compared
-      componentwise;
-    - rigid upper bounds and intervals: as the upper bounds and intervals, in
-      the rigid allowance order [≼ʳ], which matches every operation of the
-      greater trace, in order, so that [ρ ≾ ρ'] iff [ρ ⊆ ↓ʳρ']. The unit [{0}]
-      is not least: [{0} ≾ {A}] fails. On grades without delays the rigid order
-      is the inclusion of languages, and on grades without operations it is the
-      allowance order.
+      componentwise.
 
     All are preorders, the closures being closure operators; a grade denotes its
     closure, and [equal] is mutual [≾], coarser than the equality of languages:
@@ -149,16 +143,6 @@ module Make
       [[{n + 1}, {m - 1}]]. *)
   module Interval :
     Grade.S with type t = L.t * L.t and type Delay.t = Delay.Nat.t
-
-  (** The upper bounds and the intervals in the rigid allowance order, named
-      with ["rigid-"] after ["regex-timed-"]. *)
-  module Rigid : sig
-    module Lower : Grade.S with type t = L.t and type Delay.t = Delay.Nat.t
-    module Upper : Grade.S with type t = L.t and type Delay.t = Delay.Nat.t
-
-    module Interval :
-      Grade.S with type t = L.t * L.t and type Delay.t = Delay.Nat.t
-  end
 end
 
 module Automata : LANGUAGE with type t = RegularTraceGrade.t
@@ -220,21 +204,6 @@ module Interval :
     with type t = RegularTraceGrade.t * RegularTraceGrade.t
      and type Delay.t = Delay.Nat.t
 
-(** The upper bounds and the intervals in the rigid allowance order, named with
-    ["rigid-"] after ["regex-timed-"]. *)
-module Rigid : sig
-  module Lower :
-    Grade.S with type t = RegularTraceGrade.t and type Delay.t = Delay.Nat.t
-
-  module Upper :
-    Grade.S with type t = RegularTraceGrade.t and type Delay.t = Delay.Nat.t
-
-  module Interval :
-    Grade.S
-      with type t = RegularTraceGrade.t * RegularTraceGrade.t
-       and type Delay.t = Delay.Nat.t
-end
-
 (** The grades over {!Derivatives}, named ["regex-timed-lower-bound-symbolic"],
     ["regex-timed-upper-bound-symbolic"] and ["regex-timed-interval-symbolic"],
     decided over the graphs of the gap derivatives of the grades ({!GapGraph}),
@@ -273,26 +242,6 @@ module Symbolic : sig
       with type t =
         RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
        and type Delay.t = Delay.Nat.t
-
-  (** The upper bounds and the intervals in the rigid allowance order, named
-      with ["rigid-"] after ["regex-timed-"]. *)
-  module Rigid : sig
-    module Lower :
-      Grade.S
-        with type t = RegularTraceGradeDerivative.t
-         and type Delay.t = Delay.Nat.t
-
-    module Upper :
-      Grade.S
-        with type t = RegularTraceGradeDerivative.t
-         and type Delay.t = Delay.Nat.t
-
-    module Interval :
-      Grade.S
-        with type t =
-          RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
-         and type Delay.t = Delay.Nat.t
-  end
 end
 
 (** The grades over {!ConcreteDerivatives}, named
@@ -316,26 +265,6 @@ module Concrete : sig
       with type t =
         RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
        and type Delay.t = Delay.Nat.t
-
-  (** The upper bounds and the intervals in the rigid allowance order, named
-      with ["rigid-"] after ["regex-timed-"]. *)
-  module Rigid : sig
-    module Lower :
-      Grade.S
-        with type t = RegularTraceGradeDerivative.t
-         and type Delay.t = Delay.Nat.t
-
-    module Upper :
-      Grade.S
-        with type t = RegularTraceGradeDerivative.t
-         and type Delay.t = Delay.Nat.t
-
-    module Interval :
-      Grade.S
-        with type t =
-          RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
-         and type Delay.t = Delay.Nat.t
-  end
 end
 
 (** The grades over {!PlainDerivatives}, named
@@ -358,23 +287,4 @@ module Plain : sig
     Grade.S
       with type t = RegularTraceGradePlain.t * RegularTraceGradePlain.t
        and type Delay.t = Delay.Nat.t
-
-  (** The upper bounds and the intervals in the rigid allowance order, named
-      with ["rigid-"] after ["regex-timed-"]. *)
-  module Rigid : sig
-    module Lower :
-      Grade.S
-        with type t = RegularTraceGradePlain.t
-         and type Delay.t = Delay.Nat.t
-
-    module Upper :
-      Grade.S
-        with type t = RegularTraceGradePlain.t
-         and type Delay.t = Delay.Nat.t
-
-    module Interval :
-      Grade.S
-        with type t = RegularTraceGradePlain.t * RegularTraceGradePlain.t
-         and type Delay.t = Delay.Nat.t
-  end
 end

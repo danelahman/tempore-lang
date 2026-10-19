@@ -86,6 +86,7 @@ module Constants : sig
   val unit_least : bool
   val commutative : bool
   val needs_op_bounds : bool
+  val duration_ends : Grade.ends
 
   val duration_bounds :
     Grade.bounds ->
@@ -149,12 +150,6 @@ module type S = sig
   val canonical : t -> LetterRegex.t option
   (** [canonical rho] is the canonical expression printed for [rho], or [None]
       if the printing of [rho] falls back to its normal form. *)
-
-  (** The literals, delays and top of the grade under the rigid grades of timed
-      operations, with strict delays ({!StrictDelays}); a grade with strict
-      delays is printed as the first brace literal read of its normal form, and
-      as its normal form if none was read. *)
-  module Strict : StrictDelays.GRADE with type grade = t and type delay = int
 end
 
 (** The decisions of a grade by derivatives. *)

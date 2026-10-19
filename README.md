@@ -481,14 +481,14 @@ See
 
 The rigid variants `traces-timed-rigid-lower-bound`,
 `traces-timed-rigid-upper-bound`, `traces-timed-rigid-interval` and their
-`-rational` variants order the upper bounds by the rigid allowance order of
-[Rigid regular expressions of timed operations](#rigid-regular-expressions-of-timed-operations):
-an upper bound's operations are demanded, in order. With `Heat` and `Cool`
-declared with running-time bounds, `{Heat}` is below `{Heat; Cool}` under
+`-rational` variants are the grades of
+[Rigid regular expressions of timed operations](#rigid-regular-expressions-of-timed-operations)
+on finite sets of traces: their literals have operations, finite sets of
+them and the interval letters, with `;`, `|` and finite counts. An upper
+bound's operations are demanded, in order: with `Heat` and `Cool` declared
+with running-time bounds, `{Heat}` is below `{Heat; Cool}` under
 `traces-timed-upper-bound`, the cooling left out, but not under
-`traces-timed-rigid-upper-bound`. Their literals have the
-[strict delays](#strict-delays) `!d`, and the lower bounds are those of
-`traces-timed-lower-bound` with strict delays.
+`traces-timed-rigid-upper-bound`.
 
 ### Regular expressions
 
@@ -613,7 +613,7 @@ A repetition with a count is written `r^n`, `r^[m, n]` or `r^[m, ∞)` (ASCII
 concatenations of `k` words of `r` for `k` from `m` to `n`; `r^0` is `0`,
 `r^1` is `r` and `r^[0, ∞)` is `r*`. It is notation: a repetition and its
 unrolling are the same grade. It is read by every grade of regular expressions,
-also of timed operations and rigid, with strict delays inside, as in
+also of timed operations and rigid, with strict waits inside, as in
 `{(!2.5; ReadImu)^3}`; the grades of finite sets of traces read finite counts
 only. A repetition is decided without unrolling, by derivatives with a counter,
 in time linear in its count.
@@ -801,34 +801,71 @@ The grading monoids `regex-timed-rigid-lower-bound-symbolic`,
 `regex-timed-rigid-interval-symbolic`, and their variants
 `regex-timed-rigid-lower-bound-rational-symbolic`,
 `regex-timed-rigid-upper-bound-rational-symbolic` and
-`regex-timed-rigid-interval-rational-symbolic`, order the upper bounds by the
-*rigid allowance order*:
+`regex-timed-rigid-interval-rational-symbolic`, are regular expressions over
+*interval letters*, ordered *rigidly*: every operation of a bound is
+demanded, matched in order by the program's trace. A star then permits its
+rounds only.
 
-- every operation of a bound's trace is demanded, matched in order by the
-  program's trace;
-- the program's other operations are bought within the delay of the bound they
-  fall in, at their `hi`.
+#### Interval letters
 
-A star then permits its rounds only. The literals, lower bounds, units and tops
-are those of the grades above, with the [strict delays](#strict-delays) below.
-Further:
+The letters are:
 
-- on bounds without delays the order is the inclusion of languages: `{Read}`
-  is not below `{Read; Log}`;
-- on bounds without operations it is the allowance order: `{Read | 3}` equals
-  `{3}` and `{~1}` is `⊤`;
-- `{0}` is not least, as it is not below `{Read}`;
-- an upper bound forbids an operation between two of its operations by giving
-  them no delay between them, and bounds what happens within a delay by its
-  length: a complement does not exclude an operation that fits in a delay, so
-  `{(_ & ~Read)*}` is still `⊤`.
+- an operation `A`, or a set of operations, such as `(A | B)`, `_`, `~Read`
+  or `_ & ~Read`: exactly one operation of the set; `_` is one operation,
+  not a delay;
+- a *budget*, a stretch of time in which operations may fall: `d`,
+  `[a, b]`, `(a, b)`, `≤d`, `<d`, `≥d` or `>d` (ASCII `<=` and `>=`); `≥0`
+  is any stretch, and the top;
+- a *strict wait*, a stretch without operations: a budget letter after `!`,
+  such as `!10`, `![2, 3]` or `!≤5`;
+- a *restricted budget* `I & S` of a budget `I` and a set of operations
+  `S`, such as `≥0 & ~Read`: a budget whose operations lie in `S`;
+- `0`, the empty trace; a stretch of length 0, such as `!0` or `≤0`, is the
+  empty trace too.
+
+Expressions use `;`, `|`, `*`, `^n`, `^[m, n]` and the postfix `r?`, which
+is `r | 0`. The complement `~` and the intersection `&` apply to sets of
+operations and to a budget with a set of operations only: a stretch without
+`Read` is the restricted budget `≥0 & ~Read`, not a complement of
+`_*; Read; _*`.
+
+An upper bound reads a letter by its upper end and a lower bound by its
+lower end: `[2, 5]` is `≤5` in an upper bound and `≥2` in a lower one, and
+`d` is `≤d` and `≥d`. Lower bounds take the letters bounded below, upper
+bounds those bounded above, and `≥0` both: `{≤3}` is not a lower bound. Under
+the interval grades a literal `{e}` is the pair of its two readings,
+`[{L}, {U}]` gives them apart, and a pair is printed as one literal where it
+is the pair of one, as `{!10}` for `[{!≥10}, {!≤10}]`. The unit is `{0}` and
+the top `{≥0}`.
+
+#### The order
+
+As an upper bound:
+
+- an operation letter demands the program's operation at its place;
+- the program's other operations fall within budgets, at their `hi`, and
+  only within budgets whose set admits them;
+- a strict wait admits waits only, of total length within its end.
+
+As a lower bound:
+
+- a budget `≥d` demands at least `d` units, covered by waits and by
+  operations at their `lo`;
+- a strict wait `!≥d` demands an undisturbed wait of at least `d`;
+- there are no implicit stretches around the letters: `{A; !5; B}` demands
+  `A`, a wait of at least `5` and `B` with nothing in between, and
+  `{≥0; A; ≥0}` an `A` anywhere.
+
+The grade of `delay d` is the strict wait `!d`. Every operation takes a
+positive time: a declaration `within [0, hi]` is rejected, and is written
+`within (0, hi]`.
 
 For example, under `regex-timed-rigid-upper-bound-rational-symbolic`, the
 program
 
 ```
 operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
-operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
+operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
 operation Redraw : unit ~> unit # {Redraw} within [0.05, 33]
 
 let polls () =
@@ -844,70 +881,25 @@ let polls () =
 ```
 
 is accepted, while `perform Redraw ()` in place of `delay 2.25` is rejected, as
-a redraw of up to `33` units does not fit in a delay of `2.5`:
+a redraw of up to `33` units does not fit in a budget of `2.5`:
 
     Variable `p` is unboxed with grade
     `{ReadImu; ReadClock; Redraw; ReadImu; ReadClock}` accumulated since it was
-    bound, which is not below its box grade `{(2.5; ReadImu; ReadClock)*}`
+    bound, which is not below its box grade `{(≤2.5; ReadImu; ReadClock)*}`
 
-Under `regex-timed-upper-bound-rational-symbolic` both are accepted. Likewise,
-under `regex-timed-rigid-interval-symbolic` the box grade
-`{_*; Wash; _*; Wash; [2, 5]; ChangeTip}` of the previous section rejects the
-gap of six ticks before `ChangeTip`.
+Under `regex-timed-upper-bound-rational-symbolic` both are accepted.
 
-The Arduino packages declare their operations under the rational rigid grades
-too. The implementations kept for benchmarking take the suffixes of the grades
-above; they have no strict delays.
+#### Strict waits and restricted budgets
 
-See
-[`examples/regular_timed_rigid/upper_bounds_rational.tpe`](examples/regular_timed_rigid/upper_bounds_rational.tpe),
-[`examples/regular_timed_rigid/intervals_rational.tpe`](examples/regular_timed_rigid/intervals_rational.tpe)
-and the Opentrons example
-[`examples/opentrons/washes.tpe`](examples/opentrons/washes.tpe), whose washes
-are a recursion of grade `{(Wash; ChangeTip)*}`.
-
-#### Strict delays
-
-Under the rigid grades a delay is either a *budget* or *strict*:
-
-- a plain delay or set of delays, such as `3`, `[0, 5]` or `(0, ∞)`, is a
-  budget, also inside complements and intersections;
-- a strict delay is written with `!` before a delay or a set of delays, such
-  as `!10`, `!3/2`, `![2, 3]` or `!(0.5, 1)`;
-- `!_` is the strict wildcard: any operation or any positive strict delay,
-  while `_` is any operation or any positive delay of either kind;
-- adjacent budget delays add up, and delays of different kinds stay apart:
-  `{A; !2; 1; B}`;
-- a strict delay written once is one piece: `!2; !3` and `!5` are equivalent
-  as grades but distinct as words, so complements and intersections tell them
-  apart, as complements already tell `{Read | 3}` from `{3}`.
-
-A strict delay admits waiting only:
-
-- as an upper bound, the part of a trace facing a strict delay consists of
-  strict delays of total length at most it, where a budget admits any trace
-  whose weight fits;
-- as a lower bound, a strict delay demands an undisturbed wait of at least its
-  length somewhere in its gap, which operations counting at their `lo` do not
-  cover; it does not forbid other operations around the wait, forbidding
-  being the upper bound's job: `{A; !5; B}` is covered by `A`, a wait of `5`,
-  `C` and `B`;
-- the grade of `delay d` is the strict delay `!d`, a wait; a strict delay is
-  below the budget delay of the same length, not conversely.
-
-Grades without strict delays are ordered as before. A strict delay matters
-where a budget leaves slack: a range of delays, or a delay longer than the
-program's own wait, so that a short operation fits beside it. For periodic
-sampling with a jitter of `δ`, `(![T - δ, T + δ]; Read)*` permits the readings
-and waits only, whereas `([T - δ, T + δ]; Read)*` admits any operation with
-`hi` at most `δ` beside each wait.
-
-For example, under `regex-timed-rigid-upper-bound-rational-symbolic`, the
-program
+A strict wait matters where a budget leaves slack: a range of delays, or a
+delay longer than the program's own wait, so that a short operation fits
+beside it. For periodic sampling with a jitter of `δ`,
+`(![T - δ, T + δ]; Read)*` permits the readings and waits only, whereas
+`([T - δ, T + δ]; Read)*` admits any operation with `hi` at most `δ` beside
+each wait. With
 
 ```
-operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
-operation Beep : unit ~> unit # {Beep} within [0, 0.15]
+operation Beep : unit ~> unit # {Beep} within (0, 0.15]
 
 let sampled () =
   let first = perform ReadImu () in
@@ -921,26 +913,23 @@ let sampled () =
   (first' + a + b) / 3
 ```
 
-is rejected, as the beep falls in a strict delay:
+the program is rejected, as the beep falls in a strict wait:
 
-    Variable `s` is unboxed with grade `{!10; ReadImu; Beep; !10; ReadImu}`
+    Variable `s` is unboxed with grade `{!≤10; ReadImu; Beep; !≤10; ReadImu}`
     accumulated since it was bound, which is not below its box grade
-    `{(![9.5, 10.5]; ReadImu)*}`
+    `{(!≤10.5; ReadImu)*}`
 
 With the box grade `{([9.5, 10.5]; ReadImu)*}` it is accepted, the beep of at
 most `0.15` fitting beside the wait of `10`.
 
-A bound whose delays are strict admits no operation it does not name, so
-complements of operations exclude them: `{(!_ & ~A)*}`, or
-`{!_* & ~(_*; A; _*)}`, permits every trace without `A` whose delays are
-strict, and `{!_*}` every trace with strict delays only. With `ReadImu` and
-`ConfigureImu` declared, the box grade `{(!_ & ~ConfigureImu)*}` keeps a
-reference reading from a reconfiguration, and the program
+A restricted budget excludes operations from a stretch. With `ConfigureImu`
+declared, the box grade `{≥0 & ~ConfigureImu}` keeps a reading from a
+reconfiguration, and
 
 ```
 let drift () =
   let reference = perform ReadImu () in
-  box {(!_ & ~ConfigureImu)*} reference as w in
+  box {≥0 & ~ConfigureImu} reference as w in
   let a = perform ReadImu () in
   delay 2;
   perform ConfigureImu ();
@@ -951,19 +940,21 @@ let drift () =
 
 is rejected with
 
-    Variable `w` is unboxed with grade `{ReadImu; !2; ConfigureImu; ReadImu}`
+    Variable `w` is unboxed with grade `{ReadImu; !≤2; ConfigureImu; ReadImu}`
     accumulated since it was bound, which is not below its box grade
-    `{(!_ & ~ConfigureImu)*}`
+    `{≥0 & ~ConfigureImu}`
 
-With budget delays, `{(_ & ~A)*}` is still `⊤`: an `A` fits in a delay. A
-complement of a delay does not exclude it: `{~!1}` permits `!1`, which is
-shorter than `!2`.
+The Arduino packages declare their operations under the rational rigid grades
+too.
 
-See [`tests/strict_delays_rational_reject.tpe`](tests/strict_delays_rational_reject.tpe),
+See
+[`examples/regular_timed_rigid/upper_bounds_rational.tpe`](examples/regular_timed_rigid/upper_bounds_rational.tpe),
+[`examples/regular_timed_rigid/intervals_rational.tpe`](examples/regular_timed_rigid/intervals_rational.tpe),
+[`tests/strict_delays_rational_reject.tpe`](tests/strict_delays_rational_reject.tpe),
 [`tests/strict_delays_lower_reject.tpe`](tests/strict_delays_lower_reject.tpe)
 and the Opentrons examples
 [`examples/opentrons/washes.tpe`](examples/opentrons/washes.tpe), with a strict
-binding, a strict air-dry and an annotated grade excluding a removal of liquid
+binding, a strict air-dry and restricted budgets excluding a removal of liquid
 off the magnet, and
 [`examples/opentrons/purification.tpe`](examples/opentrons/purification.tpe),
 with strict ethanol soaks.
@@ -1364,7 +1355,9 @@ operation Tx : string ~> unit # {Tx} within [2, 3]
 
 The bounds are durations, written as for `delay` (see [Delays](#delays)), with
 `lo <= hi` and `hi` positive. Either end may be open, as in `within (lo, hi)`,
-`within [lo, hi)` or `within (lo, hi]`, the interval being non-empty.
+`within [lo, hi)` or `within (lo, hi]`, the interval being non-empty. The
+running time is positive: `lo` is above 0, or open at 0, as in
+`within (0, 1]`.
 
 The rational monoids of timed operations accept fractional bounds such as
 `within [1/2, 3/2)`; under the other monoids of timed operations, which count
@@ -1665,8 +1658,8 @@ prints
     Run 1 returned () at (7.1, 11.1).
 
 Grades whose ends exceed 40 characters, such as the traces of the Opentrons
-examples under `regex-timed-rigid-interval-symbolic`, are shortened for
-display at the separators `; ` of their events, never inside an event: the
+examples under `regex-timed-rigid-interval-rational-symbolic`, are shortened
+for display at the separators `; ` of their events, never inside an event: the
 grade accumulated keeps its last events,
 `{…; !3; ChangeTip; MagnetOff; EluteDNA}`, a box grade its first. The grades
 themselves are unchanged; `--timeline-full` prints them in full.

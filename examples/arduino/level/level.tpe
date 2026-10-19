@@ -11,10 +11,13 @@
        --board m5stack-cores3 \
        examples/arduino/level/level.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces with rational durations
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 (* Runs on the M5Stack CoreS3 Lite lying on a surface (level.device.json):
@@ -175,13 +178,12 @@ let take () : reference
 (* Correctly rejected by the typechecker: the offsets are installed without a
    check at rest, which the lower bound of their box demands:
 
-     Typing error: Variable `unchecked` is unboxed with grade
-       `[{Beep}, {Beep}]` accumulated since it was bound, which is not below
-       its box grade `[{CheckAtRest; Beep}, {CheckAtRest; Beep}]`
+     Typing error: Variable `unchecked` is unboxed with grade `{Beep}`
+       accumulated since it was bound, which is not below its box grade
+       `{CheckAtRest; Beep}`
        ...
-       Note: the resource inequality
-         `[{Beep}, {Beep}] <= [{CheckAtRest; Beep}, {CheckAtRest; Beep}]`
-         does not hold
+       Note: the resource inequality `{Beep} <= {CheckAtRest; Beep}` does not
+         hold
 *)
 (*
 let take_unchecked () : reference =
@@ -287,11 +289,10 @@ let start () : state =
    reconfigures the unit, and the step keeps the reference and applies it
    to the reading without a check at rest:
 
-     Typing error: Variable `kept` is unboxed with grade `[{ReadImu;
-       ReadTouch; (0 | ConfigureImu)}, {ReadImu; ReadTouch; (0 |
-       ConfigureImu)}]` accumulated since it was bound, which is not below
-       its box grade `[{(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest |
-       0)}, {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | 0)}]`
+     Typing error: Variable `kept` is unboxed with grade `{ReadImu;
+       ReadTouch; ConfigureImu?}` accumulated since it was bound, which is not
+       below its box grade `{(ReadImu | ReadTouch)*; (ConfigureImu;
+       CheckAtRest)?}`
        ...
 *)
 (*
@@ -316,13 +317,11 @@ let step_reconfigured ((reference, age, rate, touching) : state) : state =
    draws the reading taken before it, in place of a new one:
 
      Typing error: Variable `reading` is unboxed with grade
-       `[{ReadTouch; ConfigureImu; Beep}, {ReadTouch; ConfigureImu; Beep}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{ReadTouch}, {ReadTouch}]`
+       `{ReadTouch; ConfigureImu; Beep}` accumulated since it was bound, which
+       is not below its box grade `{ReadTouch}`
        ...
        Note: the resource inequality
-         `[{ReadTouch; ConfigureImu; Beep}, {ReadTouch; ConfigureImu; Beep}] <=
-         [{ReadTouch}, {ReadTouch}]` does not hold
+         `{ReadTouch; ConfigureImu; Beep} <= {ReadTouch}` does not hold
 *)
 (*
 let step_stale ((reference, age, rate, touching) : state) : state =

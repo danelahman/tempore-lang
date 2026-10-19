@@ -39,6 +39,7 @@ let of_regex r =
     | Repeat (r, c) -> Regex.repeat (go r) c
     | Compl r -> Regex.compl (go r)
     | Strict _ as r -> strict_unsupported r
+    | (Below _ | Above _) as r -> one_sided_unsupported r
   in
   { names; regex = go r }
 

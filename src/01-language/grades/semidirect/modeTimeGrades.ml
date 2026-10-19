@@ -607,6 +607,7 @@ module ModeTimes = struct
   let plus _ = None
   let commutative = false
   let needs_op_bounds = true
+  let duration_ends = Grade.Both_ends
   let of_lit = of_lit
   let accepts = Grade.reads_lit of_lit
   let of_bounds b = delays (I.closure b)

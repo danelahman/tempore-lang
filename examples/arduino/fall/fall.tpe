@@ -11,10 +11,13 @@
        --board m5stack-cores3 \
        examples/arduino/fall/fall.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces with rational durations
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 (* Runs on the M5Stack CoreS3 Lite carried by a person (fall.device.json):
@@ -302,7 +305,7 @@ let bar (a : float) = nat_of_float (a *. 320.0 /. 3.0)
    redrawn every tenth reading and the time since the last event, counted
    in readings, every hundredth: at 10 ms a reading, it falls short of the
    time by the running times of the operations, about a tenth. *)
-let rec monitor (n : nat) (falls : nat) (since : nat) : unit # {_*} =
+let rec monitor (n : nat) (falls : nat) (since : nat) : unit # {≥0} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -330,10 +333,9 @@ let watch () =
 (* Correctly rejected by the typechecker: the response waits twenty seconds
    and raises the alarm without the prompt and the tone that ask for a tap:
 
-     Typing error: Variable `event` is unboxed with grade `[{!20000},
-       {!20000}]` accumulated since it was bound, which is not below its box
-       grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]},
-       {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
+     Typing error: Variable `event` is unboxed with grade `{!20000}`
+       accumulated since it was bound, which is not below its box grade
+       `{ShowColourTextAt^2; Beep; [10000, 30000]}`
        ...
 *)
 (*
@@ -349,10 +351,9 @@ let respond_silent (fall : fall) =
    budget delays in place of the strict ones, the box would admit the
    reconfiguration, of at most 0.4 ms, beside the wait of 10 ms:
 
-     Typing error: Variable `onset` is unboxed with grade `[{ConfigureImu;
-       (!10; ReadImu)^10}, {ConfigureImu; (!10; ReadImu)^10}]` accumulated
-       since it was bound, which is not below its box grade `[{100}, {(![9.5,
-       10.5]; ReadImu)^10}]`
+     Typing error: Variable `onset` is unboxed with grade `{ConfigureImu;
+       (!10; ReadImu)^10}` accumulated since it was bound, which is not below
+       its box grade `[{≥100}, {(!≤10.5; ReadImu)^10}]`
        ...
 *)
 (*
@@ -366,18 +367,11 @@ let suspect_rated (first : float) =
 (* Correctly rejected by the typechecker: the alarm sounds its tone only on
    the even seconds:
 
-     Typing error: This function's body has grade `[{(ReadTouch; !50)^20;
-       (ShowColourTextAt; ShowTimeAt; (0 | Beep); ((ReadTouch; !50)^20;
-       ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20; Beep;
-       ShowColourTextAt^2; !2000) | Beep; ShowColourTextAt^2; !2000) | 0},
-       {(ReadTouch; !50)^20; (ShowColourTextAt; ShowTimeAt; (0 | Beep);
-       ((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 |
-       (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000) | Beep;
-       ShowColourTextAt^2; !2000) | 0}]`, which does not match its annotated
-       grade `[{((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0
-       | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)}, {((ReadTouch;
-       !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | (ReadTouch; !50)^20;
-       Beep; ShowColourTextAt^2; !2000)}]`
+     Typing error: This function's body has grade `{((ReadTouch; !50)^20;
+       (Beep; ShowColourTextAt^2; !2000 | ShowColourTextAt; ShowTimeAt; Beep?;
+       …))?}`, which does not match its annotated grade
+       `{((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
+       ((ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)?}`
        ...
 *)
 (*

@@ -40,17 +40,17 @@
    label, or, active, yellow with a black label. Their bounds are
    PROVISIONAL, not yet measured. *)
 
-operation CountStep : nat ~> unit # {CountStep} within [0, 0.2]
+operation CountStep : nat ~> unit # {CountStep} within (0, 0.2]
 default CountStep _ = delay 1/10
 
-operation ResetSteps : unit ~> unit # {ResetSteps} within [0, 0.2]
+operation ResetSteps : unit ~> unit # {ResetSteps} within (0, 0.2]
 default ResetSteps () = delay 1/10
 
-operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
+operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
 default ReadClock () = delay 1/100; 0
 
 operation ShowButton : nat * nat * nat * nat * bool * string ~> unit
-    # {ShowButton} within [0, 33]
+    # {ShowButton} within (0, 33]
 default ShowButton _ = delay 3
 
 (* The states of the counter: at rest, a run of steps not yet confirmed, a
