@@ -33,9 +33,9 @@
    On the profile m5stack-gray-radio, an M5Stack Gray, the radio on core 0,
    the tasks of the application on core 1 and the link encrypted, the
    profile of the device (2026-10-19) measured LinkStart at 88.500 to 95.847
-   ms, and 86.322 ms in an earlier run, and Receive at 0.002 to 0.078 ms.
+   ms, and 85.516 ms in a later run, and Receive at 0.002 to 0.078 ms.
    Their bounds there are the least time measured, rounded down, and 1.5
-   times the greatest, rounded up: LinkStart [86, 144] and Receive [0,
+   times the greatest, rounded up: LinkStart [85.5, 144] and Receive [0,
    0.15]. *)
 
 operation LinkStart : nat ~> bool # [0, 1500]
