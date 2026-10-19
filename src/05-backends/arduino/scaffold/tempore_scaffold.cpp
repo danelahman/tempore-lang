@@ -219,8 +219,10 @@ static void tempore_halt_report(void *) {
   for (;;) {
     vTaskDelayUntil(&release, pdMS_TO_TICKS(TEMPORE_HALT_REPORT_INTERVAL_MS));
     const long long t = tempore_clock_us();
-    snprintf(line, sizeof line, "[%lld.%03lld ms] Halted at %lld.%03lld ms: %s",
-             t / 1000, t % 1000, halt / 1000, halt % 1000, tempore_halt_reason);
+    if (snprintf(line, sizeof line,
+                 "[%lld.%03lld ms] Halted at %lld.%03lld ms: %s", t / 1000,
+                 t % 1000, halt / 1000, halt % 1000, tempore_halt_reason) < 0)
+      continue;
     tempore_log_line(line, false);
   }
 }
