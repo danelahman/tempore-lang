@@ -1624,11 +1624,9 @@ the calls of operations that no handler handles and that are performed by their
 default implementations, and the resources boxed and unboxed, by the name of the
 variable they are bound to.
 
-- A delay or an operation has a grade: that of the delay, or the declared
-  grade of the operation.
-- Boxing and unboxing add nothing to the grade accumulated; a box row names
-  the grade the resource is boxed at in its event,
-  `box reading with grade [5, 10)`.
+- A delay, an operation or a box has a grade: that of the delay, the declared
+  grade of the operation, or the grade the resource is boxed at.
+- Boxing and unboxing add nothing to the grade accumulated.
 - The events of a default implementation, the operations it performs among
   them, are listed below its operation, indented by `·`.
 - Each row at the top level starts at the grade accumulated before it, the
@@ -1645,16 +1643,16 @@ after each run, e.g.
 prints
 
     Timeline
-    Run  Start       Event                           Grade
-    1    [0, 0]      delay                           [0.1, 0.1]
-    1    [0.1, 0.1]  box reading with grade [5, 10)
-    1    [0.1, 0.1]  Compute                         [6, 8]
-    1                · delay                         [7, 7]
+    Run  Start       Event          Grade
+    1    [0, 0]      delay          [0.1, 0.1]
+    1    [0.1, 0.1]  box reading    [5, 10)
+    1    [0.1, 0.1]  Compute        [6, 8]
+    1                · delay        [7, 7]
     1    [6.1, 8.1]  unbox reading
-    1    [6.1, 8.1]  AngleOf                         (0, 1]
-    1                · delay                         [0.5, 0.5]
-    1    (6.1, 9.1]  SetAngle                        (1, 2)
-    1                · delay                         [1.5, 1.5]
+    1    [6.1, 8.1]  AngleOf        (0, 1]
+    1                · delay        [0.5, 0.5]
+    1    (6.1, 9.1]  SetAngle       (1, 2)
+    1                · delay        [1.5, 1.5]
     Run 1 returned () at (7.1, 11.1).
 
 Grades whose ends exceed 40 characters, such as the traces of the Opentrons
