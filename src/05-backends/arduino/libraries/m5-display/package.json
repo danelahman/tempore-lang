@@ -19,6 +19,6 @@
   ],
   "init": "m5_display_init",
   "bounds": {
-    "m5stack-gray-radio": { "ClearDisplay": [31, 176.5] }
+    "m5stack-gray-radio": { "ClearDisplay": [31, 53.5] }
   }
 }

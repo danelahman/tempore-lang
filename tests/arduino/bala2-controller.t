@@ -24,7 +24,7 @@ sends Arm once, against the protocol of its grade:
   [1]
   Typing error: Variable `latest` is unboxed with grade `{ClearDisplay; ShowTextAt^4; DrawButton^2}` accumulated since it was bound, which is not below its box gr
   [1]
-  Typing error: This function's body has grade `{(ReadTouch; SendBeat; DrawLevel?; !10.5)*; ReadTouch?; (Beep; ReadImu; SendArm; !12.5; SendArm; !12.5; Receive; (
+  Typing error: This function's body has grade `{(ReadTouch; SendBeat; Receive; (DrawLevel | ShowColourTextAt)?; !10.5)*; ReadTouch?; (Beep; ReadImu; SendArm; !12
 
 The PlatformIO project for the M5Stack CoreS3, its C++ sources checked
 without exceptions and run-time type information:
@@ -43,15 +43,16 @@ vial:
   [150.040 ms] Display at (130, 152): Encrypted
   $ cd ../../..
 
-The host simulation for 6 s, the packets sent shown when they change. The
+The host simulation for 9 s, the packets sent shown when they change. The
 controller shows that the link, to the broadcast address, is not encrypted,
-and sends Beat; held pitched forwards by 10 degrees, a tap on Arm at 1 s,
+and sends Beat; the robot, scripted ready for Arm, is shown as such in the
+guidance line at (0, 54); held pitched forwards by 10 degrees, a tap on Arm at 1 s,
 acknowledged by a tone of 1760 Hz, records that tilt as neutral and starts
 the arming, Arm 80 times, for 1 s, and once more until the status of the
 robot, scripted armed from 1.5 s at a tilt of 2.5 degrees, confirms. It then
 drives, measured from the neutral tilt, and shows "Armed", the tilt of the
 robot and a green bubble in the vial centred at (62, 122): zero at first,
-the bubble centred; from 2.2 s, pitched forwards by 30 degrees, 20 beyond
+the bubble centred, the guidance line cleared; from 2.2 s, pitched forwards by 30 degrees, 20 beyond
 the neutral tilt, a speed of -240 counts per second, forwards for the robot,
 the bubble 33 pixels up (14 for the dead zone and 15 / 25 of the remaining
 32); from 3 s, flat and rolled to the right by 15 degrees, a speed of 80,
@@ -61,10 +62,13 @@ nothing for 400 ms: once its last status is older than 50 ms, the controller
 sends Beat and shows "No link" and a grey bubble, and drives again when the
 status returns, at a tilt of 1.5 degrees. While disarmed the bubble is
 centred and dark grey. A tap on Disarm at 4.6 s, acknowledged by a tone of
-880 Hz, sends Disarm 20 times, then Beat. An iteration redraws at most one
-band:
+880 Hz, sends Disarm 20 times, then Beat. The guidance line then follows
+the status of the robot, scripted armed until 4.9 s, calibrating, held
+unsteadily from 5.6 s, calibrating again from 6.3 s, ready for Arm from 7 s
+and silent from 7.6 s, about 1 s after which it shows "Switch on the
+robot". An iteration redraws at most one band:
 
-  $ tempore --emit-arduino controller --device $app/controller.device.json --host-simulate 6 $app/controller.tpe > sim.log
+  $ tempore --emit-arduino controller --device $app/controller.device.json --host-simulate 9 $app/controller.tpe > sim.log
   $ grep -v '^Wrote\|\] \(Release\|Start\|End \|Operation\|IMU\|I2C\|Delay\|ESP-NOW model\)' sim.log | awk '/ESP-NOW: sent/ { m = $0; sub(/^\[[^]]*\] /, "", m); if (m == last) next; last = m } { print }'
   [1.458 ms] Display at (254, 0): Battery 87%
   [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF, not encrypted
@@ -82,30 +86,38 @@ band:
   [158.004 ms] ESP-NOW: sent tag 4, 0.000, 0.000
   [158.862 ms] Display at (254, 0): Battery 87%
   [159.138 ms] Display disc at (62, 122), radius 9: 0x404040
-  [1009.288 ms] Speaker: 1760 Hz for 60 ms
-  [1009.991 ms] ESP-NOW: sent tag 1, 0.000, 0.000
-  [2031.494 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [2035.154 ms] Display at (0, 32): Armed
-  [2047.034 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [2061.877 ms] Display at (130, 113): 2.5
-  [2211.416 ms] ESP-NOW: sent tag 2, -240.000, 0.000
-  [2211.793 ms] Display disc at (62, 89), radius 9: 0x00c000
-  [3005.500 ms] ESP-NOW: sent tag 2, 80.000, -40.000
-  [3017.380 ms] Display disc at (89, 142), radius 9: 0x00c000
-  [3500.506 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [3500.883 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [3834.470 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [3838.170 ms] Display at (0, 32): No link
-  [3861.553 ms] Display disc at (62, 122), radius 9: 0x808080
-  [4206.643 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [4210.303 ms] Display at (0, 32): Armed
-  [4222.183 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [4237.026 ms] Display at (130, 113): 1.5
-  [4605.072 ms] Speaker: 880 Hz for 60 ms
-  [4605.172 ms] ESP-NOW: sent tag 3, 0.000, 0.000
-  [4860.792 ms] Display at (0, 32): Disarmed
-  [4861.192 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [4861.569 ms] Display disc at (62, 122), radius 9: 0x404040
+  [172.718 ms] Display at (0, 55): Robot ready: tap Arm
+  [1001.068 ms] Speaker: 1760 Hz for 60 ms
+  [1001.771 ms] ESP-NOW: sent tag 1, 0.000, 0.000
+  [2023.274 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [2026.934 ms] Display at (0, 32): Armed
+  [2040.717 ms] Display at (0, 55): 
+  [2052.597 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [2067.440 ms] Display at (130, 113): 2.5
+  [2205.476 ms] ESP-NOW: sent tag 2, -240.000, 0.000
+  [2217.356 ms] Display disc at (62, 89), radius 9: 0x00c000
+  [3011.063 ms] ESP-NOW: sent tag 2, 80.000, -40.000
+  [3022.943 ms] Display disc at (89, 142), radius 9: 0x00c000
+  [3506.069 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [3506.446 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [3840.033 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [3843.733 ms] Display at (0, 32): No link
+  [3867.116 ms] Display disc at (62, 122), radius 9: 0x808080
+  [4212.206 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [4215.866 ms] Display at (0, 32): Armed
+  [4227.746 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [4242.589 ms] Display at (130, 113): 1.5
+  [4610.635 ms] Speaker: 880 Hz for 60 ms
+  [4610.735 ms] ESP-NOW: sent tag 3, 0.000, 0.000
+  [4866.355 ms] Display at (0, 32): Disarmed
+  [4866.755 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [4867.132 ms] Display disc at (62, 122), radius 9: 0x404040
+  [4880.532 ms] Display at (0, 55): Robot armed
+  [4905.252 ms] Display at (0, 55): Hold the robot upright and still
+  [5605.332 ms] Display at (0, 55): Hold still
+  [6305.852 ms] Display at (0, 55): Hold the robot upright and still
+  [7006.132 ms] Display at (0, 55): Robot ready: tap Arm
+  [8611.092 ms] Display at (0, 55): Switch on the robot
 
 The packets are sent at most 50 ms apart, here 10.9 to 16.6 ms, Arm 81
 times and Disarm 20 times:

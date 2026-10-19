@@ -27,8 +27,9 @@
    message, to the robot of examples/arduino/bala2-remote, under 50 ms
    apart, and receiving its status, on which it drives; a bubble level
    shows the tilt that steers it, a label whether the link is encrypted,
-   and a short tone acknowledges a tap on Arm or Disarm. On the board:
-   make arduino-bala2-controller-upload REMOTE_PEER=XX:XX:XX:XX:XX:XX, the
+   a line, while disarmed, the guidance of the phase the robot reports, and
+   a short tone acknowledges a tap on Arm or Disarm. On the board: make
+   arduino-bala2-controller-upload REMOTE_PEER=XX:XX:XX:XX:XX:XX, the
    address of the robot, which encrypts the link with the key shared with
    the robot (by default broadcast and unencrypted; see the README of the
    Arduino backend); simulated on the host, with world.cpp tilting and
@@ -199,25 +200,76 @@ let draw_bubble (pitch : float) (roll : float) (colour : nat) =
   perform DrawLevel
     (vial_x, vial_y, vial_r, bubble roll, bubble pitch, colour)
 
+(* The guidance line, at (0, 54) in text of size 1, between the state and
+   the vial, where nothing else is drawn: nothing, before a status or after
+   the armed phase; the phase of the robot by its latest status; or
+   "Switch on the robot" when no status has come for fresh_iterations
+   iterations of the disarmed phase, of at least 10.5 ms each, about 1 s,
+   while the robot reports its phase at least every 570 ms. *)
+type guide = Blank | Silent | Phase of phase
+
+let fresh_iterations = 90
+let white = 0xffffff
+
+let show_guide (g : guide) =
+  match g with
+  | Blank -> perform ShowColourTextAt (0, 54, 1, black, black, "")
+  | Silent ->
+      perform ShowColourTextAt (0, 54, 1, grey, black, "Switch on the robot")
+  | Phase Ready ->
+      perform ShowColourTextAt (0, 54, 1, green, black, "Robot ready: tap Arm")
+  | Phase Armed ->
+      perform ShowColourTextAt (0, 54, 1, white, black, "Robot armed")
+  | Phase Calibrating ->
+      perform ShowColourTextAt
+        (0, 54, 1, white, black, "Hold the robot upright and still")
+  | Phase Unsettled ->
+      perform ShowColourTextAt (0, 54, 1, amber, black, "Hold still")
+
 (* Disarmed: Beat every 10.5 ms after a reading of the touch screen, until a
-   tap on Arm; false if none comes in n readings. With dim, the first
-   iteration draws the bubble centred and dark grey after its Beat. *)
-let rec idle (n : nat) (dim : bool) : bool
-    # {(ReadTouch; SendBeat; (DrawLevel | 0); !21/2)*; (ReadTouch | 0)} =
+   tap on Arm; false if none comes in n readings. Each Beat is followed by
+   the status of the robot, unboxed at once: heard is the guidance of the
+   latest status, age the number of iterations since it came, and shown the
+   guidance shown. With dim, the first iteration draws the bubble centred
+   and dark grey after its Beat; otherwise an iteration redraws the
+   guidance when it changes. It returns whether Arm was tapped and the
+   guidance shown. *)
+let rec idle (n : nat) (dim : bool) (shown : guide) (heard : guide)
+    (age : nat) : bool * guide
+    # {(ReadTouch; SendBeat; Receive; (DrawLevel | ShowColourTextAt | 0);
+        !21/2)*;
+       (ReadTouch | 0)} =
   match n with
-  | 0 -> false
+  | 0 -> (false, shown)
   | m + 1 ->
       let touched, x, y = perform ReadTouch () in
-      if touched && press x y = ArmPress then true
+      if touched && press x y = ArmPress then (true, shown)
       else (
         perform SendBeat ();
-        (if dim then draw_bubble 0.0 0.0 dark_grey else ());
+        let latest = remote_status () in
+        unbox latest as status in
+        let heard, age =
+          match status with
+          | Status (p, _) -> (Phase p, 0)
+          | NoStatus -> (heard, min (age + 1) fresh_iterations)
+        in
+        let current = if age >= fresh_iterations then Silent else heard in
+        let shown =
+          if dim then (
+            draw_bubble 0.0 0.0 dark_grey;
+            shown)
+          else if current = shown then shown
+          else (
+            show_guide current;
+            current)
+        in
         delay 21/2;
-        idle m false)
+        idle m false shown heard age)
 
 (* What the screen shows: whether the link is shown, the tilt of the robot
-   shown, and whether the bubble is redrawn next, else the tilt. *)
-type view = bool * float * bool
+   shown, whether the bubble is redrawn next, else the tilt, and the
+   guidance shown. *)
+type view = bool * float * bool * guide
 
 (* Correctly accepted by the typechecker: armed, an iteration reads the
    unit by read_imu_boxed of the package m5-imu, reads the touch screen, and
@@ -229,9 +281,10 @@ type view = bool * float * bool
    so that a tilt forwards drives the robot forwards and a tilt to the
    right, a positive roll, turns it to the right, a negative turn; else it
    sends Beat. It redraws at most one item: the state, "Armed" or "No link",
-   when it changes, and else, in turn, the bubble of the tilt beyond the
-   neutral tilt, green with the link and grey without, or the tilt of the
-   robot, if it changed and the link holds. It waits 10.5 ms and receives
+   when it changes, else the guidance line, cleared once, and else, in
+   turn, the bubble of the tilt beyond the neutral tilt, green with the link
+   and grey without, or the tilt of the robot, if it changed and the link
+   holds. It waits 10.5 ms and receives
    the status for the next iteration.
 
    The boxes span the reading of the touch screen: that of the reading of
@@ -241,20 +294,22 @@ type view = bool * float * bool
    the tilt shown come from the latest status, received at most 200 ms
    earlier. The neutral tilt is unboxed after the readings
    and boxed again for the next iteration. An iteration takes 10.7 to 47.55
-   ms, a redraw of the state or the tilt taking up to 33 ms and one of the
-   bubble up to 10 ms. *)
-let rec armed (n : nat) ((link_shown, shown_tilt, bubble_next) : view)
+   ms, a redraw of the state, the guidance or the tilt taking up to 33 ms
+   and one of the bubble up to 10 ms. *)
+let rec armed (n : nat)
+    ((link_shown, shown_tilt, bubble_next, guide_shown) : view)
     (zero : neutral) (latest : latest_status) : view
     # {(ReadImu; ReadTouch; (SendDrive | SendBeat);
-        (ShowTextAt | ShowNumberAt | DrawLevel | 0); !21/2; Receive)*;
+        (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | 0);
+        !21/2; Receive)*;
        (ReadImu; ReadTouch | 0)} =
   match n with
-  | 0 -> (link_shown, shown_tilt, bubble_next)
+  | 0 -> (link_shown, shown_tilt, bubble_next, guide_shown)
   | m + 1 ->
       let latest_reading = read_imu_boxed () in
       let touched, x, y = perform ReadTouch () in
       if touched && press x y = DisarmPress then
-        (link_shown, shown_tilt, bubble_next)
+        (link_shown, shown_tilt, bubble_next, guide_shown)
       else
         unbox latest_reading as reading in
         unbox zero as neutral in
@@ -271,19 +326,21 @@ let rec armed (n : nat) ((link_shown, shown_tilt, bubble_next) : view)
         in
         (if link then perform SendDrive (speed, turn) else perform SendBeat ());
         let view =
-          if link = link_shown then
-            if bubble_next then (
-              draw_bubble pitch roll (if link then green else grey);
-              (link, shown_tilt, false))
-            else if (not link) || tilt = shown_tilt then
-              (link, shown_tilt, true)
-            else (
-              perform ShowNumberAt (130, 110, 3, 1, tilt);
-              (link, tilt, true))
-          else (
+          if not (link = link_shown) then (
             (if link then perform ShowTextAt (0, 30, 2, "Armed")
              else perform ShowTextAt (0, 30, 2, "No link"));
-            (link, shown_tilt, bubble_next))
+            (link, shown_tilt, bubble_next, guide_shown))
+          else if not (guide_shown = Blank) then (
+            show_guide Blank;
+            (link, shown_tilt, bubble_next, Blank))
+          else if bubble_next then (
+            draw_bubble pitch roll (if link then green else grey);
+            (link, shown_tilt, false, Blank))
+          else if (not link) || tilt = shown_tilt then
+            (link, shown_tilt, true, Blank)
+          else (
+            perform ShowNumberAt (130, 110, 3, 1, tilt);
+            (link, tilt, true, Blank))
         in
         delay 21/2;
         let latest = remote_status () in
@@ -299,27 +356,39 @@ let rec armed (n : nat) ((link_shown, shown_tilt, bubble_next) : view)
    start of the next by 46.95 ms, below the 50 ms within which the robot
    expects one: after the last Disarm, the wait of 12.5 ms, the redraw of
    the state, up to 33 ms, and the reading of the touch screen, before the
-   first Beat; the bubble, dimmed, is redrawn after that Beat. *)
-let rec session (n : nat) (v : view) : unit
-    # {((ReadTouch; SendBeat; (DrawLevel | 0); !21/2)*; (ReadTouch | 0);
+   first Beat; the bubble, dimmed, is redrawn after that Beat. Between two
+   Beats, and from the last Beat to the first Arm, at most 45.05 and 46.7
+   ms pass, with a redraw of the guidance. *)
+let rec session (n : nat)
+    ((link_shown, shown_tilt, bubble_next, guide_shown) : view) : unit
+    # {((ReadTouch; SendBeat; Receive; (DrawLevel | ShowColourTextAt | 0);
+         !21/2)*;
+        (ReadTouch | 0);
         Beep; ReadImu; (SendArm; !25/2)^80; SendArm; !25/2; Receive;
         (SendArm; !25/2; Receive)*;
         (ReadImu; ReadTouch; (SendDrive | SendBeat);
-         (ShowTextAt | ShowNumberAt | DrawLevel | 0); !21/2; Receive)*;
+         (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | 0);
+         !21/2; Receive)*;
         (ReadImu; ReadTouch | 0); Beep; (SendDisarm; !25/2)^20; ShowTextAt)*;
-       ((ReadTouch; SendBeat; (DrawLevel | 0); !21/2)*; (ReadTouch | 0) | 0)}
-    =
+       ((ReadTouch; SendBeat; Receive; (DrawLevel | ShowColourTextAt | 0);
+         !21/2)*;
+        (ReadTouch | 0)
+       | 0)} =
   match n with
   | 0 -> ()
   | m + 1 ->
-      if idle 4000000000 true then (
+      let tapped, shown = idle 4000000000 true guide_shown Blank 0 in
+      if tapped then (
         perform Beep (1760, 60);
         let zero = record_neutral () in
         arming ();
         let latest = confirm 40 in
         unbox zero as neutral in
         let v =
-          armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest
+          armed 4000000000
+            (link_shown, shown_tilt, bubble_next, shown)
+            (box {≥0 & ~SendDisarm} neutral)
+            latest
         in
         perform Beep (880, 60);
         disarming ();
@@ -338,7 +407,7 @@ let remote () =
   show_encryption encrypted;
   perform DrawButton (0, 188, 156, 40, "Arm");
   perform DrawButton (164, 188, 156, 40, "Disarm");
-  session 4000000000 (false, 0.0, true)
+  session 4000000000 (false, 0.0, true, Blank)
 
 (* Correctly rejected by the typechecker: an armed iteration that redraws the
    bubble of the last iteration after the readings, and then drives on the
@@ -427,4 +496,4 @@ let session_stale () =
    operations: no touch, the unit flat, no status, and Beat sent. *)
 run (
   let latest = remote_status () in
-  armed 1 (false, 0.0, true) (box {≥0 & ~SendDisarm} (0.0, 0.0)) latest)
+  armed 1 (false, 0.0, true, Blank) (box {≥0 & ~SendDisarm} (0.0, 0.0)) latest)

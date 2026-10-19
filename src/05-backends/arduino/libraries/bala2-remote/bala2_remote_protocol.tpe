@@ -8,10 +8,11 @@
    SendDrive, SendDisarm and SendBeat in bala2_remote.cpp. A packet of
    another tag, and no packet, decode to Nothing.
 
-   The robot answers with its status: whether it is armed and its tilt, in
-   degrees, encoded as tag 5 with 1 or 0 and the tilt, as does the binding
-   of SendStatus. A packet of another tag, and no packet, decode to
-   NoStatus.
+   The robot answers with its status: its phase and its tilt, in degrees,
+   encoded as tag 5 with the code of the phase and the tilt, as does the
+   binding of SendStatus. The codes: 0 ready for Arm, 1 armed, 2
+   calibrating, 3 calibrating after a check that found the robot moving. A
+   packet of another tag or code, and no packet, decode to NoStatus.
 
    The constants of the protocol, in milliseconds: the controller sends a
    message at least every 50 ms; a packet is received only if it arrived at
@@ -26,8 +27,9 @@ type received = Got of message | Nothing
    once unboxed, they are used at once, by a match right at the command. *)
 noneternal type setpoints = Setpoints of float * float
 
-(* The status of the robot: whether it is armed, and its tilt. *)
-type status = Status of bool * float | NoStatus
+(* The phase of the robot, and its status: its phase and its tilt. *)
+type phase = Ready | Armed | Calibrating | Unsettled
+type status = Status of phase * float | NoStatus
 
 (* The Wi-Fi channel of the link, for LinkStart. *)
 let remote_channel = 1
@@ -63,16 +65,25 @@ let remote_without_setpoints (r : received) =
 let remote_setpoints (r : received) =
   match r with Got (Drive (speed, turn)) -> (speed, turn) | _ -> (0.0, 0.0)
 
-(* The packet of a status. *)
-let remote_status_encode (armed : bool) (tilt : float) =
-  (5, (if armed then 1.0 else 0.0), tilt)
+(* The code of a phase. *)
+let remote_phase_code (p : phase) =
+  match p with Ready -> 0 | Armed -> 1 | Calibrating -> 2 | Unsettled -> 3
 
-(* The status of the result of Receive: NoStatus for no packet or a packet
-   of another tag. *)
+(* The packet of a status. *)
+let remote_status_encode (p : phase) (tilt : float) =
+  (5, float_of_nat (remote_phase_code p), tilt)
+
+(* The status of the result of Receive: NoStatus for no packet, a packet of
+   another tag or an unknown code. *)
 let remote_status_decode
     ((fresh, tag, first, second) : bool * nat * float * float) =
-  if fresh && tag = 5 then Status (first > 0.5, second) else NoStatus
+  if not (fresh && tag = 5) then NoStatus
+  else if first = 0.0 then Status (Ready, second)
+  else if first = 1.0 then Status (Armed, second)
+  else if first = 2.0 then Status (Calibrating, second)
+  else if first = 3.0 then Status (Unsettled, second)
+  else NoStatus
 
 (* Whether a status is that of an armed robot. *)
 let remote_armed (s : status) =
-  match s with Status (armed, _) -> armed | NoStatus -> false
+  match s with Status (Armed, _) -> true | _ -> false

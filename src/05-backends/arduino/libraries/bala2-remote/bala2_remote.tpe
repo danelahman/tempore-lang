@@ -20,10 +20,11 @@ default SendDrive _ = delay 1/10
 operation SendDisarm : unit ~> unit # [0, 1]
 default SendDisarm _ = delay 1/10
 
-(* SendStatus (armed, tilt) queues the status of the robot to the peer,
-   with the provisional bounds of Send. *)
+(* SendStatus (code, tilt) queues the status of the robot to the peer: the
+   code of its phase, by remote_phase_code, and its tilt; with the
+   provisional bounds of Send. *)
 
-operation SendStatus : bool * float ~> unit # [0, 1]
+operation SendStatus : nat * float ~> unit # [0, 1]
 default SendStatus _ = delay 1/10
 
 operation SendBeat : unit ~> unit # [0, 1]

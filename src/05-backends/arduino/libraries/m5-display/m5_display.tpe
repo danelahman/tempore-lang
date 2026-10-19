@@ -28,14 +28,14 @@
    ShowNumber are those of a full line.
 
    On the profile m5stack-gray-radio, an M5Stack Gray with its Wi-Fi radio
-   running, the profile of the device (2026-10-19) measured ClearDisplay,
-   called once per run right after the start of the radio, at 113.810 to
-   117.572 ms, and ShowTextAt at 3.955 to 5.503 ms. The bounds of
-   ClearDisplay there are [31, 176.5]: the upper bound 1.5 times the
-   greatest time measured with the radio, rounded up, and the lower bound
-   that of the Gray without it; ShowTextAt keeps its bounds. The
-   measurements precede the pinning of the tasks of the application to core
-   1, and are to be repeated.
+   running on core 0, the tasks of the application on core 1 and the link
+   encrypted, the profile of the device (2026-10-19) measured ClearDisplay,
+   called once per run right after the start of the radio, at 35.345 to
+   35.543 ms, and ShowTextAt at 4.104 to 10.631 ms. The bounds of
+   ClearDisplay there are [31, 53.5]: the upper bound 1.5 times the greatest
+   time measured with the radio, rounded up, and the lower bound that of the
+   Gray without it; ShowTextAt keeps its bounds, which exceed 1.5 times its
+   greatest time.
 
    ShowTextAt (x, y, size, s) writes s at the pixel (x, y) from the top left
    corner, in text of the size 1 to 4 (a larger size is 4, a smaller 1),

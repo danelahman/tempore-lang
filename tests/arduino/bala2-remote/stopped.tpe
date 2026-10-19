@@ -3,8 +3,7 @@
 
 let session_stopped () =
   let calibrated = calibrate () in
-  perform ShowTextAt (0, 100, 2, "Hold upright");
-  delay 1000;
+  hold ();
   if wait_arm () then (
     perform Command (0.0, 0.0);
     unbox calibrated as open_arming in

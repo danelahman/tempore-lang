@@ -1,18 +1,25 @@
 (* A session that sends Arm once, after controller.tpe. *)
 
-let rec session_once (n : nat) (v : view) : unit
-    # {((ReadTouch; SendBeat; (DrawLevel | 0); !21/2)*; (ReadTouch | 0);
+let rec session_once (n : nat)
+    ((link_shown, shown_tilt, bubble_next, guide_shown) : view) : unit
+    # {((ReadTouch; SendBeat; Receive; (DrawLevel | ShowColourTextAt | 0);
+         !21/2)*;
+        (ReadTouch | 0);
         Beep; ReadImu; (SendArm; !25/2)^80; SendArm; !25/2; Receive;
         (SendArm; !25/2; Receive)*;
         (ReadImu; ReadTouch; (SendDrive | SendBeat);
-         (ShowTextAt | ShowNumberAt | DrawLevel | 0); !21/2; Receive)*;
+         (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | 0);
+         !21/2; Receive)*;
         (ReadImu; ReadTouch | 0); Beep; (SendDisarm; !25/2)^20; ShowTextAt)*;
-       ((ReadTouch; SendBeat; (DrawLevel | 0); !21/2)*; (ReadTouch | 0) | 0)}
-    =
+       ((ReadTouch; SendBeat; Receive; (DrawLevel | ShowColourTextAt | 0);
+         !21/2)*;
+        (ReadTouch | 0)
+       | 0)} =
   match n with
   | 0 -> ()
   | m + 1 ->
-      if idle 4000000000 true then (
+      let tapped, shown = idle 4000000000 true guide_shown Blank 0 in
+      if tapped then (
         perform Beep (1760, 60);
         let zero = record_neutral () in
         perform SendArm ();
@@ -20,7 +27,10 @@ let rec session_once (n : nat) (v : view) : unit
         let latest = confirm 40 in
         unbox zero as neutral in
         let v =
-          armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest
+          armed 4000000000
+            (link_shown, shown_tilt, bubble_next, shown)
+            (box {≥0 & ~SendDisarm} neutral)
+            latest
         in
         perform Beep (880, 60);
         disarming ();

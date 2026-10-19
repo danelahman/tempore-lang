@@ -438,7 +438,7 @@ while no further Receive has come:
   $ cat > status.tpe <<'EOF'
   > let soon () =
   >   let latest = remote_status () in
-  >   perform SendStatus (true, 2.5);
+  >   perform SendStatus (1, 2.5);
   >   delay 190;
   >   unbox latest as s in
   >   remote_armed s

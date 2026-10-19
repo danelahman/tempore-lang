@@ -19,6 +19,6 @@
   "init": "bala2_base_init",
   "safe_state": "bala2_base_safe_state",
   "bounds": {
-    "m5stack-gray-radio": { "SetMotors": [0.2, 1.9], "ReadEncoders": [0.4, 2.8] }
+    "m5stack-gray-radio": { "SetMotors": [0.2, 0.75], "ReadEncoders": [0.45, 1.4], "ResetEncoders": [0.3, 1.2] }
   }
 }

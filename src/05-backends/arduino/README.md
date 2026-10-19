@@ -199,9 +199,12 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
     `Receive`, of the message, its setpoints zero, and its setpoints, of the
     non-eternal type `setpoints`, so that once unboxed they are matched at
     once;
-  - the status of the robot, `Status (armed, tilt)` or `NoStatus`, tag 5:
-    `SendStatus` sends it, and `bala2_remote_send_status` of the header
-    `bala2_remote.h` for the bindings of an application; `remote_status`
+  - the status of the robot, `Status (phase, tilt)` or `NoStatus`, tag 5,
+    the phase `Ready` (for Arm), `Armed`, `Calibrating` or `Unsettled`
+    (calibrating after a check that found it moving), sent as the code of
+    `remote_phase_code`: `SendStatus` sends it, and
+    `bala2_remote_send_status` of the header `bala2_remote.h` for the
+    bindings of an application; `remote_status`
     returns the latest status received at most 50 ms ago, boxed with
     `[0, 200)`, and under the rigid grades with `{<200 & ~Receive}`.
 
@@ -229,6 +232,9 @@ regular expressions of timed operations and `event-separation`.
   those of the board of its manifest.
 - Each board and operation of `bounds` must be a board profile and an
   operation the package binds.
+- A lower bound 0 is open at 0 where the declaration is, as under the
+  regular expressions of timed operations, whose operations take positive
+  time.
 - The default implementations take a time within the bounds of every board.
 - The examples name the board of their manifest by `--board` in the run
   command of their header, and the figures in their comments are those under
@@ -250,15 +256,14 @@ how the bounds not measured directly, such as those of `i2c`, are derived.
   `DrawButton`, `DrawBar` and `DrawLevel` are provisional, derived from those
   measurements; `ShowColourNumberAt` has the bounds of `ShowNumberAt`.
 - The bounds of `esp-now` are provisional, not yet measured, except those
-  of `LinkStart` on `m5stack-gray-radio`.
+  of `LinkStart` and `Receive` on `m5stack-gray-radio`.
 - On `m5stack-gray-radio` the radio lengthens the operations: the upper
   bound is 1.5 times the greatest time measured with the radio, rounded up,
   and at least that of the Gray; the lower bound is the least time measured
   on the Gray with or without the radio, rounded down. An operation not
-  measured with the radio has the bounds of the Gray. The present bounds
-  were measured before the tasks of the application were all pinned to
-  core 1, the supervision of `bala2-remote` then running on core 0, and are
-  to be measured again.
+  measured with the radio has the bounds of the Gray. They are measured
+  with the radio on core 0, the tasks of the application on core 1 and the
+  link encrypted.
 
 ## The program
 
@@ -805,9 +810,9 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
   rigid regular expressions of timed operations, with the packages
   `esp-now` and `bala2-remote`, sharing the binding file and host model of
   `bala2`.
-  - Under the bounds of `m5stack-gray-radio`, the step takes 1.15 to 7.2 ms,
-    and its period is 8 ms. Both tasks run on core 1, apart from the radio
-    on core 0, the step at the higher priority.
+  - Under the bounds of `m5stack-gray-radio`, the step takes 1.2 to 4.5 ms,
+    and its period is 5 ms. Both tasks run on core 1, apart from the radio,
+    started by the supervision, on core 0, the step at the higher priority.
   - The calibration is boxed in two nested boxes. The outer box,
     `[{≥1000 & ~Command}, {≤600000 & ~Command}]`, opens the arming at least
     a second and at most 10 minutes after the calibration, the bias
@@ -831,15 +836,19 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
     for Arm is therefore bounded, 500 polls 400 ms apart, about 202 s,
     written without a recursion so that its grade is a bounded repetition,
     and each session calibrates anew.
-  - Each poll and each iteration of the drive sends the status of the robot
-    to the controller by the operation `Report` of the example, bound in
-    `bala2/bindings.cpp` for the programs that perform it.
+  - The robot sends its phase to the controller by the operation `Report`
+    of the example, bound in `bala2/bindings.cpp` for the programs that
+    perform it: calibrating at each check at rest and twice in the hold
+    that follows, calibrating after a failed check, ready at each poll for
+    Arm and armed at each iteration of the drive, at least every 570 ms.
+  - When the calibration succeeds and the wait for Arm begins, the robot
+    beeps once, 2 kHz for 80 ms.
   - Each iteration of the drive applies the message it receives, with its
     setpoints, within 150 ms and before any further `Receive`: a Drive
     command, Disarm, which returns to waiting for Arm, or zero setpoints.
   - The grade of a session is its protocol: Arm, commands and Disarm, in
     this order; it fixes each iteration of the drive, which takes 12.5 to
-    50 ms. After about 2 s without a message the robot shows "Link lost"
+    50.1 ms. After about 2 s without a message the robot shows "Link lost"
     and beeps once, and stays armed, and shows "Armed" again when messages
     return.
   - The make variable `REMOTE_PEER`, the address of the controller, sets
@@ -988,9 +997,15 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     confirms, grey without a link, dark grey while disarmed. The buttons
     Arm and Disarm stay below it.
   - An armed iteration redraws at most one item: the state when it
-    changes, or else the bubble or the tilt of the robot, in turn.
+    changes, else the guidance line, cleared once, or else the bubble or
+    the tilt of the robot, in turn.
   - It shows at the start, right of the bubble level, whether the link is
     encrypted: "Encrypted" in green, or "Not encrypted" in amber.
+  - While disarmed, it receives the status of the robot after each Beat and
+    shows a line of guidance above the bubble level, redrawn when it
+    changes, from the phase of the latest status: "Hold the robot upright
+    and still", "Hold still", "Robot ready: tap Arm" in green, or "Switch
+    on the robot" after about 1 s without a status, 90 iterations.
   - The make variable `REMOTE_PEER`, the address of the robot, sets the
     peer, and the link is then encrypted (see
     [Pairing the robot and the controller](#pairing-the-robot-and-the-controller));

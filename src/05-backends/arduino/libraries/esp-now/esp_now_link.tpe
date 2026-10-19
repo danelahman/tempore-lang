@@ -30,13 +30,12 @@
    a time within the bounds, send nothing, receive nothing and start an
    unencrypted link.
 
-   On the profile m5stack-gray-radio, an M5Stack Gray, the profile of the
-   device (2026-10-19) measured LinkStart at 86.322 to 88.329 ms and Receive
-   at 0.002 to 0.056 ms, on an unencrypted link. The bounds of LinkStart
-   there are [86, 132.5]: the least time measured, rounded down, and 1.5
-   times the greatest, rounded up; Receive keeps its bounds. The
-   measurements precede the encryption of the link and the pinning of the
-   tasks of the application to core 1, and are to be repeated. *)
+   On the profile m5stack-gray-radio, an M5Stack Gray, the radio on core 0,
+   the tasks of the application on core 1 and the link encrypted, the
+   profile of the device (2026-10-19) measured LinkStart at 88.500 to 95.847
+   ms and Receive at 0.002 to 0.078 ms. Their bounds there are the least
+   time measured, rounded down, and 1.5 times the greatest, rounded up:
+   LinkStart [88.5, 144] and Receive [0, 0.15]. *)
 
 operation LinkStart : nat ~> bool # [0, 1500]
 default LinkStart _ = delay 100; false

@@ -13,9 +13,12 @@
 // roll.
 //
 // The robot, the peer of the host model of the package esp-now, sends its
-// status every 20 ms: disarmed until 1.5 s, armed at a tilt of 2.5 degrees
-// until 3.8 s, nothing until 4.2 s, a loss of the link, armed at a tilt of
-// 1.5 degrees until 4.9 s, and disarmed after.
+// status every 20 ms: ready for Arm until 1.5 s, armed at a tilt of 2.5
+// degrees until 3.8 s, nothing until 4.2 s, a loss of the link, armed at a
+// tilt of 1.5 degrees until 4.9 s, calibrating until 5.6 s, calibrating
+// after a failed check at rest until 6.3 s, calibrating until 7 s, ready
+// for Arm until 7.6 s, and nothing after, switched off. The phases are
+// coded as by remote_phase_code of the package bala2-remote.
 
 #include <Arduino.h>
 #include <esp_now.h>
@@ -53,10 +56,16 @@ void world_advance(tempore_world &w, double) {
 
 bool esp_now_model_peer(uint32_t time_ms, uint32_t *tag, float *first,
                         float *second) {
-  if (time_ms >= 3800 && time_ms < 4200) return false;
-  const bool armed = time_ms >= 1500 && time_ms < 4900;
+  enum : uint32_t { ready = 0, armed = 1, calibrating = 2, unsettled = 3 };
+  if ((time_ms >= 3800 && time_ms < 4200) || time_ms >= 7600) return false;
+  const uint32_t phase = time_ms < 1500   ? ready
+                         : time_ms < 4900 ? armed
+                         : time_ms < 5600 ? calibrating
+                         : time_ms < 6300 ? unsettled
+                         : time_ms < 7000 ? calibrating
+                                          : ready;
   *tag = 5;
-  *first = armed ? 1.0f : 0.0f;
-  *second = !armed ? 0.0f : time_ms < 3800 ? 2.5f : 1.5f;
+  *first = static_cast<float>(phase);
+  *second = phase != armed ? 0.0f : time_ms < 3800 ? 2.5f : 1.5f;
   return true;
 }

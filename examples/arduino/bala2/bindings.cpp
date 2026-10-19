@@ -419,11 +419,11 @@ tempore_result_Reading binding_Reading(tempore_argument_Reading) {
 #endif
 
 #ifdef TEMPORE_PERFORMS_Report
-// Report of ../bala2-remote/balance_remote.tpe: the status of the robot, its
-// arming and the tilt last published, sent to the controller through the
-// package bala2-remote.
-tempore_result_Report binding_Report(tempore_argument_Report armed) {
-  bala2_remote_send_status(armed, balance_tilt.load());
+// Report of ../bala2-remote/balance_remote.tpe: the status of the robot, the
+// code of its phase and the tilt last published, sent to the controller
+// through the package bala2-remote.
+tempore_result_Report binding_Report(tempore_argument_Report phase) {
+  bala2_remote_send_status(phase, balance_tilt.load());
   return {};
 }
 #endif

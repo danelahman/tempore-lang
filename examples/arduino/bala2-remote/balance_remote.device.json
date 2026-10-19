@@ -1,7 +1,7 @@
 {
   "board": "m5stack-gray-radio",
   "tasks": [
-    { "function": "step", "kind": "periodic", "period": 8,
+    { "function": "step", "kind": "periodic", "period": 5,
       "initial": "start", "priority": 3, "core": 1 },
     { "function": "supervise", "kind": "free", "repeat": true,
       "priority": 1, "core": 1 }

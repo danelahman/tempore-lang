@@ -19,7 +19,7 @@
   "init": "m5_imu_init",
   "bounds": {
     "m5stack-gray": { "ReadImu": [0.55, 1.25] },
-    "m5stack-gray-radio": { "ReadImu": [0.55, 2.15], "CheckAtRest": [17.95, 29.5] },
+    "m5stack-gray-radio": { "ReadImu": [0.55, 2.2], "CheckAtRest": [17.95, 33] },
     "m5stack-cores3": { "ReadImu": [0.2, 1.5] }
   }
 }
