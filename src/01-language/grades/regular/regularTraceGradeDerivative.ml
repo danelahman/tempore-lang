@@ -9,8 +9,6 @@ module type S = sig
   val concrete : string list -> t -> Dfa.t
   val traces : string list -> t -> t Dfa.automaton
   val canonical : t -> LetterRegex.t option
-
-  module Strict : StrictDelays.GRADE with type grade = t and type delay = int
 end
 
 let ticks = R.ticks
@@ -29,25 +27,6 @@ let rec of_regex = function
   | Compl r -> R.compl (of_regex r)
   | Strict _ as r -> strict_unsupported r
   | (Below _ | Above _) as r -> one_sided_unsupported r
-
-(** The strict delays of the rigid grades of timed operations. *)
-module Encoding = StrictDelays.Make (struct
-  type t = R.t
-
-  let eps = R.eps
-  let name n = R.letters (Letters.name n)
-  let operations = R.letters (Letters.others StrictDelays.markers)
-  let delay = ticks 1
-  let positive = R.concat (ticks 1) (R.star (ticks 1))
-  let of_delays = of_regex
-  let nullable = R.nullable
-  let concat = R.concat
-  let union = R.union
-  let inter = R.inter
-  let compl = R.compl
-  let star = R.star
-  let repeat = R.repeat
-end)
 
 (** {1 Shared by the implementations} *)
 
@@ -105,35 +84,10 @@ let canonical rho =
 (* The printed grades, by the numbers of their normal forms. *)
 let printed : string Memo.Ints.t = Memo.Ints.create 64
 
-(* The brace literals with strict delays, by the numbers of the normal forms
-   read from them: the first literal read of each normal form. *)
-let written : string Memo.Ints.t = Memo.Ints.create 16
-
-(* Whether [rho] has strict delays and is not the language of all well-formed
-   words. *)
-let has_strict rho =
-  StrictDelays.has_markers (R.names rho)
-  && not (R.equal_form rho Encoding.words)
-
-let record_literal rho = function
-  | Braces r when has_strict rho && Memo.Ints.find_opt written (R.id rho) = None
-    ->
-      let literal = "{" ^ show_regex r ^ "}" in
-      Memo.Ints.replace written (R.id rho) literal;
-      Memo.Ints.replace printed (R.id rho) literal
-  | _ -> ()
-
-(* A grade with strict delays is printed as [⊤] if it is the language of all
-   well-formed words, else as the brace literal it was first read from
-   ({!record_literal}), else as its normal form, its strict delays as such. *)
 let show rho =
   Memo.Ints.find_or_add printed (R.id rho) (fun () ->
-      if StrictDelays.has_markers (R.names rho) then
-        if R.equal_form rho Encoding.words then "⊤"
-        else LetterRegex.literal (LetterRegex.of_symbolic rho)
-      else
-        LetterRegex.literal
-          (Option.value (canonical rho) ~default:(LetterRegex.of_symbolic rho)))
+      LetterRegex.literal
+        (Option.value (canonical rho) ~default:(LetterRegex.of_symbolic rho)))
 
 module type DECISIONS = sig
   val is_empty : R.t -> bool
@@ -207,25 +161,6 @@ struct
 
   let of_lit = of_lit_with ~ticks ~top ~of_regex ~is_empty:D.is_empty
   let accepts = accepts_with of_lit
-
-  module Strict = struct
-    type grade = t
-    type delay = int
-
-    let top = Encoding.words
-    let of_delay d = Encoding.strict (ticks d)
-
-    let read =
-      of_lit_with ~ticks ~top ~of_regex:Encoding.of_regex ~is_empty:D.is_empty
-
-    (* A literal with strict delays is recorded for printing. *)
-    let of_lit lit =
-      let rho = read lit in
-      record_literal rho lit;
-      rho
-
-    let accepts = accepts_with read
-  end
 
   (** {1 Traces over given names} *)
 

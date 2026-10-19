@@ -138,7 +138,10 @@ let whole_step_rejections =
      check "whole steps: a fractional endpoint rejected"
        (contains reason
           "delays are whole numbers of time steps; did you mean to use one of \
-           the `regex-upper-bound-rational-symbolic`, \
+           the `traces-timed-rigid-lower-bound-rational`, \
+           `traces-timed-rigid-upper-bound-rational`, \
+           `traces-timed-rigid-interval-rational`, \
+           `regex-upper-bound-rational-symbolic`, \
            `regex-timed-lower-bound-rational-symbolic`, \
            `regex-timed-upper-bound-rational-symbolic`, \
            `regex-timed-interval-rational-symbolic`, \

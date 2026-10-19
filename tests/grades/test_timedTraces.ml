@@ -1,7 +1,6 @@
 (* Property tests of the regular trace grades of timed operations and of the
-   closures that decide them, in the allowance order and in the rigid
-   allowance order: the segment characterisations of allowance, rigid
-   allowance and coverage against [TimedTrace.allowance] and
+   closures that decide them: the segment characterisations of allowance and
+   coverage against [TimedTrace.allowance] and
    [TimedTrace.coverage]; then, for
    each of the four implementations, by automata, by symbolic derivatives, by
    derivatives by letters and by derivatives over single letters, the membership
@@ -13,8 +12,7 @@
    times, in their verdicts and their printing; long runs of ticks, taken at
    once by the implementations by derivatives; and the agreement of the
    implementations over running times of many operations sharing running times,
-   in their counterexamples too; and the finite trace grades in the rigid
-   allowance order against the allowance order on examples. *)
+   in their counterexamples too. *)
 
 module Grade = Grades.Grade
 module Dfa = Grades.Dfa
@@ -89,14 +87,6 @@ let rec segments_allow running_time s t =
   let segment s0 t0 = weight running_time s0 <= ticks t0 in
   segment s t || matched segment (segments_allow running_time) s t
 
-(* [segments_rigid running_time s t] is the segment characterisation of
-   [s ≼ʳ t]: [s] and [t] factor with every operation of [t] matched, each
-   segment of [t] a word of ticks at least as long as the weight of that of
-   [s]. *)
-let rec segments_rigid running_time s t =
-  let segment s0 t0 = only_ticks t0 && weight running_time s0 <= ticks t0 in
-  segment s t || matched segment (segments_rigid running_time) s t
-
 (* [segments_cover running_time s t] is the segment characterisation of [s ≼ᶜ
 t]: the
    guarantee [s] and the trace [t] factor with matched operations, each segment
@@ -168,12 +158,7 @@ let segments =
         all "segments: allowance" show
           (fun (s, t) ->
             segments_allow hi s t
-            = TimedTrace.allowance ~rigid:false hi 0 (encode s) (encode t))
-          samples;
-        all "segments: rigid allowance" show
-          (fun (s, t) ->
-            segments_rigid hi s t
-            = TimedTrace.allowance ~rigid:true hi 0 (encode s) (encode t))
+            = TimedTrace.allowance hi 0 (encode s) (encode t))
           samples;
         all "segments: coverage" show
           (fun (s, t) ->
@@ -351,8 +336,6 @@ module type IMPLEMENTATION = sig
   module Upper : Grade.S with type t = L.t and type Delay.t = int
   module Lower : Grade.S with type t = L.t and type Delay.t = int
   module Interval : Grade.S with type t = L.t * L.t and type Delay.t = int
-  module RigidUpper : Grade.S with type t = L.t and type Delay.t = int
-  module RigidInterval : Grade.S with type t = L.t * L.t and type Delay.t = int
 end
 
 module Automata = struct
@@ -362,8 +345,6 @@ module Automata = struct
   module Upper = Timed.Upper
   module Lower = Timed.Lower
   module Interval = Timed.Interval
-  module RigidUpper = Timed.Rigid.Upper
-  module RigidInterval = Timed.Rigid.Interval
 end
 
 module Derivatives = struct
@@ -371,8 +352,6 @@ module Derivatives = struct
 
   module L = Timed.Derivatives
   include Timed.Symbolic
-  module RigidUpper = Timed.Symbolic.Rigid.Upper
-  module RigidInterval = Timed.Symbolic.Rigid.Interval
 end
 
 module ByLetters = struct
@@ -380,8 +359,6 @@ module ByLetters = struct
 
   module L = Timed.ConcreteDerivatives
   include Timed.Concrete
-  module RigidUpper = Timed.Concrete.Rigid.Upper
-  module RigidInterval = Timed.Concrete.Rigid.Interval
 end
 
 module Plain = struct
@@ -389,8 +366,6 @@ module Plain = struct
 
   module L = Timed.PlainDerivatives
   include Timed.Plain
-  module RigidUpper = Timed.Plain.Rigid.Upper
-  module RigidInterval = Timed.Plain.Rigid.Interval
 end
 
 (* The checks of the implementation [I]. *)
@@ -420,14 +395,7 @@ module Suite (I : IMPLEMENTATION) = struct
     let name = I.name ^ ": " ^ name in
     let dfa = L.concrete names rho in
     let down =
-      TimedClosure.allowance ~rigid:false
-        ~running_time:(letter_running_time table snd)
-        dfa
-    in
-    let rigid =
-      TimedClosure.allowance ~rigid:true
-        ~running_time:(letter_running_time table snd)
-        dfa
+      TimedClosure.allowance ~running_time:(letter_running_time table snd) dfa
     in
     let up =
       Coverage.closure
@@ -451,29 +419,16 @@ module Suite (I : IMPLEMENTATION) = struct
     in
     [
       all (name ^ ": allowance") show
-        (fun w ->
-          accepts down w = exists (TimedTrace.allowance ~rigid:false hi 0) w)
-        short;
-      all
-        (name ^ ": rigid allowance")
-        show
-        (fun w ->
-          accepts rigid w = exists (TimedTrace.allowance ~rigid:true hi 0) w)
+        (fun w -> accepts down w = exists (TimedTrace.allowance hi 0) w)
         short;
       all (name ^ ": coverage") show
         (fun w ->
           accepts up w = exists (fun w m -> TimedTrace.coverage lo 0 m w) w)
         short;
       check
-        (name ^ ": rigid allowance closure extensive and idempotent")
-        (operator
-           (TimedClosure.allowance ~rigid:true
-              ~running_time:(letter_running_time table snd)))
-        show_rho;
-      check
         (name ^ ": allowance closure extensive and idempotent")
         (operator
-           (TimedClosure.allowance ~rigid:false
+           (TimedClosure.allowance
               ~running_time:(letter_running_time table snd)))
         show_rho;
       check
@@ -540,16 +495,10 @@ module Suite (I : IMPLEMENTATION) = struct
         let context = show_table table and bounds = bounds_of table in
         laws (module Upper) ~context bounds samples
         @ laws (module Lower) ~context bounds samples
-        @ laws (module Interval) ~context bounds intervals
-        @ laws (module RigidUpper) ~context bounds samples
-        @ laws (module RigidInterval) ~context bounds intervals)
+        @ laws (module Interval) ~context bounds intervals)
       some_tables
     @ of_delay_laws
         (module Upper)
-        (bounds_of (List.hd tables))
-        ~monotone:true ()
-    @ of_delay_laws
-        (module RigidUpper)
         (bounds_of (List.hd tables))
         ~monotone:true ()
     @ of_delay_laws
@@ -577,16 +526,6 @@ module Suite (I : IMPLEMENTATION) = struct
       (module Lower)
       (module Interval)
       tables (Grade.Top :: finite)
-    @ agree tables
-        (module TimedTraceGrades.Rigid.UpperBound)
-        (module RigidUpper)
-        (Grade.Top :: finite)
-    @ agree tables
-        (module TimedTraceGrades.Rigid.Interval)
-        (module RigidInterval)
-        (List.map2
-           (fun l l' -> Grade.Interval (Grade.Closed l, Grade.Closed l'))
-           finite (List.rev finite))
 
   (* {2 (e) Examples} *)
 
@@ -759,79 +698,8 @@ module Suite (I : IMPLEMENTATION) = struct
         (Interval.inhabited only_a (In.lit "[{A}, {1}]"));
     ]
 
-  module R = Reader (RigidUpper)
-  module RI = Reader (RigidInterval)
-
-  (* The rigid allowance order against the allowance order, side by side: a
-     poll loop [{(3; A; B)*}], a bound [{A; B; 10}] that leaves no delay
-     between its operations, a session of rounds [{(A; 5)*}], and the two
-     ends, bounds without delays and without operations. *)
-  let rigid_examples =
-    let leq a b = RigidUpper.leq running_times (R.lit a) (R.lit b) in
-    let loose a b = Upper.leq running_times (U.lit a) (U.lit b) in
-    let equal a b = RigidUpper.equal running_times (R.lit a) (R.lit b) in
-    let name = ( ^ ) (RigidUpper.name ^ ": ") in
-    [
-      holds
-        (name "polls within the loop")
-        (leq "{1; A; B; 1; A; B; 1; A; B}" "{(3; A; B)*}");
-      fails
-        (name "an operation of 5 between polls")
-        (leq "{A; B; C; A; B}" "{(3; A; B)*}");
-      holds
-        (name "an operation of 5 between polls, by the allowance order")
-        (loose "{A; B; C; A; B}" "{(3; A; B)*}");
-      fails (name "a long delay against the loop") (leq "{300}" "{(3; A; B)*}");
-      holds
-        (name "a long delay against the loop, by the allowance order")
-        (loose "{300}" "{(3; A; B)*}");
-      fails
-        (name "an operation between two without a delay")
-        (leq "{A; C; B}" "{A; B; 10}");
-      holds
-        (name "an operation between two without a delay, by the allowance order")
-        (loose "{A; C; B}" "{A; B; 10}");
-      holds
-        (name "an operation bought within a round")
-        (leq "{A; B; 3; A}" "{(A; 5)*}");
-      fails
-        (name "an operation that does not fit in a round")
-        (leq "{A; B; 5; A}" "{(A; 5)*}");
-      holds
-        (name
-           "an operation that does not fit in a round, by the allowance order")
-        (loose "{A; B; 5; A}" "{(A; 5)*}");
-      holds (name "without delays: the same trace") (leq "{A; B}" "{A; B}");
-      fails (name "without delays: no operation left out") (leq "{A}" "{A; B}");
-      fails (name "without delays: none added") (leq "{A; B; B}" "{A; B}");
-      holds (name "without delays: inclusion") (leq "{A; B; A}" "{(A | B)*}");
-      fails (name "the unit is not least") (leq "{0}" "{A}");
-      fails (name "unit least") RigidUpper.unit_least;
-      holds (name "without operations: a delay pays at hi") (leq "{A; 2}" "{5}");
-      fails (name "without operations: a delay short of hi") (leq "{A}" "{2}");
-      holds
-        (name "without operations: equal up to the closure")
-        (equal "{A | 3}" "{3}");
-      holds (name "a complement of a delay is the top") (equal "{~1}" "⊤");
-      holds
-        (name "an operation is not excluded while time is unbounded")
-        (equal "{(_ & ~A)*}" "⊤");
-      holds
-        (name "the first and the last operation demanded")
-        (leq "{A; C; 2; B}" "{A; _*; B}");
-      fails (name "the first operation demanded") (leq "{C; A; B}" "{A; _*; B}");
-      holds
-        (name "intervals: componentwise")
-        (RigidInterval.leq running_times (RI.lit "{A; B}")
-           (RI.lit "[{1}, {A; 5}]"));
-      fails
-        (name "intervals: the upper component rigid")
-        (RigidInterval.leq running_times (RI.lit "{A}") (RI.lit "[{1}, {A; B}]"));
-    ]
-
   let examples =
     upper_examples @ lower_examples @ interval_examples @ inhabitation_examples
-    @ rigid_examples
 
   let checks = closures @ law_checks @ embedding @ examples
 
@@ -869,8 +737,6 @@ module Suite (I : IMPLEMENTATION) = struct
             verdict (module Upper) single rho rho';
             verdict (module Lower) single rho rho';
             verdict (module Interval) pair (rho, rho') (rho', rho);
-            verdict (module RigidUpper) single rho rho';
-            verdict (module RigidInterval) pair (rho, rho') (rho', rho);
           ]
     | _ -> None
 end
@@ -903,102 +769,6 @@ let agreement =
           && Option.equal close verdicts (OfDerivatives.verdicts bounds pair))
         (pairs regexes))
     tables
-
-(* The finite trace grades in the rigid allowance order, side by side with the
-   allowance order, over whole time steps and over rational delays with the
-   running times of the devices of a reaction timer. *)
-let finite_rigid =
-  let rational_bounds =
-    {
-      Grade.running_time =
-        (fun o ->
-          let q = Grades.Rational.make in
-          let lo, hi =
-            List.assoc o
-              [
-                ("Beep", (q 0 1, q 15 100));
-                ("ClearDisplay", (q 31 1, q 48 1));
-                ("ReadClock", (q 0 1, q 5 100));
-                ("ReadImu", (q 2 10, q 15 10));
-                ("ShowColourTextAt", (q 5 100, q 33 1));
-              ]
-          in
-          (Grade.Closed lo, Grade.Closed hi));
-      operations =
-        [ "Beep"; "ClearDisplay"; "ReadClock"; "ReadImu"; "ShowColourTextAt" ];
-    }
-  in
-  let module R = Reader (TimedTraceGrades.Rigid.UpperBound) in
-  let module U = Reader (TimedTraceGrades.UpperBound) in
-  let module RQ = Reader (TimedTraceGrades.Rational.Rigid.UpperBound) in
-  let module UQ = Reader (TimedTraceGrades.Rational.UpperBound) in
-  let module RI = Reader (TimedTraceGrades.Rigid.Interval) in
-  let sides name ~rigid ~loose a b =
-    [
-      check
-        ("finite traces, rigid: " ^ name)
-        (TimedTraceGrades.Rigid.UpperBound.leq running_times (R.lit a) (R.lit b)
-        = rigid)
-        "";
-      check
-        ("finite traces, rigid: " ^ name ^ ", by the allowance order")
-        (TimedTraceGrades.UpperBound.leq running_times (U.lit a) (U.lit b)
-        = loose)
-        "";
-    ]
-  in
-  let rational name ~rigid ~loose a b =
-    [
-      check
-        ("finite traces, rigid, rational: " ^ name)
-        (TimedTraceGrades.Rational.Rigid.UpperBound.leq rational_bounds
-           (RQ.lit a) (RQ.lit b)
-        = rigid)
-        "";
-      check
-        ("finite traces, rigid, rational: " ^ name ^ ", by the allowance order")
-        (TimedTraceGrades.Rational.UpperBound.leq rational_bounds (UQ.lit a)
-           (UQ.lit b)
-        = loose)
-        "";
-    ]
-  in
-  sides "polls" ~rigid:true ~loose:true "{1; A; B; 1; A; B}"
-    "{3; A; B; 3; A; B}"
-  @ sides "an operation between polls" ~rigid:false ~loose:true
-      "{A; B; C; A; B}" "{3; A; B; 3; A; B; 3; A; B}"
-  @ sides "a long delay" ~rigid:false ~loose:true "{6}" "{3; A; B; 3; A; B}"
-  @ sides "an operation between two without a delay" ~rigid:false ~loose:true
-      "{A; C; B}" "{A; B; 10}"
-  @ sides "without delays: an operation left out" ~rigid:false ~loose:true "{A}"
-      "{A; B}"
-  @ sides "without delays: inclusion" ~rigid:true ~loose:true "{A; B}"
-      "{A; B | B}"
-  @ sides "without operations" ~rigid:true ~loose:true "{A; 2}" "{5}"
-  @ rational "three polls" ~rigid:true ~loose:true
-      "{ReadImu; ReadClock; 2; ReadImu; ReadClock; 2; ReadImu; ReadClock}"
-      "{2.5; ReadImu; ReadClock; 2.5; ReadImu; ReadClock; 2.5; ReadImu; \
-       ReadClock}"
-  @ rational "a redraw between polls" ~rigid:false ~loose:false
-      "{ReadImu; ReadClock; ShowColourTextAt; ReadImu; ReadClock}"
-      "{2.5; ReadImu; ReadClock; 2.5; ReadImu; ReadClock; 2.5; ReadImu; \
-       ReadClock}"
-  @ rational "an operation between the gun and the stamp" ~rigid:false
-      ~loose:true "{Beep; ClearDisplay; ReadClock; 2; ReadImu; ReadClock}"
-      "{Beep; ReadClock; 1000}"
-  @ [
-      check "finite traces, rigid: the unit is not least"
-        ((not TimedTraceGrades.Rigid.UpperBound.unit_least)
-        && not
-             (TimedTraceGrades.Rigid.UpperBound.leq running_times (R.lit "{0}")
-                (R.lit "{A}")))
-        "";
-      check "finite traces, rigid: intervals, the upper component rigid"
-        (not
-           (TimedTraceGrades.Rigid.Interval.leq running_times (RI.lit "{A}")
-              (RI.lit "[{1}, {A; B}]")))
-        "";
-    ]
 
 (* The implementations by derivatives print each grade alike, unless the
    printing of that over single letters or that by symbolic derivatives falls
@@ -1326,7 +1096,6 @@ let semigroups =
 (* The states of the closures over the traces of the implementation [I], along
    random words, against the explicit sets of the constructions: for the
    allowance, the set of the live states reachable, closed under reachability,
-   by ticks only under the rigid allowance,
    of which the state holds those not strictly within the run of ticks of
    another; for the coverage, the subset of the states of the automaton of
    traces, of which the state holds those on whose run of ticks, end included,
@@ -1342,14 +1111,13 @@ module Canonical (I : IMPLEMENTATION) = struct
   let letters = List.length names + 1
   let live (m : _ Dfa.automaton) q = not (m.dead q)
 
-  (* [reach ?rigid m s] is the live states reachable from [s], by ticks only if
-     [rigid]. *)
-  let reach ?(rigid = false) m s =
+  (* [reach m s] is the live states reachable from [s]. *)
+  let reach m s =
     let rec visit seen q =
       if States.mem q seen || not (live m q) then seen
       else
         List.fold_left visit (States.add q seen)
-          (List.init (if rigid then 1 else letters) (m.Dfa.step q))
+          (List.init letters (m.Dfa.step q))
     in
     States.fold (fun q seen -> visit seen q) s States.empty
 
@@ -1368,17 +1136,15 @@ module Canonical (I : IMPLEMENTATION) = struct
 
   let weight running_time a = if a = 0 then 1 else running_time a
 
-  let allowed ?(rigid = false) ~running_time m =
-    let reach = reach ~rigid in
+  let allowed ~running_time m =
     let rec at_least n s =
       if n = 0 then s
       else
         let s' = reach m (image m 0 s) in
         if States.equal s' s then s else at_least (n - 1) s'
     in
-    let final s =
-      if rigid || States.exists m.Dfa.accepts s then s else States.empty
-    in
+    let final s = if States.exists m.Dfa.accepts s then s else States.empty in
+
     let step s x =
       final
         (States.union
@@ -1465,12 +1231,8 @@ module Canonical (I : IMPLEMENTATION) = struct
                 in
                 [
                   walk (name "allowance")
-                    (Allowance.closure ~rigid:false ~running_time:hi ~letters m)
+                    (Allowance.closure ~running_time:hi ~letters m)
                     (allowed ~running_time:hi m)
-                    words;
-                  walk (name "rigid allowance")
-                    (Allowance.closure ~rigid:true ~running_time:hi ~letters m)
-                    (allowed ~rigid:true ~running_time:hi m)
                     words;
                   walk (name "coverage")
                     (Coverage.closure ~running_time:lo m)
@@ -1598,8 +1360,6 @@ module Shared (I : IMPLEMENTATION) = struct
               verdict (module Upper) single rho rho';
               verdict (module Lower) single rho rho';
               verdict (module Interval) pair (rho, rho') (rho', rho);
-              verdict (module RigidUpper) single rho rho';
-              verdict (module RigidInterval) pair (rho, rho') (rho', rho);
             ],
             [
               Upper.duration_bounds bounds rho;
@@ -1683,8 +1443,8 @@ let shared =
 let () =
   let checks =
     segments @ OfAutomata.checks @ OfDerivatives.checks @ OfByLetters.checks
-    @ OfPlain.checks @ agreement @ finite_rigid @ printing @ plain_inhabited
-    @ long_runs @ semigroups @ canonical @ shared
+    @ OfPlain.checks @ agreement @ printing @ plain_inhabited @ long_runs
+    @ semigroups @ canonical @ shared
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

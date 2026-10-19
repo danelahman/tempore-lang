@@ -11,7 +11,11 @@
    overlapping several stretches belonging to the set of each (the window
    rule). An operation of running time [0] that is not matched occupies a
    point of a budget stretch whose set contains it, possibly a stretch of
-   length [0] (the point rule).
+   length [0] (the point rule). A budget stretch of length [0] is a point:
+   it does not vanish, and occupies a point of a budget stretch of the
+   greater word whose set contains its own; a strict wait of length [0]
+   vanishes.
+
 
    Lengths are integers of a base grid. Open ends are read with two orders of
    infinitesimals: the exact words of the lesser grade approach an open end by
@@ -94,8 +98,9 @@ type item = IOp of string * int | IWait of int | IBudget of set * int
 
 let length = function IOp (_, t) -> t | IWait d | IBudget (_, d) -> d
 
-(* [samples ~k ~dx iv] is the sampled lengths of [iv], in units. *)
-let samples ~k ~dx iv =
+(* [samples ~dense ~k ~dx iv] is the sampled lengths of [iv], in units, and
+   if [dense] the length just above a closed lower end. *)
+let samples ~dense ~k ~dx iv =
   let top = match iv.hi with Some h -> h | None -> iv.lo + 2 in
   let grid =
     List.filter
@@ -105,29 +110,29 @@ let samples ~k ~dx iv =
       (List.init (top - iv.lo + 1) (fun i -> iv.lo + i))
   in
   let approached =
-    (if iv.lo_open then [ (iv.lo * k) + dx ] else [])
+    (if iv.lo_open || (dense && iv.hi <> Some iv.lo) then [ (iv.lo * k) + dx ]
+     else [])
     @ match iv.hi with Some h when iv.hi_open -> [ (h * k) - dx ] | _ -> []
   in
   List.sort_uniq Int.compare (List.map (fun v -> v * k) grid @ approached)
 
-(* [words ~running_time ~k ~dx skeleton] is the sampled exact words of
+(* [words ~dense ~running_time ~k ~dx skeleton] is the sampled exact words of
    [skeleton]. *)
-let words ~running_time ~k ~dx skeleton =
+let words ~dense ~running_time ~k ~dx skeleton =
   let choices = function
     | Op names ->
         List.concat_map
           (fun name ->
             List.map
               (fun t -> Some (IOp (name, t)))
-              (samples ~k ~dx (running_time name)))
+              (samples ~dense ~k ~dx (running_time name)))
           names
     | Stretch (set, iv) ->
         List.map
           (fun d ->
-            if d = 0 then None
-            else if set = Names [] then Some (IWait d)
+            if set = Names [] then if d = 0 then None else Some (IWait d)
             else Some (IBudget (set, d)))
-          (samples ~k ~dx iv)
+          (samples ~dense ~k ~dx iv)
   in
   List.fold_right
     (fun l acc ->
@@ -226,7 +231,7 @@ let fits items pieces =
 
 (* [leq ~running_time x y] is whether every exact word of [x] fits some exact
    word of [y], the operations running for the intervals [running_time]. *)
-let leq ~running_time x y =
+let leq ?(dense = true) ~running_time x y =
   let xs = skeletons x and ys = skeletons y in
   let longest ws = List.fold_left (fun a w -> max a (List.length w)) 0 ws in
   let dx = longest ys + 2 in
@@ -236,7 +241,7 @@ let leq ~running_time x y =
     (fun skeleton ->
       List.for_all
         (fun w -> List.exists (fits w) ys)
-        (words ~running_time ~k ~dx skeleton))
+        (words ~dense ~running_time ~k ~dx skeleton))
     xs
 
 (* {1 Printing} *)

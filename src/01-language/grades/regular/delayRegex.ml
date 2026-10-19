@@ -65,18 +65,9 @@ let of_class (c : A.Class.t) =
                   (Delays (Open Rational.zero, Unbounded)
                   :: List.map (fun n -> Letter n) names))) )
 
-(* [is_name name c] is whether the class [c] is the one name [name]. *)
-let is_name name (c : A.Class.t) =
-  match c.names with
-  | SymbolicRegex.Letters.Only [ n ] -> String.equal n name
-  | _ -> false
-
 let of_word word =
   let rec atoms = function
     | [] -> []
-    | A.Operation c :: A.Delay d :: A.Operation c' :: word
-      when is_name strict_opening c && is_name strict_closing c' ->
-        Strict (rational_tick d) :: atoms word
     | A.Delay d :: word when Rational.sign d = 0 -> atoms word
     | A.Delay d :: word -> rational_tick d :: atoms word
     | A.Operation c :: word -> of_class c :: atoms word

@@ -1111,6 +1111,7 @@ let registry =
           "time-interval-rational";
           "traces-timed-interval";
           "traces-timed-rigid-interval";
+          "traces-timed-rigid-interval-rational";
           "regex-timed-interval-symbolic";
           "regex-timed-interval-rational-symbolic";
           "regex-timed-rigid-interval-symbolic";
@@ -1243,6 +1244,9 @@ let registry =
     expect "registry: grades reading an interval of delays" show_names
       ~expected:
         [
+          "traces-timed-rigid-lower-bound-rational";
+          "traces-timed-rigid-upper-bound-rational";
+          "traces-timed-rigid-interval-rational";
           "regex-upper-bound-rational-symbolic";
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
@@ -1275,18 +1279,6 @@ let registry =
           "regex-timed-lower-bound-letter-derivatives";
           "regex-timed-upper-bound-letter-derivatives";
           "regex-timed-interval-letter-derivatives";
-          "regex-timed-rigid-lower-bound-letter-automata";
-          "regex-timed-rigid-upper-bound-letter-automata";
-          "regex-timed-rigid-interval-letter-automata";
-          "regex-timed-rigid-lower-bound-rational-automata";
-          "regex-timed-rigid-upper-bound-rational-automata";
-          "regex-timed-rigid-interval-rational-automata";
-          "regex-timed-rigid-lower-bound-symbolic-by-letters";
-          "regex-timed-rigid-upper-bound-symbolic-by-letters";
-          "regex-timed-rigid-interval-symbolic-by-letters";
-          "regex-timed-rigid-lower-bound-letter-derivatives";
-          "regex-timed-rigid-upper-bound-letter-derivatives";
-          "regex-timed-rigid-interval-letter-derivatives";
         ]
       (List.concat_map
          (fun (g : GradeRegistry.group) ->
@@ -1299,7 +1291,9 @@ let registry =
       show_names
       ~expected:
         (List.filter
-           (fun name -> String.starts_with ~prefix:"regex-" name)
+           (fun name ->
+             String.starts_with ~prefix:"regex-" name
+             || String.starts_with ~prefix:"traces-timed-rigid-" name)
            (List.map fst GradeRegistry.grade_modules))
       (List.concat_map
          (fun (g : GradeRegistry.group) ->
@@ -2683,6 +2677,159 @@ module Reader (G : Grade.S) = struct
     | exception Utils.Error.Error d -> Error d.Utils.Diagnostic.message
 end
 
+(* The laws of the rigid grades of timed operations with interval letters:
+   the two counterexamples to monotonicity of the earlier rigid orders, now
+   consistent with monotonicity; the delays as a monoid morphism on either
+   side; the unit, which is not the top of the lower bounds; and the verdicts
+   of the prototype's tests of strict delays, the guarantees of the lower
+   bounds given explicit flanks [≥0]. *)
+let interval_letter_laws =
+  let module G = Grades.IntervalGrades in
+  let running_times =
+    let table =
+      [
+        ("H", (2, 2));
+        ("S", (1, 1));
+        ("C", (3, 4));
+        ("L", (1, 1));
+        ("O", (1, 1));
+        ("K", (1, 1));
+        ("R", (1, 1));
+        ("A", (1, 1));
+        ("B", (0, 2));
+      ]
+    in
+    {
+      Grade.running_time =
+        (fun o ->
+          let lo, hi = List.assoc o table in
+          (Grade.Closed (Rational.of_int lo), Grade.Closed (Rational.of_int hi)));
+      operations = List.map fst table;
+    }
+  in
+  let braces text =
+    "{" ^ String.concat "; " (String.split_on_char ' ' text) ^ "}"
+  in
+  (* [flanked text] is [text] with [≥0] before every letter and at the end. *)
+  let flanked text =
+    "{"
+    ^ String.concat "; "
+        (List.concat_map (fun t -> [ "≥0"; t ]) (String.split_on_char ' ' text)
+        @ [ "≥0" ])
+    ^ "}"
+  in
+  let checks (type a) (module M : Grade.S with type t = a) =
+    let module P = Reader (M) in
+    let lit text =
+      match P.parse text with
+      | Ok rho -> rho
+      | Error e -> failwith (M.name ^ ": " ^ text ^ ": " ^ e)
+    in
+    let leq name x y expected =
+      expect
+        (M.name ^ ": " ^ name ^ ": " ^ x ^ " <= " ^ y)
+        show_bool ~expected
+        (M.leq running_times (lit x) (lit y))
+    in
+    let product name (x, x') (y, y') expected =
+      expect
+        (M.name ^ ": " ^ name)
+        show_bool ~expected
+        (M.leq running_times (M.mul (lit x) (lit x')) (M.mul (lit y) (lit y')))
+    in
+    let delay n = Option.get (M.Delay.read (Grade.Int n)) in
+    (lit, leq, product, delay)
+  in
+  let upper (type a) (module M : Grade.S with type t = a) =
+    let lit, leq, product, delay = checks (module M) in
+    [
+      leq "F4 premise" "{1}" "{1}" true;
+      leq "F4 premise" "{1}" "{!1; 1}" true;
+      product "F4: {1}·{1} <= {1; !1; 1}" ("{1}", "{1}") ("{1}", "{!1; 1}") true;
+      leq "F4 product" "{1; 1}" "{1; !1; 1}" true;
+      check
+        (M.name ^ ": delays are a monoid morphism")
+        (M.equal running_times
+           (M.mul (M.of_delay (delay 1)) (M.of_delay (delay 1)))
+           (M.of_delay (delay 2)))
+        "of_delay 1 · of_delay 1 = of_delay 2";
+      check (M.name ^ ": the top") (M.is_top running_times (lit "{≥0}")) "{≥0}";
+      check
+        (M.name ^ ": the unit is below a budget")
+        (M.leq running_times M.one (lit "{3}"))
+        "{0} <= {3}";
+    ]
+    @ List.map
+        (fun (name, p, b, expected) -> leq name (braces p) (braces b) expected)
+        [
+          ("traces budget stir", "H !2 S C", "H 3 C", true);
+          ("traces strict stir", "H !2 S C", "H !3 C", false);
+          ("logged", "H L !2 C", "H 3 C", true);
+          ("uncooled", "H !3", "H 3 C", false);
+          ("kind", "!5", "5", true);
+          ("kind", "5", "!5", false);
+          ("strict and budget", "A !2 3", "A 5", true);
+          ("strict and budget", "A 5", "A !2 3", false);
+          ("too long a wait", "!3 A", "!1 1 A", false);
+          ("wait into a budget", "!2 A", "!1 1 A", true);
+          ("budget into a wait", "1 A", "!2 A", false);
+          ("binding strict", "K !7 S R", "K !10 R", false);
+          ("binding budget", "K !7 S R", "K 10 R", true);
+          ("unused strict", "1", "!1 1", true);
+          ("operation across a strict delay", "B", "1 !1 1", true);
+          ("wait across budgets", "!2", "1 1", true);
+        ]
+  in
+  let lower (type a) (module M : Grade.S with type t = a) =
+    let lit, leq, product, delay = checks (module M) in
+    [
+      leq "F4 premise" "{1; !1}" "{1; !1}" true;
+      leq "F4 premise fails" "{1; !1}" "{!1}" false;
+      product "F4: {1; !1}·{1; !1} <= {1; !2}" ("{1; !1}", "{1; !1}")
+        ("{1; !2}", "{0}") false;
+      check
+        (M.name ^ ": delays are a monoid morphism")
+        (M.equal running_times
+           (M.mul (M.of_delay (delay 1)) (M.of_delay (delay 1)))
+           (M.of_delay (delay 2)))
+        "of_delay 1 · of_delay 1 = of_delay 2";
+      check
+        (M.name ^ ": the unit is not the top")
+        (not (M.is_top running_times M.one))
+        "{0}";
+      check (M.name ^ ": the top") (M.is_top running_times (lit "{≥0}")) "{≥0}";
+      leq "no flank" "{A; !5; C; B}" "{A; !5; B}" false;
+    ]
+    @ List.map
+        (fun (name, r, g, expected) -> leq name (braces r) (flanked g) expected)
+        [
+          ("stirred wait", "A C C B", "A !5 B", false);
+          ("wait", "A !5 B", "A !5 B", true);
+          ("longer wait", "A !6 B", "A !5 B", true);
+          ("undisturbed", "A !2 C !3 B", "A !5 B", false);
+          ("budget for a wait", "A 5 B", "A !5 B", false);
+          ("operations for a budget", "A C C B", "A 5 B", true);
+          ("operation for a budget", "A C !2 B", "A 1 !2 B", true);
+          ("wait for a budget", "A !3 B", "A 1 !2 B", true);
+          ("flank", "A !5 C B", "A !5 B", true);
+          ("kind", "!5", "5", true);
+          ("kind", "5", "!5", false);
+          ("strict and budget", "A !2 3", "A 5", true);
+          ("strict and budget", "A 5", "A !2 3", false);
+          ("settled", "O !5 L", "O !5 L", true);
+          ("stirred", "O C C L", "O !5 L", false);
+          ("leading flank", "A !1", "!1", true);
+        ]
+  in
+  upper (module G.Regex.Upper)
+  @ upper (module G.RegexRational.Upper)
+  @ upper (module G.Traces.Upper)
+  @ upper (module G.TracesRational.Upper)
+  @ lower (module G.Regex.Lower)
+  @ lower (module G.RegexRational.Lower)
+  @ lower (module G.Traces.Lower)
+  @ lower (module G.TracesRational.Lower)
+
 (* The laws of the mode-switch costs on grades over the modes [Off], [On] and
    [Idle], the modes not named and [Stuck]: changes of mode, operations
    performed only in some modes, traces stuck at a cost, entries of the modes
@@ -3491,7 +3638,7 @@ let () =
     @ registry @ registered_laws @ registered_repetitions @ fractional_laws
     @ inclusion_laws @ indexed @ mode_laws @ resource_laws @ interval_read_back
     @ schedule_laws @ resource_construction_laws @ finite_laws @ ranges
-    @ flow_tops @ duration_bounds @ mode_time_laws
+    @ flow_tops @ duration_bounds @ mode_time_laws @ interval_letter_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

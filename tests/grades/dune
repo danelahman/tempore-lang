@@ -49,11 +49,6 @@
  (libraries grades parser sugaredAst))
 
 (test
- (name test_strictDelays)
- (modules test_strictDelays)
- (libraries utils grades parser sugaredAst lawChecks))
-
-(test
  (name test_accepts)
  (modules test_accepts)
  (deps
@@ -79,4 +74,4 @@
 (test
  (name test_intervalLetters_reference)
  (modules test_intervalLetters_reference)
- (libraries lawChecks intervalLettersReference))
+ (libraries grades lawChecks intervalLettersReference))

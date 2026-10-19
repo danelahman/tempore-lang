@@ -140,7 +140,9 @@ module Printed = struct
         }
     | Alt ts ->
         {
-          text = String.concat " | " (List.map (fun t -> at 0 (print t)) ts);
+          text =
+            String.concat " | "
+              (List.sort String.compare (List.map (fun t -> at 0 (print t)) ts));
           level = 0;
         }
     | Opt t -> { text = operand t ^ "?"; level = 4 }
@@ -174,6 +176,7 @@ let two_sided lo hi =
       Some ((if f then "[" else "(") ^ Rational.show a ^ ", ∞)")
   | Finite (a, f), Finite (b, g) -> (
       match Rational.compare a b with
+      | 0 when f && g && Rational.sign a = 0 -> Some "[0, 0]"
       | 0 when f && g -> Some (Rational.show a)
       | k when k < 0 ->
           Some
@@ -247,7 +250,7 @@ struct
   let nullable_view = function
     | Empty | Op _ -> false
     | Eps | Star _ -> true
-    | Stretch (_, c) -> ( match side with Upper -> true | Lower -> is_zero c)
+    | Stretch (s, c) -> Ops.is_empty s && (side = Upper || is_zero c)
     | Concat (r, s) -> r.nullable && s.nullable
     | Union rs -> List.exists (fun r -> r.nullable) rs
     | Repeat (r, c) -> c.least = 0 || r.nullable
@@ -298,7 +301,10 @@ struct
      empty language. *)
   let stretch s c =
     match (side, c) with
-    | Upper, Finite (a, f) when Rational.sign a = 0 -> if f then eps else empty
+    | Upper, Finite (a, f) when Rational.sign a = 0 ->
+        if not f then empty
+        else if Ops.is_empty s then eps
+        else make (Stretch (s, c))
     | Lower, Infinite -> empty
     | _ -> make (Stretch (s, c))
 
@@ -326,6 +332,23 @@ struct
           if joinable x && equal x y then Some (repeat x (Count.add c c'), rest)
           else None
         in
+        let optional =
+          match s.view with
+          | Union [ a; b ] when joinable x -> (
+              let other =
+                if a.view = Eps then Some b
+                else if b.view = Eps then Some a
+                else None
+              in
+              match other with
+              | Some t when joinable t ->
+                  let y, c' = power t in
+                  if equal x y then
+                    Some (union [ r; repeat x (Count.add c c') ])
+                  else None
+              | _ -> None)
+          | _ -> None
+        in
         let candidate =
           match s.view with
           | Concat (h, t) ->
@@ -335,10 +358,11 @@ struct
               let y, c' = power s in
               joined y c' None
         in
-        match candidate with
-        | Some (x', Some t) -> concat x' t
-        | Some (x', None) -> x'
-        | None -> make (Concat (r, s)))
+        match (optional, candidate) with
+        | Some u, _ -> u
+        | None, Some (x', Some t) -> concat x' t
+        | None, Some (x', None) -> x'
+        | None, None -> make (Concat (r, s)))
 
   and union rs =
     let rec flatten acc r =
@@ -384,6 +408,31 @@ struct
         rest
     in
     let rest = List.filter (fun r -> not (List.mem r.id stars)) rest in
+    (* Repetitions of one base merge where their counts overlap or touch:
+       [x^c | x^c'] is [x^(c ∪ c')], a factor [x] counting as [x^1]. *)
+    let rest =
+      List.fold_left
+        (fun acc r ->
+          if not (joinable r) then r :: acc
+          else
+            let x, c = power r in
+            let rec merge = function
+              | [] -> None
+              | s :: others -> (
+                  let merged =
+                    if joinable s then
+                      let y, c' = power s in
+                      if equal x y then Count.union c c' else None
+                    else None
+                  in
+                  match merged with
+                  | Some c'' -> Some (repeat x c'' :: others)
+                  | None ->
+                      Option.map (fun others -> s :: others) (merge others))
+            in
+            match merge acc with Some acc -> acc | None -> r :: acc)
+        [] rest
+    in
     let rest =
       if List.exists (fun r -> r.nullable && r.view <> Eps) rest then
         List.filter (fun r -> r.view <> Eps) rest
@@ -400,10 +449,9 @@ struct
     | Star _ -> r
     | Union rs when List.exists (fun r -> r.view = Eps) rs ->
         star (union (List.filter (fun r -> r.view <> Eps) rs))
-    | Stretch (p, c) -> (
-        match side with
-        | Upper -> stretch p Infinite
-        | Lower -> if is_zero c then r else union [ eps; r ])
+    | Stretch (p, _) ->
+        let base = match side with Upper -> stretch p Infinite | Lower -> r in
+        if base.nullable then base else union [ eps; base ]
     | _ -> make (Star r)
 
   and repeat r (c : Count.t) =
@@ -414,16 +462,14 @@ struct
     | Empty, _ -> if c.least = 0 then eps else empty
     | Eps, _ -> eps
     | Star _, _ -> r
-    | Stretch (p, cut), _ -> (
-        match side with
-        | Upper -> (
-            match c.most with
-            | None -> stretch p Infinite
-            | Some n -> stretch p (times n cut))
-        | Lower ->
-            if c.least > 0 then stretch p (times c.least cut)
-            else if is_zero cut then r
-            else union [ eps; r ])
+    | Stretch (p, cut), _ ->
+        let base =
+          match (side, c.most) with
+          | Upper, None -> stretch p Infinite
+          | Upper, Some n -> stretch p (times n cut)
+          | Lower, _ -> stretch p (times (max c.least 1) cut)
+        in
+        if c.least = 0 && not base.nullable then union [ eps; base ] else base
     | Repeat (x, c'), _ -> (
         match Count.nest c' c with
         | Some c'' -> repeat x c''

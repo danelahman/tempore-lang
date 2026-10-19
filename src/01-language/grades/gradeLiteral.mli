@@ -67,17 +67,6 @@ val sequence : regex list -> regex
     bounded repetition: [x; x; x] is [x^3], and [x^c; x] is [x^(c + 1)]. The
     factors are not split into further factors. *)
 
-val strict_opening : string
-(** The name that opens a strict delay in the languages of the rigid grades of
-    timed operations, no operation name. *)
-
-val strict_closing : string
-(** The name that closes a strict delay, no operation name. *)
-
-val is_marker : string -> bool
-(** [is_marker name] is whether [name] is {!strict_opening} or
-    {!strict_closing}. *)
-
 val regex_names : regex -> string list
 (** [regex_names r] is the list of the operation names [r] mentions, in
     increasing order. *)

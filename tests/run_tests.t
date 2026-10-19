@@ -6384,10 +6384,12 @@ automata, 'regex-upper-bound-letter-automata':
 
 The programs of the regular trace grades of timed operations, run above under
 their implementations by symbolic derivatives, under their implementations by
-automata, the programs over rational delays excepted:
+automata, the programs over rational delays and of the rigid grades, which
+have one implementation, excepted:
 
   $ for f in regex_timed_*.tpe
   > do
+  >   case $f in regex_timed_rigid_*) continue;; esac
   >   g=$(support/header_options.exe -grades $f)
   >   case $g in *-rational-symbolic) continue;; esac
   >   grades=${g%-symbolic}-letter-automata
@@ -7043,11 +7045,13 @@ The examples and programs of the regular trace grades under two further
 implementations, by derivatives by letters instead of minterms
 ('-symbolic-by-letters') and by derivatives of expressions over single letters
 instead of letter sets ('-letter-derivatives'), whose outputs are those of the
-implementations above, the examples over rational delays excepted:
+implementations above, the examples over rational delays and the programs of
+the rigid grades excepted:
 
   $ for f in ../examples/regular/*.tpe ../examples/regular_timed_ops/*.tpe \
   >   literals_reject_empty.tpe literals_regular.tpe regular_*.tpe regex_timed_*.tpe
   > do
+  >   case $f in regex_timed_rigid_*) continue;; esac
   >   g=$(support/header_options.exe -grades $f)
   >   case $g in *-rational-symbolic) continue;; esac
   >   grades=${g%-symbolic}

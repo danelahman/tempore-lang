@@ -93,10 +93,6 @@ let sequence factors =
   | [] -> Tick 0
   | r :: rs -> List.fold_left (fun r s -> Seq (r, s)) r rs
 
-let strict_opening = "!("
-let strict_closing = ")!"
-let is_marker = function "!(" | ")!" -> true | _ -> false
-
 let regex_names r =
   let rec go = function
     | Letter name -> [ name ]

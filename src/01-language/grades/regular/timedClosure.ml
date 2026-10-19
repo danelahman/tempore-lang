@@ -93,32 +93,22 @@ module Allowance (State : Map.OrderedType) = struct
         m.Dfa.lead x = 0 || not (States.exists (fun y -> within m y x) runs))
       s
 
-  (** [ticks m q] is the live successors of [q] by ticks: by its [leap] by its
-      lead [k] if [k ≥ 1], and otherwise by [tick]. *)
-  let ticks m q =
-    let k = m.Dfa.lead q in
-    if k = 0 then List.filter (live m) [ m.step q tick ]
-    else if k = unbounded then []
-    else List.filter (live m) [ m.leap q k ]
+  (** [closed ~letters m s] represents the set of the live states reachable from
+      the set [s] of live states by any word: by the states reached, a state of
+      lead [k ≥ 1] followed by its [leap] by [k] only, but for those within the
+      run of ticks of another, which the set holds with it. *)
+  let closed ~letters m s = prune m (reachable (successors ~letters m) s)
 
-  (** [closed ~rigid ~letters m s] represents the set of the live states
-      reachable from the set [s] of live states, by ticks only if [rigid] and by
-      any word otherwise: by the states reached, a state of lead [k ≥ 1]
-      followed by its [leap] by [k] only, but for those within the run of ticks
-      of another, which the set holds with it. *)
-  let closed ~rigid ~letters m s =
-    prune m (reachable (if rigid then ticks m else successors ~letters m) s)
-
-  (** [at_least ~rigid ~letters m n s] represents the set of the states
-      reachable from the set represented by [s] by a word with at least [n]
-      ticks, a word of ticks only if [rigid]: the chain of the sets reached with
-      at least [0, 1, 2, …] ticks, each that reached from the successors by
-      [tick] of the last, is descending, and followed until [n] or until it is
-      stationary, so that large running times are cheap. The states without a
-      live successor by [tick] leave the chain at once, and those that are their
-      own successor by [tick] stay in it; where the others all have leads of at
-      least [k ≥ 1], it moves [min n k] ticks at once by their [leap]s. *)
-  let at_least ~rigid ~letters m n s =
+  (** [at_least ~letters m n s] represents the set of the states reachable from
+      the set represented by [s] by a word with at least [n] ticks: the chain of
+      the sets reached with at least [0, 1, 2, …] ticks, each that reached from
+      the successors by [tick] of the last, is descending, and followed until
+      [n] or until it is stationary, so that large running times are cheap. The
+      states without a live successor by [tick] leave the chain at once, and
+      those that are their own successor by [tick] stay in it; where the others
+      all have leads of at least [k ≥ 1], it moves [min n k] ticks at once by
+      their [leap]s. *)
+  let at_least ~letters m n s =
     let fixed q = State.compare (m.Dfa.step q tick) q = 0 in
     let rec go n s =
       if n = 0 || States.is_empty s then s
@@ -129,52 +119,45 @@ module Allowance (State : Map.OrderedType) = struct
         let advance q =
           if k = 0 then m.step q tick else if fixed q then q else m.leap q k
         in
-        let s' = closed ~rigid ~letters m (States.map advance ticking) in
+        let s' = closed ~letters m (States.map advance ticking) in
         if States.equal s' s then s else go (n - max k 1) s'
     in
     go n s
 
-  (** [matched ~rigid ~letters m x s] represents the set of the states
-      reachable, as by {!closed}, from the successors by the operation [x] of
-      the set represented by [s]: those of its states of lead [0], the others
-      having none that is live. *)
-  let matched ~rigid ~letters m x s =
-    closed ~rigid ~letters m
+  (** [matched ~letters m x s] represents the set of the states reachable, as by
+      {!closed}, from the successors by the operation [x] of the set represented
+      by [s]: those of its states of lead [0], the others having none that is
+      live. *)
+  let matched ~letters m x s =
+    closed ~letters m
       (States.filter (live m)
          (States.filter_map
             (fun q -> if m.Dfa.lead q = 0 then Some (m.step q x) else None)
             s))
 
   (* The downward closure is prefix-closed, so that a set without a final
-     state rejects every word, and all such sets are the empty set. The rigid
-     closure is not, but a set of live states accepts some word, so that the
-     empty set is its one dead state. The states within the run of ticks of
-     another are not final. *)
-  let closure ~rigid ~running_time ~letters m =
+     state rejects every word, and all such sets are the empty set. The states
+     within the run of ticks of another are not final. *)
+  let closure ~running_time ~letters m =
     let final s =
-      if rigid || States.exists m.Dfa.accepts s then States.elements s else []
+      if States.exists m.Dfa.accepts s then States.elements s else []
     in
     let step s x =
       let s = States.of_list s in
-      let bought = at_least ~rigid ~letters m (weight ~running_time x) s in
-      let matched =
-        if x = tick then States.empty else matched ~rigid ~letters m x s
-      in
+      let bought = at_least ~letters m (weight ~running_time x) s in
+      let matched = if x = tick then States.empty else matched ~letters m x s in
       final (prune m (States.union bought matched))
     in
     {
       Dfa.start =
         final
-          (closed ~rigid ~letters m
+          (closed ~letters m
              (States.filter (live m) (States.singleton m.start)));
       step = memoise step;
-      accepts =
-        (if rigid then List.exists m.Dfa.accepts
-         else fun s -> not (List.is_empty s));
+      accepts = (fun s -> not (List.is_empty s));
       dead = List.is_empty;
       lead = Fun.const 0;
-      leap =
-        (fun s k -> final (at_least ~rigid ~letters m k (States.of_list s)));
+      leap = (fun s k -> final (at_least ~letters m k (States.of_list s)));
     }
 end
 
@@ -243,9 +226,8 @@ end
 module Int_allowance = Allowance (Int)
 module Int_coverage = Coverage (Int)
 
-let allowance ~rigid ~running_time m =
-  Int_allowance.closure ~rigid ~running_time ~letters:(Dfa.letters m)
-    (Dfa.automaton m)
+let allowance ~running_time m =
+  Int_allowance.closure ~running_time ~letters:(Dfa.letters m) (Dfa.automaton m)
 
 let coverage ~running_time m =
   Int_coverage.closure ~running_time (Dfa.automaton m)
