@@ -118,7 +118,10 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
     changing its range (the register ACC_CONF of the BMI270, the sample rate
     divider of the MPU6886), so that the conversion of M5Unified stays valid.
   - `CheckAtRest` is a check of plausibility, not a self-test: four readings
-    started 6 ms apart, true if the unit is at rest.
+    started 6 ms apart, true if the unit is at rest, judged by the variation
+    of the readings (the spread of the rate about each axis below 5 °/s, the
+    direction of gravity turned by less than 2°, each acceleration within
+    0.9 to 1.1 g), so that a constant bias of the gyroscope passes.
   - Each reading of `ReadImu` is passed to `m5_imu_observe(accel, gyro)`,
     defined weakly to do nothing, which an application may define to record
     the readings.
@@ -814,9 +817,15 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
     its tilt first and is armed less than a millisecond later, with no
     `Receive` or `Command` in between. The calibration is of a non-eternal
     type, built inside the inner box, so that once unboxed it is used at
-    once. The bias is measured only after `CheckAtRest` finds the robot at
-    rest, its verdict boxed with `{(Attitude; !10)*}` over the samples, and
-    else the robot shows "Hold still" and measures again. The robot is
+    once. The bias is the mean rate of the readings of the step, sampled
+    50 times about 10 ms apart by the operation `Reading` of the example,
+    each reading at most once by its number, without a further access to
+    the bus; the samples are taken only after `CheckAtRest` finds the robot
+    at rest, its verdict boxed with `{(Reading; !10)*}` over the samples.
+    The samples are judged at rest as `CheckAtRest` judges its readings, by
+    their variation, so that a constant bias passes, and the direction of
+    gravity over the whole window also detects a slow steady turn; else the
+    robot shows "Hold still" and measures again. The robot is
     armed only within 10 degrees of the balance point, and else shows "Not
     upright". The wait
     for Arm is therefore bounded, 500 polls 400 ms apart, about 202 s,

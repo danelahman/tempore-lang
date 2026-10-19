@@ -28,13 +28,15 @@
 // the BMI270 by its register ACC_CONF (0x40), in the filter performance mode
 // with the normal bandwidth, and on a unit of the MPU6886 family by its
 // sample rate divider SMPLRT_DIV (0x19). CheckAtRest reads the unit four
-// times, the readings started 6 ms apart, and checks that it is at rest.
+// times, the readings started 6 ms apart, and checks that it is at rest by
+// the variation of the readings.
 //
 // Each reading of ReadImu is passed to m5_imu_observe, defined weakly here to
 // do nothing, which an application may define to record the readings.
 
 #include <Arduino.h>
 #include <M5Unified.h>
+#include <math.h>
 
 #include "tempore_bindings.h"
 
@@ -223,24 +225,50 @@ tempore_result_ConfigureImu binding_ConfigureImu(
 // microseconds.
 static const int64_t m5_imu_check_interval_us = 6000;
 
+// The greatest spread, the greatest less the least reading, of the angular
+// rate about each axis over the readings of CheckAtRest, in degrees per
+// second, and the cosine of the greatest angle between the first and the
+// last direction of the acceleration, 2 degrees.
+static const float m5_imu_rest_spread = 5.0f;
+static const float m5_imu_rest_cosine = 0.99939083f;
+
 // Whether the unit is at rest in four readings started 6 ms apart: the
-// magnitude of the acceleration between 0.9 and 1.1 g, and that of the
-// angular rate below 20 degrees per second. Each wait, by tempore_wait_until,
-// yields the processor until one tick before the start of the next reading.
+// magnitude of each acceleration between 0.9 and 1.1 g, the spread of the
+// angular rate about each axis below m5_imu_rest_spread, and the angle
+// between the first and the last acceleration below 2 degrees. A constant
+// bias of the gyroscope does not affect the check. Each wait, by
+// tempore_wait_until, yields the processor until one tick before the start
+// of the next reading.
 tempore_result_CheckAtRest binding_CheckAtRest(tempore_argument_CheckAtRest) {
   const int64_t start = tempore_clock_us();
   bool rest = true;
+  float first[3], least[3], greatest[3];
+  m5_imu_reading r;
   for (int i = 0; i < 4; ++i) {
     tempore_wait_until(tempore_clock_us(),
                        start + i * m5_imu_check_interval_us, 1);
-    const m5_imu_reading r = m5_imu_read();
-    float a = 0, g = 0;
+    r = m5_imu_read();
+    float a = 0;
     for (int k = 0; k < 3; ++k) {
       a += r.accel[k] * r.accel[k];
-      g += r.gyro[k] * r.gyro[k];
+      if (i == 0) {
+        first[k] = r.accel[k];
+        least[k] = greatest[k] = r.gyro[k];
+      } else {
+        least[k] = fminf(least[k], r.gyro[k]);
+        greatest[k] = fmaxf(greatest[k], r.gyro[k]);
+      }
     }
-    rest = rest && a >= 0.81f && a <= 1.21f && g < 400.0f;
+    rest = rest && a >= 0.81f && a <= 1.21f;
   }
-  return rest;
+  float dot = 0, first_square = 0, last_square = 0;
+  for (int k = 0; k < 3; ++k) {
+    rest = rest && greatest[k] - least[k] < m5_imu_rest_spread;
+    dot += first[k] * r.accel[k];
+    first_square += first[k] * first[k];
+    last_square += r.accel[k] * r.accel[k];
+  }
+  return rest &&
+         dot >= m5_imu_rest_cosine * sqrtf(first_square * last_square);
 }
 #endif
