@@ -9,7 +9,7 @@ let session_stale () =
   perform ShowTextAt (0, 0, 2, "Robot remote");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
   perform ShowTextAt (0, 30, 2, "Armed");
-  perform ShowTextAt (130, 80, 2, "Robot tilt");
+  perform ShowTextAt (130, 66, 2, "Robot tilt");
   perform DrawButton (0, 188, 156, 40, "Arm");
   perform DrawButton (164, 188, 156, 40, "Disarm");
   unbox latest as status in

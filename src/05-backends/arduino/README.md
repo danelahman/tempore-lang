@@ -755,11 +755,11 @@ USB identifiers ([Ports](#ports)).
 #### Using the remote-controlled robot
 
 1. Switch on the controller, at any time; it shows "Encrypted" and, while
-   no status arrives, "Switch on the robot".
+   no status arrives, "Switch robot on".
 2. Switch on the robot and hold it upright and still. It calibrates,
-   "Hold the robot upright and still" on the controller ("Hold still"
-   while it moves), and sounds one tone when it is ready.
-3. With "Robot ready: tap Arm" shown, tap Arm, within about 200 s of the
+   "Hold upright" on the controller ("Hold still" while it moves), and
+   sounds one tone when it is ready.
+3. With "Ready: tap Arm" shown, tap Arm, within about 200 s of the
    tone; a high tone acknowledges the tap. The robot arms only upright,
    within 10 degrees of its balance point, and then balances.
 4. Tilt the controller from the tilt at the tap: forwards drives the robot
