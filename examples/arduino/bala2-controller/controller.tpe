@@ -27,12 +27,13 @@
    message, to the robot of examples/arduino/bala2-remote, under 50 ms
    apart, and receiving its status, on which it drives; a bubble level
    shows the tilt that steers it, a label whether the link is encrypted,
-   a line, while disarmed, the guidance of the phase the robot reports, and
-   a short tone acknowledges a tap on Arm or Disarm. On the board: make
-   arduino-bala2-controller-upload, which pairs it with the robot by the
-   link file of bala2-remote and encrypts the link (see the README of the
-   Arduino backend); simulated on the host, with world.cpp tilting and
-   touching the device: make arduino-bala2-controller-simulate. *)
+   a line right of the vial, while disarmed, the guidance of the phase the
+   robot reports, and a short tone acknowledges a tap on Arm or Disarm. On
+   the board: make arduino-bala2-controller-upload, which pairs it with the
+   robot by the link file of bala2-remote and encrypts the link (see the
+   README of the Arduino backend); simulated on the host, with world.cpp
+   tilting and touching the device: make
+   arduino-bala2-controller-simulate. *)
 
 (* The command of a tilt: the dead zone, in degrees, and the gain and the
    bound of the speed of the wheels, in encoder counts per second, per
@@ -161,7 +162,7 @@ let dark_grey = 0x404040
 let full_tilt = 30.0
 
 (* Whether the link is encrypted, as LinkStart reports it, shown once at
-   the start right of the vial, below the tilt of the robot, where nothing
+   the start right of the vial, at the bottom of its column, where nothing
    else is drawn: in green on black if it is, as every link of the package
    esp-now is, and in amber on black if not. *)
 let amber = 0xffb000
@@ -169,8 +170,8 @@ let black = 0x000000
 
 let show_encryption (encrypted : bool) =
   if encrypted then
-    perform ShowColourTextAt (130, 150, 2, green, black, "Encrypted")
-  else perform ShowColourTextAt (130, 150, 2, amber, black, "Not encrypted")
+    perform ShowColourTextAt (130, 158, 2, green, black, "Encrypted")
+  else perform ShowColourTextAt (130, 158, 2, amber, black, "Not encrypted")
 
 let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
@@ -200,10 +201,11 @@ let draw_bubble (pitch : float) (roll : float) (colour : nat) =
   perform DrawLevel
     (vial_x, vial_y, vial_r, bubble roll, bubble pitch, colour)
 
-(* The guidance line, at (0, 54) in text of size 1, between the state and
-   the vial, where nothing else is drawn: nothing, before a status or after
-   the armed phase; the phase of the robot by its latest status; or
-   "Switch on the robot" when no status has come for fresh_iterations
+(* The guidance line, at (130, 128) in text of size 2, right of the vial
+   between the tilt of the robot and the encryption, where nothing else is
+   drawn, of at most 15 characters, 180 pixels: nothing, before a status or
+   after the armed phase; the phase of the robot by its latest status; or
+   "Switch robot on" when no status has come for fresh_iterations
    iterations of the disarmed phase, of at least 10.5 ms each, about 1 s,
    while the robot reports its phase at least every 572 ms. *)
 type guide = Blank | Silent | Phase of phase
@@ -213,18 +215,17 @@ let white = 0xffffff
 
 let show_guide (g : guide) =
   match g with
-  | Blank -> perform ShowColourTextAt (0, 54, 1, black, black, "")
+  | Blank -> perform ShowColourTextAt (130, 128, 2, black, black, "")
   | Silent ->
-      perform ShowColourTextAt (0, 54, 1, grey, black, "Switch on the robot")
+      perform ShowColourTextAt (130, 128, 2, grey, black, "Switch robot on")
   | Phase Ready ->
-      perform ShowColourTextAt (0, 54, 1, green, black, "Robot ready: tap Arm")
+      perform ShowColourTextAt (130, 128, 2, green, black, "Ready: tap Arm")
   | Phase Armed ->
-      perform ShowColourTextAt (0, 54, 1, white, black, "Robot armed")
+      perform ShowColourTextAt (130, 128, 2, white, black, "Robot armed")
   | Phase Calibrating ->
-      perform ShowColourTextAt
-        (0, 54, 1, white, black, "Hold the robot upright and still")
+      perform ShowColourTextAt (130, 128, 2, white, black, "Hold upright")
   | Phase Unsettled ->
-      perform ShowColourTextAt (0, 54, 1, amber, black, "Hold still")
+      perform ShowColourTextAt (130, 128, 2, amber, black, "Hold still")
 
 (* Disarmed: Beat every 10.5 ms after a reading of the touch screen, until a
    tap on Arm; false if none comes in n readings. Each Beat is followed by
@@ -339,7 +340,7 @@ let rec armed (n : nat)
           else if (not link) || tilt = shown_tilt then
             (link, shown_tilt, true, Blank)
           else (
-            perform ShowNumberAt (130, 110, 3, 1, tilt);
+            perform ShowNumberAt (130, 92, 3, 1, tilt);
             (link, tilt, true, Blank))
         in
         delay 21/2;
@@ -402,8 +403,8 @@ let remote () =
   perform ShowTextAt (0, 0, 2, "Robot remote");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
   perform ShowTextAt (0, 30, 2, "Disarmed");
-  perform ShowTextAt (130, 80, 2, "Robot tilt");
-  perform ShowNumberAt (130, 110, 3, 1, 0.0);
+  perform ShowTextAt (130, 66, 2, "Robot tilt");
+  perform ShowNumberAt (130, 92, 3, 1, 0.0);
   show_encryption encrypted;
   perform DrawButton (0, 188, 156, 40, "Arm");
   perform DrawButton (164, 188, 156, 40, "Disarm");
@@ -483,7 +484,7 @@ let session_stale () =
   perform ShowTextAt (0, 0, 2, "Robot remote");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
   perform ShowTextAt (0, 30, 2, "Armed");
-  perform ShowTextAt (130, 80, 2, "Robot tilt");
+  perform ShowTextAt (130, 66, 2, "Robot tilt");
   perform DrawButton (0, 188, 156, 40, "Arm");
   perform DrawButton (164, 188, 156, 40, "Disarm");
   unbox latest as status in
