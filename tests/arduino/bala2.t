@@ -94,7 +94,7 @@ The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information, and its host build:
 
   $ tempore --emit-arduino balance --device $app/balance.device.json $app/balance.tpe | grep -c Wrote
-  33
+  34
   $ cd _arduino/projects/balance
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ build () { c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE "$@" -pthread -I host -I src src/*.cpp host/*.cpp -o simulation; }
@@ -190,6 +190,7 @@ the robot falls:
   [3442.865 ms] Display: 0.084
   [4005.316 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
   [4005.316 ms] Safe state entered
+  [4005.316 ms] Speaker: 1000 Hz then 500 Hz, 150 ms each
   [4017.604 ms] Display fill at (0, 72), 320 by 96: 0xc00000
   [4019.044 ms] Display at (28, 84): Stopped by the monitor
   [4020.384 ms] Display at (58, 112): Publish took 3 ms

@@ -60,7 +60,7 @@ task against its period by the monitor only; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino peak --device $app/peak.device.json $app/peak.tpe | grep -c Wrote
-  30
+  31
   $ grep -c 'tempore_operation_monitor .*, nullptr);' _arduino/projects/peak/src/tempore_operations.cpp
   9
   $ grep 'The periodic task\|tempore_monitor_period' _arduino/projects/peak/src/main.cpp

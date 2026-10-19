@@ -193,18 +193,58 @@ void tempore_check_halt() {
   if (tempore_halt.load()) tempore_stop_task();
 }
 
+// The signal of the halt, if any.
+static void (*tempore_halt_signal)() = nullptr;
+
+void tempore_halt_signal_begin(void (*signal)()) {
+  tempore_halt_signal = signal;
+}
+
+#ifndef TEMPORE_HALT_REPORT_INTERVAL_MS
+#define TEMPORE_HALT_REPORT_INTERVAL_MS 5000
+#endif
+
+// The reason of the halt, as logged, and the time of the safe state, written
+// once before the task that reports them is created.
+static char tempore_halt_reason[160];
+static int64_t tempore_halt_time_us = 0;
+
+// The task that logs the reason of the halt every
+// TEMPORE_HALT_REPORT_INTERVAL_MS milliseconds, preceded by the time of the
+// halt, in a line of the log cut at its length.
+static void tempore_halt_report(void *) {
+  TickType_t release = xTaskGetTickCount();
+  const long long halt = tempore_halt_time_us;
+  char line[tempore_log_line_size];
+  for (;;) {
+    vTaskDelayUntil(&release, pdMS_TO_TICKS(TEMPORE_HALT_REPORT_INTERVAL_MS));
+    const long long t = tempore_clock_us();
+    snprintf(line, sizeof line, "[%lld.%03lld ms] Halted at %lld.%03lld ms: %s",
+             t / 1000, t % 1000, halt / 1000, halt % 1000, tempore_halt_reason);
+    tempore_log_line(line, false);
+  }
+}
+
 // Enters the safe state unless the tasks are already halted, logs reason,
-// and, if it entered the safe state, logs it and draws the banner of the
-// lines first and second, if first is not nullptr and the board has a screen;
-// halts the tasks.
+// and, if it entered the safe state, logs it, starts the signal of the halt,
+// creates the task that reports the reason, and draws the banner of the lines
+// first and second, if first is not nullptr and the board has a screen; halts
+// the tasks.
 [[noreturn]] static void tempore_halt_tasks(const char *reason,
                                             const char *first,
                                             const char *second) {
   const bool halted = tempore_halt.exchange(true);
   if (!halted) tempore_safe_state();
+  const int64_t time_us = tempore_clock_us();
   tempore_log("%s", reason);
   if (!halted) {
     tempore_log("Safe state entered");
+    if (tempore_halt_signal != nullptr) tempore_halt_signal();
+    snprintf(tempore_halt_reason, sizeof tempore_halt_reason, "%s", reason);
+    tempore_halt_time_us = time_us;
+    xTaskCreatePinnedToCore(tempore_halt_report, "tempore-halt", 4096,
+                            nullptr, tskIDLE_PRIORITY, nullptr,
+                            tskNO_AFFINITY);
     if (first != nullptr && tempore_monitor_screen != nullptr) {
       const tempore_display_guard guard;
       tempore_monitor_screen->stop(first, second);

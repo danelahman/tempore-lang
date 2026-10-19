@@ -278,6 +278,13 @@ task at its next release; under warn the violations are logged.
   [0.600 ms] Task blinker stopped
   [10.000 ms] Task step stopped
   [60.000 ms] End of the simulation
+
+While halted, the reason is logged again every 5 s:
+
+  $ emit slow --device toy/slow.device.json toy/toy.tpe --host-simulate 11 | grep 'Halted\|End of'
+  [5000.000 ms] Halted at 0.600 ms: Monitor: operation Blink took 600 us, outside its running-time bounds [200, 500] us
+  [10000.000 ms] Halted at 0.600 ms: Monitor: operation Blink took 600 us, outside its running-time bounds [200, 500] us
+  [11000.000 ms] End of the simulation
   $ emit slow --device toy/slow.device.json toy/toy.tpe --monitor warn --host-simulate 0.06 | grep -v '^Wrote'
   [0.000 ms] Release step
   [0.000 ms] Start blinker

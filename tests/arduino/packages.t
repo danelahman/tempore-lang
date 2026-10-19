@@ -98,6 +98,7 @@ the packages, and these are called by setup():
   Wrote _arduino/projects/tilt/src/tempore_bindings.h
   Wrote _arduino/projects/tilt/src/tempore_operations.cpp
   Wrote _arduino/projects/tilt/src/tempore_m5_monitor.cpp
+  Wrote _arduino/projects/tilt/src/tempore_halt_tones.cpp
   Wrote _arduino/projects/tilt/src/tempore_i2c.h
   Wrote _arduino/projects/tilt/src/tempore_scaffold.cpp
   Wrote _arduino/projects/tilt/src/tempore_scaffold.h
@@ -177,6 +178,7 @@ its lines to the log:
   [33.000 ms] Operation ShowNumber took 32397 us
   [33.000 ms] Monitor: operation ShowNumber took 32397 us, outside its running-time bounds [50, 12500] us
   [33.000 ms] Safe state entered
+  [33.000 ms] Speaker: 1000 Hz then 500 Hz, 150 ms each
   [45.288 ms] Display fill at (0, 72), 320 by 96: 0xc00000
   [46.728 ms] Display at (28, 84): Stopped by the monitor
   [48.228 ms] Display at (10, 112): ShowNumber took 32.397 ms
@@ -201,6 +203,7 @@ world:
   [33.000 ms] Operation ShowNumber took 32397 us
   [33.000 ms] Monitor: operation ShowNumber took 32397 us, outside its running-time bounds [50, 12500] us
   [33.000 ms] Safe state entered
+  [33.000 ms] Speaker: 1000 Hz then 500 Hz, 150 ms each
   [45.288 ms] Display fill at (0, 72), 320 by 96: 0xc00000
   [46.728 ms] Display at (28, 84): Stopped by the monitor
   [48.228 ms] Display at (10, 112): ShowNumber took 32.397 ms
@@ -340,6 +343,7 @@ A Send before LinkStart is a run-time error:
   [0.000 ms] Start early
   [0.000 ms] Run-time error: ESP-NOW: Send before LinkStart
   [0.000 ms] Safe state entered
+  [0.000 ms] Speaker: 1000 Hz then 500 Hz, 150 ms each
   [0.000 ms] Task early stopped
   [10.000 ms] End of the simulation
 

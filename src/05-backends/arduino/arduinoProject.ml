@@ -413,7 +413,13 @@ let operations_source input (compiled : ArduinoEmit.compiled) =
 let has_screen (board : Board.t) =
   board.m5unified && List.mem "display" board.capabilities
 
+(* Whether the board has a speaker driven through M5Unified, on which the
+   halt of the tasks is signalled. *)
+let has_speaker (board : Board.t) =
+  board.m5unified && List.mem "speaker" board.capabilities
+
 let m5_directory = "m5/"
+let speaker_directory = "speaker/"
 let battery_directory = "battery/"
 let task_monitor i = Printf.sprintf "tempore_task%d_monitor" i
 let task_name i = Printf.sprintf "tempore_task%d" i
@@ -504,7 +510,8 @@ let task_function i { task; step; initial } =
 
 (* The body of [setup()]: the log, the board, its I2C buses and its own
    initialisation, the initialisation functions [inits] of the packages, the
-   display of the monitor, the battery indicator, the tasks and the profile. *)
+   signal of the halt, the display of the monitor, the battery indicator, the
+   tasks and the profile. *)
 let setup_body (board : Board.t) (device : Device.t) inits tasks =
   let m5unified =
     if board.m5unified then
@@ -546,6 +553,9 @@ let setup_body (board : Board.t) (device : Device.t) inits tasks =
   @ List.concat_map bus board.i2c
   @ List.map (fun s -> Cpp.Line s) board.init
   @ List.map (fun f -> Cpp.statement (Cpp.call f [])) inits
+  @ (if has_speaker board then
+       [ Cpp.statement (Cpp.call "tempore_halt_tones_begin" []) ]
+     else [])
   @ (if has_screen board then
        [
          Cpp.statement
@@ -828,9 +838,10 @@ let platformio_ini input (board : Board.t) =
   Board.platformio_ini { board with build_flags = board.build_flags @ flags }
 
 (* The files of the scaffold for [board] and [device], each with its path in
-   the project: its sources in src/, those of m5/ on a board with a screen and
-   those of battery/ under the member [battery] of the manifest, then the
-   files of the host simulation in host/. *)
+   the project: its sources in src/, those of m5/ on a board with a screen,
+   those of speaker/ on a board with a speaker and those of battery/ under the
+   member [battery] of the manifest, then the files of the host simulation in
+   host/. *)
 let scaffold_files board (device : Device.t) =
   let host, sources =
     List.partition
@@ -839,6 +850,8 @@ let scaffold_files board (device : Device.t) =
   in
   let included path =
     if String.starts_with ~prefix:m5_directory path then Some (has_screen board)
+    else if String.starts_with ~prefix:speaker_directory path then
+      Some (has_speaker board)
     else if String.starts_with ~prefix:battery_directory path then
       Some device.battery
     else None

@@ -357,7 +357,10 @@ default), `warn` or `off`.
 
 On a board with a screen driven through M5Unified the violation is also
 shown on the screen. Under `abort` the safe state is entered before the
-violation is logged. The log is written to the serial port from a buffer by a
+violation is logged. On entering the safe state, by a violation or a
+run-time error, a board with a speaker sounds a falling pair of tones, 1000
+and 500 Hz, once, and the reason is logged again every 5 s while the device
+is halted, so that a serial monitor connected later shows it. The log is written to the serial port from a buffer by a
 task of its own, so that a timed call or step does not wait for the port; a
 line logged while the buffer is full is dropped, and the lines dropped are
 counted in the log.
@@ -773,8 +776,8 @@ no message arrives for about 2 s, as when the controller is switched off,
 the robot sounds one tone and keeps balancing in place, with zero
 setpoints, until a message arrives.
 
-A violated running-time bound halts the robot with its lights on, and its
-reset button restarts it. A robot that falls with its lights off has a
+A violated running-time bound halts the robot with its lights on and a
+falling pair of tones, and its reset button restarts it. A robot that falls with its lights off has a
 battery too weak for the motors, charged through the USB-C port of the Gray.
 
 ## Adding a board, a package or an example

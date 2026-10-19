@@ -126,7 +126,7 @@ against its period; its sources compile without exceptions and run-time type
 information:
 
   $ tempore --emit-arduino level --device $app/level.device.json $app/level.tpe | grep -c Wrote
-  35
+  36
   $ cd _arduino/projects/level
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
