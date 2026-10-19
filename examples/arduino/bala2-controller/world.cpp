@@ -9,7 +9,7 @@
 // which drives it backwards, turns it to the right and draws the bubble down
 // and right, and from 3.5 s held at the neutral tilt again, with a tap on
 // Disarm at 4.6 s. Each tap lasts 100 ms. As on the device, the unit reads a
-// tilt forwards as a negative pitch and a tilt to the right as a negative
+// tilt forwards as a negative pitch and a tilt to the right as a positive
 // roll.
 //
 // The robot, the peer of the host model of the package esp-now, sends its
@@ -42,7 +42,7 @@ void world_advance(tempore_world &w, double) {
                        : within(t, 3.0, 0.5)  ? 0
                                               : 10;
   const double roll = within(t, 3.0, 0.5) ? 15 : 0;
-  w.accel[0] = sin(roll * degree);
+  w.accel[0] = -sin(roll * degree);
   w.accel[1] = -sin(pitch * degree) * cos(roll * degree);
   w.accel[2] = cos(pitch * degree) * cos(roll * degree);
   const bool arm = within(t, 1.0, 0.1), disarm = within(t, 4.6, 0.1);

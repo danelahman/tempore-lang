@@ -55,7 +55,7 @@ the bubble centred; from 2.2 s, pitched forwards by 30 degrees, 20 beyond
 the neutral tilt, a speed of -240 counts per second, forwards for the robot,
 the bubble 33 pixels up (14 for the dead zone and 15 / 25 of the remaining
 32); from 3 s, flat and rolled to the right by 15 degrees, a speed of 80,
-backwards, and a turn of 40, to the right, the bubble 20 pixels down and 27
+backwards, and a turn of -40, to the right, the bubble 20 pixels down and 27
 right; from 3.5 s, zero, the bubble centred. From 3.8 s the robot sends
 nothing for 400 ms: once its last status is older than 50 ms, the controller
 sends Beat and shows "No link" and a grey bubble, and drives again when the
@@ -90,7 +90,7 @@ band:
   [2061.877 ms] Display at (130, 113): 2.5
   [2211.416 ms] ESP-NOW: sent tag 2, -240.000, 0.000
   [2211.793 ms] Display disc at (62, 89), radius 9: 0x00c000
-  [3005.500 ms] ESP-NOW: sent tag 2, 80.000, 40.000
+  [3005.500 ms] ESP-NOW: sent tag 2, 80.000, -40.000
   [3017.380 ms] Display disc at (89, 142), radius 9: 0x00c000
   [3500.506 ms] ESP-NOW: sent tag 2, 0.000, 0.000
   [3500.883 ms] Display disc at (62, 122), radius 9: 0x00c000
