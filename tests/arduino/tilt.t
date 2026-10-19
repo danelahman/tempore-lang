@@ -73,7 +73,7 @@ The project, for the board m5stack-cores3; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino tilt --device $app/tilt.device.json $app/tilt.tpe | grep -c Wrote
-  30
+  31
   $ grep -A3 '^\[env' _arduino/projects/tilt/platformio.ini
   [env:m5stack-cores3]
   platform = espressif32@7.1.3
@@ -134,6 +134,7 @@ and a red banner across the middle of the screen states the violation:
   [34.800 ms] Tilt display stopped
   [34.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
   [34.800 ms] Safe state entered
+  [34.800 ms] Speaker: 1000 Hz then 500 Hz, 150 ms each
   [47.088 ms] Display fill at (0, 72), 320 by 96: 0xc00000
   [48.528 ms] Display at (28, 84): Stopped by the monitor
   [49.968 ms] Display at (28, 112): ShowTextAt took 3.8 ms

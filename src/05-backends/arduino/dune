@@ -13,8 +13,9 @@
 ;   name NAME.json;
 ; - Arduino_scaffold.files, the files of the scaffold under scaffold/, each
 ;   with its path below scaffold/; those under m5/ are those of the boards
-;   with a screen driven through M5Unified, and those under battery/ those of
-;   the manifests with the battery indicator;
+;   with a screen driven through M5Unified, those under speaker/ those of the
+;   boards with a speaker driven through M5Unified, and those under battery/
+;   those of the manifests with the battery indicator;
 ; - Arduino_libraries.files, the files of the peripheral packages under
 ;   libraries/NAME/, each with its path below libraries/.
 

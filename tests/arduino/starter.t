@@ -38,7 +38,7 @@ the nested boxes compiled as closures, compile without exceptions and
 run-time type information:
 
   $ tempore --emit-arduino starter --device $app/starter.device.json $app/starter.tpe | grep -c Wrote
-  35
+  36
   $ cd _arduino/projects/starter
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..

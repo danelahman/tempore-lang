@@ -117,8 +117,24 @@ void tempore_check_halt();
 
 // Enters the safe state unless the tasks are already halted, then logs
 // reason, and halts the tasks: the calling task stops at once, the others at
-// their next release, delay or operation call.
+// their next release, delay or operation call. On entering the safe state it
+// also starts the signal of the halt, if any, and creates a task of the
+// lowest priority that logs the reason again every
+// TEMPORE_HALT_REPORT_INTERVAL_MS milliseconds (default 5000), with the time
+// of the halt.
 [[noreturn]] void tempore_abort(const char *reason);
+
+// Sets the signal of the halt: a function called once, by the task that
+// enters the safe state, after it, which starts the signal and returns
+// without waiting for its end.
+void tempore_halt_signal_begin(void (*signal)());
+
+// Starts the speaker and sets the signal of the halt to two tones on it,
+// TEMPORE_HALT_TONE_HIGH_HZ (default 1000) and then TEMPORE_HALT_TONE_LOW_HZ
+// hertz (default 500), each of TEMPORE_HALT_TONE_MS milliseconds (default
+// 150), called by setup() on a board with a speaker driven through
+// M5Unified, defined by tempore_halt_tones.cpp.
+void tempore_halt_tones_begin();
 
 // Checks the running time of a call of the operation against its bounds, if
 // any, under the monitor policy, and adds it to the profile.

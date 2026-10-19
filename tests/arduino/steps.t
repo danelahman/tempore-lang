@@ -49,7 +49,7 @@ The project, for the board m5stack-cores3; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino steps --device $app/steps.device.json $app/steps.tpe | grep -c Wrote
-  35
+  36
   $ cd _arduino/projects/steps
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
