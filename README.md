@@ -959,6 +959,21 @@ off the magnet, and
 [`examples/opentrons/purification.tpe`](examples/opentrons/purification.tpe),
 with strict ethanol soaks.
 
+#### The non-rigid grades as instances
+
+In theory, the non-rigid grades above are instances of the rigid ones. An
+upper bound translates with every operation `A` skippable, `A?`, and every
+delay or set of delays `D` a budget `≤ sup D`: `{A; 3; B}` is
+`{A?; ≤3; B?}`. A lower bound translates with every operation rigid and
+flanked, `≥0; A`, every delay or set of delays a budget `≥ inf D`, and `≥0`
+at the end: `{A; 2; B}` is `{≥0; A; ≥2; B; ≥0}`. The intervals translate
+componentwise. Both translations preserve and reflect the order and preserve
+products and joins; the upper one also preserves the unit, while the lower
+one maps the unit `{0}` to the top `{≥0}`, so it is an order embedding but
+not a monoid morphism. The prototype keeps the separate decision procedures
+of the non-rigid grades, and `tests/grades/test_nonrigid_instances.ml` checks
+the translations on random grades.
+
 ### Security levels and products
 
 In this category, we have the following grading monoids:
