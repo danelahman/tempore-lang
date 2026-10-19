@@ -647,18 +647,53 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
   step of the robot with its supervision and calibration; the constant
   `balance_point` sets the tilt at which the robot is upright, and the build
   flags `BALANCE_LOG` and `BALANCE_RECORD` log and record a run
-  ([Recording a run](#recording-a-run)).
+  ([Recording a run](#recording-a-run)). The typechecker proves, under the
+  declared running times of the operations:
+  - the control step finishes within its 5 ms period;
+  - the motors are driven from a reading of the unit at most 2 ms old;
+  - the robot is armed only with a calibration at least 1 s old;
+  - the supervision renews its command within 200 ms, before it expires.
 - [`bala2-regex`](../../../examples/arduino/bala2-regex/balance_regex.tpe):
   the same robot under the regular expressions of timed operations, which
-  fix the order of the operations of its step and its supervision.
+  fix the order of the operations of its step and its supervision. The
+  typechecker proves, under the declared running times of the operations:
+  - the control step reads the unit, the encoders and the setpoints,
+    publishes and commands the motors, each once and in this order, within
+    its 5 ms period;
+  - the motors are driven from a reading of the unit after which only the
+    encoders and the setpoints are read;
+  - the calibration disarms the robot before it reads the rates, each within
+    10 ms of the last, with nothing in between;
+  - the robot is armed at least 1 s after the message that asks for it to be
+    held upright;
+  - each command is sent again within 200 ms;
+  - the supervision calibrates, arms, drives and disarms, in this order.
 - [`bala2-remote`](../../../examples/arduino/bala2-remote/balance_remote.tpe):
   the robot of `bala2-regex` driven by the controller `bala2-controller` over
   an encrypted ESP-NOW link, under the rigid regular expressions of timed
   operations; the grade of a session is its protocol, Arm, commands and
-  Disarm, in this order.
+  Disarm, in this order. The typechecker proves, under the declared running
+  times of the operations:
+  - the control step finishes within its 5 ms period;
+  - each message received is acted on within 150 ms, before the next
+    reception;
+  - the robot arms only with a calibration at least 1 s and at most
+    10 minutes old, with no motion command since it was taken;
+  - the tilt that decides arming is read less than 1 ms before arming, with
+    no reception or command in between;
+  - the at-rest verdict of a calibration is used only after its samples,
+    with no other operation in between;
+  - each session is Arm, then commands, then Disarm, in this order.
 - [`wheels`](../../../examples/arduino/wheels/wheels.tpe): a wheel check of
   the robot on a stand, its speeds and spin-up times measured over windows of
-  fixed traces.
+  fixed traces. The typechecker proves, under the declared running times of
+  the operations:
+  - the step reads the unit and then publishes the tilt, within its 10 ms
+    period;
+  - a speed is computed only from counts read 100 to 101 ms after the drive
+    command, with nothing in between;
+  - a spin-up profile is computed only from readings each 19 to 21 ms after
+    the last, following one drive command and nothing else.
 
 ### M5Stack CoreS3 and CoreS3 Lite
 
@@ -667,30 +702,91 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`; for
 port variable `PORT_M5STACK_CORES3_RADIO`.
 
 - [`tilt`](../../../examples/arduino/tilt/tilt.tpe): a tilt display, with a
-  20 ms filter step and a display task.
+  20 ms filter step and a display task. The typechecker proves, under the
+  declared running times of the operations:
+  - the step finishes within its 20 ms period;
+  - the tilt shown was read less than 20 ms earlier.
 - [`calibrated`](../../../examples/arduino/calibrated/calibrated.tpe): the
   tilt display with a gyroscope bias removed from every reading by a
-  tail-resumptive handler, compiled to a direct call.
+  tail-resumptive handler, compiled to a direct call. The typechecker
+  proves, under the declared running times of the operations:
+  - the corrected reading takes no longer than a reading of the unit, so
+    that every bound holds with the correction;
+  - the step finishes within its 20 ms period;
+  - the tilt shown was read less than 20 ms earlier.
 - [`peak`](../../../examples/arduino/peak/peak.tpe): a recorder of the peak
-  tilt in the flash memory, under the operation counts.
+  tilt in the flash memory, under the operation counts. The typechecker
+  proves:
+  - the step reads the unit once, publishes once and never writes the flash
+    memory;
+  - each iteration of the recorder writes the flash memory at most once;
+  - a record read from the flash memory is shown only if no write came after
+    its reading.
 - [`level`](../../../examples/arduino/level/level.tpe): a digital level,
   under the regular expressions of timed operations, whose reference is
   applied only to readings that no reconfiguration of the unit precedes
-  unchecked; its header describes its use.
+  unchecked; its header describes its use. The typechecker proves, under the
+  declared running times of the operations:
+  - the step finishes within its 250 ms period;
+  - a new reference is installed only after a check at rest, with no other
+    operation in between;
+  - a reference is applied only after readings of the unit and the touch
+    screen, and after a reconfiguration of the unit only once a check finds
+    it at rest;
+  - the reading drawn is followed only by the reading of the touch screen;
+    after a reconfiguration a new reading is drawn.
 - [`fall`](../../../examples/arduino/fall/fall.tpe): a fall detector, a free
   fall and an impact within a second, with an alarm raised 10 to 30 seconds
-  after a prompt that a tap cancels.
+  after a prompt that a tap cancels. The typechecker proves, under the
+  declared running times of the operations:
+  - a free fall is confirmed only by ten further readings, each 9.5 to
+    10.5 ms after the last with nothing in between, and at least 100 ms
+    after the first low reading;
+  - a fall is reported only for an impact found within 1 s of the free fall;
+  - the alarm is raised only after the prompt, its second line and a tone,
+    and 10 to 30 s after them;
+  - the raised alarm shows and sounds after every twenty polls of the screen
+    50 ms apart, until a tap stops it.
 - [`steps`](../../../examples/arduino/steps/steps.tpe): a step counter, under
   `event-separation`, which reads the unit at least every 50 ms and proves the
   counts at least 250 ms apart; under `-DSTEPS_RECORD` it records its
-  readings ([Recording the step counter](#recording-the-step-counter)).
+  readings ([Recording the step counter](#recording-the-step-counter)). The
+  typechecker proves, under the declared running times of the operations:
+  - while counting, the unit is read at least every 50 ms, also while the
+    prompt of a reset is shown;
+  - counts of steps start at least 250 ms apart, also across calibrations;
+  - a calibration averages exactly 50 readings, 10 to 45 ms apart;
+  - the counting starts at most 0.2 ms after the start of the beep that
+    follows the drawing of the screen;
+  - after a tap on a button, the touch screen is not read for 300 ms, so
+    that a bounce is not taken for a second tap;
+  - the beep that confirms a reset comes at once after the reset of the
+    count, before any redraw of the screen.
 - [`starter`](../../../examples/arduino/starter/starter.tpe): a sprint start
   system and false-start judge, the gun 1.5 to 3 s after Set and the start
-  judged within a second of it.
+  judged within a second of it. The typechecker proves, under the declared
+  running times of the operations:
+  - Set is commanded at least 1 s after On your marks;
+  - the gun fires 1.5 to 3 s after Set;
+  - the time of the gun is read at once after it, and the athlete is judged
+    within 1 s of the gun;
+  - the reaction time is measured only from polls in which each reading of
+    the block is timed at once, with no pause above 2.5 ms;
+  - a start with its outcome and the tally begins with On your marks and
+    takes at most 6 s.
 - [`bala2-controller`](../../../examples/arduino/bala2-controller/controller.tpe):
   the controller of [`bala2-remote`](#m5stack-gray), driving the robot by the
   tilt of the device and arming and disarming it by touch, under the rigid
-  regular expressions of timed operations.
+  regular expressions of timed operations. The typechecker proves, under the
+  declared running times of the operations:
+  - every message to the robot follows the previous one within 50 ms, in
+    every phase;
+  - it drives only on a robot status received within the last 200 ms, from
+    a tilt read within the last 2 ms;
+  - the neutral tilt of a session is used only within that session, before
+    its Disarm;
+  - each session is Beat, then Arm 80 times and until the robot confirms,
+    then Drive or Beat, then Disarm 20 times.
 
 #### Pairing the robot and the controller
 
