@@ -837,7 +837,14 @@ one of
 
 A board of a named pair is replaced by an upload with its `PAIR`, without
 `REPLACE=1`. A board recorded in several link files, or as the board of
-the other role, stops the build. Other choices:
+the other role, stops the build.
+
+A board recorded in another pair is not moved to the pair of `PAIR` or
+`REMOTE_LINK_FILE`: the build stops, naming both link files, unless it is
+run with `MOVE=1`, which records the board in the link file chosen and
+removes it from the other. `PAIR`, `REPLACE`, `MOVE` and `REMOTE_LINK_FILE`
+set in the environment rather than on the make command line are reported
+by every build of the link. Other choices:
 
 - `REMOTE_LINK_DIR` sets the directory of the link files, and
   `REMOTE_LINK_FILE` one link file for every board, without the search by
