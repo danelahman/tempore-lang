@@ -3,7 +3,7 @@
 # as the shell assignments of esp_now_peer, its address as six bytes
 # 0xHH separated by commas, and esp_now_key, 32 hexadecimal digits:
 #
-#   link.sh [-p PORT] [-t TARGET] [-P PAIR] [-r] NAME ROLE PEER
+#   link.sh [-p PORT] [-t TARGET] [-P PAIR] [-r] [-m] [-e VAR]... NAME ROLE PEER
 #
 # ROLE is the role of the board built, PEER that of the other board. A link
 # file holds lines NAME=VALUE: key, the key of the link, and, under the name
@@ -28,9 +28,16 @@
 #   recorded and the two choices, PAIR and REPLACE=1;
 # - else, without -p, that of the default pair.
 #
-# Under -P and -p, the other link files that record the board are reported.
-# -P is an error with REMOTE_LINK_FILE, and -r with -P, with
-# REMOTE_LINK_FILE and without -p.
+# Under -p with REMOTE_LINK_FILE or -P, a board that another link file of
+# NAME in the directory records, under any role, is an error, which names
+# the files; under -m it is recorded in the link file chosen and its line is
+# removed from the others, their key and other addresses kept. -P is an
+# error with REMOTE_LINK_FILE; -r with -P, with REMOTE_LINK_FILE, with -m
+# and without -p; -m without -p and without REMOTE_LINK_FILE or -P.
+#
+# -e VAR, for VAR one of PAIR, REPLACE, MOVE and REMOTE_LINK_FILE, reports
+# that the setting of VAR is taken from the environment; the make targets
+# pass it for each that is not set on the make command line.
 #
 # - Under -p, the address of the board is recorded under ROLE if it is
 #   missing or different; it is an error if PEER has the same address.
@@ -54,7 +61,7 @@
 set -eu
 
 usage() {
-  echo "Usage: link.sh [-p PORT] [-t TARGET] [-P PAIR] [-r] NAME ROLE PEER" >&2
+  echo "Usage: link.sh [-p PORT] [-t TARGET] [-P PAIR] [-r] [-m] [-e VAR]... NAME ROLE PEER" >&2
   exit 2
 }
 
@@ -63,7 +70,9 @@ target=
 pair=
 paired=false
 replace=false
-while getopts p:t:P:r option; do
+move=false
+inherited=
+while getopts p:t:P:rme: option; do
   case $option in
   p) port=$OPTARG ;;
   t) target=$OPTARG ;;
@@ -72,6 +81,11 @@ while getopts p:t:P:r option; do
     paired=true
     ;;
   r) replace=true ;;
+  m) move=true ;;
+  e)
+    case $OPTARG in PAIR | REPLACE | MOVE | REMOTE_LINK_FILE) ;; *) usage ;; esac
+    inherited="$inherited $OPTARG"
+    ;;
   *) usage ;;
   esac
 done
@@ -96,6 +110,16 @@ valid_name() {
   case $1 in '' | [!A-Za-z]* | *[!A-Za-z0-9_-]*) return 1 ;; esac
 }
 
+for v in $inherited; do
+  case $v in
+  PAIR) report "PAIR=$pair is taken from the environment" ;;
+  REPLACE | MOVE) report "$v=1 is taken from the environment" ;;
+  REMOTE_LINK_FILE)
+    report "REMOTE_LINK_FILE=${REMOTE_LINK_FILE:-} is taken from the environment"
+    ;;
+  esac
+done
+
 for r in "$role" "$peer_role"; do
   valid_name "$r" && [ "$r" != key ] || error "the role '$r' is not a name"
 done
@@ -113,11 +137,18 @@ if $paired; then
     error "PAIR=$pair and REMOTE_LINK_FILE both name a link file"
 fi
 if $replace; then
+  ! $move ||
+    error "REPLACE=1 with MOVE=1: MOVE=1 moves a board to the link file of PAIR or REMOTE_LINK_FILE, REPLACE=1 replaces one in the default pair"
   [ -n "$port" ] || error "REPLACE=1 needs the port of the new board"
   ! $paired ||
     error "REPLACE=1 with PAIR=$pair: a board of the pair $pair is replaced without REPLACE=1"
   [ -z "${REMOTE_LINK_FILE:-}" ] ||
     error "REPLACE=1 with REMOTE_LINK_FILE: a board of REMOTE_LINK_FILE is replaced without REPLACE=1"
+fi
+if $move; then
+  [ -n "$port" ] || error "MOVE=1 needs the port of the board moved"
+  $paired || [ -n "${REMOTE_LINK_FILE:-}" ] ||
+    error "MOVE=1 without PAIR or REMOTE_LINK_FILE: a board is moved to the link file that they name"
 fi
 
 # Whether $1 is 32 hexadecimal digits.
@@ -239,13 +270,20 @@ link_files() {
 }
 
 # The lines ROLE FILE of the link files that record the address $own under
-# $role or $peer_role.
+# $role or $peer_role, or, if $1 is set, under any name.
 records() {
   link_files | while IFS= read -r f; do
     e=$(entries "$f") || exit 1
-    printf '%s\n' "$e" | awk -v a="$own" -v r="$role" -v p="$peer_role" -v f="$f" \
-      '$2 == a && ($1 == r || $1 == p) { print $1, f }'
+    printf '%s\n' "$e" | awk -v a="$own" -v r="$role" -v p="$peer_role" -v f="$f" -v all="${1:-}" \
+      '$1 != "key" && $2 == a && (all != "" || $1 == r || $1 == p) { print $1, f }'
   done
+}
+
+# The path $1 with its directory resolved, or $1 if the directory does not
+# exist.
+canonical() {
+  d=$(CDPATH='' cd -P "$(dirname "$1")" 2> /dev/null && pwd -P) &&
+    printf '%s/%s\n' "$d" "$(basename "$1")" || printf '%s\n' "$1"
 }
 
 # The files of the lines $1 of the role $2, separated by ", ".
@@ -261,14 +299,6 @@ if [ -n "${REMOTE_LINK_FILE:-}" ]; then
 elif $paired; then
   file=$default-$pair
   report "the link file $file, PAIR=$pair"
-  if [ -n "$own" ]; then
-    found=$(records) || exit 1
-    others=$(printf '%s\n' "$found" | awk -v f="$file" '$0 != "" && substr($0, index($0, " ") + 1) != f')
-    for r in "$role" "$peer_role"; do
-      o=$(files_of "$others" "$r")
-      [ -z "$o" ] || report "the board on $port, $own, is also recorded as the $r in $o"
-    done
-  fi
 elif [ -z "$own" ]; then
   file=$default
   report "the link file $file of the default pair"
@@ -280,7 +310,7 @@ else
   owned=$(files_of "$found" "$role")
   case $owned in
   *', '*)
-    error "the board on $port, $own, is recorded as the $role in several link files, $owned: choose one by PAIR=<name>, or remove the board from the others"
+    error "the board on $port, $own, is recorded as the $role in several link files, $owned: choose one by PAIR=<name> with MOVE=1, which removes the board from the others"
     ;;
   ?*)
     file=$owned
@@ -307,6 +337,29 @@ else
   esac
 fi
 
+# Under REMOTE_LINK_FILE or -P, the other link files of NAME that record
+# the board, one per line, from which it is moved under -m.
+moved=
+if [ -n "$own" ] && { $paired || [ -n "${REMOTE_LINK_FILE:-}" ]; }; then
+  if $paired; then by="PAIR=$pair"; else by=REMOTE_LINK_FILE; fi
+  chosen=$(canonical "$file")
+  found=$(records all) || exit 1
+  others=$(printf '%s\n' "$found" | while IFS= read -r l; do
+    [ -z "$l" ] || [ "$(canonical "${l#* }")" = "$chosen" ] || printf '%s\n' "$l"
+  done)
+  if [ -n "$others" ]; then
+    where=$(printf '%s\n' "$others" | awk '{
+      r = $1; sub(/^[^ ]* /, ""); printf "%sas the %s in %s", s, r, $0; s = ", "
+    }')
+    $move ||
+      error "the board on $port, $own, is recorded $where, not in $file of $by: run with MOVE=1 to move it to $file, or without $by to keep it in its link file"
+    moved=$(printf '%s\n' "$others" | sed 's/^[^ ]* //' | awk '!seen[$0]++')
+    report "the board on $port, $own, recorded $where, is moved to $file, MOVE=1"
+  elif $move; then
+    report "the board on $port, $own, is in no other link file of $name: MOVE=1 moves nothing"
+  fi
+fi
+
 # The pair of the link file, given to the target that records the peer.
 hint=
 if [ -z "${REMOTE_LINK_FILE:-}" ]; then
@@ -316,20 +369,42 @@ fi
 umask 077
 dir=$(dirname "$file")
 mkdir -p "$dir"
-lock=$file.lock
+lock=
 tmp=
 cleanup() {
   [ -z "$tmp" ] || rm -f "$tmp"
-  rmdir "$lock" 2> /dev/null || true
+  [ -z "$lock" ] || rmdir "$lock" 2> /dev/null || true
 }
-tries=0
-until mkdir "$lock" 2> /dev/null; do
-  tries=$((tries + 1))
-  [ $tries -lt 300 ] ||
-    error "the link file $file is locked by $lock; remove it if no build is running"
-  sleep 0.1
-done
 trap cleanup EXIT
+
+# Takes the lock of the link file $1, held while lock is set.
+take_lock() {
+  tries=0
+  until mkdir "$1.lock" 2> /dev/null; do
+    tries=$((tries + 1))
+    [ $tries -lt 300 ] ||
+      error "the link file $1 is locked by $1.lock; remove it if no build is running"
+    sleep 0.1
+  done
+  lock=$1.lock
+}
+release_lock() {
+  rmdir "$lock"
+  lock=
+}
+
+# Writes the entries $2 to the link file $1, by renaming a new file over it.
+write_entries() {
+  tmp=$(mktemp "$(dirname "$1")/.$name.XXXXXX")
+  {
+    echo "# The ESP-NOW link $name: its key and the address of the board of each role."
+    printf '%s\n' "$2" | awk 'NF { print $1 "=" $2 }'
+  } > "$tmp"
+  mv -f "$tmp" "$1"
+  tmp=
+}
+
+take_lock "$file"
 trap 'exit 1' HUP INT TERM
 
 entries=
@@ -370,15 +445,24 @@ if [ -n "$own" ]; then
   fi
 fi
 
-if $changed; then
-  tmp=$(mktemp "$dir/.$name.XXXXXX")
-  {
-    echo "# The ESP-NOW link $name: its key and the address of the board of each role."
-    printf '%s\n' "$entries" | awk 'NF { print $1 "=" $2 }'
-  } > "$tmp"
-  mv -f "$tmp" "$file"
-  tmp=
-fi
+! $changed || write_entries "$file" "$entries"
+release_lock
+
+# The board is removed from the link files it is moved from, after it is
+# recorded in the link file chosen.
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  take_lock "$f"
+  e=$(entries "$f") || exit 1
+  roles=$(printf '%s\n' "$e" | awk -v a="$own" '$1 != "key" && $2 == a { printf "%s%s", s, $1; s = ", " }')
+  if [ -n "$roles" ]; then
+    write_entries "$f" "$(printf '%s\n' "$e" | awk -v a="$own" '$1 == "key" || $2 != a')"
+    report "the board $own removed from $f, where it was the $roles"
+  fi
+  release_lock
+done << EOF
+$moved
+EOF
 
 if [ -n "${REMOTE_PEER:-}" ]; then
   peer=$(address "$REMOTE_PEER")
