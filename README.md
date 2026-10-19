@@ -47,7 +47,7 @@ Install the OCaml dependencies with opam:
 
 PlatformIO Core, used only to build and upload the projects of the Arduino
 backend, is optional; it needs Python 3.10 or later and the network,
-and is installed (version 6.2.0) in the virtual environment `_arduino/venv`,
+and is installed in the virtual environment `_arduino/venv`,
 with its platforms, toolchains and libraries in `_arduino/platformio`:
 
     make arduino-deps
@@ -220,7 +220,7 @@ by a monoid morphism, so `delay 0` has the unit grade and `delay tau; delay
 tau'` the grade of `delay (tau + tau')`
 ([`delay.mli`](src/01-language/grades/delay.mli)).
 
-`tau` is currently a non-negative integer or rational fraction, depending on the
+`tau` is a non-negative integer or rational fraction, depending on the
 grade. The grades whose names end in `-rational` or `-rational-symbolic`,
 `security-levels` and `flow-levels` have the non-negative rationals as delays
 and accept any, such as `delay 1/3` or `delay 0.25`; the other monoids count

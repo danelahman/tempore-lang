@@ -20,19 +20,13 @@ libraries and build flags, the number of cores, the I2C buses, the baud rate
 of the serial port, the USB identifiers of its serial interface (`usb`, by
 which the make targets find its port, [Ports](#ports)) and the capabilities
 of a board (`imu`, `display`, `touch`, `speaker`, `battery`, ...). The
-profiles are `m5stack-gray`,
-`m5stack-gray-radio`, `m5stack-fire`, `m5stack-core2`, `m5stack-cores3`,
-`m5stack-cores3-radio`, `esp32-devkit` and `esp32s3-devkit`.
+boards supported are those of the profiles in that directory.
 
-The profile `m5stack-gray-radio` is the M5Stack Gray with its Wi-Fi radio
-running, as for `esp-now`: the same hardware and project as `m5stack-gray`,
-under its own name for the bounds of the packages measured with the radio
-([Bounds per board](#bounds-per-board)). Its bounds assume the radio on
-core 0, where `esp-now` starts it and the Wi-Fi driver runs
-(`CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_0` of the Arduino core), and the
-tasks of the manifest on core 1. The profile `m5stack-cores3-radio` is
-likewise the CoreS3 with its radio running, under its own name, so that
-the CoreS3 examples without the radio keep the bounds of `m5stack-cores3`.
+A profile with the suffix `-radio`, such as `m5stack-gray-radio`, is a board
+with its Wi-Fi radio running, as for `esp-now`: the same hardware and project
+as the board without the suffix, under its own name for the bounds of the
+packages measured with the radio ([Bounds per board](#bounds-per-board)),
+which assume the radio on core 0 and the tasks of the manifest on core 1.
 
 On a board with the capability `display`, the build flag
 `TEMPORE_DISPLAY_BRIGHTNESS` sets the brightness of the display at start-up,
@@ -140,17 +134,14 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
     returns whether the link is encrypted, true for every link;
   - `Send` queues a packet and returns without waiting;
   - `Receive` returns, without waiting, the latest packet from the peer if it
-    arrived at most a given number of milliseconds ago;
-  - the bounds of `Send` and `Receive` were not measured with encryption
-    and are to be measured again with it.
+    arrived at most a given number of milliseconds ago.
 - `bala2-remote`: the messages of the remote control of the BALA2, shared by
   the robot and the controller, over `esp-now`, listed before it, declared
   under `time-interval-rational` and the regular expressions of timed
   operations with intervals or upper bounds:
   - the type `message`, `Arm`, `Drive (speed, turn)`, `Disarm` or `Beat`;
   - `SendArm`, `SendDrive`, `SendDisarm` and `SendBeat`, one operation per
-    message, so that grades tell the messages apart, with the provisional
-    bounds of `Send`;
+    message, so that grades tell the messages apart;
   - `remote_receive`, the latest message received at most 50 ms ago, or
     `Nothing`, boxed with `[0, 150)`, so that a command is applied at most
     200 ms after it was sent, and under the rigid grades with
@@ -198,35 +189,10 @@ by their profile ([Measuring running times](#measuring-running-times)): the
 lower bound is the least time measured, rounded down, and the upper bound 1.5
 times the greatest, rounded up. On a profile with the radio, the bounds are
 measured with the radio running and are never narrower than those of the
-board without it. Each declaration states its measurements and how the
-bounds not measured directly, such as those of `i2c`, are derived.
-
-#### The measurements
-<!-- web-skip -->
-
-- The bounds of `ConfigureImu` are measured on the CoreS3 only, those of
-  `ReadTouch` on the CoreS3 and `m5stack-cores3-radio`, that of
-  `CheckAtRest` on the CoreS3 and `m5stack-gray-radio`, and those of `Beep`
-  on all three.
-- The least times of `ShowTextAt` and `ShowNumberAt` depend on the text, so
-  their lower bound is that of `ShowText`.
-- The bounds of `ShowTimeAt`, `ShowColourTextAt`, `ShowColourNumberAt`,
-  `DrawButton`, `DrawBar` and `DrawLevel` are provisional, derived from those
-  measurements; `ShowColourNumberAt` has the bounds of `ShowNumberAt`.
-- The bounds of `esp-now` and `bala2-remote` are provisional, not yet
-  measured, except those of `LinkStart` and `Receive` on
-  `m5stack-gray-radio` and `m5stack-cores3-radio`, and of `SendArm`,
-  `SendDrive`, `SendDisarm` and `SendBeat` on `m5stack-cores3-radio`.
-- On `m5stack-gray-radio` and `m5stack-cores3-radio` the radio lengthens
-  the operations: the upper bound is 1.5 times the greatest time measured
-  with the radio, rounded up, and at least that of the board without it;
-  the lower bound is the least time measured on the board with or without
-  the radio, rounded down. An operation not measured with the radio has
-  the bounds of the board without it. They are measured with the radio on
-  core 0, the tasks of the application on core 1 and the link encrypted.
-- The upper bound of `LinkStart` on `m5stack-cores3-radio` is widened from
-  68 to 90 ms, so that its default implementation, 88 ms, lies within the
-  bounds of both profiles with the radio; it runs once, at start-up.
+board without it, which an operation not measured with the radio keeps.
+Bounds not yet measured are provisional; each declaration states its
+measurements and how the bounds not measured directly, such as those of
+`i2c`, are derived.
 
 ## The program
 
@@ -675,7 +641,7 @@ an application may define; the program and its grades are unchanged.
 The procedure, with the cable connected:
 
     make arduino-steps-record
-    make arduino-steps-erase       # clears the earlier recordings
+    make arduino-steps-erase       # erases the recordings on the device
 
 Then, on the battery and without the cable: tap Calibrate, hold the device
 still until the beep, walk for 20 seconds; tap Calibrate again, move the
