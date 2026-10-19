@@ -3,25 +3,43 @@
 # as the shell assignments of esp_now_peer, its address as six bytes
 # 0xHH separated by commas, and esp_now_key, 32 hexadecimal digits:
 #
-#   link.sh [-p PORT] [-t TARGET] NAME ROLE PEER
+#   link.sh [-p PORT] [-t TARGET] [-P PAIR] [-r] NAME ROLE PEER
 #
-# ROLE is the role of the board built, PEER that of the other board. The link
-# file, REMOTE_LINK_FILE if set and else $HOME/.config/tempore/links/NAME,
-# holds lines NAME=VALUE: key, the key of the link, and, under the name of
-# each role, the address of its board, six bytes in hexadecimal separated by
-# colons. Empty lines and lines beginning with # are ignored, as are spaces
-# around the name and the value and carriage returns; any other line, a
-# malformed value and a repeated name are errors.
+# ROLE is the role of the board built, PEER that of the other board. A link
+# file holds lines NAME=VALUE: key, the key of the link, and, under the name
+# of each role, the address of its board, six bytes in hexadecimal separated
+# by colons. Empty lines and lines beginning with # are ignored, as are
+# spaces around the name and the value and carriage returns; any other line,
+# a malformed value and a repeated name are errors.
 #
-# - Under -p, the address of the board on the serial port PORT is read by
-#   esptool and recorded under ROLE if it is missing or different; it is an
-#   error if PEER has the same address.
+# Each pair of boards of the link has a link file in the directory
+# REMOTE_LINK_DIR, by default $HOME/.config/tempore/links: NAME for the
+# default pair, NAME-PAIR for the pair PAIR, a name of letters, digits, '-'
+# and '_'. The link file is
+#
+# - REMOTE_LINK_FILE if set;
+# - else, under -P, that of the pair PAIR;
+# - else, under -p, the link file that records the address of the board on
+#   the serial port PORT under ROLE, read by esptool; it is an error if
+#   several do, or if one records it under PEER;
+# - else, for a board under -p that no link file records, that of the
+#   default pair if it records no board under ROLE, or under -r, which
+#   replaces that board; otherwise it is an error, which names the board
+#   recorded and the two choices, PAIR and REPLACE=1;
+# - else, without -p, that of the default pair.
+#
+# Under -P and -p, the other link files that record the board are reported.
+# -P is an error with REMOTE_LINK_FILE, and -r with -P, with
+# REMOTE_LINK_FILE and without -p.
+#
+# - Under -p, the address of the board is recorded under ROLE if it is
+#   missing or different; it is an error if PEER has the same address.
 # - The key is REMOTE_KEY if set, and else that of the link file; without
 #   one, it is generated, 16 bytes of `openssl rand` or of /dev/urandom, and
 #   recorded.
 # - The peer is REMOTE_PEER if set, and else the address recorded under
 #   PEER; without one it is an error, which names TARGET, the target that
-#   records it.
+#   records it, with the pair of the link file.
 #
 # The link file is written with mode 600 in a directory created with mode
 # 700, by renaming a new file over it, under a lock, the directory of its
@@ -29,22 +47,31 @@
 # esptool is the command TEMPORE_ESPTOOL if set, and else esptool.py of the
 # package tool-esptoolpy of PlatformIO, run by `pio pkg exec`: pio is that
 # on the PATH, or else that of _arduino/venv, with PLATFORMIO_CORE_DIR
-# _arduino/platformio unless the environment sets it. What is recorded, and
-# the link file, are reported on standard error; the key is not.
+# _arduino/platformio unless the environment sets it. The link file chosen
+# and the reason, the origin of the key and what is recorded are reported on
+# standard error; the key is not.
 
 set -eu
 
 usage() {
-  echo "Usage: link.sh [-p PORT] [-t TARGET] NAME ROLE PEER" >&2
+  echo "Usage: link.sh [-p PORT] [-t TARGET] [-P PAIR] [-r] NAME ROLE PEER" >&2
   exit 2
 }
 
 port=
 target=
-while getopts p:t: option; do
+pair=
+paired=false
+replace=false
+while getopts p:t:P:r option; do
   case $option in
   p) port=$OPTARG ;;
   t) target=$OPTARG ;;
+  P)
+    pair=$OPTARG
+    paired=true
+    ;;
+  r) replace=true ;;
   *) usage ;;
   esac
 done
@@ -73,6 +100,25 @@ for r in "$role" "$peer_role"; do
   valid_name "$r" && [ "$r" != key ] || error "the role '$r' is not a name"
 done
 [ "$role" != "$peer_role" ] || error "the role and the peer are both '$role'"
+
+# Whether $1 is the name of a pair: letters, digits, '-' and '_'.
+valid_pair() {
+  case $1 in '' | *[!A-Za-z0-9_-]*) return 1 ;; esac
+}
+
+if $paired; then
+  valid_pair "$pair" ||
+    error "PAIR='$pair' is not a name of letters, digits, '-' and '_'"
+  [ -z "${REMOTE_LINK_FILE:-}" ] ||
+    error "PAIR=$pair and REMOTE_LINK_FILE both name a link file"
+fi
+if $replace; then
+  [ -n "$port" ] || error "REPLACE=1 needs the port of the new board"
+  ! $paired ||
+    error "REPLACE=1 with PAIR=$pair: a board of the pair $pair is replaced without REPLACE=1"
+  [ -z "${REMOTE_LINK_FILE:-}" ] ||
+    error "REPLACE=1 with REMOTE_LINK_FILE: a board of REMOTE_LINK_FILE is replaced without REPLACE=1"
+fi
 
 # Whether $1 is 32 hexadecimal digits.
 valid_key() {
@@ -168,8 +214,6 @@ read_address() {
   printf '%s\n' "$mac"
 }
 
-file=${REMOTE_LINK_FILE:-${HOME:?}/.config/tempore/links/$name}
-
 if [ -n "${REMOTE_KEY:-}" ]; then
   valid_key "$REMOTE_KEY" || error "REMOTE_KEY is not 32 hexadecimal digits"
 fi
@@ -180,6 +224,94 @@ fi
 
 own=
 [ -z "$port" ] || own=$(read_address)
+
+links=${REMOTE_LINK_DIR:-${HOME:?}/.config/tempore/links}
+default=$links/$name
+
+# The link files of NAME in $links, one per line: that of the default pair
+# and those of the named pairs.
+link_files() {
+  for f in "$default" "$default"-*; do
+    [ -f "$f" ] || continue
+    [ "$f" = "$default" ] || valid_pair "${f#"$default"-}" || continue
+    printf '%s\n' "$f"
+  done
+}
+
+# The lines ROLE FILE of the link files that record the address $own under
+# $role or $peer_role.
+records() {
+  link_files | while IFS= read -r f; do
+    e=$(entries "$f") || exit 1
+    printf '%s\n' "$e" | awk -v a="$own" -v r="$role" -v p="$peer_role" -v f="$f" \
+      '$2 == a && ($1 == r || $1 == p) { print $1, f }'
+  done
+}
+
+# The files of the lines $1 of the role $2, separated by ", ".
+files_of() {
+  printf '%s\n' "$1" | awk -v r="$2" '$1 == r {
+    sub(/^[^ ]* /, ""); printf "%s%s", s, $0; s = ", "
+  }'
+}
+
+if [ -n "${REMOTE_LINK_FILE:-}" ]; then
+  file=$REMOTE_LINK_FILE
+  report "the link file $file of REMOTE_LINK_FILE"
+elif $paired; then
+  file=$default-$pair
+  report "the link file $file, PAIR=$pair"
+  if [ -n "$own" ]; then
+    found=$(records) || exit 1
+    others=$(printf '%s\n' "$found" | awk -v f="$file" '$0 != "" && substr($0, index($0, " ") + 1) != f')
+    for r in "$role" "$peer_role"; do
+      o=$(files_of "$others" "$r")
+      [ -z "$o" ] || report "the board on $port, $own, is also recorded as the $r in $o"
+    done
+  fi
+elif [ -z "$own" ]; then
+  file=$default
+  report "the link file $file of the default pair"
+else
+  found=$(records) || exit 1
+  peers=$(files_of "$found" "$peer_role")
+  [ -z "$peers" ] ||
+    error "the board on $port, $own, is recorded as the $peer_role in $peers: it is the $peer_role of that pair, not a $role"
+  owned=$(files_of "$found" "$role")
+  case $owned in
+  *', '*)
+    error "the board on $port, $own, is recorded as the $role in several link files, $owned: choose one by PAIR=<name>, or remove the board from the others"
+    ;;
+  ?*)
+    file=$owned
+    report "the link file $file, found by the address of the $role"
+    ;;
+  *)
+    file=$default
+    recorded=
+    if [ -e "$file" ]; then
+      entries=$(entries "$file") || exit 1
+      recorded=$(lookup "$role")
+    fi
+    if [ -z "$recorded" ]; then
+      report "the link file $file, first pairing"
+    elif $replace; then
+      report "the link file $file, replacing the $role $recorded"
+    else
+      pairs=$(link_files | while IFS= read -r f; do
+        [ "$f" = "$default" ] || printf '%s\n' "${f#"$default"-}"
+      done | tr '\n' ' ' | sed 's/ $//; s/ /, /g')
+      error "the board on $port, $own, is in no link file of $name as the $role, and the default pair, $file, has the $role $recorded: run with PAIR=<name> to start or join another pair${pairs:+ (pairs: $pairs)}, or with REPLACE=1 to replace the $role $recorded in the default pair"
+    fi
+    ;;
+  esac
+fi
+
+# The pair of the link file, given to the target that records the peer.
+hint=
+if [ -z "${REMOTE_LINK_FILE:-}" ]; then
+  case $file in "$default"-*) hint=" PAIR=${file#"$default"-}" ;; esac
+fi
 
 umask 077
 dir=$(dirname "$file")
@@ -253,7 +385,7 @@ if [ -n "${REMOTE_PEER:-}" ]; then
   report "peer $peer of REMOTE_PEER"
 else
   peer=$(lookup "$peer_role")
-  [ -n "$peer" ] || error "the link file $file has no address of the $peer_role: connect the $peer_role and upload to it first${target:+ (make $target)}, or set REMOTE_PEER"
+  [ -n "$peer" ] || error "the link file $file has no address of the $peer_role: connect the $peer_role and upload to it first${target:+ (make $target$hint)}, or set REMOTE_PEER"
   report "peer $peer, the $peer_role"
 fi
 

@@ -694,10 +694,11 @@ port variable `PORT_M5STACK_CORES3_RADIO`.
 
 #### Pairing the robot and the controller
 
-The robot and the controller share the encrypted link `bala2-remote`. Its
-link file, `~/.config/tempore/links/bala2-remote`, outside the repository,
-of mode 600 in a directory of mode 700, holds the key and the address of
-the board of each role:
+The robot and the controller share the encrypted link `bala2-remote`. Each
+pair of boards has a link file in `~/.config/tempore/links`, outside the
+repository, of mode 600 in a directory of mode 700: `bala2-remote` for the
+default pair, `bala2-remote-PAIR` for the pair `PAIR`. It holds the key and
+the address of the board of each role:
 
     key=0123456789abcdef0123456789abcdef
     robot=XX:XX:XX:XX:XX:XX
@@ -705,16 +706,18 @@ the board of each role:
 
 Every target of the two examples that builds for the device runs
 `scripts/link.sh` first, which passes the address of the other board and
-the key as `ESP_NOW_PEER` and `ESP_NOW_KEY`, without showing the key:
+the key of the pair as `ESP_NOW_PEER` and `ESP_NOW_KEY`, without showing
+the key:
 
 - an upload, profile, log or record target reads the address of the
-  board on its port and records it under its role, reporting a change; a
-  build without an upload reads no port;
+  board on its port, finds the link file that records it, and records a
+  new board; a build without an upload reads no port and takes the default
+  pair, or `PAIR`;
 - an absent key is generated, 16 random bytes;
 - without the address of the other board the build stops, and names the
   board to connect and the target to run first.
 
-The first pairing, one board at a time:
+One pair needs no setting. The first pairing, one board at a time:
 
 1. connect the robot and run `make arduino-bala2-remote-upload`: it
    records the address of the robot and the key, and stops;
@@ -722,24 +725,32 @@ The first pairing, one board at a time:
    it records its address and uploads;
 3. connect the robot again and run `make arduino-bala2-remote-upload`.
 
-A replaced board is paired by uploading to it and then to the other board,
-which then learns its address. Other choices:
+With several pairs, each known board finds its pair by its address. A new
+board joins the default pair while that has no board of its role;
+otherwise the build stops, naming the board recorded, until it is run with
+one of
 
+- `PAIR=<name>`, of letters, digits, `-` and `_`, which starts or joins
+  the pair of that name: the three uploads of the first pairing, each with
+  `PAIR=2`, pair a second robot and controller, with a key of their own;
+- `REPLACE=1`, which replaces the board of its role in the default pair;
+  an upload to the other board then gives it the new address.
+
+A board of a named pair is replaced by an upload with its `PAIR`, without
+`REPLACE=1`. A board recorded in several link files, or as the board of
+the other role, stops the build. Other choices:
+
+- `REMOTE_LINK_DIR` sets the directory of the link files, and
+  `REMOTE_LINK_FILE` one link file for every board, without the search by
+  address;
 - `REMOTE_PEER`, an address `XX:XX:XX:XX:XX:XX`, and `REMOTE_KEY`, 32
   hexadecimal digits, override the address of the other board and the key;
-- `REMOTE_LINK_FILE` sets another link file;
-- on another computer, copy the link file, which keeps the pairing.
+- on another computer, copy the link files, which keep the pairings.
 
-The build reports what it records and the link file, never the key; a
-malformed link file or override stops it.
-
-A second pair has a link file of its own, with a key of its own:
-
-    export REMOTE_LINK_FILE=~/.config/tempore/links/bala2-remote-2
-
-with the three uploads of the first pairing in the same shell. With one
-board of each kind connected at a time, the ports are found by their USB
-identifiers ([Ports](#ports)).
+The build reports the link file and the reason for it, and what it
+records, never the key; a malformed link file or override stops it. With
+one board of each kind connected at a time, the ports are found by their
+USB identifiers ([Ports](#ports)).
 
 #### Using the remote-controlled robot
 

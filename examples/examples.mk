@@ -44,11 +44,15 @@
 # simulation, by default that of the example; MONITOR, when set, the monitor
 # policy, by default abort, and warn for the uploads that capture;
 # BRIGHTNESS, when set, the brightness of the display, a percentage from 0 to
-# 100, of every device build, by default 24. Each can be set on the command line or in the
-# environment.
+# 100, of every device build, by default 24; PAIR, when set, the pair of the
+# boards of an ESP-NOW link, and REPLACE, when 1, the replacement of a board
+# of the default pair, as in scripts/link.sh. Each can be set on the command
+# line or in the environment.
 PORT_M5STACK_GRAY_RADIO ?= $(PORT_M5STACK_GRAY)
 PORT_M5STACK_CORES3_RADIO ?= $(PORT_M5STACK_CORES3)
 PORT ?=
+PAIR ?=
+REPLACE ?=
 CAPTURE ?= 30
 SIMULATE ?=
 MONITOR ?=
@@ -88,15 +92,18 @@ link_peer_example = $(LINK_EXAMPLE_$(call link_name,$(1))_$(call \
 # Under the ESP-NOW link of the Arduino example $(1), the command that sets
 # the shell variables esp_now_peer and esp_now_key to the peer and the key of
 # its board, printed by scripts/link.sh, which first records the address of
-# the board on the port $(2) if given; it is prefixed to the commands of the
+# the board on the port $(2) if given, with the pair PAIR and REPLACE=1
+# passed as its options -P and -r; it is prefixed to the commands of the
 # device builds. The build flags ESP_NOW_PEER and ESP_NOW_KEY of these
 # variables, so that the commands do not show the key.
-link_setup = $(if $(call link_name,$(1)),$(if $(filter 1,$(words $(call \
+link_setup = $(if $(call link_name,$(1)),$(if $(filter-out 0 1,$(REPLACE)),$(error \
+  REPLACE is 1 or 0, not $(REPLACE)))$(if $(filter 1,$(words $(call \
   link_peer,$(1)))),,$(error The ESP-NOW link $(call link_name,$(1)) of \
   $(1) has not exactly one other role: $(call link_peer,$(1))))link=$$(sh \
   scripts/link.sh $(if $(2),-p $(2) )$(if $(call \
   link_peer_example,$(1)),-t arduino-$(call \
-  link_peer_example,$(1))-upload )$(call link_name,$(1)) $(call \
+  link_peer_example,$(1))-upload )$(if $(PAIR),-P '$(PAIR)' )$(if $(filter \
+  1,$(REPLACE)),-r )$(call link_name,$(1)) $(call \
   link_role,$(1)) $(call link_peer,$(1))) && eval "$$link" && )
 link_flags = $(if $(1),-DESP_NOW_PEER=$$esp_now_peer \
   -DESP_NOW_KEY=$$esp_now_key)
@@ -380,8 +387,12 @@ examples-help:
 	  "SIMULATE=$(SIMULATE)" "when set, the simulated seconds of every example" \
 	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target" \
 	  "BRIGHTNESS=$(BRIGHTNESS)" "when set, the display brightness, 0 to 100 % (default 24), of every build"
-	@$(foreach link,$(sort $(ARDUINO_LINKS)),echo "ESP-NOW link $(link), roles $(LINK_ROLES_$(link)): paired by the link file ~/.config/tempore/links/$(link),"; \
-	  echo "  or REMOTE_LINK_FILE; REMOTE_PEER and REMOTE_KEY override its address and key";)
+	@$(foreach link,$(sort $(ARDUINO_LINKS)),echo "ESP-NOW link $(link), roles $(LINK_ROLES_$(link)): paired by the link files $(link) and $(link)-PAIR"; \
+	  echo "  in ~/.config/tempore/links or REMOTE_LINK_DIR, each board found by its address, or REMOTE_LINK_FILE;"; \
+	  echo "  REMOTE_PEER and REMOTE_KEY override its address and key";)
+	@printf '  %-44s %s\n' \
+	  "PAIR=$(PAIR)" "when set, the pair of the board, by the link file LINK-PAIR" \
+	  "REPLACE=$(REPLACE)" "when 1, a new board replaces that of its role in the default pair"
 	@echo "Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help"
 
 arduino-diagnostics-help:
