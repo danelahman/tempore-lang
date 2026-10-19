@@ -35,7 +35,16 @@
    18.982 ms, [17.95, 28.5], with its readings then 5 ms apart from the end
    of one to the start of the next. Started 6 ms apart, the readings take
    18 ms and the last reading, within these bounds; they are not measured
-   so, nor on other boards. *)
+   so, nor on other boards.
+
+   On the profile m5stack-gray-radio, an M5Stack Gray with its Wi-Fi radio
+   running, the profile of the device (2026-10-19) measured ReadImu at 0.674
+   to 1.412 ms and CheckAtRest at 18.705 to 19.524 ms. Their bounds there
+   have the upper bound 1.5 times the greatest time measured with the radio,
+   rounded up, and the lower bound of the Gray without it: ReadImu [0.55,
+   2.15] and CheckAtRest [17.95, 29.5]. The measurements precede the
+   pinning of the tasks of the application to core 1, and are to be
+   repeated. *)
 
 operation ReadImu : unit ~> imu # [0.2, 1.5]
 default ReadImu () = delay 3/5; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))

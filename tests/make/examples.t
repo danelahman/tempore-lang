@@ -196,7 +196,12 @@ listed apart:
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
   M5Stack Gray, port PORT_M5STACK_GRAY = /dev/cu.usbserial-02012C91:
-    NAME one of: bala2 bala2-regex bala2-remote wheels
+    NAME one of: bala2 bala2-regex wheels
+    arduino-NAME-simulate         simulates the project on the host
+    arduino-NAME-build            builds the project with PlatformIO
+    arduino-NAME-upload           builds the project and uploads it to the board
+  M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = /dev/cu.usbserial-02012C91:
+    NAME one of: bala2-remote
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
@@ -222,7 +227,7 @@ listed apart:
     arduino-steps-capture         reads the recordings from the port into _arduino/recordings/steps-TIME-N.csv
     arduino-steps-erase           erases the recordings on the device
   M5Stack Gray, port PORT_M5STACK_GRAY = /dev/cu.usbserial-02012C91:
-    NAME one of: bala2 bala2-regex bala2-remote wheels
+    NAME one of: bala2 bala2-regex wheels
     arduino-NAME-profile          uploads the project with the profile and reads the port
     arduino-bala2-log             uploads the project with -DBALANCE_LOG=20 and reads the port
     arduino-bala2-regex-log       uploads the project with -DBALANCE_LOG=20 and reads the port
@@ -230,6 +235,9 @@ listed apart:
     arduino-bala2-capture         reads the recordings from the port into _arduino/recordings/bala2-TIME.csv
     arduino-bala2-regex-record    uploads the project with -DBALANCE_RECORD=20 and reads the port
     arduino-bala2-regex-capture   reads the recordings from the port into _arduino/recordings/bala2-regex-TIME.csv
+  M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = /dev/cu.usbserial-02012C91:
+    NAME one of: bala2-remote
+    arduino-NAME-profile          uploads the project with the profile and reads the port
   Variables, with their values:
     PORT=                                        when set, the port of every upload
     CAPTURE=30                                   the seconds for which the port is read

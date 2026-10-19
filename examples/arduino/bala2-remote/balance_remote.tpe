@@ -10,7 +10,7 @@
        --package bala2-base \
        --package esp-now \
        --package bala2-remote \
-       --board m5stack-gray \
+       --board m5stack-gray-radio \
        examples/arduino/bala2-remote/balance_remote.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
@@ -24,11 +24,12 @@
 
 (* The robot of examples/arduino/bala2-regex (its control step, and the
    bindings.cpp and plant.cpp of examples/arduino/bala2), armed, driven and
-   disarmed by the messages of the package bala2-remote. On the board: make
-   arduino-bala2-remote-upload REMOTE_PEER=XX:XX:XX:XX:XX:XX, the address of
-   the controller (by default broadcast); simulated on the host, with
-   controller.cpp scripting the controller: make
-   arduino-bala2-remote-simulate. *)
+   disarmed by the messages of the package bala2-remote, under the bounds
+   of the profile m5stack-gray-radio, measured on the Gray with its radio
+   running. On the board: make arduino-bala2-remote-upload
+   REMOTE_PEER=XX:XX:XX:XX:XX:XX, the address of the controller (by
+   default broadcast); simulated on the host, with controller.cpp scripting
+   the controller: make arduino-bala2-remote-simulate. *)
 
 (* The exchange between the tasks, as in balance.tpe. The step publishes the
    tilt, in degrees, the rate of the gyroscope, in degrees per second, the
@@ -40,17 +41,20 @@
    arms the robot with a calibration of the gyroscope, disarms it, and
    commands a speed and a turn; a command older than 200 ms is replaced by
    zero setpoints. The default implementations describe an armed robot
-   without commands. The bounds of their running times are those of
-   balance.tpe. *)
+   without commands. The upper bounds of their running times are 1.5 times
+   the greatest times measured with the radio running (2026-10-19), rounded
+   up, or those of balance.tpe if larger: Publish took at most 0.086 ms,
+   Setpoints 0.113 ms, Attitude 0.032 ms, Arm 0.014 ms, Disarm 0.032 ms and
+   Command 0.456 ms. *)
 
 (* A calibration, the bias of the gyroscope, non-eternal: it is kept only
    in its boxes, and once unboxed it is used at once, not after a wait. *)
 noneternal type calibration = Calibration of float
 
-operation Publish : float * float * float * float ~> unit # {Publish} within (0, 0.05]
+operation Publish : float * float * float * float ~> unit # {Publish} within (0, 0.15]
 default Publish _ = delay 1/100
 
-operation Setpoints : unit ~> bool * float * float * float # {Setpoints} within (0, 0.05]
+operation Setpoints : unit ~> bool * float * float * float # {Setpoints} within (0, 0.2]
 default Setpoints () = delay 1/100; (true, 0.0, 0.0, 0.0)
 
 operation Attitude : unit ~> float * float # {Attitude} within (0, 0.05]
@@ -62,14 +66,14 @@ default Arm _ = delay 1/100
 operation Disarm : unit ~> unit # {Disarm} within (0, 0.05]
 default Disarm () = delay 1/100
 
-operation Command : float * float ~> unit # {Command} within (0, 0.05]
+operation Command : float * float ~> unit # {Command} within (0, 0.7]
 default Command _ = delay 1/100
 
 (* Report armed sends the status of the robot to the controller: whether it
    is armed and the tilt last published by the step, through the package
-   bala2-remote; bound in bindings.cpp. Its bounds are those of Attitude and
-   of the provisional bounds of SendStatus together: [0, 1.05]. *)
-operation Report : bool ~> unit # {Report} within (0, 1.05]
+   bala2-remote; bound in bindings.cpp. It took 0.294 to 2.358 ms with the
+   radio running (2026-10-19). *)
+operation Report : bool ~> unit # {Report} within (0, 3.55]
 default Report _ = delay 1/10
 
 (* The control step. The state is the tilt, in degrees, filtered from the
@@ -86,8 +90,10 @@ type state = float * float * float * float * float
    speed, the balance point, in degrees, which the tilt loop subtracts from
    the tilt, and the dead bands of the left and the right motor, in units of
    drive, by which their drives are moved away from zero, those of
-   balance.tpe. *)
-let period = 0.005
+   balance.tpe except the period, 8 ms, the least whole number of
+   milliseconds above the durations of the step under the bounds of the
+   radio. *)
+let period = 0.008
 let gyro_weight = 0.98
 let tilt_gain = 25.0
 let rate_gain = 0.4
@@ -114,12 +120,12 @@ let clamp (limit : float) (x : float) =
 (* Correctly accepted by the typechecker: the step reads the unit, the
    encoders and the setpoints, publishes the attitude, the speed and the
    reference tilt, and commands the motors, each once and in this order; its
-   durations, 1.2 to 2.8 ms, are checked against its period of 5 ms by the
-   device. The reading of the unit is boxed with any number of reads of the
-   encoders and the setpoints, without delays: it is used only if no other
-   operation, in particular no command of the motors, and no delay has come
-   since it was taken. While a turn is commanded, the heading held follows the
-   difference of the counts; disarmed, the step holds the present heading. *)
+   durations, 1.15 to 7.2 ms, lie below its period of 8 ms. The reading of
+   the unit is boxed with any number of reads of the encoders and the
+   setpoints, without delays: it is used only if no other operation, in
+   particular no command of the motors, and no delay has come since it was
+   taken. While a turn is commanded, the heading held follows the difference
+   of the counts; disarmed, the step holds the present heading. *)
 let step ((tilt, speed, integral, position, heading) : state) : state
     # {ReadImu; ReadEncoders; Setpoints; Publish; SetMotors} =
   let reading = perform ReadImu () in
@@ -204,9 +210,8 @@ type calibrated =
    operation, such as a Disarm or a Command, between the check and the
    samples; the box spans the 50 samples. If the robot is not at rest, the
    calibration shows "Hold still" and is repeated after 500 ms; after n
-   repetitions it ends with the last measurement. The bounds of CheckAtRest,
-   [17.95, 28.5] ms, are measured on the CoreS3 only, and provisional on the
-   Gray. *)
+   repetitions it ends with the last measurement. CheckAtRest takes 17.95
+   to 29.5 ms. *)
 let rec measure (n : nat) : calibrated
     # {(CheckAtRest; (Attitude; !10)*; ShowTextAt; !500; ShowTextAt)*;
        CheckAtRest; (Attitude; !10)*} =
@@ -252,12 +257,12 @@ let upright_limit = 10.0
 (* The wait for Arm, bounded so that the calibration stays within its 10
    minutes: a poll reports the status of the disarmed robot, waits 400 ms,
    and is true at an Arm message of the controller, which repeats Arm for
-   1 s: two Receives lie at most 401.15 ms apart, Report taking at most
-   1.05 ms and Receive 0.1 ms, so that at least two fall within those 1 s,
+   1 s: two Receives lie at most 403.65 ms apart, Report taking at most
+   3.55 ms and Receive 0.1 ms, so that at least two fall within those 1 s,
    each finding an Arm at most 12.5 ms old. The message received is unboxed
    after the report, within 150 ms and before any further Receive, and
    decided after the wait. wait5, wait25 and wait125 repeat the poll up to
-   5, 25 and 125 times, and wait_arm up to 500 times, about 200 s, without a
+   5, 25 and 125 times, and wait_arm up to 500 times, about 202 s, without a
    recursion, whose grade would be a star. *)
 let poll_arm () : bool # {Receive; Report; !400} =
   let latest = remote_receive () in
@@ -303,8 +308,8 @@ let wait_arm () : bool # {(Receive; Report; !400)^[1, 500]} =
    "Armed" again; each of these iterations then reports the status of the
    armed robot. Disarm disarms the robot and ends the drive. The grade
    fixes the operations and the strict wait of each iteration, which
-   therefore takes 12.5 to 46.85 ms by the bounds of its operations,
-   below the 50 ms period of the controller and the 200 ms after which a
+   therefore takes 12.5 to 50 ms by the bounds of its operations, at most
+   the 50 ms period of the controller and below the 200 ms after which a
    command expires. *)
 (* Shows "Armed" again at the first message after the link was reported
    lost. *)
@@ -351,7 +356,7 @@ let rec drive (n : nat) (silent : nat) : unit
 
 (* Correctly accepted by the typechecker: a session calibrates the robot at
    rest, holds it upright for a second and waits for Arm. At Arm it unboxes
-   the calibration, at least a second and at most about 202 s old, with no
+   the calibration, at least a second and at most about 203 s old, with no
    Command since, and opens the arming window; in it, it reads the published
    tilt and unboxes the calibration; if the tilt lies within upright_limit
    of the balance point it arms the robot and drives it until Disarm, and
@@ -402,7 +407,7 @@ let supervise () =
 
 (* Correctly rejected by the typechecker: a session that reads the tilt
    once, after the hold, and arms the robot on it after the wait for Arm,
-   which may take 200 s, in which the robot may have tipped over; the
+   which may take 202 s, in which the robot may have tipped over; the
    arming window demands the reading of the tilt within it:
 
      Typing error: Variable `arming` is unboxed with the unit grade `{0}`

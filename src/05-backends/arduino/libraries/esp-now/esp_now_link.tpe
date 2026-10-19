@@ -25,7 +25,14 @@
 
    The bounds are provisional, not yet measured on a device: LinkStart
    [0, 1500], Send [0, 1], Receive [0, 0.1]. The default implementations take
-   a time within the bounds, send nothing and receive nothing. *)
+   a time within the bounds, send nothing and receive nothing.
+
+   On the profile m5stack-gray-radio, an M5Stack Gray, the profile of the
+   device (2026-10-19) measured LinkStart at 86.322 to 88.329 ms and Receive
+   at 0.002 to 0.056 ms. The bounds of LinkStart there are [86, 132.5]: the
+   least time measured, rounded down, and 1.5 times the greatest, rounded
+   up; Receive keeps its bounds. The measurements precede the pinning of the
+   tasks of the application to core 1, and are to be repeated. *)
 
 operation LinkStart : nat ~> unit # [0, 1500]
 default LinkStart _ = delay 100

@@ -17,5 +17,8 @@
     "ShowText", "ShowNumber", "ClearDisplay", "ShowTextAt", "ShowNumberAt",
     "ShowTimeAt", "ShowColourTextAt", "ShowColourNumberAt", "DrawButton", "DrawBar", "DrawLevel"
   ],
-  "init": "m5_display_init"
+  "init": "m5_display_init",
+  "bounds": {
+    "m5stack-gray-radio": { "ClearDisplay": [31, 176.5] }
+  }
 }
