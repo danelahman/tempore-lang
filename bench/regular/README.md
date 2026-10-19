@@ -126,6 +126,56 @@ How the derivatives fare:
   "n-th letter from the end, n = 12, elaborate E", 1.4 ms against 0.12 to 0.16
   ms). The cause is not yet identified.
 
+## Comparison of 2026-10-19
+
+OLD is 58d1d6b, the main before the redesign of the rigid timed grades as
+interval-letter grades; NEW is ba1d380. Same machine and settings as above
+(macOS 15.7.7, arm64, OCaml 5.5.0, `--profile release`); one run of this
+benchmark per revision, best of 3 for the other measurements. Times of the
+typechecking benchmark are printed to 10 ms.
+
+The grades of this benchmark (`regex-*` and the non-rigid `regex-timed-*`)
+are unchanged by the redesign, and the workloads are the same 349 rows: the
+geometric means of new / old cold times over the rows in which both take at
+least 5 us are 0.98 to 1.00 for typechecking (25 rows per implementation)
+and 0.97 to 1.01 for the operations (193 to 237 rows). Total run time:
+17 min 47 s (OLD), 17 min 58 s (NEW). Two rows are more than 20 % and 50 ms
+slower, `leq C* <= E2` at n = 8 of the upper-bound grade of timed operations,
+by plain derivatives (316 ms to 427 ms) and by letters (339 ms to 443 ms):
+the known cold-path cost of that row, not attributed to the redesign.
+
+Retired in NEW, not measured by this benchmark: the rigid alternative
+implementations `regex-timed-rigid-{upper-bound,lower-bound,interval}` with
+the suffixes `-letter-automata`, `-letter-derivatives` and
+`-symbolic-by-letters` (nine grade names). The rigid grades remain with the
+suffixes `-symbolic` and `-rational-symbolic`, now as interval-letter grades.
+
+Typechecking of the rigid grades (`bench/typecheck`, 3 processes, best of 3
+runs; the files of the examples changed between the revisions):
+
+| file | OLD (s) | NEW (s) |
+|---|---:|---:|
+| examples/arduino/bala2-remote/balance_remote.tpe | 1.10 | 0.30 |
+| examples/arduino/starter/starter.tpe | 0.58 | 0.22 |
+| examples/arduino/bala2-controller/controller.tpe | 0.09 | 0.05 |
+| examples/arduino/fall/fall.tpe | 0.09 | 0.05 |
+| examples/arduino/bala2-regex/balance_regex.tpe | 0.05 | 0.05 |
+| examples/opentrons/washes.tpe | < 0.01 | < 0.01 |
+| examples/regular_timed_rigid/*.tpe (2 files) | < 0.01 | < 0.01 |
+| whole corpus (348 files OLD, 349 NEW; sum of the files) | 2.2 | 0.9 |
+
+Other measurements of the same revisions:
+
+| measurement | OLD | NEW |
+|---|---:|---:|
+| `--emit-arduino` of balance_remote, native (s) | 1.23 | 0.36 |
+| `--emit-arduino` of controller, native (s) | 0.12 | 0.07 |
+| web typecheck of balance_remote, headless Chrome (s) | 3.1 | 0.9 |
+| web typecheck of controller (s) | 0.6 | 0.4 |
+| web typecheck of washes (s) | 0.3 | 0.3 |
+
+The web times include the polling interval of 0.25 s.
+
 ## Results
 
 Median over 5 processes (fewer past 10 s); cold: first run in a fresh process,
