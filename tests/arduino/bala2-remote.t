@@ -57,7 +57,7 @@ not shown:
   [35.045 ms] Display at (0, 2): Remote robot
   [37.805 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [41.585 ms] Display at (0, 102): Calibrating
-  [100.245 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF
+  [100.245 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF, not encrypted
   [563.988 ms] Display at (0, 102): Hold upright
   [1567.848 ms] Display at (0, 102): Waiting for Arm
   [1567.948 ms] ESP-NOW: status, armed 0.000

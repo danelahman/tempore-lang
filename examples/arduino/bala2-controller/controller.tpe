@@ -25,10 +25,12 @@
    task, sending the messages of the package bala2-remote, one operation per
    message, to the robot of examples/arduino/bala2-remote, under 50 ms
    apart, and receiving its status, on which it drives; a bubble level
-   shows the tilt that steers it. On the board: make
-   arduino-bala2-controller-upload REMOTE_PEER=XX:XX:XX:XX:XX:XX, the
-   address of the robot (by default broadcast); simulated on the host, with
-   world.cpp tilting and touching the device: make
+   shows the tilt that steers it, and a label whether the link is
+   encrypted. On the board: make arduino-bala2-controller-upload
+   REMOTE_PEER=XX:XX:XX:XX:XX:XX, the address of the robot, which encrypts
+   the link with the key shared with the robot (by default broadcast and
+   unencrypted; see the README of the Arduino backend); simulated on the
+   host, with world.cpp tilting and touching the device: make
    arduino-bala2-controller-simulate. *)
 
 (* The command of a tilt: the dead zone, in degrees, and the gain and the
@@ -156,6 +158,17 @@ let dark_grey = 0x404040
    for both: the dead zone and the bound divided by the gain, 5 + 400 / 16
    and 5 + 100 / 4. *)
 let full_tilt = 30.0
+
+(* Whether the link is encrypted, shown once at the start right of the
+   vial, below the tilt of the robot, where nothing else is drawn: in green
+   on black if it is, and in amber on black if not. *)
+let amber = 0xffb000
+let black = 0x000000
+
+let show_encryption (encrypted : bool) =
+  if encrypted then
+    perform ShowColourTextAt (130, 150, 2, green, black, "Encrypted")
+  else perform ShowColourTextAt (130, 150, 2, amber, black, "Not encrypted")
 
 let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
@@ -311,13 +324,14 @@ let rec session (n : nat) (v : view) : unit
       else ()
 
 let remote () =
-  perform LinkStart remote_channel;
+  let encrypted = perform LinkStart remote_channel in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Robot remote");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
   perform ShowTextAt (0, 30, 2, "Disarmed");
   perform ShowTextAt (130, 80, 2, "Robot tilt");
   perform ShowNumberAt (130, 110, 3, 1, 0.0);
+  show_encryption encrypted;
   perform DrawButton (0, 188, 156, 40, "Arm");
   perform DrawButton (164, 188, 156, 40, "Disarm");
   session 4000000000 (false, 0.0, true)

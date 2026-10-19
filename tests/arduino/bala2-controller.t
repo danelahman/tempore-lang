@@ -32,10 +32,20 @@ without exceptions and run-time type information:
   $ tempore --emit-arduino controller --device $app/controller.device.json $app/controller.tpe > /dev/null
   $ cd _arduino/projects/controller
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
+
+Paired with the robot by the build flags ESP_NOW_PEER and ESP_NOW_KEY, here
+a fake key, the link is encrypted, which the controller shows right of the
+vial:
+
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ ./simulation 200000 | grep 'ESP-NOW: started\|(130, 152)'
+  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:07, encrypted (CCMP)
+  [150.040 ms] Display at (130, 152): Encrypted
   $ cd ../../..
 
 The host simulation for 6 s, the packets sent shown when they change. The
-controller sends Beat; held pitched forwards by 10 degrees, a tap on Arm
+controller shows that the link, to the broadcast address, is not
+encrypted, and sends Beat; held pitched forwards by 10 degrees, a tap on Arm
 at 1 s records that tilt as neutral and starts the arming, Arm 80 times,
 for 1 s, and once more until the status of the robot, scripted armed from
 1.5 s at a tilt of 2.5 degrees, confirms. It then drives, measured from the
@@ -56,42 +66,43 @@ at most one band:
   $ tempore --emit-arduino controller --device $app/controller.device.json --host-simulate 6 $app/controller.tpe > sim.log
   $ grep -v '^Wrote\|\] \(Release\|Start\|End \|Operation\|IMU\|I2C\|Delay\|ESP-NOW model\)' sim.log | awk '/ESP-NOW: sent/ { m = $0; sub(/^\[[^]]*\] /, "", m); if (m == last) next; last = m } { print }'
   [1.458 ms] Display at (254, 0): Battery 87%
-  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF
+  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF, not encrypted
   [131.000 ms] Display cleared
   [134.800 ms] Display at (0, 2): Robot remote
   [137.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [141.280 ms] Display at (0, 32): Disarmed
   [144.000 ms] Display at (130, 82): Robot tilt
   [147.340 ms] Display at (130, 113): 0.0
-  [149.836 ms] Display fill at (0, 188), 156 by 40: 0x303030
-  [151.052 ms] Display at (60, 200): Arm
-  [153.548 ms] Display fill at (164, 188), 156 by 40: 0x303030
-  [154.824 ms] Display at (206, 200): Disarm
-  [155.224 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [156.082 ms] Display at (254, 0): Battery 87%
-  [156.358 ms] Display disc at (62, 122), radius 9: 0x404040
-  [1007.161 ms] ESP-NOW: sent tag 1, 0.000, 0.000
-  [2028.664 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [2032.324 ms] Display at (0, 32): Armed
-  [2044.204 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [2059.047 ms] Display at (130, 113): 2.5
-  [2208.586 ms] ESP-NOW: sent tag 2, -240.000, 0.000
-  [2208.963 ms] Display disc at (62, 89), radius 9: 0x00c000
-  [3002.670 ms] ESP-NOW: sent tag 2, 80.000, 40.000
-  [3014.550 ms] Display disc at (89, 142), radius 9: 0x00c000
-  [3509.179 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [3521.059 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [3843.143 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [3846.843 ms] Display at (0, 32): No link
-  [3858.723 ms] Display disc at (62, 122), radius 9: 0x808080
-  [4203.813 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [4207.473 ms] Display at (0, 32): Armed
-  [4219.353 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [4234.196 ms] Display at (130, 113): 1.5
-  [4602.292 ms] ESP-NOW: sent tag 3, 0.000, 0.000
-  [4857.912 ms] Display at (0, 32): Disarmed
-  [4858.312 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [4858.689 ms] Display disc at (62, 122), radius 9: 0x404040
+  [150.120 ms] Display at (130, 152): Not encrypted
+  [152.616 ms] Display fill at (0, 188), 156 by 40: 0x303030
+  [153.832 ms] Display at (60, 200): Arm
+  [156.328 ms] Display fill at (164, 188), 156 by 40: 0x303030
+  [157.604 ms] Display at (206, 200): Disarm
+  [158.004 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [158.862 ms] Display at (254, 0): Battery 87%
+  [159.138 ms] Display disc at (62, 122), radius 9: 0x404040
+  [1009.941 ms] ESP-NOW: sent tag 1, 0.000, 0.000
+  [2031.444 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [2035.104 ms] Display at (0, 32): Armed
+  [2046.984 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [2061.827 ms] Display at (130, 113): 2.5
+  [2211.366 ms] ESP-NOW: sent tag 2, -240.000, 0.000
+  [2211.743 ms] Display disc at (62, 89), radius 9: 0x00c000
+  [3005.450 ms] ESP-NOW: sent tag 2, 80.000, 40.000
+  [3017.330 ms] Display disc at (89, 142), radius 9: 0x00c000
+  [3511.959 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [3523.839 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [3834.420 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [3838.120 ms] Display at (0, 32): No link
+  [3861.503 ms] Display disc at (62, 122), radius 9: 0x808080
+  [4206.593 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [4210.253 ms] Display at (0, 32): Armed
+  [4222.133 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [4236.976 ms] Display at (130, 113): 1.5
+  [4605.072 ms] ESP-NOW: sent tag 3, 0.000, 0.000
+  [4860.692 ms] Display at (0, 32): Disarmed
+  [4861.092 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [4861.469 ms] Display disc at (62, 122), radius 9: 0x404040
 
 The packets are sent at most 50 ms apart, here 10.9 to 16.6 ms, Arm 81
 times and Disarm 20 times:

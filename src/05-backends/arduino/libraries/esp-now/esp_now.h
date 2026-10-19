@@ -10,6 +10,8 @@
 
 #include "esp_wifi.h"
 
+#define ESP_NOW_KEY_LEN 16
+
 typedef enum {
   ESP_NOW_SEND_SUCCESS = 0,
   ESP_NOW_SEND_FAIL
@@ -17,6 +19,7 @@ typedef enum {
 
 typedef struct {
   uint8_t peer_addr[6];
+  uint8_t lmk[ESP_NOW_KEY_LEN];
   uint8_t channel;
   wifi_interface_t ifidx;
   bool encrypt;
@@ -28,6 +31,7 @@ typedef void (*esp_now_send_cb_t)(const uint8_t *mac_addr,
                                   esp_now_send_status_t status);
 
 esp_err_t esp_now_init();
+esp_err_t esp_now_set_pmk(const uint8_t *pmk);
 esp_err_t esp_now_add_peer(const esp_now_peer_info_t *peer);
 
 // Registers the callback of reception and starts the peer of the host model.

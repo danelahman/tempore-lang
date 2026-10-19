@@ -4,8 +4,8 @@
    esp_now_link.tpe; the default implementations send nothing and receive
    nothing. *)
 
-operation LinkStart : nat ~> unit # (LinkStart, 1)
-default LinkStart _ = ()
+operation LinkStart : nat ~> bool # (LinkStart, 1)
+default LinkStart _ = false
 
 operation Send : nat * float * float ~> unit # (Send, 1)
 default Send _ = ()

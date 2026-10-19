@@ -111,6 +111,7 @@ esp_err_t esp_wifi_get_mac(wifi_interface_t, uint8_t mac[6]) {
 }
 
 esp_err_t esp_now_init() { return ESP_OK; }
+esp_err_t esp_now_set_pmk(const uint8_t *) { return ESP_OK; }
 esp_err_t esp_now_add_peer(const esp_now_peer_info_t *) { return ESP_OK; }
 
 esp_err_t esp_now_register_recv_cb(esp_now_recv_cb_t callback) {

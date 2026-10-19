@@ -264,7 +264,7 @@ otherwise nothing:
 
   $ simulate radio radio 0.35
   [0.000 ms] Start listen
-  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF
+  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF, not encrypted
   [100.000 ms] Operation LinkStart took 100000 us
   [100.100 ms] ESP-NOW: sent tag 1, 0.500, -0.250
   [100.100 ms] Operation Send took 100 us
@@ -289,20 +289,39 @@ otherwise nothing:
   typedef uint32_t tempore_argument_Receive;
   typedef tempore_tuple1 tempore_result_Receive;
 
-The peer of the build flag ESP_NOW_PEER, and a model of the link that loses
-every second packet:
+The peer of the build flag ESP_NOW_PEER with the key of the build flag
+ESP_NOW_KEY, here a fake one, by which the link is encrypted, and a model of
+the link that loses every second packet:
 
   $ cd _arduino/projects/radio
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
-  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DESP_NOW_MODEL_LOSS=2 -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DESP_NOW_MODEL_LOSS=2 -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ ./simulation 200000 | grep 'ESP-NOW\|Display'
-  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:07
+  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:07, encrypted (CCMP)
   [100.100 ms] ESP-NOW: sent tag 1, 0.500, -0.250
   [101.100 ms] Display: None
   [122.000 ms] ESP-NOW model: packet of tag 6 arrives
   [140.000 ms] ESP-NOW model: packet of tag 7 lost
   [162.000 ms] ESP-NOW model: packet of tag 8 arrives
   [162.100 ms] Display: 6.000
+
+A peer without a key, a key without a peer, a key that is not 32
+hexadecimal digits and a key with the broadcast address are rejected at
+compilation:
+
+  $ check () { c++ -std=c++17 -fsyntax-only -DTEMPORE_HOST "$@" -I host -I src src/esp_now_link.cpp 2>&1 | grep -m 1 -o 'the \(peer\|key\|link\) [^"]*'; }
+  $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07
+  the peer ESP_NOW_PEER requires the key ESP_NOW_KEY
+  $ check -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f
+  the key ESP_NOW_KEY requires the peer ESP_NOW_PEER
+  $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=
+  the key ESP_NOW_KEY is 32 hexadecimal digits
+  $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e
+  the key ESP_NOW_KEY is 32 hexadecimal digits
+  $ check -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0g
+  the key ESP_NOW_KEY is 32 hexadecimal digits
+  $ check -DESP_NOW_PEER=0xff,0xff,0xff,0xff,0xff,0xff -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f
+  the link to the broadcast address is not encrypted
   $ cd ../../..
 
 A Send before LinkStart is a run-time error:
@@ -323,7 +342,7 @@ Disarm and Beat, one every 20 ms, and then nothing; the unknown tag, and Beat
 once older than 50 ms, decode to Nothing:
 
   $ simulate remote remote 0.3 | grep 'ESP-NOW\|Display'
-  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF
+  [100.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF, not encrypted
   [100.100 ms] ESP-NOW: sent tag 1, 0.000, 0.000
   [100.200 ms] ESP-NOW: sent tag 2, 0.500, -0.250
   [100.300 ms] ESP-NOW: sent tag 3, 0.000, 0.000

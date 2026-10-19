@@ -127,15 +127,61 @@ Further targets, under variables set on the command line:
 The build flags of a fragment, EXAMPLE_BUILD_FLAGS, apply to every device
 build of its example: REMOTE_PEER of bala2-remote, the address of the
 controller, becomes the build flag ESP_NOW_PEER, before the flags of a
-target; without it there is none:
+target, and, under the link of the fragment, EXAMPLE_LINK, the key printed
+by scripts/link-key.sh becomes the build flag ESP_NOW_KEY through a shell
+variable, so that the command does not show it; without REMOTE_PEER there
+is neither:
 
-  $ dry arduino-bala2-remote-build REMOTE_PEER=24:0A:C4:12:34:56
-  PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino balance_remote --device examples/arduino/bala2-remote/balance_remote.device.json --monitor abort --build examples/arduino/bala2-remote/balance_remote.tpe
-  $ make -s --no-print-directory -n arduino-bala2-remote-profile REMOTE_PEER=24:0A:C4:12:34:56 BRIGHTNESS=60 | grep -o '^PLATFORMIO_BUILD_FLAGS="[^"]*"'
-  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56"
-  $ dry arduino-bala2-remote-upload | grep -c PLATFORMIO_BUILD_FLAGS
+  $ make -s --no-print-directory -n arduino-bala2-remote-build REMOTE_PEER=24:0A:C4:12:34:56 | grep tempore' ' | tr -s ' '
+  key=$(sh scripts/link-key.sh bala2-remote) && PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56 -DESP_NOW_KEY=$key" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino balance_remote --device examples/arduino/bala2-remote/balance_remote.device.json --monitor abort --build examples/arduino/bala2-remote/balance_remote.tpe
+  $ make -s --no-print-directory -n arduino-bala2-remote-profile REMOTE_PEER=24:0A:C4:12:34:56 BRIGHTNESS=60 | grep -o 'PLATFORMIO_BUILD_FLAGS="[^"]*"'
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DESP_NOW_PEER=0x24,0x0A,0xC4,0x12,0x34,0x56 -DESP_NOW_KEY=$key"
+  $ make -s --no-print-directory -n arduino-bala2-controller-upload REMOTE_PEER=24:0A:C4:12:34:57 | grep -o '^key=[^&]*'
+  key=$(sh scripts/link-key.sh bala2-remote) 
+  $ dry arduino-bala2-remote-upload | grep -c 'PLATFORMIO_BUILD_FLAGS\|key'
   0
   [1]
+
+The key of a link is REMOTE_KEY if set, and otherwise that of the key
+file, REMOTE_KEY_FILE if set and else under $HOME/.config/tempore/keys,
+written first from random bytes if absent, readable by its owner only,
+in a directory created readable by its owner only; the key file is
+reported, and the key is printed to standard output only. Concurrent
+builds read the same key:
+
+  $ export REMOTE_KEY_FILE="$PWD/keys/bala2-remote.key"
+  $ unset REMOTE_KEY
+  $ for i in 1 2 3 4; do sh scripts/link-key.sh bala2-remote > printed$i 2> log$i & done; wait
+  $ cat log* | sed "s|$PWD|.|" | sort | uniq -c | tr -s ' '
+   1 ESP-NOW link bala2-remote: key generated, in ./keys/bala2-remote.key
+   3 ESP-NOW link bala2-remote: key reused, in ./keys/bala2-remote.key
+  $ cat printed* | sort -u | grep -c '^[0-9a-f]\{32\}$'
+  1
+  $ cmp printed1 keys/bala2-remote.key
+  $ ls -ld keys keys/bala2-remote.key | cut -c 1-10
+  drwx------
+  -rw-------
+  $ ls -A keys
+  bala2-remote.key
+  $ sh scripts/link-key.sh bala2-remote 2>&1 > /dev/null | sed "s|$PWD|.|"
+  ESP-NOW link bala2-remote: key reused, in ./keys/bala2-remote.key
+
+REMOTE_KEY, here a fake key, takes precedence over the key file; a key that
+is not 32 hexadecimal digits, of REMOTE_KEY or of the key file, is an error:
+
+  $ REMOTE_KEY=000102030405060708090a0b0c0d0e0f sh scripts/link-key.sh bala2-remote
+  ESP-NOW link bala2-remote: key of REMOTE_KEY
+  000102030405060708090a0b0c0d0e0f
+  $ REMOTE_KEY=000102030405060708090a0b0c0d0e sh scripts/link-key.sh bala2-remote
+  Error: REMOTE_KEY is not 32 hexadecimal digits
+  [1]
+  $ REMOTE_KEY=000102030405060708090a0b0c0d0e0g sh scripts/link-key.sh bala2-remote
+  Error: REMOTE_KEY is not 32 hexadecimal digits
+  [1]
+  $ echo 0001 > keys/bala2-remote.key
+  $ sh scripts/link-key.sh bala2-remote 2>&1 | sed "s|$PWD|.|"
+  Error: the key file ./keys/bala2-remote.key is not 32 hexadecimal digits
+  $ rm -r keys printed* log*
 
 BRIGHTNESS adds the flag TEMPORE_DISPLAY_BRIGHTNESS to the build flags of
 every target that builds a device project, before those of the example:

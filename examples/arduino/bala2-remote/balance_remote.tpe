@@ -26,9 +26,10 @@
    bindings.cpp and plant.cpp of examples/arduino/bala2), armed, driven and
    disarmed by the messages of the package bala2-remote. On the board: make
    arduino-bala2-remote-upload REMOTE_PEER=XX:XX:XX:XX:XX:XX, the address of
-   the controller (by default broadcast); simulated on the host, with
-   controller.cpp scripting the controller: make
-   arduino-bala2-remote-simulate. *)
+   the controller, which encrypts the link with the key shared with the
+   controller (by default broadcast and unencrypted; see the README of the
+   Arduino backend); simulated on the host, with controller.cpp scripting
+   the controller: make arduino-bala2-remote-simulate. *)
 
 (* The exchange between the tasks, as in balance.tpe. The step publishes the
    tilt, in degrees, the rate of the gyroscope, in degrees per second, the
@@ -165,7 +166,7 @@ let step ((tilt, speed, integral, position, heading) : state) : state
 (* The initial state: the encoders reset, and the tilt from the
    accelerometer. *)
 let start () : state =
-  perform LinkStart remote_channel;
+  let _ = perform LinkStart remote_channel in
   perform ResetEncoders ();
   let accel, _ = perform ReadImu () in
   (tilt_x_of_accel accel, 0.0, 0.0, 0.0, 0.0)
