@@ -62,9 +62,9 @@ it waits.
   comment: Tempore run 1 returns 0
 
 The bead clean-up example, its operations declaring their running times under
-regex-timed-rigid-interval-symbolic, a time unit given in seconds.
+regex-timed-rigid-interval-rational-symbolic, a time unit given in seconds.
 
-  $ ../../tempore --grades regex-timed-rigid-interval-symbolic --emit-opentrons washes.py \
+  $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-opentrons washes.py \
   >   --bind $examples/washes_bindings.py --time-unit 60 $examples/washes.tpe
   Wrote _opentrons/protocols/washes.py
   $ simulate washes.py
@@ -82,7 +82,7 @@ regex-timed-rigid-interval-symbolic, a time unit given in seconds.
   comment: Tempore timeline: At 90 s: delay of 420 s
   delay(seconds=420.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
-  comment: Tempore timeline: At 510 s: operation `MagnetOn` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 510 s: operation `MagnetOn` took 30 s, within its running-time bounds (0, 60] s
   comment: Tempore timeline: At 540 s: delay of 180 s
   delay(seconds=180.0)
   pipette.transfer(80, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
@@ -102,7 +102,7 @@ regex-timed-rigid-interval-symbolic, a time unit given in seconds.
   comment: Tempore timeline: At 810 s: operation `Wash` took 90 s, within its running-time bounds [60, 120] s
   pipette.drop_tip()
   pipette.pick_up_tip()
-  comment: Tempore timeline: At 900 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 900 s: operation `ChangeTip` took 15 s, within its running-time bounds (0, 60] s
   pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='never')
   pipette.transfer(150, A1 of D2, A12 of D1, new_tip='never')
   pipette.drop_tip()
@@ -119,9 +119,9 @@ regex-timed-rigid-interval-symbolic, a time unit given in seconds.
   delay(seconds=180.0)
   pipette.drop_tip()
   pipette.pick_up_tip()
-  comment: Tempore timeline: At 1185 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1185 s: operation `ChangeTip` took 15 s, within its running-time bounds (0, 60] s
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, 'D2', use_gripper=True)
-  comment: Tempore timeline: At 1200 s: operation `MagnetOff` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1200 s: operation `MagnetOff` took 30 s, within its running-time bounds (0, 60] s
   pipette.transfer(25, A3 of D1, A1 of D2, mix_after=(5, 20), new_tip='never')
   pipette.drop_tip()
   pipette.pick_up_tip()
@@ -137,7 +137,7 @@ regex-timed-rigid-interval-symbolic, a time unit given in seconds.
   comment: Tempore timeline: At 1320 s: delay of 120 s
   delay(seconds=120.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
-  comment: Tempore timeline: At 1440 s: operation `MagnetOn` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1440 s: operation `MagnetOn` took 30 s, within its running-time bounds (0, 60] s
   comment: Tempore timeline: At 1470 s: delay of 180 s
   delay(seconds=180.0)
   pipette.transfer(20, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of D3, B1 of D3, C1 of D3, D1 of D3], new_tip='always')
@@ -466,14 +466,14 @@ The rejected variants of the examples.
 
   $ ../../tempore --grades time-interval --typecheck-only $examples/elisa_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `incubating` is unboxed with grade `[30, 30]` accumulated since it was bound, which is not below its box grade `[60, ∞)`
-  $ ../../tempore --grades regex-timed-rigid-interval-symbolic --typecheck-only $examples/washes_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: This function's body has grade `[{0 | Wash; (Wash; ChangeTip)*}, {0 | Wash; (Wash; ChangeTip)*}]`, which does not match its annotated grade `[{(Wash; ChangeTip)*}, {(Wash; ChangeTip)*}]`
+  $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/washes_reject.tpe 2>&1 | grep 'Typing error'
+  Typing error: This function's body has grade `{(Wash; (Wash; ChangeTip)*)?}`, which does not match its annotated grade `{(Wash; ChangeTip)*}`
   $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/cleanup_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `k` is unboxed with grade `{RemoveEthanol; !1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; 1; RemoveEthanol}`
   $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/purification_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `warm` is unboxed with grade `[{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}, {!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}]` accumulated since it was bound, which is not below its box grade `[{0}, {40}]`
-  Typing error: The resource inequality `[{AddEthanol; ![0.5, 1.5]; RemoveEthanol}, {AddEthanol; ![0.5, 1.5]; RemoveEthanol}] <= [{AddEthanol; ![0.5, 1.5]}, {AddEthanol; ![0.5, 1.5]}]` does not hold
-  Typing error: Variable `soaking` is unboxed with grade `[{AddEthanol; MagnetOff; !0.5}, {AddEthanol; MagnetOff; !0.5}]` accumulated since it was bound, which is not below its box grade `[{AddEthanol; ![0.5, 1.5]}, {AddEthanol; ![0.5, 1.5]}]`
+  Typing error: Variable `warm` is unboxed with grade `{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
+  Typing error: The resource inequality `{AddEthanol; ![0.5, 1.5]; RemoveEthanol} <= {AddEthanol; ![0.5, 1.5]}` does not hold
+  Typing error: Variable `soaking` is unboxed with grade `{AddEthanol; MagnetOff; !0.5}` accumulated since it was bound, which is not below its box grade `{AddEthanol; ![0.5, 1.5]}`
   $ ../../tempore --grades time-upper-bound-levels --typecheck-only $examples/contamination_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `article_tip` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(∞, Low)`
   $ for name in reagents staggered beads stopread; do

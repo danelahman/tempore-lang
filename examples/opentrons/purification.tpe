@@ -5,10 +5,13 @@
      ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        examples/opentrons/purification.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces with rational durations
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 (* A tick is a minute. The protocol for the Flex is written and simulated by
@@ -179,19 +182,15 @@ let purification (samples : sample) =
    their boxes accept, but the eluates reach the cold block up to 41.25
    minutes after the beads were added:
 
-     Typing error: Variable `warm` is unboxed with grade `[{!10; MagnetOn; !5;
+     Typing error: Variable `warm` is unboxed with grade `{!10; MagnetOn; !5;
        RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75;
        RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3;
-       MagnetOn; !2.5}, {!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1;
-       RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol;
-       !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}]` accumulated since it was
-       bound, which is not below its box grade `[{0}, {40}]`
-       Note: the resource inequality `[{!10; MagnetOn; !5; RemoveSupernatant;
+       MagnetOn; !2.5}` accumulated since it was bound, which is not below its
+       box grade `{[0, 40]}`
+       Note: the resource inequality `{!10; MagnetOn; !5; RemoveSupernatant;
        AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol;
-       RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5},
-       {!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol;
-       AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff;
-       EluteDNA; !3; MagnetOn; !2.5}] <= [{0}, {40}]` does not hold
+       RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5} <=
+       {[0, 40]}` does not hold
 *)
 (*
 let separate_long (binding : [[5, 10]]beads) =
@@ -233,10 +232,8 @@ let purification_generous (samples : sample) =
    final wash finds them in the box of the first wash, which does not allow
    for the removal of its ethanol before the box is opened:
 
-     Typing error: The resource inequality `[{AddEthanol; ![0.5, 1.5];
-       RemoveEthanol}, {AddEthanol; ![0.5, 1.5];
-       RemoveEthanol}] <= [{AddEthanol; ![0.5, 1.5]}, {AddEthanol;
-       ![0.5, 1.5]}]` does not hold
+     Typing error: The resource inequality `{AddEthanol; ![0.5, 1.5];
+       RemoveEthanol} <= {AddEthanol; ![0.5, 1.5]}` does not hold
 *)
 (*
 let purification_one_wash (samples : sample) =
@@ -258,13 +255,11 @@ let purification_one_wash (samples : sample) =
    with the budget `[1/2, 3/2]` in place of `![1/2, 3/2]`, it is accepted,
    the move fitting beside the wait of half a minute:
 
-     Typing error: Variable `soaking` is unboxed with grade `[{AddEthanol;
-       MagnetOff; !0.5}, {AddEthanol; MagnetOff; !0.5}]` accumulated since it
-       was bound, which is not below its box grade `[{AddEthanol;
-       ![0.5, 1.5]}, {AddEthanol; ![0.5, 1.5]}]`
-       Note: the resource inequality `[{AddEthanol; MagnetOff; !0.5},
-       {AddEthanol; MagnetOff; !0.5}] <= [{AddEthanol; ![0.5, 1.5]},
-       {AddEthanol; ![0.5, 1.5]}]` does not hold
+     Typing error: Variable `soaking` is unboxed with grade `{AddEthanol;
+       MagnetOff; !0.5}` accumulated since it was bound, which is not below its
+       box grade `{AddEthanol; ![0.5, 1.5]}`
+       Note: the resource inequality `{AddEthanol; MagnetOff; !0.5} <=
+       {AddEthanol; ![0.5, 1.5]}` does not hold
 *)
 (*
 let wash_off_magnet (soaking : [{AddEthanol; ![1/2, 3/2]}]beads) =

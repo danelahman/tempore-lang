@@ -19,7 +19,7 @@ let rec session_once (n : nat) (v : view) : unit
         let latest, fresh = confirm 40 in
         unbox zero as neutral in
         let v =
-          armed 4000000000 v (box {(!_ & ~SendDisarm)*} neutral) latest fresh
+          armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest fresh
         in
         disarming ();
         perform ShowTextAt (0, 30, 2, "Disarmed");

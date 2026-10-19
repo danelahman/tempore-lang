@@ -10,10 +10,13 @@
        --board m5stack-gray \
        examples/arduino/bala2-regex/balance_regex.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces with rational durations
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 (* The application of examples/arduino/bala2/balance.tpe with grades that fix
@@ -167,16 +170,12 @@ let start () : state =
    taken before a command of the motors:
 
      Typing error: Variable `fresh` is unboxed with grade
-       `[{ReadEncoders; Setpoints; (SetMotors | 0)},
-       {ReadEncoders; Setpoints; (SetMotors | 0)}]` accumulated since it was
-       bound, which is not below its box grade
-       `[{(ReadEncoders | Setpoints)*}, {(ReadEncoders | Setpoints)*}]`
+       `{ReadEncoders; Setpoints; SetMotors?}` accumulated since it was bound,
+       which is not below its box grade `{(ReadEncoders | Setpoints)*}`
        ...
        Note: the resource inequality
-         `[{ReadEncoders; Setpoints; (SetMotors | 0)},
-         {ReadEncoders; Setpoints; (SetMotors | 0)}] <=
-         [{(ReadEncoders | Setpoints)*}, {(ReadEncoders | Setpoints)*}]` does
-         not hold
+         `{ReadEncoders; Setpoints; SetMotors?} <=
+         {(ReadEncoders | Setpoints)*}` does not hold
 *)
 (*
 let step_stopped
@@ -229,12 +228,10 @@ let measure_bias () : float
 (* Correctly rejected by the typechecker: the measurement does not disarm
    the robot first, so that the motors may move it while the rates are read:
 
-     Typing error: This function's body has grade `[{ClearDisplay;
-       ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {ClearDisplay;
-       ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`, which does not
-       match its annotated grade `[{Disarm; ClearDisplay; ShowTextAt;
-       ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay;
-       ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`
+     Typing error: This function's body has grade `{ClearDisplay;
+       ShowTextAt^2; ShowText; (Attitude; 10)*}`, which does not match its
+       annotated grade `{Disarm; ClearDisplay; ShowTextAt^2; ShowText;
+       (Attitude; 10)*}`
        ...
 *)
 (*
@@ -253,10 +250,9 @@ let measure_bias_armed () : float
    of rates left, which stretches the time between two readings to up to
    22.5 ms:
 
-     Typing error: This function's body has grade `[{Attitude; ShowNumber;
-       !10; (Attitude; 10)* | 0}, {Attitude; ShowNumber; !10; (Attitude; 10)*
-       | 0}]`, which does not match its annotated grade `[{(Attitude; 10)*},
-       {(Attitude; 10)*}]`
+     Typing error: This function's body has grade `{(Attitude; ShowNumber;
+       !10; …)?}`, which does not match its annotated grade
+       `{(Attitude; 10)*}`
        ...
 *)
 (*

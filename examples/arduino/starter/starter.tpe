@@ -11,10 +11,13 @@
        --board m5stack-cores3 \
        examples/arduino/starter/starter.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces with rational durations
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 (* Runs on the M5Stack CoreS3 Lite lying on a starting block or held in the
@@ -276,10 +279,9 @@ let fire (gun : at_gun) (m : float) (w : float) : outcome
    48 ms:
 
      Typing error: Variable `gun` is unboxed with grade
-       `[{Beep; ClearDisplay; ReadClock; (0 | !2.5; ReadImu; ReadClock)^200},
-       {Beep; ClearDisplay; ReadClock; (0 | !2.5; ReadImu; ReadClock)^200}]`
+       `{Beep; ClearDisplay; ReadClock; (!2.5; ReadImu; ReadClock)?^200}`
        accumulated since it was bound, which is not below its box grade
-       `[{Beep; ReadClock; [0, 1000]}, {Beep; ReadClock; [0, 1000]}]`
+       `{Beep; ReadClock; [0, 1000]}`
        ...
 *)
 (*
@@ -302,11 +304,9 @@ let fire_cleared (gun : at_gun) (m : float) (w : float) : outcome
    second:
 
      Typing error: Variable `window` is unboxed with grade
-       `[{Beep; ReadClock; ShowColourTextAt; (0 | !2.5; ReadImu;
-       ReadClock)^200}, {Beep; ReadClock; ShowColourTextAt; (0 | !2.5;
-       ReadImu; ReadClock)^200}]` accumulated since it was bound, which is
-       not below its box grade `[{Beep; ReadClock; (![0, 2.5]; ReadImu;
-       ReadClock)*}, {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*}]`
+       `{Beep; ReadClock; ShowColourTextAt; (!2.5; ReadImu; ReadClock)?^200}`
+       accumulated since it was bound, which is not below its box grade
+       `{Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*}`
        ...
 *)
 (*
@@ -404,10 +404,9 @@ let start_once (a : athlete) : outcome
    polls of the Set hold, 1182 to 1347 ms after the Set command:
 
      Typing error: Variable `set` is unboxed with grade
-       `[{ShowColourTextAt^2; Beep; [197, 224.5]^6}, {ShowColourTextAt^2;
-       Beep; [197, 224.5]^6}]` accumulated since it was bound, which is not
-       below its box grade
-       `[{ShowColourTextAt; [1500, 3000]}, {ShowColourTextAt; [1500, 3000]}]`
+       `{ShowColourTextAt^2; Beep; [1182, 1347]}` accumulated since it was
+       bound, which is not below its box grade
+       `{ShowColourTextAt; [1500, 3000]}`
        ...
 *)
 (*

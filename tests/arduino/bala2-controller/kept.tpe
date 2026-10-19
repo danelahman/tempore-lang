@@ -7,10 +7,10 @@ let sessions_kept (v : view) =
   let latest, fresh = confirm 40 in
   unbox zero as neutral in
   let v =
-    armed 4000000000 v (box {(!_ & ~SendDisarm)*} neutral) latest fresh
+    armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest fresh
   in
   disarming ();
   arming ();
   let latest, fresh = confirm 40 in
   unbox zero as kept in
-  armed 4000000000 v (box {(!_ & ~SendDisarm)*} kept) latest fresh
+  armed 4000000000 v (box {≥0 & ~SendDisarm} kept) latest fresh

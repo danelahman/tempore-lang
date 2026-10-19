@@ -12,10 +12,13 @@
        --board m5stack-cores3 \
        examples/arduino/bala2-controller/controller.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces with rational durations
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 (* Runs on the M5Stack CoreS3 (controller.device.json): 'remote' as a free
@@ -113,14 +116,14 @@ let disarming () : unit # {(SendDisarm; !25/2)^20} =
 
 (* The neutral tilt of a session: the pitch and the roll, in degrees, at
    which the CoreS3 is held when Arm is tapped, from which the speed and the
-   turn are measured. It is boxed with {(!_ & ~SendDisarm)*}, so that it is
+   turn are measured. It is boxed with {≥0 & ~SendDisarm}, so that it is
    used only before the next Disarm, within its session. *)
-type neutral = [{(!_ & ~SendDisarm)*}](float * float)
+type neutral = [{≥0 & ~SendDisarm}](float * float)
 
 (* Reads the neutral tilt. *)
 let record_neutral () : neutral # {ReadImu} =
   let accel, _ = perform ReadImu () in
-  box {(!_ & ~SendDisarm)*} (tilt_x_of_accel accel, tilt_y_of_accel accel)
+  box {≥0 & ~SendDisarm} (tilt_x_of_accel accel, tilt_y_of_accel accel)
 
 (* The handshake: after the arming, Arm again every 12.5 ms until the status
    of the robot says it is armed, at most 40 more times; it returns the last
@@ -212,8 +215,8 @@ type view = bool * float * bool
    the status for the next iteration.
 
    The boxes span the readings of the unit and the touch screen: those of
-   the reading, {(!_ & ~ReadImu)*} and [0, 2], as before; those of the
-   status, {(!_ & ~Receive)*} and [0, 200), so that the command is decided
+   the reading, {≥0 & ~ReadImu} and [0, 2], as before; those of the
+   status, {≥0 & ~Receive} and [0, 200), so that the command is decided
    on the latest status, received at most 200 ms earlier; the tilt shown
    comes from the second. The neutral tilt is unboxed after the readings
    and boxed again for the next iteration. An iteration takes 10.7 to 47.55
@@ -266,13 +269,13 @@ let rec armed (n : nat) ((link_shown, shown_tilt, bubble_next) : view)
         in
         delay 21/2;
         let latest, fresh = remote_status () in
-        armed m view (box {(!_ & ~SendDisarm)*} neutral) latest fresh
+        armed m view (box {≥0 & ~SendDisarm} neutral) latest fresh
 
 (* Correctly accepted by the typechecker: a session sends Beat until a tap
    on Arm, records the neutral tilt, sends Arm 80 times and then until the
    robot confirms, Drive or Beat until a tap on Disarm, and Disarm 20
    times, in this order; its grade is the protocol of the controller, and
-   its strict delays and operations bound the time from the end of one
+   its strict waits and operations bound the time from the end of one
    message to the start of the next by 46.95 ms, below the 50 ms within
    which the robot expects one: after the last Disarm, the wait of 12.5 ms,
    the redraw of the state, up to 33 ms, and the reading of the touch
@@ -296,7 +299,7 @@ let rec session (n : nat) (v : view) : unit
         let latest, fresh = confirm 40 in
         unbox zero as neutral in
         let v =
-          armed 4000000000 v (box {(!_ & ~SendDisarm)*} neutral) latest fresh
+          armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest fresh
         in
         disarming ();
         perform ShowTextAt (0, 30, 2, "Disarmed");
@@ -318,11 +321,11 @@ let remote () =
 (* Correctly rejected by the typechecker: a session that sends Arm once,
    which the robot, polling every 400 ms, may miss:
 
-     Typing error: This function's body has grade `[{(ReadTouch; SendBeat;
-       !10.5)*; (ReadTouch | 0); (0 | ReadImu; SendArm; !12.5; SendArm;
-       !12.5; Receive; ...`, which does not match its annotated grade
-       `[{((ReadTouch; SendBeat; !10.5)*; (ReadTouch | 0); ReadImu; (SendArm;
-       !12.5)^80; ...`
+     Typing error: This function's body has grade `{(ReadTouch; SendBeat;
+       DrawLevel?; !10.5)*; ReadTouch?; (ReadImu; SendArm; !12.5; SendArm;
+       !12.5; Receive; …`, which does not match its annotated grade
+       `{((ReadTouch; SendBeat; DrawLevel?; !10.5)*; ReadTouch?; ReadImu;
+       (SendArm; !12.5)^80; …`
        ...
 *)
 (*
@@ -345,7 +348,7 @@ let rec session_once (n : nat) (v : view) : unit
         let latest, fresh = confirm 40 in
         unbox zero as neutral in
         let v =
-          armed 4000000000 v (box {(!_ & ~SendDisarm)*} neutral) latest fresh
+          armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest fresh
         in
         disarming ();
         perform ShowTextAt (0, 30, 2, "Disarmed");
@@ -358,10 +361,10 @@ let rec session_once (n : nat) (v : view) : unit
    the CoreS3 still again, use it after a Disarm, while it may be held
    otherwise:
 
-     Typing error: Variable `zero` is unboxed with grade `[{(SendArm;
-       !12.5)^80; ...; (SendDisarm; !12.5)^20; (SendArm; !12.5)^80; ...}, ...]`
+     Typing error: Variable `zero` is unboxed with grade `{(SendArm;
+       !12.5)^80; …; (SendDisarm; !12.5)^20; (SendArm; !12.5)^80; …}`
        accumulated since it was bound, which is not below its box grade
-       `[{(!_ & ~SendDisarm)*}, {(!_ & ~SendDisarm)*}]`
+       `{≥0 & ~SendDisarm}`
        ...
 *)
 (*
@@ -371,23 +374,22 @@ let sessions_kept (v : view) =
   let latest, fresh = confirm 40 in
   unbox zero as neutral in
   let v =
-    armed 4000000000 v (box {(!_ & ~SendDisarm)*} neutral) latest fresh
+    armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest fresh
   in
   disarming ();
   arming ();
   let latest, fresh = confirm 40 in
   unbox zero as kept in
-  armed 4000000000 v (box {(!_ & ~SendDisarm)*} kept) latest fresh
+  armed 4000000000 v (box {≥0 & ~SendDisarm} kept) latest fresh
 *)
 
 (* Correctly rejected by the typechecker: a session that redraws the armed
    screen after the handshake and then drives on its confirmation, which
    may then be older than 200 ms:
 
-     Typing error: Variable `fresh` is unboxed with grade `[{ClearDisplay;
-       ShowTextAt^4; DrawButton^2}, {ClearDisplay; ShowTextAt^4;
-       DrawButton^2}]` accumulated since it was bound, which is not below its
-       box grade `[{0}, {[0, 200)}]`
+     Typing error: Variable `fresh` is unboxed with grade `{ClearDisplay;
+       ShowTextAt^4; DrawButton^2}` accumulated since it was bound, which is
+       not below its box grade `{[0, 200)}`
        ...
 *)
 (*
@@ -412,5 +414,5 @@ let session_stale () =
    operations: no touch, the unit flat, no status, and Beat sent. *)
 run (
   let latest, fresh = remote_status () in
-  armed 1 (false, 0.0, true) (box {(!_ & ~SendDisarm)*} (0.0, 0.0))
+  armed 1 (false, 0.0, true) (box {≥0 & ~SendDisarm} (0.0, 0.0))
     latest fresh)

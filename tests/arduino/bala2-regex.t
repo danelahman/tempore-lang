@@ -19,24 +19,20 @@ implementations of the operations:
   === Run 1 ===
   return (2.8812, 0., 0., 0., 0.)
   State: [
-    [{!0.6}, {!0.6}],
-    { resource_0 ↦
-        ((0., 0., 1.), (0., 0., 0.))
-        # [{(ReadEncoders | Setpoints)*}, {(ReadEncoders | Setpoints)*}]
+    {!0.6},
+    { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) # {(ReadEncoders | Setpoints)*}
     },
-    [{!0.5}, {!0.5}],
-    [{!0.01}, {!0.01}],
-    [{!0.01}, {!0.01}],
-    [{!0.2}, {!0.2}],
-    [{!0.6}, {!0.6}],
-    { resource_1 ↦
-        ((0., 0., 1.), (0., 0., 0.))
-        # [{(ReadEncoders | Setpoints)*}, {(ReadEncoders | Setpoints)*}]
+    {!0.5},
+    {!0.01},
+    {!0.01},
+    {!0.2},
+    {!0.6},
+    { resource_1 ↦ ((0., 0., 1.), (0., 0., 0.)) # {(ReadEncoders | Setpoints)*}
     },
-    [{!0.5}, {!0.5}],
-    [{!0.01}, {!0.01}],
-    [{!0.01}, {!0.01}],
-    [{!0.2}, {!0.2}]
+    {!0.5},
+    {!0.01},
+    {!0.01},
+    {!0.2}
   ]
   
 
@@ -61,7 +57,7 @@ its readings:
   File "bala2-regex/stopped.tpe", lines 11-19, characters 2-39:
   11 |   unbox fresh as imu in
          ^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `fresh` is unboxed with grade `[{ReadEncoders; Setpoints; (SetMotors | 0)}, {ReadEncoders; Setpoints; (SetMotors | 0)}]` accumulated since it was bound, which is not below its box grade `[{(ReadEncoders | Setpoints)*}, {(ReadEncoders | Setpoints)*}]`
+  Typing error: Variable `fresh` is unboxed with grade `{ReadEncoders; Setpoints; SetMotors?}` accumulated since it was bound, which is not below its box grade `{(ReadEncoders | Setpoints)*}`
     File "bala2-regex/stopped.tpe", line 7, characters 47-52:
     7 |   box {(ReadEncoders | Setpoints)*} reading as fresh in
                                                        ^^^^^
@@ -69,38 +65,39 @@ its readings:
     File "bala2-regex/stopped.tpe", line 8, characters 20-43:
     8 |   let left, right = perform ReadEncoders () in
                             ^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{ReadEncoders}, {ReadEncoders}]` accumulates here (operation `ReadEncoders`)
+    grade `{ReadEncoders}` accumulates here (operation `ReadEncoders`)
     File "bala2-regex/stopped.tpe", line 9, characters 34-54:
     9 |   let armed, bias, target, turn = perform Setpoints () in
                                           ^^^^^^^^^^^^^^^^^^^^
-    grade `[{Setpoints}, {Setpoints}]` accumulates here (operation `Setpoints`)
+    grade `{Setpoints}` accumulates here (operation `Setpoints`)
     File "bala2-regex/stopped.tpe", line 10, characters 2-52:
     10 |   (if armed then () else perform SetMotors (0i, 0i));
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{SetMotors | 0}, {SetMotors | 0}]` accumulates here (this computation)
-    Note: the resource inequality `[{ReadEncoders; Setpoints; (SetMotors | 0)}, {ReadEncoders; Setpoints; (SetMotors | 0)}] <= [{(ReadEncoders | Setpoints)*}, {(ReadEncoders | Setpoints)*}]` does not hold
-    Note: the grade `[{ReadEncoders; Setpoints; (SetMotors | 0)}, {ReadEncoders; Setpoints; SetMotors}]` is below `[{ReadEncoders; Setpoints; (SetMotors | 0)}, {ReadEncoders; Setpoints; (SetMotors | 0)}]` but not below `[{(ReadEncoders | Setpoints)*}, {(ReadEncoders | Setpoints)*}]`
+    grade `{SetMotors?}` accumulates here (this computation)
+    Note: the resource inequality `{ReadEncoders; Setpoints; SetMotors?} <= {(ReadEncoders | Setpoints)*}` does not hold
+    Note: the grade `[{ReadEncoders; Setpoints; SetMotors}, {ReadEncoders; Setpoints; SetMotors?}]` is below `{ReadEncoders; Setpoints; SetMotors?}` but not below `{(ReadEncoders | Setpoints)*}`
   [1]
   File "bala2-regex/armed.tpe", lines 4-12, characters 26-13:
   4 | let measure_bias_armed () : float
                                 ^^^^^^^
-  Typing error: This function's body has grade `[{ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}, {ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}]`, which does not match its annotated grade `[{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`
-    Note: the effect inequality `[{ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}, {ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}] <= [{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]` does not hold
+  Typing error: This function's body has grade `{ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}`, which does not match its annotated grade `{Disarm; ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}`
+    Note: the effect inequality `{ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*} <= {Disarm; ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}` does not hold
+    Note: the grade `[{ClearDisplay; ShowTextAt^2; ShowText}, {ClearDisplay; ShowTextAt^2; ShowText; (Attitude; ≤10)*}]` is below `{ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}` but not below `{Disarm; ClearDisplay; ShowTextAt^2; ShowText; (Attitude; 10)*}`
   [1]
   File "bala2-regex/shown.tpe", lines 4-11, characters 47-36:
   4 | let rec rate_sum_shown (n : nat) (sum : float) : float # {(Attitude; 10)*} =
                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `[{Attitude; ShowNumber; !10; (Attitude; 10)* | 0}, {Attitude; ShowNumber; !10; (Attitude; 10)* | 0}]`, which does not match its annotated grade `[{(Attitude; 10)*}, {(Attitude; 10)*}]`
-    Note: the effect inequality `[{Attitude; ShowNumber; !10; (Attitude; 10)* | 0}, {Attitude; ShowNumber; !10; (Attitude; 10)* | 0}] <= [{(Attitude; 10)*}, {(Attitude; 10)*}]` does not hold
-    Note: the grade `[{Attitude; ShowNumber; !10; (Attitude; 10)* | 0}, {Attitude; ShowNumber; !10}]` is below `[{Attitude; ShowNumber; !10; (Attitude; 10)* | 0}, {Attitude; ShowNumber; !10; (Attitude; 10)* | 0}]` but not below `[{(Attitude; 10)*}, {(Attitude; 10)*}]`
+  Typing error: This function's body has grade `{(Attitude; ShowNumber; !10; (Attitude; 10)*)?}`, which does not match its annotated grade `{(Attitude; 10)*}`
+    Note: the effect inequality `{(Attitude; ShowNumber; !10; (Attitude; 10)*)?} <= {(Attitude; 10)*}` does not hold
+    Note: the grade `[{(Attitude; ShowNumber; !≥10; (Attitude; ≥10)*)?}, {Attitude; ShowNumber; !≤10}]` is below `{(Attitude; ShowNumber; !10; (Attitude; 10)*)?}` but not below `{(Attitude; 10)*}`
   [1]
 
 The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json $app/balance_regex.tpe | grep -c Wrote
-  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 362, characters 26-27:
-  362 |       let s, _ = continue k with () in
+  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 358, characters 26-27:
+  358 |       let s, _ = continue k with () in
                                   ^
   Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
   33
@@ -140,8 +137,8 @@ bounds, and prints the other events as they are:
   > }
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json --host-simulate 8 $app/balance_regex.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
-  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 362, characters 26-27:
-  362 |       let s, _ = continue k with () in
+  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 358, characters 26-27:
+  358 |       let s, _ = continue k with () in
                                   ^
   Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
   [31.245 ms] Display cleared

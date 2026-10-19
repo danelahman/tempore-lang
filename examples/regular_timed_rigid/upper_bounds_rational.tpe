@@ -5,11 +5,12 @@
      ./tempore --grades regex-timed-rigid-upper-bound-rational-symbolic \
        examples/regular_timed_rigid/upper_bounds_rational.tpe
 
-   Grades {...}: regular languages of traces with rational durations in the
-   rigid allowance order: every operation of a bound is demanded, in order,
-   and other operations are bought within its delays
+   Grades {...}: upper bounds on the traces with rational durations, in the
+   rigid order: operations are matched in order, budgets admit operations
+   within their time, strict waits `!` admit none, a literal is read by the
+   upper end of its hull, and operations take positive time
      - Unit {0}: the empty trace, not the least grade
-     - Top ⊤: every trace permitted
+     - Top {≥0}: every trace
      - Product: concatenation of traces *)
 
 type stamp = Stamp of nat
@@ -85,10 +86,10 @@ let redrawn (lane : nat) =
      Typing error: Variable `p` is unboxed with grade
        `{ReadImu; ReadClock; Redraw; ReadImu; ReadClock}` accumulated since it
        was bound, which is not below its box grade
-       `{(2.5; ReadImu; ReadClock)*}`
+       `{(≤2.5; ReadImu; ReadClock)*}`
        ...
        Note: the resource inequality
-         `{ReadImu; ReadClock; Redraw; ReadImu; ReadClock} <= {(2.5; ReadImu; ReadClock)*}`
+         `{ReadImu; ReadClock; Redraw; ReadImu; ReadClock} <= {(≤2.5; ReadImu; ReadClock)*}`
          does not hold
 *)
 (*
@@ -110,11 +111,11 @@ let polls_redrawn () =
    bound left out and the redraw bought within the 750 milliseconds:
 
      Typing error: Variable `s` is unboxed with grade
-       `{Beep; Redraw; ReadClock; !312.5; ReadImu}` accumulated since it was
-       bound, which is not below its box grade `{Beep; ReadClock; [0, 750]}`
+       `{Beep; Redraw; ReadClock; !≤312.5; ReadImu}` accumulated since it was
+       bound, which is not below its box grade `{Beep; ReadClock; ≤750}`
        ...
        Note: the resource inequality
-         `{Beep; Redraw; ReadClock; !312.5; ReadImu} <= {Beep; ReadClock; [0, 750]}`
+         `{Beep; Redraw; ReadClock; !≤312.5; ReadImu} <= {Beep; ReadClock; ≤750}`
          does not hold
 *)
 (*
@@ -133,11 +134,11 @@ let stamped_late (lane : nat) =
    a delay of 7.5 exceed the 40 before the time stamp:
 
      Typing error: Variable `s` is unboxed with grade
-       `{Beep; Redraw; !7.5; ReadClock}` accumulated since it was bound, which
-       is not below its box grade `{Beep; [0, 40]; ReadClock}`
+       `{Beep; Redraw; !≤7.5; ReadClock}` accumulated since it was bound,
+       which is not below its box grade `{Beep; ≤40; ReadClock}`
        ...
        Note: the resource inequality
-         `{Beep; Redraw; !7.5; ReadClock} <= {Beep; [0, 40]; ReadClock}` does
+         `{Beep; Redraw; !≤7.5; ReadClock} <= {Beep; ≤40; ReadClock}` does
          not hold
 *)
 (*

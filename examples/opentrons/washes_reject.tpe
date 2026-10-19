@@ -1,14 +1,17 @@
 (* As the bead clean-up example, with the further ethanol washes sharing a tip.
 
-   Run this example with the 'regex-timed-rigid-interval-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-rigid-interval-symbolic \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        examples/opentrons/washes_reject.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 type beads = string
@@ -22,10 +25,8 @@ default ChangeTip () = delay 1
 (* Correctly rejected by the typechecker: the further washes share a tip,
    where the grade of the recursion demands a fresh tip after each:
 
-     Typing error: This function's body has grade `[{0 | Wash;
-       (Wash; ChangeTip)*}, {0 | Wash; (Wash; ChangeTip)*}]`, which does not
-       match its annotated grade `[{(Wash; ChangeTip)*},
-       {(Wash; ChangeTip)*}]`
+     Typing error: This function's body has grade `{(Wash; …)?}`, which
+       does not match its annotated grade `{(Wash; ChangeTip)*}`
        ...
 *)
 let rec washes_shared_tip (beads : beads) (n : nat)

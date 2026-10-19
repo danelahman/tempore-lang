@@ -170,7 +170,8 @@ each is a minute.
 - [`elisa.tpe`](../../../examples/opentrons/elisa.tpe): an enzyme-linked
   immunosorbent assay under `time-interval`.
 - [`washes.tpe`](../../../examples/opentrons/washes.tpe): a bead clean-up
-  with two or more ethanol washes, under `regex-timed-rigid-interval-symbolic`,
+  with two or more ethanol washes, under
+  `regex-timed-rigid-interval-rational-symbolic`,
   whose recursion `washes n` has the grade `{(Wash; ChangeTip)*}`: each wash
   is followed by a fresh tip and nothing else. The operations take the
   beads and the eluates they act on, and boxes release them: the beads to the
@@ -178,7 +179,7 @@ each is a minute.
   `{AddBeads; ![5, 10]; MagnetOn}`, waiting only, and to the elution after
   the washes and a strict air-dry, and the eluates to the transfer after a
   settling of `{![2, 5]}`. The annotated grade of the clean-up excludes a
-  removal of liquid with the plate off the magnet.
+  removal of liquid with the plate off the magnet by restricted budgets.
 - [`contamination.tpe`](../../../examples/opentrons/contamination.tpe): a
   ddPCR plate set-up under `time-upper-bound-levels`, whose master mix is
   boxed `(30, High)` and unboxed for each dispensing.
@@ -197,14 +198,14 @@ each is a minute.
   read with plates boxed `[0, 30]`, under `time-interval`.
 - [`cleanup.tpe`](../../../examples/opentrons/cleanup.tpe): a bead clean-up
   whose compound operations are performed by a handler through the atomic
-  operations, under `regex-timed-rigid-interval-symbolic`.
+  operations, under `regex-timed-rigid-interval-rational-symbolic`.
 - [`purification.tpe`](../../../examples/opentrons/purification.tpe): a
   bead purification under `regex-timed-rigid-interval-rational-symbolic` whose
   steps each take the beads in a box and return them in the box of the next
   step, its grade the window of that step, e.g. `{[3, 5]; MagnetOff}` for
   the air-dry before the elution buffer. The box after the first ethanol
   wash spans the whole second wash, so that exactly two washes are accepted.
-  The ethanol soaks are strict delays, `{AddEthanol; ![1/2, 3/2]}`, during
+  The ethanol soaks are strict waits, `{AddEthanol; ![1/2, 3/2]}`, during
   which the plate stays on the magnet.
   The eluates are boxed `{Transfer}` with a function whose call creates
   their box `[2, 5]` of the master mix, so that its window starts on the

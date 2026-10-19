@@ -19,11 +19,11 @@ message received first, no longer the latest:
 
   $ for v in early unsettled polled; do packages --typecheck-only $app/balance_remote.tpe bala2-remote/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out; done
   [1]
-  Typing error: Variable `calibration` is used with grade `[{(Receive; Report; !400)^[1, 500]}, {(Receive; Report; !400)^[1, 500]}]` accumulated since it was bound, but its type `calibration` is not eternal
+  Typing error: Variable `calibration` is used with grade `{(Receive; Report; !400)^[1, 500]}` accumulated since it was bound, but its type `calibration` is not eternal
   [1]
-  Typing error: Variable `checked` is unboxed with grade `[{Disarm; (Attitude; !10)*}, {Disarm; (Attitude; !10)*}]` accumulated since it was bound, which is not below its box grade `[{(Attitude; !10)*}, {(Attitude; !10)*}]`
+  Typing error: Variable `checked` is unboxed with grade `{Disarm; (Attitude; !10)*}` accumulated since it was bound, which is not below its box grade `{(Attitude; !10)*}`
   [1]
-  Typing error: Variable `latest` is unboxed with grade `[{Receive; (0 | Disarm)}, {Receive; (0 | Disarm)}]` accumulated since it was bound, which is not below its box grade `[{(!_ & ~Receive)*}, {(!_ & ~Receive)*}]`
+  Typing error: Variable `latest` is unboxed with grade `{Receive; Disarm?}` accumulated since it was bound, which is not below its box grade `{≥0 & ~Receive}`
 
 The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information:

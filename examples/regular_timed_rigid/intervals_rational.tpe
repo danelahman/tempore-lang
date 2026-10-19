@@ -5,10 +5,13 @@
      ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        examples/regular_timed_rigid/intervals_rational.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces with rational durations
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 type sample = Sample of nat
@@ -31,7 +34,7 @@ default Redraw () = delay 21.5
    another operation between them. *)
 let window () =
   let first = perform ReadImu () in
-  box [{(ReadImu; ReadClock)^3},
+  box [{(≥0; ReadImu; ReadClock)^3; ≥0},
        {(2.5; ReadImu; ReadClock)*}] first as w in
   delay 1.75;
   let a = perform ReadImu () in
@@ -49,20 +52,19 @@ let window () =
    short of the three the lower bound demands:
 
      Typing error: Variable `w` is unboxed with grade
-       `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock},
-         {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}]` accumulated
+       `{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}` accumulated
        since it was bound, which is not below its box grade
-       `[{(ReadImu; ReadClock)^3},
-         {(2.5; ReadImu; ReadClock)*}]`
+       `[{(≥0; ReadImu; ReadClock)^3; ≥0},
+         {(≤2.5; ReadImu; ReadClock)*}]`
        ...
        Note: the resource inequality
-         `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}, {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}] <= [{(ReadImu; ReadClock)^3}, {(2.5; ReadImu; ReadClock)*}]`
+         `{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock} <= [{(≥0; ReadImu; ReadClock)^3; ≥0}, {(≤2.5; ReadImu; ReadClock)*}]`
          does not hold
 *)
 (*
 let window_short () =
   let first = perform ReadImu () in
-  box [{(ReadImu; ReadClock)^3},
+  box [{(≥0; ReadImu; ReadClock)^3; ≥0},
        {(2.5; ReadImu; ReadClock)*}] first as w in
   delay 1.75;
   let a = perform ReadImu () in
@@ -76,26 +78,25 @@ let window_short () =
 
 (* Correctly rejected by the typechecker: the screen is redrawn between the
    second and the third poll, which no delay of 2.5 milliseconds pays for.
-   Under 'regex-timed-interval-rational-symbolic' it is accepted, the delays of
-   further rounds of the upper bound paying for the redraw:
+   Under 'regex-timed-interval-rational-symbolic', with the lower bound
+   {(ReadImu; ReadClock)^3}, it is accepted, the delays of further rounds of
+   the upper bound paying for the redraw:
 
      Typing error: Variable `w` is unboxed with grade
-       `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu;
-          ReadClock},
-         {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu;
-          ReadClock}]` accumulated since it was bound, which is not below its
+       `{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu;
+       ReadClock}` accumulated since it was bound, which is not below its
        box grade
-       `[{(ReadImu; ReadClock)^3},
-         {(2.5; ReadImu; ReadClock)*}]`
+       `[{(≥0; ReadImu; ReadClock)^3; ≥0},
+         {(≤2.5; ReadImu; ReadClock)*}]`
        ...
        Note: the resource inequality
-         `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock}, {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock}] <= [{(ReadImu; ReadClock)^3}, {(2.5; ReadImu; ReadClock)*}]`
+         `{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock} <= [{(≥0; ReadImu; ReadClock)^3; ≥0}, {(≤2.5; ReadImu; ReadClock)*}]`
          does not hold
 *)
 (*
 let window_redrawn () =
   let first = perform ReadImu () in
-  box [{(ReadImu; ReadClock)^3},
+  box [{(≥0; ReadImu; ReadClock)^3; ≥0},
        {(2.5; ReadImu; ReadClock)*}] first as w in
   delay 1.75;
   let a = perform ReadImu () in

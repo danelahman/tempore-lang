@@ -16,11 +16,11 @@ confirmation, which may then be older than 200 ms:
 
   $ for v in once kept stale; do packages --typecheck-only $app/controller.tpe bala2-controller/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out | cut -c 1-160; done
   [1]
-  Typing error: This function's body has grade `[{(ReadTouch; SendBeat; (DrawLevel | 0); !10.5)*; (ReadTouch | 0); (0 | ReadImu; SendArm; !12.5; SendArm; !12.5; R
+  Typing error: This function's body has grade `{(ReadTouch; SendBeat; DrawLevel?; !10.5)*; ReadTouch?; (ReadImu; SendArm; !12.5; SendArm; !12.5; Receive; (SendAr
   [1]
-  Typing error: Variable `zero` is unboxed with grade `[{(SendArm; !12.5)^80; SendArm; !12.5; Receive; (SendArm; !12.5; Receive)*; (ReadImu; ReadTouch; (SendDrive
+  Typing error: Variable `zero` is unboxed with grade `{(SendArm; !12.5)^80; SendArm; !12.5; Receive; (SendArm; !12.5; Receive)*; (ReadImu; ReadTouch; (SendBeat |
   [1]
-  Typing error: Variable `fresh` is unboxed with grade `[{ClearDisplay; ShowTextAt^4; DrawButton^2}, {ClearDisplay; ShowTextAt^4; DrawButton^2}]` accumulated sinc
+  Typing error: Variable `fresh` is unboxed with grade `{ClearDisplay; ShowTextAt^4; DrawButton^2}` accumulated since it was bound, which is not below its box gra
 
 The PlatformIO project for the M5Stack CoreS3, its C++ sources checked
 without exceptions and run-time type information:

@@ -6,10 +6,13 @@
      ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        examples/opentrons/purification_reject.tpe
 
-   Grades [L, U]: a lower bound in the coverage order and an upper bound in
-   the rigid allowance order on the traces with rational durations
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+   Grades [L, U]: a lower and an upper bound on the traces with rational
+   durations, in the rigid order: operations are matched in order, budgets
+   admit operations within their time, strict waits `!` admit none, a
+   literal is read by its hull on each side, and operations take positive
+   time
+     - Unit {0}: the empty trace
+     - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
 type sample = string
@@ -98,7 +101,7 @@ let collect (eluting : [{[2, 5]; MagnetOn; [2, 5]}]beads) =
    minutes after the beads were added:
 
      Typing error: Variable `warm` is unboxed with grade ... accumulated
-       since it was bound, which is not below its box grade `[{0}, {40}]`
+       since it was bound, which is not below its box grade `{[0, 40]}`
 *)
 let separate_long (binding : [[5, 10]]beads) =
   delay 10;
@@ -139,8 +142,8 @@ let purification_generous (samples : sample) =
    for the removal of its ethanol before the box is opened:
 
      Typing error: The resource inequality
-       `[{AddEthanol; ![0.5, 1.5]; RemoveEthanol}, ...] <=
-       [{AddEthanol; ![0.5, 1.5]}, {AddEthanol; ![0.5, 1.5]}]` does not hold
+       `{AddEthanol; ![0.5, 1.5]; RemoveEthanol} <=
+       {AddEthanol; ![0.5, 1.5]}` does not hold
 *)
 let purification_one_wash (samples : sample) =
   let binding = bind samples in
@@ -157,9 +160,9 @@ let purification_one_wash (samples : sample) =
 (* Correctly rejected by the typechecker: the plate is moved off the magnet
    during the first soak, and the ethanol is removed off the magnet:
 
-     Typing error: Variable `soaking` is unboxed with grade `[{AddEthanol;
-       MagnetOff; !0.5}, {AddEthanol; MagnetOff; !0.5}]` accumulated since it
-       was bound, which is not below its box grade ...
+     Typing error: Variable `soaking` is unboxed with grade `{AddEthanol;
+       MagnetOff; !0.5}` accumulated since it was bound, which is not below its
+       box grade ...
 *)
 let wash_off_magnet (soaking : [{AddEthanol; ![1/2, 3/2]}]beads) =
   perform AddEthanol ();
