@@ -115,8 +115,8 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
     defined weakly to do nothing, which an application may define to record
     the readings.
   - Under the rigid grades of timed operations, `read_imu_boxed` reads the
-    unit once and returns the reading in two boxes, as `latest_imu`, usable
-    before the next `ReadImu`, and as `recent_imu`, usable within 2 ms.
+    unit once and returns the reading in one box, `latest_imu`, of grade
+    `{≤2 & ~ReadImu}`, usable within 2 ms and before the next `ReadImu`.
 - `m5-display`, with colours of 24 bits, `0xRRGGBB`:
   - `ShowText`, `ShowNumber` and `ClearDisplay`, lines of text of size 2
     written one below another;
@@ -172,16 +172,16 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
     after it was sent;
   - declared under `time-interval-rational` and the regular expressions of
     timed operations with intervals or upper bounds;
-  - under the rigid grades, `remote_receive` returns two boxes: the
-    message, its setpoints zero, boxed with `{≥0 & ~Receive}`, usable only
-    before the next `Receive`, and its setpoints, of the non-eternal type
-    `setpoints`, boxed with `[0, 150)`, so that once unboxed they are
-    matched at once;
+  - under the rigid grades, `remote_receive` returns one box,
+    `{<150 & ~Receive}`, usable within 150 ms and before the next
+    `Receive`, of the message, its setpoints zero, and its setpoints, of the
+    non-eternal type `setpoints`, so that once unboxed they are matched at
+    once;
   - the status of the robot, `Status (armed, tilt)` or `NoStatus`, tag 5:
     `SendStatus` sends it, and `bala2_remote_send_status` of the header
     `bala2_remote.h` for the bindings of an application; `remote_status`
     returns the latest status received at most 50 ms ago, boxed with
-    `[0, 200)`, and under the rigid grades also with `{≥0 & ~Receive}`.
+    `[0, 200)`, and under the rigid grades with `{<200 & ~Receive}`.
 
 ### Bounds per board
 
@@ -789,9 +789,9 @@ port variable `PORT_M5STACK_GRAY`).
   - Each poll and each iteration of the drive sends the status of the robot
     to the controller by the operation `Report` of the example, bound in
     `bala2/bindings.cpp` for the programs that perform it.
-  - Each iteration of the drive applies the message it receives before any
-    further `Receive`, and its setpoints within 150 ms: a Drive command,
-    Disarm, which returns to waiting for Arm, or zero setpoints.
+  - Each iteration of the drive applies the message it receives, with its
+    setpoints, within 150 ms and before any further `Receive`: a Drive
+    command, Disarm, which returns to waiting for Arm, or zero setpoints.
   - The grade of a session is its protocol: Arm, commands and Disarm, in
     this order; it fixes each iteration of the drive, which takes 12.5 to
     46.85 ms. After about 2 s without a message the robot shows "Link lost"

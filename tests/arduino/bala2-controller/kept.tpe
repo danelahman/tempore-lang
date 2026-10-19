@@ -4,13 +4,13 @@
 let sessions_kept (v : view) =
   let zero = record_neutral () in
   arming ();
-  let latest, fresh = confirm 40 in
+  let latest = confirm 40 in
   unbox zero as neutral in
   let v =
-    armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest fresh
+    armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest
   in
   disarming ();
   arming ();
-  let latest, fresh = confirm 40 in
+  let latest = confirm 40 in
   unbox zero as kept in
-  armed 4000000000 v (box {≥0 & ~SendDisarm} kept) latest fresh
+  armed 4000000000 v (box {≥0 & ~SendDisarm} kept) latest

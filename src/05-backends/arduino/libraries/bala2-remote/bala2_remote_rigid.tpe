@@ -4,12 +4,13 @@
    the operations Send and Receive of the package esp-now, which a program
    using this package also names, before it.
 
-   A message received is returned in two boxes: the message, with the
-   setpoints of Drive set to zero, boxed with {≥0 & ~Receive}, usable only
-   while no further Receive has come, so that it is the latest; and its
-   setpoints, of the non-eternal type setpoints, boxed with [0, 150), usable
-   within 150 ms of the reception. The setpoints of the first are zero, so
-   that a program that takes them from it alone commands no motion. *)
+   A message received is returned in one box, of grade
+   {[0, 150) & ~Receive}: usable within 150 ms of the reception, and only while
+   no further Receive has come, so that it is the latest. The box holds the
+   message, with the setpoints of Drive set to zero, and its setpoints, of
+   the non-eternal type setpoints, which once unboxed are used at once; a
+   program that takes the message alone commands no motion. A status
+   received is boxed likewise, with {[0, 200) & ~Receive}. *)
 
 (* One operation per message: SendArm, SendDrive (speed, turn), SendDisarm
    and SendBeat queue the packet of their message to the peer, as Send does
@@ -34,33 +35,26 @@ default SendStatus _ = delay 1/10
 operation SendBeat : unit ~> unit # {SendBeat} within (0, 1]
 default SendBeat _ = delay 1/10
 
-(* A message received, to be used before the next Receive. *)
-type latest = [{≥0 & ~Receive}]received
-
-(* The setpoints of a message received, to be used within 150 ms. *)
-type fresh = [[0, 150)]setpoints
+(* A message received and its setpoints, to be used within 150 ms and
+   before the next Receive. *)
+type latest = [{[0, 150) & ~Receive}](received * setpoints)
 
 (* Sends a message to the peer. *)
 let remote_send (m : message) = perform Send (remote_encode m)
 
 (* The latest message from the peer, received at most remote_age_limit ms
    ago, or Nothing, and its setpoints, boxed for their use. *)
-let remote_receive () : latest * fresh =
+let remote_receive () : latest =
   let r = remote_decode (perform Receive remote_age_limit) in
-  box {≥0 & ~Receive} (remote_without_setpoints r) as latest in
-  box [0, 150) (Setpoints (remote_setpoints r)) as fresh in
-  (latest, fresh)
+  box {[0, 150) & ~Receive}
+    (remote_without_setpoints r, Setpoints (remote_setpoints r))
 
-(* A status received, to be used before the next Receive, and within 200 ms
-   of its reception. *)
-type latest_status = [{≥0 & ~Receive}]status
-type fresh_status = [[0, 200)]status
+(* A status received, to be used within 200 ms and before the next
+   Receive. *)
+type latest_status = [{[0, 200) & ~Receive}]status
 
 (* The latest status of the peer, received at most remote_age_limit ms ago,
-   or NoStatus, boxed as the latest and as fresh. *)
-let remote_status () : latest_status * fresh_status =
+   or NoStatus, boxed for its use. *)
+let remote_status () : latest_status =
   let s = remote_status_decode (perform Receive remote_age_limit) in
-  box {≥0 & ~Receive} s as latest in
-  box [0, 200) s as fresh in
-  (latest, fresh)
-
+  box {[0, 200) & ~Receive} s
