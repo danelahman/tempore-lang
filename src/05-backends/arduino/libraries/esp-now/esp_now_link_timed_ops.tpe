@@ -6,7 +6,7 @@
    are those of esp_now_link.tpe. *)
 
 operation LinkStart : nat ~> bool # {LinkStart} within (0, 1500]
-default LinkStart _ = delay 100; true
+default LinkStart _ = delay 88; true
 
 operation Send : nat * float * float ~> unit # {Send} within (0, 1]
 default Send _ = delay 1/10

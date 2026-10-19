@@ -10,7 +10,7 @@
        --package m5-speaker \
        --package esp-now \
        --package bala2-remote \
-       --board m5stack-cores3 \
+       --board m5stack-cores3-radio \
        examples/arduino/bala2-controller/controller.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
@@ -293,7 +293,7 @@ type view = bool * float * bool * guide
    the reading of the unit, {[0, 200) & ~Receive}, so that the command and
    the tilt shown come from the latest status, received at most 200 ms
    earlier. The neutral tilt is unboxed after the readings
-   and boxed again for the next iteration. An iteration takes 10.7 to 47.55
+   and boxed again for the next iteration. An iteration takes 10.7 to 47.5
    ms, a redraw of the state, the guidance or the tilt taking up to 33 ms
    and one of the bubble up to 10 ms. *)
 let rec armed (n : nat)
@@ -353,11 +353,11 @@ let rec armed (n : nat)
    once, acknowledges each accepted tap: 1760 Hz on Arm and 880 Hz on
    Disarm. Its grade is the protocol of the controller, and its strict
    waits and operations bound the time from the end of one message to the
-   start of the next by 46.95 ms, below the 50 ms within which the robot
+   start of the next by 47 ms, below the 50 ms within which the robot
    expects one: after the last Disarm, the wait of 12.5 ms, the redraw of
    the state, up to 33 ms, and the reading of the touch screen, before the
    first Beat; the bubble, dimmed, is redrawn after that Beat. Between two
-   Beats, and from the last Beat to the first Arm, at most 45.05 and 46.7
+   Beats, and from the last Beat to the first Arm, at most 45.05 and 47.15
    ms pass, with a redraw of the guidance. *)
 let rec session (n : nat)
     ((link_shown, shown_tilt, bubble_next, guide_shown) : view) : unit

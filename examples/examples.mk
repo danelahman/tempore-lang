@@ -35,7 +35,8 @@
 # The serial ports of the boards, by default those of the boards connected to
 # the development machine: an M5Stack Gray, the core of the BALA2, through its
 # CP2104 USB-serial bridge, also that of the profile m5stack-gray-radio, and
-# an M5Stack CoreS3 Lite through its USB port.
+# an M5Stack CoreS3 Lite through its USB port, also that of the profile
+# m5stack-cores3-radio.
 # PORT, when set, is the port of every upload. CAPTURE is the time, in
 # seconds, for which the serial port is read after an upload that captures,
 # and by a target -capture;
@@ -48,6 +49,7 @@
 PORT_M5STACK_GRAY ?= /dev/cu.usbserial-02012C91
 PORT_M5STACK_GRAY_RADIO ?= $(PORT_M5STACK_GRAY)
 PORT_M5STACK_CORES3 ?= /dev/cu.usbmodem101
+PORT_M5STACK_CORES3_RADIO ?= $(PORT_M5STACK_CORES3)
 PORT ?=
 CAPTURE ?= 30
 SIMULATE ?=

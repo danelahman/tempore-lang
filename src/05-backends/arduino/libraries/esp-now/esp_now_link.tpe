@@ -27,8 +27,8 @@
 
    The bounds are provisional, not yet measured on a device: LinkStart
    [0, 1500], Send [0, 1], Receive [0, 0.1]. The default implementations take
-   a time within the bounds, send nothing, receive nothing and start an
-   encrypted link.
+   a time within the bounds of every board, LinkStart 88 ms, send nothing,
+   receive nothing and start an encrypted link.
 
    On the profile m5stack-gray-radio, an M5Stack Gray, the radio on core 0,
    the tasks of the application on core 1 and the link encrypted, the
@@ -37,10 +37,19 @@
    and Receive at 0.002 to 0.078 ms, and at 0.003 to 0.387 ms in the run at
    5 ms. Their bounds there are the least time measured, rounded down, and
    1.5 times the greatest, rounded up: LinkStart [85.5, 144] and Receive
-   [0, 0.6]. *)
+   [0, 0.6].
+
+   On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
+   core 0, the tasks of the application on core 1 and the link encrypted, the
+   profile of the device (2026-10-19, two sessions of the remote controller,
+   110 s and 276 s) measured LinkStart at 36.843 to 45.063 ms and Receive at
+   0.001 to 0.026 ms: by the same rule LinkStart [36.5, 68] and Receive [0,
+   0.05]. The upper bound of LinkStart there is widened to 90, so that its
+   default implementation lies within the bounds of both profiles with the
+   radio; LinkStart runs once, at start-up. *)
 
 operation LinkStart : nat ~> bool # [0, 1500]
-default LinkStart _ = delay 100; true
+default LinkStart _ = delay 88; true
 
 operation Send : nat * float * float ~> unit # [0, 1]
 default Send _ = delay 1/10

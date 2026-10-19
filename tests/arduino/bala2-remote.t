@@ -71,33 +71,33 @@ library, are not shown:
   [31.245 ms] Display cleared
   [35.045 ms] Display at (0, 2): Remote robot
   [37.805 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [100.245 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:02, encrypted (CCMP)
-  [111.585 ms] Display at (0, 102): Calibrating
-  [111.685 ms] ESP-NOW: status, phase 2.000
-  [634.188 ms] Display at (0, 102): Hold upright
-  [1638.148 ms] Display at (0, 102): Waiting for Arm
-  [1638.298 ms] Speaker: 2000 Hz for 80 ms
-  [1638.398 ms] ESP-NOW: status, phase 0.000
-  [2042.058 ms] Display at (0, 102): Armed
-  [2042.158 ms] ESP-NOW: status, phase 1.000
-  [3519.878 ms] Display at (0, 102): Disarmed
-  [3523.658 ms] Display at (0, 102): Calibrating
-  [3523.758 ms] ESP-NOW: status, phase 2.000
-  [4043.019 ms] ESP-NOW: status, phase 3.000
-  [4046.779 ms] Display at (0, 102): Hold still
-  [4550.559 ms] Display at (0, 102): Calibrating
-  [5069.362 ms] ESP-NOW: status, phase 2.000
-  [5073.162 ms] Display at (0, 102): Hold upright
-  [6077.122 ms] Display at (0, 102): Waiting for Arm
-  [6077.272 ms] Speaker: 2000 Hz for 80 ms
-  [6077.372 ms] ESP-NOW: status, phase 0.000
-  [6881.132 ms] Display at (0, 102): Armed
-  [6881.232 ms] ESP-NOW: status, phase 1.000
-  [9644.272 ms] Display at (0, 102): Link lost
-  [9644.422 ms] Speaker: 880 Hz for 200 ms
-  [10013.482 ms] Display at (0, 102): Armed
+  [88.245 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:02, encrypted (CCMP)
+  [101.585 ms] Display at (0, 102): Calibrating
+  [101.685 ms] ESP-NOW: status, phase 2.000
+  [624.819 ms] Display at (0, 102): Hold upright
+  [1628.779 ms] Display at (0, 102): Waiting for Arm
+  [1628.929 ms] Speaker: 2000 Hz for 80 ms
+  [1629.029 ms] ESP-NOW: status, phase 0.000
+  [2032.689 ms] Display at (0, 102): Armed
+  [2032.789 ms] ESP-NOW: status, phase 1.000
+  [3535.709 ms] Display at (0, 102): Disarmed
+  [3539.489 ms] Display at (0, 102): Calibrating
+  [3539.589 ms] ESP-NOW: status, phase 2.000
+  [4058.292 ms] ESP-NOW: status, phase 3.000
+  [4062.052 ms] Display at (0, 102): Hold still
+  [4565.832 ms] Display at (0, 102): Calibrating
+  [5084.635 ms] ESP-NOW: status, phase 2.000
+  [5088.435 ms] Display at (0, 102): Hold upright
+  [6092.395 ms] Display at (0, 102): Waiting for Arm
+  [6092.545 ms] Speaker: 2000 Hz for 80 ms
+  [6092.645 ms] ESP-NOW: status, phase 0.000
+  [6896.405 ms] Display at (0, 102): Armed
+  [6896.505 ms] ESP-NOW: status, phase 1.000
+  [9659.545 ms] Display at (0, 102): Link lost
+  [9659.695 ms] Speaker: 880 Hz for 200 ms
+  [10016.155 ms] Display at (0, 102): Armed
   [12000.000 ms] End of the simulation
-  [12000.000 ms] Plant: released at 6882.0 ms
+  [12000.000 ms] Plant: released at 6895.0 ms
 
 Held askew at 0.5 rad (28.6 degrees) from the start, the robot is
 calibrated, since it is held still, but not armed at the Arm of 1.5 s: the
@@ -109,12 +109,12 @@ not driven:
   $ cd _arduino/projects/balance_remote
   $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_TILT=0.5 -pthread -I host -I src src/*.cpp host/*.cpp -o askew
   $ ./askew 3000000 | grep 'Display at (0, 102)\|motors were never'
-  [111.585 ms] Display at (0, 102): Calibrating
-  [634.188 ms] Display at (0, 102): Hold upright
-  [1638.148 ms] Display at (0, 102): Waiting for Arm
-  [2042.178 ms] Display at (0, 102): Not upright
-  [2045.958 ms] Display at (0, 102): Calibrating
-  [2568.521 ms] Display at (0, 102): Hold still
+  [101.585 ms] Display at (0, 102): Calibrating
+  [624.819 ms] Display at (0, 102): Hold upright
+  [1628.779 ms] Display at (0, 102): Waiting for Arm
+  [2032.809 ms] Display at (0, 102): Not upright
+  [2036.589 ms] Display at (0, 102): Calibrating
+  [2559.779 ms] Display at (0, 102): Hold still
   [3000.000 ms] Plant: the motors were never driven
 
 Held and turned steadily by 0.1 rad/s (5.7 degrees per second), the robot
@@ -124,10 +124,10 @@ the 2 degrees of rest_cosine over the samples:
 
   $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_HELD_RATE=0.1 -pthread -I host -I src src/*.cpp host/*.cpp -o turned
   $ ./turned 1900000 | grep 'Display at (0, 102)\|motors were never'
-  [111.585 ms] Display at (0, 102): Calibrating
-  [634.148 ms] Display at (0, 102): Hold still
-  [1137.928 ms] Display at (0, 102): Calibrating
-  [1661.779 ms] Display at (0, 102): Hold still
+  [101.585 ms] Display at (0, 102): Calibrating
+  [624.779 ms] Display at (0, 102): Hold still
+  [1128.559 ms] Display at (0, 102): Calibrating
+  [1651.122 ms] Display at (0, 102): Hold still
   [1900.000 ms] Plant: the motors were never driven
   $ cd ../../..
 

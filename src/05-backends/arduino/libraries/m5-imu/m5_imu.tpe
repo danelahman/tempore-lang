@@ -46,7 +46,14 @@
    0.631 to 1.462 ms and CheckAtRest at 18.646 to 21.775 ms. Their bounds
    there have the upper bound 1.5 times the greatest time measured with the
    radio, rounded up, and the lower bound of the Gray without it: ReadImu
-   [0.55, 2.2] and CheckAtRest [17.95, 33]. *)
+   [0.55, 2.2] and CheckAtRest [17.95, 33].
+
+   On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
+   core 0, the tasks of the application on core 1 and the link encrypted, the
+   profile of the device (2026-10-19, two sessions of the remote controller,
+   110 s and 276 s) measured ReadImu at 0.806 to 1.298 ms: [0.2, 1.95], the
+   upper bound 1.5 times the greatest time measured with the radio, rounded
+   up, and the lower bound that of the CoreS3 without it. *)
 
 operation ReadImu : unit ~> imu # [0.2, 1.5]
 default ReadImu () = delay 3/5; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))

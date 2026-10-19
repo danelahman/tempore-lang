@@ -11,7 +11,14 @@
    The bounds are measured on an M5Stack CoreS3 Lite by the profile of the
    device (2026-10-14): the lower bound is the least time measured, rounded
    down, and the upper bound 1.5 times the greatest, rounded up. ReadTouch took
-   0.021 to 0.942 ms: [0, 1.45]. They are not measured on other boards. *)
+   0.021 to 0.942 ms: [0, 1.45].
+
+   On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
+   core 0, the tasks of the application on core 1 and the link encrypted, the
+   profile of the device (2026-10-19, two sessions of the remote controller,
+   110 s and 276 s) measured ReadTouch at 0.007 to 0.986 ms: [0, 1.5], the
+   upper bound 1.5 times the greatest time measured with the radio, rounded
+   up, and the lower bound the least on the CoreS3 with or without it. *)
 
 operation ReadTouch : unit ~> bool * nat * nat # [0, 1.45]
 default ReadTouch () = delay 3/10; (false, 0, 0)

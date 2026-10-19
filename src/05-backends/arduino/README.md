@@ -20,7 +20,7 @@ libraries and build flags, the number of cores, the I2C buses, the baud rate
 of the serial port and the capabilities of a board (`imu`, `display`,
 `touch`, `speaker`, `battery`, ...). The profiles are `m5stack-gray`,
 `m5stack-gray-radio`, `m5stack-fire`, `m5stack-core2`, `m5stack-cores3`,
-`esp32-devkit` and `esp32s3-devkit`.
+`m5stack-cores3-radio`, `esp32-devkit` and `esp32s3-devkit`.
 
 The profile `m5stack-gray-radio` is the M5Stack Gray with its Wi-Fi radio
 running, as for `esp-now`: the same hardware and project as `m5stack-gray`,
@@ -28,7 +28,9 @@ under its own name for the bounds of the packages measured with the radio
 ([Bounds per board](#bounds-per-board)). Its bounds assume the radio on
 core 0, where `esp-now` starts it and the Wi-Fi driver runs
 (`CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_0` of the Arduino core), and the
-tasks of the manifest on core 1.
+tasks of the manifest on core 1. The profile `m5stack-cores3-radio` is
+likewise the CoreS3 with its radio running, under its own name, so that
+the CoreS3 examples without the radio keep the bounds of `m5stack-cores3`.
 
 The I2C buses of a profile are started after M5Unified and then set to their
 frequency, since M5Unified may already have started a bus that shares their
@@ -248,23 +250,29 @@ lower bound is the least time measured, rounded down, and the upper bound 1.5
 times the greatest, rounded up. Each declaration states its measurements and
 how the bounds not measured directly, such as those of `i2c`, are derived.
 
-- The bounds of `ConfigureImu` and `ReadTouch` are measured on the CoreS3
-  only, and those of `CheckAtRest` and `Beep` on the CoreS3 and on
-  `m5stack-gray-radio`.
+- The bounds of `ConfigureImu` are measured on the CoreS3 only, those of
+  `ReadTouch` on the CoreS3 and `m5stack-cores3-radio`, that of
+  `CheckAtRest` on the CoreS3 and `m5stack-gray-radio`, and those of `Beep`
+  on all three.
 - The least times of `ShowTextAt` and `ShowNumberAt` depend on the text, so
   their lower bound is that of `ShowText`.
 - The bounds of `ShowTimeAt`, `ShowColourTextAt`, `ShowColourNumberAt`,
   `DrawButton`, `DrawBar` and `DrawLevel` are provisional, derived from those
   measurements; `ShowColourNumberAt` has the bounds of `ShowNumberAt`.
-- The bounds of `esp-now` are provisional, not yet measured, except those
-  of `LinkStart` and `Receive` on `m5stack-gray-radio`.
-- On `m5stack-gray-radio` the radio lengthens the operations: the upper
-  bound is 1.5 times the greatest time measured with the radio, rounded up,
-  and at least that of the Gray; the lower bound is the least time measured
-  on the Gray with or without the radio, rounded down. An operation not
-  measured with the radio has the bounds of the Gray. They are measured
-  with the radio on core 0, the tasks of the application on core 1 and the
-  link encrypted.
+- The bounds of `esp-now` and `bala2-remote` are provisional, not yet
+  measured, except those of `LinkStart` and `Receive` on
+  `m5stack-gray-radio` and `m5stack-cores3-radio`, and of `SendArm`,
+  `SendDrive`, `SendDisarm` and `SendBeat` on `m5stack-cores3-radio`.
+- On `m5stack-gray-radio` and `m5stack-cores3-radio` the radio lengthens
+  the operations: the upper bound is 1.5 times the greatest time measured
+  with the radio, rounded up, and at least that of the board without it;
+  the lower bound is the least time measured on the board with or without
+  the radio, rounded down. An operation not measured with the radio has
+  the bounds of the board without it. They are measured with the radio on
+  core 0, the tasks of the application on core 1 and the link encrypted.
+- The upper bound of `LinkStart` on `m5stack-cores3-radio` is widened from
+  68 to 90 ms, so that its default implementation, 88 ms, lies within the
+  bounds of both profiles with the radio; it runs once, at start-up.
 
 ## The program
 
@@ -548,8 +556,9 @@ the board of the manifest, the variable `PORT_BOARD`, the name of the board
 in upper case with `-` replaced by `_`.
 
 `PORT_M5STACK_GRAY` defaults to `/dev/cu.usbserial-02012C91`,
-`PORT_M5STACK_GRAY_RADIO` to `PORT_M5STACK_GRAY` and `PORT_M5STACK_CORES3`
-to `/dev/cu.usbmodem101`, the ports of the boards of the development
+`PORT_M5STACK_GRAY_RADIO` to `PORT_M5STACK_GRAY`, `PORT_M5STACK_CORES3`
+to `/dev/cu.usbmodem101` and `PORT_M5STACK_CORES3_RADIO` to
+`PORT_M5STACK_CORES3`, the ports of the boards of the development
 machine. A board without a default port, such as
 `esp32-devkit`, needs `PORT` or `PORT_ESP32_DEVKIT`:
 
@@ -872,7 +881,9 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
 
 ### M5Stack CoreS3 and CoreS3 Lite
 
-Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
+Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`; for
+`bala2-controller`, which runs the radio, profile `m5stack-cores3-radio`,
+port variable `PORT_M5STACK_CORES3_RADIO`.
 
 - [`tilt`](../../../examples/arduino/tilt/tilt.tpe): a tilt display, with a
   20 ms filter step and a display task.

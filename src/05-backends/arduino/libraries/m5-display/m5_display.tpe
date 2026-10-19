@@ -37,6 +37,17 @@
    Gray without it; ShowTextAt keeps its bounds, which exceed 1.5 times its
    greatest time.
 
+   On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
+   core 0, the tasks of the application on core 1 and the link encrypted, the
+   profile of the device (2026-10-19, two sessions of the remote controller,
+   110 s and 276 s) measured ClearDisplay at 31.913 to 31.964 ms, ShowTextAt
+   at 3.199 to 5.188 ms, ShowNumberAt at 3.334 to 4.427 ms, ShowColourTextAt
+   at 1.543 to 4.606 ms, DrawButton at 3.591 to 4.072 ms and DrawLevel at
+   0.022 to 1.779 ms, on the texts, buttons and vial of the controller only.
+   These lie within the bounds of the declarations, which hold there: 1.5
+   times each greatest time, rounded up, is below the upper bound, and the
+   lower bound of ClearDisplay is that of the Gray.
+
    ShowTextAt (x, y, size, s) writes s at the pixel (x, y) from the top left
    corner, in text of the size 1 to 4 (a larger size is 4, a smaller 1),
    over the band from x to the right edge of the display, 10 times the size

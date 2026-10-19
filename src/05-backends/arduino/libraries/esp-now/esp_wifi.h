@@ -1,6 +1,6 @@
 // The part of the Wi-Fi driver of ESP-IDF that the package esp-now uses, on
 // the host, implemented by esp_now_link_model.cpp: the radio starts at once
-// but for esp_wifi_start, which takes 100 milliseconds, and every call
+// but for esp_wifi_start, which takes 88 milliseconds, and every call
 // succeeds.
 
 #ifndef TEMPORE_HOST_ESP_WIFI_H

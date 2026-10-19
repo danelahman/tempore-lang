@@ -86,7 +86,7 @@ esp_err_t esp_wifi_set_storage(wifi_storage_t) { return ESP_OK; }
 esp_err_t esp_wifi_set_mode(wifi_mode_t) { return ESP_OK; }
 
 esp_err_t esp_wifi_start() {
-  delay(100);
+  delay(88);
   return ESP_OK;
 }
 

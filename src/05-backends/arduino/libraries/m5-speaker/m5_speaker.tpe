@@ -17,8 +17,14 @@
    On the profile m5stack-gray-radio, an M5Stack Gray with its radio
    running, the profile of the device (2026-10-19, the remote BALA2 at a
    period of 5 ms) measured Beep at 0.169 to 0.186 ms, two calls: [0.15,
-   0.3]. They are not measured on other boards. The default implementation
-   takes 0.15 ms, within the bounds of both boards. *)
+   0.3]. The default implementation takes 0.15 ms, within the bounds of
+   every board.
+
+   On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
+   core 0, the tasks of the application on core 1 and the link encrypted, the
+   profile of the device (2026-10-19, two sessions of the remote controller,
+   110 s and 276 s) measured Beep at 0.061 to 0.068 ms, within the declared
+   bounds, which hold there. *)
 
 operation Beep : nat * nat ~> unit # [0, 0.15]
 default Beep _ = delay 3/20
