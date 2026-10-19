@@ -34,18 +34,9 @@ tasks of the manifest on core 1. The profile `m5stack-cores3-radio` is
 likewise the CoreS3 with its radio running, under its own name, so that
 the CoreS3 examples without the radio keep the bounds of `m5stack-cores3`.
 
-The I2C buses of a profile are started after M5Unified and then set to their
-frequency, since M5Unified may already have started a bus that shares their
-port at 100 kHz.
-
-On a board with M5Unified and the capability `display`, the brightness of
-the display is set once at start-up, after the initialisation of M5Unified
-and of the packages and before the tasks of the manifest are created, to the
-build flag `TEMPORE_DISPLAY_BRIGHTNESS`, a percentage from 0 to 100 of the
-greatest brightness, and to 24 % without it, below the default of M5Unified,
-50 %. On the CoreS3 the percentage sets the voltage of the backlight in nine
-steps, from 2.5 V for 1 to 11 % to 3.3 V for 100 %, 0 switching it off;
-24 % gives 2.6 V. The host simulation ignores it.
+On a board with the capability `display`, the build flag
+`TEMPORE_DISPLAY_BRIGHTNESS` sets the brightness of the display at start-up,
+a percentage from 0 to 100 (default 24).
 
 The optional member `imu_frequency` sets the frequency of the
 transactions with the inertial measurement unit (`M5.Imu.setClock`, and the
@@ -73,19 +64,12 @@ physical world used only by the host simulation:
     }
 
 A periodic task calls its function, of type `s -> s`, once per period, from
-the state its `initial` function returns, and after a missed release, as
-after an overrun, a period after the end of the late step; a free task calls its function, of
-type `unit -> unit`, once, or, with `repeat`, each time it returns, after a
-wait of one tick, so that the idle task of its core runs also when the
-function waits only actively, as for a delay below a millisecond.
+the state its `initial` function returns. A free task calls its function, of
+type `unit -> unit`, once, or, with `repeat`, each time it returns.
 
 With `"battery": true`, on a board with the capabilities `display` and
-`battery` (the M5Stack cores), the scaffold draws the charge of the battery,
-`Battery 87%`, followed by `+` while it charges, in grey in the top right
-corner of the screen, outside the program. A task of priority 1 reads the
-gauge every 5 seconds under the I2C lock, and redraws the text when it
-changes or when a drawing of `m5-display` covers the corner. The examples on
-the CoreS3 enable it.
+`battery`, the charge of the battery is shown in the top right corner of the
+screen, outside the program.
 
 ## Peripheral packages
 
@@ -112,105 +96,68 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   `I2cRead32`, register transactions on the bus `Wire`.
 - `m5-imu`:
   - `ReadImu`, the accelerometer and gyroscope of an M5Stack core, with the
-    tilt filters `tilt_x` and `tilt_y`. A unit of the MPU6886 family is read
-    in one transaction of 14 bytes and converted as by M5Unified. Any other
-    unit, such as the BMI270 of the CoreS3, is read by one `M5.Imu.update`
-    followed by `M5.Imu.getImuData`, which converts the readings of that
-    update without the further update of `M5.Imu.getAccel` and
-    `M5.Imu.getGyro` when more than 256 µs have passed since the last one.
-  - `ConfigureImu` sets the output data rate of the accelerometer without
-    changing its range (the register ACC_CONF of the BMI270, the sample rate
-    divider of the MPU6886), so that the conversion of M5Unified stays valid.
-  - `CheckAtRest` is a check of plausibility, not a self-test: four readings
-    started 6 ms apart, true if the unit is at rest, judged by the variation
-    of the readings (the spread of the rate about each axis below 5 °/s, the
-    direction of gravity turned by less than 2°, each acceleration within
-    0.9 to 1.1 g), so that a constant bias of the gyroscope passes.
-  - Each reading of `ReadImu` is passed to `m5_imu_observe(accel, gyro)`,
-    defined weakly to do nothing, which an application may define to record
-    the readings.
-  - Under the rigid grades of timed operations, `read_imu_boxed` reads the
-    unit once and returns the reading in one box, `latest_imu`, of grade
-    `{≤2 & ~ReadImu}`, usable within 2 ms and before the next `ReadImu`.
+    tilt filters `tilt_x` and `tilt_y`;
+  - `ConfigureImu`, the output data rate of the accelerometer, its range
+    unchanged;
+  - `CheckAtRest`, a check of plausibility, not a self-test: whether the unit
+    is at rest, judged by the variation of four readings, so that a constant
+    bias of the gyroscope passes;
+  - under the rigid grades of timed operations, `read_imu_boxed`, one reading
+    in one box, `latest_imu`, of grade `{≤2 & ~ReadImu}`, usable within 2 ms
+    and before the next `ReadImu`;
+  - `m5_imu_observe(accel, gyro)`, defined weakly to do nothing, receives
+    each reading, for an application to record it.
 - `m5-display`, with colours of 24 bits, `0xRRGGBB`:
   - `ShowText`, `ShowNumber` and `ClearDisplay`, lines of text of size 2
     written one below another;
-  - `ShowTextAt` and `ShowNumberAt`, a text or a number written at a position
-    in a size from 1 to 4 over a band of the display filled first, so that it
-    replaces the text of that band without a clearing, the next line
-    following below it; the text is centred vertically in the band, with a
-    left margin of 3 times the size in pixels on a band not black;
+  - `ShowTextAt` and `ShowNumberAt`, a text or a number at a position in a
+    size from 1 to 4, over a band of the display filled first, so that it
+    replaces the text of that band without a clearing;
   - `ShowTimeAt`, a text followed by a duration as m:ss;
-  - `ShowColourTextAt`, a text in a colour over a band of another;
-  - `ShowColourNumberAt`, a number in a colour over a band of another;
+  - `ShowColourTextAt` and `ShowColourNumberAt`, a text or a number in a
+    colour over a band of another;
   - `DrawButton`, a button with a centred label;
   - `DrawBar`, a horizontal bar filled to a length;
   - `DrawLevel`, a bubble level, a vial with a bubble at an offset from its
-    centre, redrawn only when the bubble moves or changes colour.
-- `m5-touch`: `ReadTouch`, whether the screen is touched and where, read
-  through `M5.Touch.update` under the I2C lock (the touch screens of the
-  CoreS3 and the Core2, capability `touch`).
-- `m5-speaker`: `Beep`, which starts a tone of a frequency and a duration on
-  the speaker and returns at once (capability `speaker`). Each tone is passed
-  to `m5_speaker_observe(frequency, duration)`, defined weakly to do nothing,
-  as `m5_imu_observe` is, on the device and in the host simulation.
+    centre.
+- `m5-touch`: `ReadTouch`, whether the screen is touched and where
+  (capability `touch`).
+- `m5-speaker`: `Beep`, which starts a tone of a frequency and a duration and
+  returns at once (capability `speaker`); `m5_speaker_observe(frequency,
+  duration)`, defined weakly to do nothing, receives each tone.
 - `bala2-base`: `SetMotors`, `ReadEncoders` and `ResetEncoders` of the base of
-  the M5Stack BALA2, with a watchdog of the motor setpoints. The counts of the
+  the M5Stack BALA2, with a watchdog of the motor setpoints; the counts of the
   encoders increase in the direction in which a positive drive turns the
-  wheel (the registers of the base count the other way, and the package
-  negates them). Its header `bala2_base.h` gives the application the drives
-  last written and the counts last read, for logging outside the timed
-  bindings.
+  wheel.
 - `esp-now`: encrypted packets of a tag and two floats between two ESP32
   boards over ESP-NOW:
   - a device build requires the peer, the build flag `ESP_NOW_PEER`, six
     bytes separated by commas, and the key, the build flag `ESP_NOW_KEY`,
-    32 hexadecimal digits; ESP-NOW encrypts and authenticates the packets
-    with CCMP, the key being both the primary master key and the local
-    master key of the peer (one secret, and the default primary master key
-    is public); a missing or malformed peer or key, and the broadcast
-    address, which ESP-NOW does not encrypt, are compilation errors;
+    32 hexadecimal digits; a missing or malformed peer or key, and the
+    broadcast address, which ESP-NOW does not encrypt, are compilation
+    errors;
   - `LinkStart` starts the radio and ESP-NOW on a channel, on core 0, and
     returns whether the link is encrypted, true for every link;
   - `Send` queues a packet and returns without waiting;
   - `Receive` returns, without waiting, the latest packet from the peer if it
     arrived at most a given number of milliseconds ago;
-  - its header `esp_now_link.h` gives the counts of the packets;
-  - its host model logs the packets sent and delivers those of
-    `esp_now_model_peer`, which the host model of an application may define,
-    after a latency and with a loss set by build flags, unencrypted, and
-    reports the link encrypted; without the build flags it takes a fixed
-    peer, `24:0A:C4:00:00:02`, and a fixed key;
   - the bounds of `Send` and `Receive` were not measured with encryption
     and are to be measured again with it.
 - `bala2-remote`: the messages of the remote control of the BALA2, shared by
-  the robot and the controller, over `esp-now`, listed before it:
-  - the type `message`, `Arm`, `Drive (speed, turn)`, `Disarm` or `Beat`,
-    each a tag of a packet;
-  - `remote_channel`, the channel of `LinkStart`, and `remote_send`, which
-    sends a message by `Send`;
-  - the operations `SendArm`, `SendDrive`, `SendDisarm` and `SendBeat`, one
-    per message, bound in C++ over the packets of `esp-now`, so that grades
-    tell the messages apart, with the provisional bounds of `Send`;
-  - `remote_receive`, which returns the latest message received at most
-    50 ms ago, or `Nothing` for none or an unknown tag, boxed with
-    `[0, 150)`, the type `fresh`, so that a command is applied at most 200 ms
-    after it was sent;
-  - declared under `time-interval-rational` and the regular expressions of
-    timed operations with intervals or upper bounds;
-  - under the rigid grades, `remote_receive` returns one box,
-    `{<150 & ~Receive}`, usable within 150 ms and before the next
-    `Receive`, of the message, its setpoints zero, and its setpoints, of the
-    non-eternal type `setpoints`, so that once unboxed they are matched at
-    once;
-  - the status of the robot, `Status (phase, tilt)` or `NoStatus`, tag 5,
-    the phase `Ready` (for Arm), `Armed`, `Calibrating` or `Unsettled`
-    (calibrating after a check that found it moving), sent as the code of
-    `remote_phase_code`: `SendStatus` sends it, and
-    `bala2_remote_send_status` of the header `bala2_remote.h` for the
-    bindings of an application; `remote_status`
-    returns the latest status received at most 50 ms ago, boxed with
-    `[0, 200)`, and under the rigid grades with `{<200 & ~Receive}`.
+  the robot and the controller, over `esp-now`, listed before it, declared
+  under `time-interval-rational` and the regular expressions of timed
+  operations with intervals or upper bounds:
+  - the type `message`, `Arm`, `Drive (speed, turn)`, `Disarm` or `Beat`;
+  - `SendArm`, `SendDrive`, `SendDisarm` and `SendBeat`, one operation per
+    message, so that grades tell the messages apart, with the provisional
+    bounds of `Send`;
+  - `remote_receive`, the latest message received at most 50 ms ago, or
+    `Nothing`, boxed with `[0, 150)`, so that a command is applied at most
+    200 ms after it was sent, and under the rigid grades with
+    `{<150 & ~Receive}`, its setpoints of the non-eternal type `setpoints`;
+  - `SendStatus` and `remote_status`, the status of the robot, its phase and
+    tilt, the latest received at most 50 ms ago, boxed with `[0, 200)`, and
+    under the rigid grades with `{<200 & ~Receive}`.
 
 ### Bounds per board
 
@@ -306,19 +253,14 @@ The fragment consists of
 - `let`, `match` and `if`;
 - natural numbers (32-bit, `+`, `*` and `nat_of_float` modulo 2^32);
 - integers (32-bit two's complement, the arithmetic, `int_of_nat` and
-  `int_of_float` modulo 2^32 into [-2^31, 2^31), so that
-  `-2147483648i /! -1i` is `-2147483648i`; a literal outside that range is
-  refused);
+  `int_of_float` modulo 2^32; a literal outside [-2^31, 2^31) is refused);
 - single-precision floats, booleans and tuples;
 - datatypes without type parameters that are not recursive;
 - `delay` and operation calls;
 - self calls in tail position, which become loops;
 - anonymous functions `fun p -> c` as values, also in boxes, tuples and the
   state of a periodic task, compiled by defunctionalisation (Reynolds,
-  "Definitional interpreters for higher-order programming languages", 1972):
-  a closure is a struct with a tag, which names its function among those of
-  its type, and the values of its free variables, and an application calls
-  the function of the tag;
+  "Definitional interpreters for higher-order programming languages", 1972);
 - tail-resumptive handlers.
 
 The following are refused, each with a `Compilation error` at the
@@ -468,20 +410,11 @@ logged, or is not checked, according to the monitor policy `abort` (the
 default), `warn` or `off`.
 
 On a board with a screen driven through M5Unified the violation is also
-shown:
-
-- under `abort`, a red banner across the middle of the screen, drawn once
-  the safe state is entered;
-- under `warn`, a yellow line above the footer, with the number of the
-  warnings and the last of them, drawn every 500 ms by a task of the lowest
-  priority.
-
-Under `abort` the safe state is entered before the violation is logged. The
-log is written to the serial port by a task of priority 1 from a buffer of 32
-lines (`TEMPORE_LOG_LINES`), so that a timed call or step does not wait for
-the port, whose transmit buffer is 1024 bytes (`TEMPORE_SERIAL_TX_BUFFER`). A
-line logged while the buffer is full is dropped, and the number of the lines
-dropped is logged.
+shown on the screen. Under `abort` the safe state is entered before the
+violation is logged. The log is written to the serial port from a buffer by a
+task of its own, so that a timed call or step does not wait for the port; a
+line logged while the buffer is full is dropped, and the lines dropped are
+counted in the log.
 
 Watchdogs, cut-offs and the safe state are mechanisms of the C++ packages and
 of the application, outside the typing.
@@ -653,9 +586,7 @@ A task of the lowest priority logs them as a table every 5 seconds
 (`TEMPORE_PROFILE_INTERVAL_MS`); under `--host-simulate` the table is logged
 in place of the trace, every 5 simulated seconds and at the end.
 
-The statistics are updated after the clock is read and the table is printed
-outside the timed calls, so that the measurement does not lengthen what it
-measures. The trace of the build flag `TEMPORE_TRACE` (for example in
+The measurement does not lengthen what it measures. The trace of the build flag `TEMPORE_TRACE` (for example in
 `PLATFORMIO_BUILD_FLAGS`), which logs each event, lengthens the steps by the
 time of its serial output and is not suited to measurement.
 
@@ -676,11 +607,6 @@ after the upload for the given time at the baud rate of the board, prints its
 lines and, with `--profile`, then the last complete profile. Without
 `--upload`, it writes the project and reads the port of a board already
 programmed, without PlatformIO.
-
-The port is opened in raw mode with its modem
-control lines as opening it sets them, both asserted, which on the boards
-with an automatic reset circuit holds neither the reset nor the boot pin, and
-they are left so when it is closed.
 
 ## Recording a run
 
@@ -799,11 +725,7 @@ the accelerometer readings of a recording.
 ## Host simulation
 
 Under `--host-simulate` the tasks run against host models of the devices and
-of the physical world, in simulated time, and the log is printed. The host
-model of the I2C bus charges a transaction with the transfer of its bytes at
-the frequency of the bus and a time per address phase measured on the
-M5Stack Gray, 110 µs unless the build flag `TEMPORE_I2C_MODEL_PHASE_US` sets
-it.
+of the physical world, in simulated time, and the log is printed.
 
 ## Examples
 
@@ -1152,19 +1074,6 @@ The reference becomes invalid, and must be set again,
 
 Without a valid reference the bubble is grey and the angles are those of the
 unit.
-
-#### Name and footer
-
-The CoreS3 examples show their name at the top of the screen, in text of
-size 2, and a footer at the bottom right, in text of size 1, by
-`ShowTextAt`: the line "Typechecked by Tempore (tempore-lang.ee)" at the
-column 320 − 6 · 40 = 80 of its 40 characters of 6 pixels. In `level`,
-`fall` and `steps` the footer is below a line of size 1 under the name that
-states the guarantee of the example.
-
-The name and the footer are drawn after each clearing in `tilt`, `peak`,
-`fall` and `steps`, outside their boxes, and once by the initial function in
-`level`, which redraws its values by bands and does not clear.
 
 ## Adding a board, a package or an example
 <!-- web-skip -->

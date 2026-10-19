@@ -111,8 +111,7 @@ Command-line options:
   - `--device <manifest.json>` writes a PlatformIO project of the device the
     manifest describes, monitored under `--monitor abort|warn|off` (default
     `abort`); the declarations of the peripheral packages the manifest lists
-    (`i2c`, `m5-imu`, `m5-display`, `bala2-base`, under
-    `time-interval-rational` in milliseconds) are loaded before the files;
+    are loaded before the files;
   - `--host-simulate <seconds>` builds the project and runs it on the host
     for the given simulated time;
   - `--build` builds the project with PlatformIO (`pio run`), and `--upload`
@@ -150,27 +149,17 @@ contents.
 
 #### Backend selection
 
-The backend selector, first among the code options, chooses the backend,
-Interpreter, Arduino or Opentrons (see [Backends](#backends)).
-Selecting a backend loads its default example (the sensor reading for Interpreter,
-the tilt display for Arduino, the ELISA for Opentrons), and the gallery lists the
-examples of the backend selected.
-
-Under Arduino, the device manifest, the binding file and the monitor policy are
-the inputs. The declarations of the peripheral packages the manifest lists are
-loaded before the program, which is checked again when they change. The
-compiled code is the configuration, `main.cpp`, the program and the operation
-wrappers of the PlatformIO project, one file after another.
-
-These declarations are shown read-only above the program, folded under the
-names of their packages. Once the program is checked, a name it uses from them,
-such as an operation or a function, shows its declaration and scheme as a
-tooltip, and ⌘-click (Ctrl-click) or F12 on it unfolds the declarations at it.
-
-Under Opentrons, the robot, the time unit and the monitor policy are chosen
-under the selector. The mark in the top right corner of the editor switches
-between the program and the Opentrons protocol: the binding file and the
-protocol compiled from the program once it typechecks.
+The backend selector chooses the backend, Interpreter, Arduino or Opentrons
+(see [Backends](#backends)), loads its default example, and makes the gallery
+list the examples of that backend. Under Arduino, the device manifest, the
+binding file and the monitor policy are inputs, the declarations of the
+packages of the manifest are shown read-only above the program, and the
+compiled code is the PlatformIO project; a name the program uses from these
+declarations shows its declaration and scheme as a tooltip, and ⌘-click
+(Ctrl-click) or F12 on it unfolds the declarations at it. Under Opentrons, the robot, the time
+unit and the monitor policy are inputs, and the mark in the top right corner
+of the editor switches between the program and the binding file and compiled
+protocol.
 
 #### Addresses
 
@@ -528,8 +517,8 @@ The two variants are:
 
   - an integer `n` denotes `n` ticks, an interval `[n, m]` any number of ticks
     from `n` to `m` and `[n, ∞)` at least `n`; an interval is expanded into
-    `m - n` optional ticks, and reading it takes time quadratic in `m - n`
-    (about a minute for `[10000, 30000]`), unlike under the rational variant;
+    `m - n` optional ticks, and reading it takes time quadratic in `m - n`,
+    unlike under the rational variant;
   - an open endpoint abbreviates a closed one: `(1, 4)` is `2 | 3`;
   - `_` is any single letter, including operations the grade does not name.
 
@@ -1676,12 +1665,9 @@ prints
     1                · delay        [1.5, 1.5]
     Run 1 returned () at (7.1, 11.1).
 
-Grades whose ends exceed 40 characters, such as the traces of the Opentrons
-examples under `regex-timed-rigid-interval-rational-symbolic`, are shortened
-for display at the separators `; ` of their events, never inside an event: the
-grade accumulated keeps its last events,
-`{…; !3; ChangeTip; MagnetOff; EluteDNA}`, a box grade its first. The grades
-themselves are unchanged; `--timeline-full` prints them in full.
+Long grades are shortened for display between their events, the grade
+accumulated to its last events and a box grade to its first;
+`--timeline-full` prints them in full.
 
 ### Arduino
 
