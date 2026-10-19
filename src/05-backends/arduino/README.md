@@ -772,17 +772,20 @@ port variable `PORT_M5STACK_GRAY`).
   rigid regular expressions of timed operations, with the packages
   `esp-now` and `bala2-remote`, sharing the binding file and host model of
   `bala2`.
-  - The calibration is boxed with
-    `[{≥1000 & ~Command}, {≤600000 & ~Command}]`, so that the robot is
-    armed at least a second and at most 10 minutes after it, the bias
-    drifting with the temperature, and no motion is commanded since. The
-    calibration is of a non-eternal type, built inside each box, so that
-    once unboxed it is used at once, not after the wait for Arm. The bias
-    is measured only after `CheckAtRest` finds the robot at rest, its
-    verdict boxed with `{(Attitude; !10)*}` over the samples, and else the
-    robot shows "Hold still" and measures again. At Arm the robot reads its
-    tilt immediately before arming and is armed only within 10 degrees of
-    the balance point, and else shows "Not upright". The wait
+  - The calibration is boxed in two nested boxes. The outer box,
+    `[{≥1000 & ~Command}, {≤600000 & ~Command}]`, opens the arming at least
+    a second and at most 10 minutes after the calibration, the bias
+    drifting with the temperature, with no motion commanded since; it holds
+    a function that opens the arming window, the inner box
+    `{Attitude; ([0, 1) & ~(Receive | Command))}`, in which the robot reads
+    its tilt first and is armed less than a millisecond later, with no
+    `Receive` or `Command` in between. The calibration is of a non-eternal
+    type, built inside the inner box, so that once unboxed it is used at
+    once. The bias is measured only after `CheckAtRest` finds the robot at
+    rest, its verdict boxed with `{(Attitude; !10)*}` over the samples, and
+    else the robot shows "Hold still" and measures again. The robot is
+    armed only within 10 degrees of the balance point, and else shows "Not
+    upright". The wait
     for Arm is therefore bounded, 500 polls 400 ms apart, about 200 s,
     written without a recursion so that its grade is a bounded repetition,
     and each session calibrates anew.

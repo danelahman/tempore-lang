@@ -316,42 +316,33 @@ let remote () =
   perform DrawButton (164, 188, 156, 40, "Disarm");
   session 4000000000 (false, 0.0, true)
 
-(* Correctly rejected by the typechecker: a session that sends Arm once,
-   which the robot, polling every 400 ms, may miss:
+(* Correctly rejected by the typechecker: an armed iteration that redraws the
+   bubble of the last iteration after the readings, and then drives on the
+   reading of the unit, which is then up to 10 ms old:
 
-     Typing error: This function's body has grade `{(ReadTouch; SendBeat;
-       DrawLevel?; !10.5)*; ReadTouch?; (ReadImu; SendArm; !12.5; SendArm;
-       !12.5; Receive; …`, which does not match its annotated grade
-       `{((ReadTouch; SendBeat; DrawLevel?; !10.5)*; ReadTouch?; ReadImu;
-       (SendArm; !12.5)^80; …`
+     Typing error: Variable `latest_reading` is unboxed with grade
+       `{ReadTouch; DrawLevel}` accumulated since it was bound, which is not
+       below its box grade `{[0, 2] & ~ReadImu}`
        ...
 *)
 (*
-let rec session_once (n : nat) (v : view) : unit
-    # {((ReadTouch; SendBeat; (DrawLevel | 0); !21/2)*; (ReadTouch | 0);
-        ReadImu; (SendArm; !25/2)^80; SendArm; !25/2; Receive;
-        (SendArm; !25/2; Receive)*;
-        (ReadImu; ReadTouch; (SendDrive | SendBeat);
-         (ShowTextAt | ShowNumberAt | DrawLevel | 0); !21/2; Receive)*;
-        (ReadImu; ReadTouch | 0); (SendDisarm; !25/2)^20; ShowTextAt)*;
-       ((ReadTouch; SendBeat; (DrawLevel | 0); !21/2)*; (ReadTouch | 0) | 0)}
-    =
-  match n with
-  | 0 -> ()
-  | m + 1 ->
-      if idle 4000000000 true then (
-        let zero = record_neutral () in
-        perform SendArm ();
-        delay 25/2;
-        let latest = confirm 40 in
-        unbox zero as neutral in
-        let v =
-          armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest
-        in
-        disarming ();
-        perform ShowTextAt (0, 30, 2, "Disarmed");
-        session_once m v)
-      else ()
+let armed_redrawn (zero : neutral) (latest : latest_status)
+    (shown : float * float) =
+  let latest_reading = read_imu_boxed () in
+  let _ = perform ReadTouch () in
+  let shown_pitch, shown_roll = shown in
+  draw_bubble shown_pitch shown_roll green;
+  unbox latest_reading as reading in
+  unbox zero as neutral in
+  unbox latest as status in
+  let accel, _ = reading in
+  let neutral_pitch, neutral_roll = neutral in
+  let pitch = tilt_x_of_accel accel -. neutral_pitch in
+  let roll = tilt_y_of_accel accel -. neutral_roll in
+  let speed = command speed_gain speed_limit pitch in
+  let turn = command turn_gain turn_limit roll in
+  if remote_armed status then perform SendDrive (speed, turn)
+  else perform SendBeat ()
 *)
 
 (* Correctly rejected by the typechecker: two sessions that keep the

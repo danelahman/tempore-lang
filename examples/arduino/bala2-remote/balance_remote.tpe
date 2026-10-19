@@ -182,14 +182,20 @@ let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; !10)*} =
       delay 10;
       rate_sum m (sum +. rate)
 
-(* The calibration. The bias of the gyroscope drifts with the temperature,
-   and is valid while the robot stands still, so the calibration is boxed
-   with [{≥1000 & ~Command}, {≤600000 & ~Command}]: it arms the robot at
-   least a second later, in which the robot is held upright, and at most 10
-   minutes later, and no motion is commanded in between. The box is unboxed
-   before the arming, and spans the hold of a second, two display calls and
-   the wait for Arm, its Receives and waits. *)
-type calibrated = [[{≥1000 & ~Command}, {≤600000 & ~Command}]]calibration
+(* The calibration, in two nested boxes. The bias of the gyroscope drifts
+   with the temperature, and is valid while the robot stands still, so the
+   outer box, [{≥1000 & ~Command}, {≤600000 & ~Command}], opens the arming
+   at least a second after the calibration, in which the robot is held
+   upright, and at most 10 minutes after it, with no motion commanded in
+   between; it spans the hold, two display calls and the wait for Arm, its
+   Receives and waits. It holds a function that opens the arming window,
+   the inner box {Attitude; ([0, 1) & ~(Receive | Command))}: the tilt is
+   read first in it, and the robot is armed with the calibration less than
+   a millisecond later, with no Receive or Command in between. *)
+type arming = [{Attitude; ([0, 1) & ~(Receive | Command))}]calibration
+
+type calibrated =
+  [[{≥1000 & ~Command}, {≤600000 & ~Command}]](unit -> arming)
 
 (* The measurement of the bias, only at rest: CheckAtRest of the package
    m5-imu checks that the robot is still, and the rates are sampled at once
@@ -210,10 +216,16 @@ let rec measure (n : nat) : calibrated
   unbox checked as at_rest in
   let bias = sum /. 50.0 in
   match n with
-  | 0 -> box [{≥1000 & ~Command}, {≤600000 & ~Command}] (Calibration bias)
+  | 0 ->
+      box [{≥1000 & ~Command}, {≤600000 & ~Command}]
+        (fun () ->
+          box {Attitude; ([0, 1) & ~(Receive | Command))} (Calibration bias))
   | m + 1 ->
       if at_rest then
-        box [{≥1000 & ~Command}, {≤600000 & ~Command}] (Calibration bias)
+        box [{≥1000 & ~Command}, {≤600000 & ~Command}]
+          (fun () ->
+            box {Attitude; ([0, 1) & ~(Receive | Command))}
+              (Calibration bias))
       else (
         perform ShowTextAt (0, 100, 2, "Hold still");
         delay 500;
@@ -338,11 +350,12 @@ let rec drive (n : nat) (silent : nat) : unit
           drive m (min (silent + 1) silence_limit))
 
 (* Correctly accepted by the typechecker: a session calibrates the robot at
-   rest, holds it upright for a second and waits for Arm. At Arm it reads
-   the published tilt and unboxes the calibration, at least a second and at
-   most about 202 s old, with no Command since; if the tilt lies within
-   upright_limit of the balance point it arms the robot and drives it until
-   Disarm, and else shows "Not upright". The next session calibrates anew.
+   rest, holds it upright for a second and waits for Arm. At Arm it unboxes
+   the calibration, at least a second and at most about 202 s old, with no
+   Command since, and opens the arming window; in it, it reads the published
+   tilt and unboxes the calibration; if the tilt lies within upright_limit
+   of the balance point it arms the robot and drives it until Disarm, and
+   else shows "Not upright". The next session calibrates anew.
    Its grade is the protocol of the robot: calibration, the reading of the
    tilt immediately before Arm, commands and Disarm, in this order. *)
 let rec session (n : nat) : unit
@@ -365,8 +378,10 @@ let rec session (n : nat) : unit
       delay 1000;
       perform ShowTextAt (0, 100, 2, "Waiting for Arm");
       (if wait_arm () then (
+         unbox calibrated as open_arming in
+         let arming = open_arming () in
          let tilt, _ = perform Attitude () in
-         unbox calibrated as calibration in
+         unbox arming as calibration in
          if magnitude (tilt -. balance_point) <= upright_limit then (
            perform Arm calibration;
            perform ShowTextAt (0, 100, 2, "Armed");
@@ -385,45 +400,60 @@ let supervise () =
   session 4000000000;
   perform Disarm ()
 
-(* Correctly rejected by the typechecker: a session that unboxes the
-   calibration right after the hold, when its age is checked, and arms the
-   robot with it after the wait for Arm, which may take 200 s; the
-   calibration is non-eternal, and may not be used after the wait:
+(* Correctly rejected by the typechecker: a session that reads the tilt
+   once, after the hold, and arms the robot on it after the wait for Arm,
+   which may take 200 s, in which the robot may have tipped over; the
+   arming window demands the reading of the tilt within it:
 
-     Typing error: Variable `calibration` is used with grade
-       `{(Receive; Report; !400)^[1, 500]}` accumulated since it was bound,
-       but its type `calibration` is not eternal
+     Typing error: Variable `arming` is unboxed with the unit grade `{0}`
+       accumulated since it was bound, which is not below its box grade
+       `{Attitude; ([0, 1) & ~(Command | Receive))}`
        ...
 *)
 (*
-let session_early () =
+let session_stale_tilt () =
   let calibrated = calibrate () in
   perform ShowTextAt (0, 100, 2, "Hold upright");
   delay 1000;
-  unbox calibrated as calibration in
+  let tilt, _ = perform Attitude () in
+  perform ShowTextAt (0, 100, 2, "Waiting for Arm");
   if wait_arm () then (
-    perform Arm calibration;
-    drive 4000000000 0)
+    unbox calibrated as open_arming in
+    let arming = open_arming () in
+    unbox arming as calibration in
+    if magnitude (tilt -. balance_point) <= upright_limit then (
+      perform Arm calibration;
+      drive 4000000000 0)
+    else ())
   else ()
 *)
 
-(* Correctly rejected by the typechecker: a measurement that checks the
-   robot at rest before it disarms it, and samples the rates after the
-   Disarm, when the motors may just have stopped and the robot moves:
+(* Correctly rejected by the typechecker: a session that commands zero
+   setpoints at Arm, to stop the wheels, before it arms the robot, a motion
+   command after the calibration:
 
-     Typing error: Variable `checked` is unboxed with grade `{Disarm;
-       (Attitude; !10)*}` accumulated since it was bound, which is not below
-       its box grade `{(Attitude; !10)*}`
+     Typing error: Variable `calibrated` is unboxed with grade
+       `{ShowTextAt; !1000; (Receive; Report; !400)^[1, 500]; Command}`
+       accumulated since it was bound, which is not below its box grade
+       `{[1000, 600000] & ~Command}`
        ...
 *)
 (*
-let measure_unsettled () =
-  let rest = perform CheckAtRest () in
-  box {(Attitude; !10)*} rest as checked in
-  perform Disarm ();
-  let sum = rate_sum 50 0.0 in
-  unbox checked as at_rest in
-  if at_rest then sum /. 50.0 else 0.0
+let session_stopped () =
+  let calibrated = calibrate () in
+  perform ShowTextAt (0, 100, 2, "Hold upright");
+  delay 1000;
+  if wait_arm () then (
+    perform Command (0.0, 0.0);
+    unbox calibrated as open_arming in
+    let arming = open_arming () in
+    let tilt, _ = perform Attitude () in
+    unbox arming as calibration in
+    if magnitude (tilt -. balance_point) <= upright_limit then (
+      perform Arm calibration;
+      drive 4000000000 0)
+    else ())
+  else ()
 *)
 
 (* Correctly rejected by the typechecker: an iteration of the drive that

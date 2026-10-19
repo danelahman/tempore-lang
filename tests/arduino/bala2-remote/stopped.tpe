@@ -1,0 +1,18 @@
+(* A session that commands zero setpoints at Arm, to stop the wheels, before
+   it arms the robot, after balance_remote.tpe. *)
+
+let session_stopped () =
+  let calibrated = calibrate () in
+  perform ShowTextAt (0, 100, 2, "Hold upright");
+  delay 1000;
+  if wait_arm () then (
+    perform Command (0.0, 0.0);
+    unbox calibrated as open_arming in
+    let arming = open_arming () in
+    let tilt, _ = perform Attitude () in
+    unbox arming as calibration in
+    if magnitude (tilt -. balance_point) <= upright_limit then (
+      perform Arm calibration;
+      drive 4000000000 0)
+    else ())
+  else ()

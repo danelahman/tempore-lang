@@ -8,19 +8,23 @@ its typing, its rejected variants, and its host simulation.
   $ from_header $app/controller.tpe
   $ packages --typecheck-only $app/controller.tpe
 
-The rejected variants, each loaded after the application: a session that
-sends Arm once, against the protocol of its grade; two sessions that keep
-the neutral tilt recorded before the first, used after a Disarm; and a
-session that redraws the screen after the handshake and then drives on its
-confirmation, which may then be older than 200 ms:
+The rejected variants, each loaded after the application: an armed
+iteration that redraws the bubble after the readings and then drives on
+the reading of the unit, which may then be older than 2 ms; two sessions
+that keep the neutral tilt recorded before the first, used after a Disarm;
+a session that redraws the screen after the handshake and then drives on
+its confirmation, which may then be older than 200 ms; and a session that
+sends Arm once, against the protocol of its grade:
 
-  $ for v in once kept stale; do packages --typecheck-only $app/controller.tpe bala2-controller/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out | cut -c 1-160; done
+  $ for v in redrawn kept stale once; do packages --typecheck-only $app/controller.tpe bala2-controller/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out | cut -c 1-160; done
   [1]
-  Typing error: This function's body has grade `{(ReadTouch; SendBeat; DrawLevel?; !10.5)*; ReadTouch?; (ReadImu; SendArm; !12.5; SendArm; !12.5; Receive; (SendAr
+  Typing error: Variable `latest_reading` is unboxed with grade `{ReadTouch; DrawLevel}` accumulated since it was bound, which is not below its box grade `{[0, 2]
   [1]
   Typing error: Variable `zero` is unboxed with grade `{(SendArm; !12.5)^80; SendArm; !12.5; Receive; (SendArm; !12.5; Receive)*; (ReadImu; ReadTouch; (SendBeat |
   [1]
   Typing error: Variable `latest` is unboxed with grade `{ClearDisplay; ShowTextAt^4; DrawButton^2}` accumulated since it was bound, which is not below its box gr
+  [1]
+  Typing error: This function's body has grade `{(ReadTouch; SendBeat; DrawLevel?; !10.5)*; ReadTouch?; (ReadImu; SendArm; !12.5; SendArm; !12.5; Receive; (SendAr
 
 The PlatformIO project for the M5Stack CoreS3, its C++ sources checked
 without exceptions and run-time type information:
