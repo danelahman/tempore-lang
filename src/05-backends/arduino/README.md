@@ -1084,19 +1084,14 @@ which then learns its address. Other choices:
 - `REMOTE_PEER`, an address `XX:XX:XX:XX:XX:XX`, and `REMOTE_KEY`, 32
   hexadecimal digits, override the address of the other board and the key;
 - `REMOTE_LINK_FILE` sets another link file;
-- a key file `~/.config/tempore/keys/bala2-remote.key` of an earlier
-  version is taken over when there is no link file yet;
 - on another computer, copy the link file, which keeps the pairing.
 
 The build reports what it records and the link file, never the key; a
 malformed link file or override stops it.
 
-A second pair has a link file of its own, and a key file that does not
-exist, so that a new key is generated rather than an earlier one taken
-over:
+A second pair has a link file of its own, with a key of its own:
 
     export REMOTE_LINK_FILE=~/.config/tempore/links/bala2-remote-2
-    export REMOTE_KEY_FILE=~/.config/tempore/keys/bala2-remote-2.key
 
 with the three uploads of the first pairing in the same shell. With one
 board of each kind connected at a time, the ports are found by their USB
