@@ -74,8 +74,9 @@ default Command _ = delay 1/100
 
 (* Reading () returns the last reading of the unit by the step, as read by
    ReadImu, and its number, counted from 1 at the first reading; bound in
-   bindings.cpp. It took at most 0.039 ms (2026-10-19). *)
-operation Reading : unit ~> int * imu # {Reading} within (0, 0.1]
+   bindings.cpp. It took at most 0.039 ms, and 0.406 ms on a second robot
+   (2026-10-19). *)
+operation Reading : unit ~> int * imu # {Reading} within (0, 0.65]
 default Reading () = delay 1/100; (1i, ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0)))
 
 (* Report code sends the status of the robot to the controller: the code of
@@ -299,7 +300,7 @@ type calibrated =
    are judged in turn. If the robot is not at rest, the calibration reports
    Unsettled, shows "Hold still" and is repeated after 500 ms in the phase
    Unsettled; after n repetitions it ends with the last measurement.
-   CheckAtRest takes 17.95 to 33 ms, and a measurement 517.95 to 543.7 ms. *)
+   CheckAtRest takes 17.95 to 33 ms, and a measurement 517.95 to 571.2 ms. *)
 let rec measure (p : phase) (n : nat) : calibrated
     # {(Report; CheckAtRest; (Reading; !10)*; Report; ShowTextAt; !500;
         ShowTextAt)*;
