@@ -22,6 +22,12 @@ type regex =
   | Delays of Rational.t bound * Rational.t bound
       (** The delays in an interval with a finite lower endpoint, e.g. [\[0, 1)]
           or [(1/2, ∞)] *)
+  | Below of Rational.t bound
+      (** The lengths up to an upper end, [≤d] ([Closed d]), [<d] ([Open d]) or
+          [≤∞] ([Unbounded]), ASCII [<=d] *)
+  | Above of Rational.t bound
+      (** The lengths from a lower end, [≥d] ([Closed d]) or [>d] ([Open d]),
+          ASCII [>=d] *)
   | Any
       (** Any single operation or time step, [_]; over rational delays, any
           single operation or positive delay *)
@@ -40,6 +46,12 @@ type regex =
 val delays_only : regex -> bool
 (** [delays_only r] is whether [r] is built from delays and intervals of delays
     by [;], [|], [&] and [*] alone, so that its words are delays. *)
+
+val show_below : Rational.t bound -> string
+(** [show_below b] prints the letter [Below b], e.g. [≤3] or [<1/2]. *)
+
+val show_above : Rational.t bound -> string
+(** [show_above b] prints the letter [Above b], e.g. [≥3] or [>1/2]. *)
 
 val unrolled : regex -> Count.t -> regex
 (** [unrolled r c] is an expression of [r^c] without bounded repetition:
@@ -139,6 +151,12 @@ val distinct_entries :
 val strict_unsupported : regex -> 'a
 (** [strict_unsupported r] rejects the strict delay [r], [!d], under a grade
     other than the rigid grades of timed operations.
+
+    @raise Invalid_literal on the brace literal of [r]. *)
+
+val one_sided_unsupported : regex -> 'a
+(** [one_sided_unsupported r] rejects the one-sided letter [r], [≤d] or [≥d],
+    under a grade other than the rigid grades of timed operations.
 
     @raise Invalid_literal on the brace literal of [r]. *)
 

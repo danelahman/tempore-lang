@@ -2252,7 +2252,7 @@ it names none:
   File "literals_reject_strict_operation.tpe", line 12, characters 22-26:
   12 | let read () : nat # {!Read; 3} =
                              ^^^^
-  Syntax error: A strict delay `!` applies to a delay, a set of delays or `_`, not to `Read`
+  Syntax error: A strict wait `!` applies to a length or an interval of lengths, not to `Read`
   ======================================================================
   literals_reject_unknown.tpe
   ======================================================================

@@ -243,7 +243,8 @@ let rec finite_words = function
   | Grade.Repeat (r, ({ most = Some _; _ } as c)) ->
       finite_words (Grade.unrolled r c)
   | Grade.Frac _ | Grade.Delays _ | Grade.Any | Grade.Star _ | Grade.Repeat _
-  | Grade.Inter _ | Grade.Compl _ | Grade.Strict _ ->
+  | Grade.Inter _ | Grade.Compl _ | Grade.Strict _ | Grade.Below _
+  | Grade.Above _ ->
       invalid_arg "finite_words"
 
 (* [Reader (G)] reads the literals of [G] by the parser, in the grade position

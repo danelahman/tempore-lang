@@ -17,6 +17,8 @@ type regex =
   | Tick of int
   | Frac of Rational.t
   | Delays of Rational.t bound * Rational.t bound
+  | Below of Rational.t bound
+  | Above of Rational.t bound
   | Any
   | Seq of regex * regex
   | Union of regex * regex
@@ -27,7 +29,7 @@ type regex =
   | Strict of regex
 
 let rec delays_only = function
-  | Tick _ | Frac _ | Delays _ -> true
+  | Tick _ | Frac _ | Delays _ | Below _ | Above _ -> true
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> delays_only r && delays_only s
   | Star r | Repeat (r, _) -> delays_only r
   | Letter _ | Any | Compl _ | Strict _ -> false
@@ -60,6 +62,11 @@ let rec equal_regex r s =
         | _ -> false
       in
       equal_bound lo lo' && equal_bound hi hi'
+  | Below b, Below b' | Above b, Above b' -> (
+      match (b, b') with
+      | Closed p, Closed q | Open p, Open q -> Rational.equal p q
+      | Unbounded, Unbounded -> true
+      | _ -> false)
   | Any, Any -> true
   | Seq (r, s), Seq (r', s')
   | Union (r, s), Union (r', s')
@@ -93,11 +100,21 @@ let is_marker = function "!(" | ")!" -> true | _ -> false
 let regex_names r =
   let rec go = function
     | Letter name -> [ name ]
-    | Tick _ | Frac _ | Delays _ | Any -> []
+    | Tick _ | Frac _ | Delays _ | Below _ | Above _ | Any -> []
     | Seq (r, s) | Union (r, s) | Inter (r, s) -> go r @ go s
     | Star r | Repeat (r, _) | Compl r | Strict r -> go r
   in
   List.sort_uniq String.compare (go r)
+
+let show_below = function
+  | Closed d -> "≤" ^ Rational.show d
+  | Open d -> "<" ^ Rational.show d
+  | Unbounded -> "≤∞"
+
+let show_above = function
+  | Closed d -> "≥" ^ Rational.show d
+  | Open d -> ">" ^ Rational.show d
+  | Unbounded -> "≥∞"
 
 let show_regex r =
   let buffer = Buffer.create 64 in
@@ -121,6 +138,8 @@ let show_regex r =
     | Tick n -> add (string_of_int n)
     | Frac q -> wrap ctx 4 (fun () -> add (Rational.show q))
     | Delays (lo, hi) -> add (show_interval Rational.show lo hi)
+    | Below b -> add (show_below b)
+    | Above b -> add (show_above b)
     | Any -> add "_"
     | Union _ as r ->
         chain ctx 0 " | " (function Union (l, x) -> Some (l, x) | _ -> None) r
@@ -203,6 +222,12 @@ let strict_unsupported r =
   invalid_lit (Braces r)
     "strict delays `%s` are read by the rigid grades of timed operations only, \
      `regex-timed-rigid-…` and `traces-timed-rigid-…`"
+    (show_regex r)
+
+let one_sided_unsupported r =
+  invalid_lit (Braces r)
+    "one-sided lengths `%s` are read by the rigid grades of timed operations \
+     only, `regex-timed-rigid-…` and `traces-timed-rigid-…`"
     (show_regex r)
 
 let rational_lit q =

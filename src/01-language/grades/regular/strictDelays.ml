@@ -43,6 +43,7 @@ module Make (E : EXPRESSION) = struct
     | Star r -> E.star (of_regex r)
     | Repeat (r, c) -> E.repeat (of_regex r) c
     | Compl r -> E.inter [ words; E.compl (of_regex r) ]
+    | (Below _ | Above _) as r -> one_sided_unsupported r
 end
 
 module type GRADE = sig

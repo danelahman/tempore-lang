@@ -400,6 +400,7 @@ let rec of_regex : GradeLiteral.regex -> t = function
   | Star r -> star (of_regex r)
   | Repeat (r, c) -> repeat (of_regex r) c
   | Strict _ as r -> GradeLiteral.strict_unsupported r
+  | (Below _ | Above _) as r -> GradeLiteral.one_sided_unsupported r
 
 (** The strict delays of the rigid grades. *)
 module Strict = StrictDelays.Make (struct

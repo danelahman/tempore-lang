@@ -125,6 +125,8 @@ module Base (D : Delay.S) = struct
     | Delays (lo, hi) ->
         unsupported lit
           ("the interval of delays `" ^ show_interval Rational.show lo hi ^ "`")
+    | (Below _ | Above _) as r ->
+        component_of_lit lit ~context:"" one_sided_unsupported r
 
   (* The operands are read left to right, so the leftmost unsupported form is
      the one reported. *)

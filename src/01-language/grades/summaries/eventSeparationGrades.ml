@@ -264,6 +264,8 @@ let of_braces lit r =
     | Seq (r, s) -> mul (go r) (go s)
     | Union (r, s) -> join (go r) (go s)
     | Strict _ as r -> component_of_lit lit ~context:"" strict_unsupported r
+    | (Below _ | Above _) as r ->
+        component_of_lit lit ~context:"" one_sided_unsupported r
     | Repeat (r, ({ most = Some _; _ } as c)) -> go (unrolled r c)
     | Any | Star _ | Repeat _ | Inter _ | Compl _ ->
         invalid_lit lit

@@ -28,6 +28,7 @@ let rec of_regex = function
   | Repeat (r, c) -> R.repeat (of_regex r) c
   | Compl r -> R.compl (of_regex r)
   | Strict _ as r -> strict_unsupported r
+  | (Below _ | Above _) as r -> one_sided_unsupported r
 
 (** The strict delays of the rigid grades of timed operations. *)
 module Encoding = StrictDelays.Make (struct

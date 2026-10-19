@@ -41,6 +41,8 @@ let of_braces lit r =
     | Grade.Compl r -> R.inter [ R.compl (go r); naturals ]
     | Grade.Strict _ as r ->
         Grade.component_of_lit lit ~context:"" Grade.strict_unsupported r
+    | (Grade.Below _ | Grade.Above _) as r ->
+        Grade.component_of_lit lit ~context:"" Grade.one_sided_unsupported r
   in
   go r
 

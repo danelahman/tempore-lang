@@ -2362,7 +2362,8 @@ let registered_repetitions =
     | Star r -> Star (unroll r)
     | Compl r -> Compl (unroll r)
     | Strict r -> Strict (unroll r)
-    | (Letter _ | Tick _ | Frac _ | Delays _ | Any) as r -> r
+    | (Letter _ | Tick _ | Frac _ | Delays _ | Any | Below _ | Above _) as r ->
+        r
   in
   let a = Letter "A" and b = Letter "B" and c = Letter "C" in
   let literals =

@@ -917,7 +917,9 @@ let rec iota ~strict n =
   | Grade.Repeat (r, c) -> Grade.Repeat (iota n r, c)
   | Grade.Strict r -> Grade.Strict (iota n r)
   | Grade.Tick k -> Grade.rational_tick (q k n)
-  | (Grade.Letter _ | Grade.Frac _ | Grade.Delays _) as r -> r
+  | ( Grade.Letter _ | Grade.Frac _ | Grade.Delays _ | Grade.Below _
+    | Grade.Above _ ) as r ->
+      r
 
 let whole_names = [ "A"; "B"; "C" ]
 let whole_running_times = [ ("A", (1, 3)); ("B", (0, 2)); ("C", (2, 2)) ]

@@ -149,6 +149,27 @@
     | Some reason -> Error.syntax ~loc "%s" (String.capitalize_ascii reason)
     | None -> Grade.Delays (lower, upper)
 
+  (* [below ~loc ~upper_open hi] is the one-sided interval atom at [loc] of
+     the delays up to [hi], [None] being infinite, open iff [upper_open]; a
+     syntax error if it is empty. *)
+  let below ~loc ~upper_open hi =
+    match (hi, upper_open) with
+    | None, _ -> Grade.Below Grade.Unbounded
+    | Some hi, false -> Grade.Below (Grade.Closed hi)
+    | Some hi, true when Rational.sign hi > 0 -> Grade.Below (Grade.Open hi)
+    | Some _, true -> Error.syntax ~loc "`<0` holds no delay"
+
+  (* [above ~loc ~lower_open lo] is the one-sided interval atom at [loc] of
+     the delays from [lo], open iff [lower_open]; a syntax error if [lo] is
+     infinite. *)
+  let above ~loc ~lower_open lo =
+    match lo with
+    | None ->
+        Error.syntax ~loc "`%s∞` holds no delay"
+          (if lower_open then ">" else "≥")
+    | Some lo when lower_open -> Grade.Above (Grade.Open lo)
+    | Some lo -> Grade.Above (Grade.Closed lo)
+
   (* [count ~loc ~lower_open m n ~upper_open] is the count at [loc] of a
      bounded repetition from [m] to [n], [None] being infinite, open below iff
      [lower_open] and above iff [upper_open]: an open endpoint abbreviates the
@@ -807,14 +828,16 @@ minus_infinity:
 
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] and repetition
-   [*] and bounded repetition [r^n], [r^[m, n]] or [r^[m, ∞)], the strict
-   delay [!] binding as the complement but applying to the operand of a
-   repetition [*]; [!r^c] is the strict delay of the delays of [r^c], and
-   [(!r)^c] a repetition of strict delays. Braces group as
-   parentheses do. An atom is an operation name, a delay,
-   the wildcard [_], or an interval of delays [[a, b]], [(a, b)], [[a, b)],
-   [(a, b]], [[a, ∞)] or [(a, ∞)]; a parenthesis followed by a delay and a
-   comma opens an interval, and otherwise a group. *)
+   [*], bounded repetition [r^n], [r^[m, n]] or [r^[m, ∞)] and the optional
+   [r?], which is [(r | 0)], the strict delay [!] binding as the complement
+   but applying to the operand of a repetition [*]; [!r^c] is the strict
+   delay of the delays of [r^c], and [(!r)^c] a repetition of strict delays.
+   Braces group as parentheses do. An atom is an operation name, a delay,
+   the wildcard [_], an interval of delays [[a, b]], [(a, b)], [[a, b)],
+   [(a, b]], [[a, ∞)] or [(a, ∞)], or a one-sided interval of delays [≤d],
+   [<d], [≥d] or [>d] (ASCII [<=d] and [>=d]), [≤∞] and [<∞] being all
+   delays; a parenthesis followed by a delay and a comma opens an interval,
+   and otherwise a group. *)
 regex:
   | r = regex_inter { r }
   | r = regex BAR s = regex_inter { Grade.Union (r, s) }
@@ -831,25 +854,27 @@ regex_unary:
   | r = regex_postfix { r }
   | op = PREFIXOP r = regex_unary
     { if op = "~" then Grade.Compl r
-      else if op = "!" then
-        (* [!] binds to the operand of a repetition: [!_*] is [(!_)*]. *)
-        let rec strict = function
-          | Grade.Star r -> Grade.Star (strict r)
-          | r when r = Grade.Any || Grade.delays_only r -> Grade.Strict r
-          | r ->
-              Error.syntax ~loc:(location $loc(r))
-                "A strict delay `!` applies to a delay, a set of delays or \
-                 `_`, not to `%s`" (Grade.show_regex r)
-        in
-        strict r
       else
         Error.syntax ~loc:(location $loc(op))
           "Unknown operator `%s` in a brace literal" op }
+  | BANG r = regex_unary
+    { (* [!] binds to the operand of a repetition: [!_*] is [(!_)*]. *)
+      let rec strict = function
+        | Grade.Star r -> Grade.Star (strict r)
+        | Grade.Compl s as r when Grade.delays_only s -> Grade.Strict r
+        | r when r = Grade.Any || Grade.delays_only r -> Grade.Strict r
+        | r ->
+            Error.syntax ~loc:(location $loc(r))
+              "A strict wait `!` applies to a length or an interval of \
+               lengths, not to `%s`" (Grade.show_regex r)
+      in
+      strict r }
 
 regex_postfix:
   | r = regex_atom { r }
   | r = regex_postfix STAR { Grade.Star r }
   | r = regex_postfix CARET c = repeat_count { Grade.Repeat (r, c) }
+  | r = regex_postfix QUESTION { Grade.Union (r, Grade.Tick 0) }
 
 (* The count of a bounded repetition: a natural number [n], or an interval
    [[m, n]], [(m, n)], [[m, n)], [(m, n]], [[m, ∞)] or [(m, ∞)] of natural
@@ -899,6 +924,10 @@ regex_atom:
     { delays ~loc:(location $loc)
         ~lower_open:true lo hi ~upper_open:true }
   | UNDERSCORE { Grade.Any }
+  | LEQ hi = delay_end { below ~loc:(location $loc) ~upper_open:false hi }
+  | LT hi = delay_end { below ~loc:(location $loc) ~upper_open:true hi }
+  | GEQ lo = delay_end { above ~loc:(location $loc) ~lower_open:false lo }
+  | GT lo = delay_end { above ~loc:(location $loc) ~lower_open:true lo }
   | LPAREN r = regex RPAREN { r }
   | LBRACE r = regex RBRACE { r }
 

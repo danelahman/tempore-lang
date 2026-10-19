@@ -103,8 +103,8 @@ let literals =
     reads "{_*}" ~expected:"⊤";
     reads "3/2" ~expected:"{1.5}";
     reads "top" ~expected:"⊤";
-    rejects "{<1}" "parser error";
-    rejects "{>0 & <1}" "parser error";
+    rejects "{<1}" "one-sided lengths `<1` are read by the rigid grades";
+    rejects "{>0 & <1}" "one-sided lengths";
     rejects "{[2, 1]}" "Interval endpoints must satisfy n <= m";
     rejects "{(1, 1)}"
       "Interval endpoints must satisfy n < m at an open endpoint";
@@ -479,7 +479,8 @@ let matches r w =
     | Grade.Union (r1, r2) -> go r1 s e || go r2 s e
     | Grade.Inter (r1, r2) -> go r1 s e && go r2 s e
     | Grade.Compl r1 -> not (go r1 s e)
-    | Grade.Strict _ -> invalid_arg "eval: a strict delay"
+    | Grade.Strict _ | Grade.Below _ | Grade.Above _ ->
+        invalid_arg "eval: a strict delay"
     | Grade.Repeat (r1, c) -> go (Grade.unrolled r1 c) s e
     | Grade.Star r1 ->
         s = e
@@ -569,7 +570,9 @@ let rec iota = function
   | Grade.Star r -> Grade.Star (iota r)
   | Grade.Repeat (r, c) -> Grade.Repeat (iota r, c)
   | Grade.Strict r -> Grade.Strict (iota r)
-  | (Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _) as r -> r
+  | ( Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _
+    | Grade.Below _ | Grade.Above _ ) as r ->
+      r
 
 let whole_steps =
   let st = Random.State.make [| 43 |] in
@@ -774,8 +777,8 @@ let rec unroll = function
   | Grade.Star r -> Grade.Star (unroll r)
   | Grade.Compl r -> Grade.Compl (unroll r)
   | Grade.Strict r -> Grade.Strict (unroll r)
-  | (Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _ | Grade.Any)
-    as r ->
+  | ( Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _ | Grade.Any
+    | Grade.Below _ | Grade.Above _ ) as r ->
       r
 
 (* [random_count st] is a count of at most [4]. *)

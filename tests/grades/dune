@@ -66,3 +66,17 @@
  (name test_eventSeparation)
  (modules test_eventSeparation)
  (libraries utils grades lawChecks parser sugaredAst))
+
+(test
+ (name test_intervalRegex)
+ (modules test_intervalRegex)
+ (libraries utils grades lawChecks parser sugaredAst))
+
+(library
+ (name intervalLettersReference)
+ (modules intervalLettersReference))
+
+(test
+ (name test_intervalLetters_reference)
+ (modules test_intervalLetters_reference)
+ (libraries lawChecks intervalLettersReference))
