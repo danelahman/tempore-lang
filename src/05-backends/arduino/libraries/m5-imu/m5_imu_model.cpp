@@ -3,9 +3,9 @@
 // whose y axis that of its roll, from the state of the world, without noise:
 // the acceleration is the load of the world along the vertical, or the
 // acceleration given by the world, and the gyroscope reads the rate of the
-// tilt. A read takes 603 microseconds, the
-// time of a read of 14 bytes on the host model of an I2C bus at 400 kHz: the
-// transfer of 17 bytes and two address phases. A reconfiguration takes 200
+// tilt, each axis offset by the bias of the gyroscope of the world. A read
+// takes 603 microseconds, the time of a read of 14 bytes on the host model
+// of an I2C bus at 400 kHz: the transfer of 17 bytes and two address phases. A reconfiguration takes 200
 // microseconds and is logged.
 
 #include <Arduino.h>
@@ -27,9 +27,9 @@ m5::IMU_Class::sensor_mask_t tempore_m5_imu::update() {
     accel[1] = static_cast<float>(w.load * sin(w.tilt) * cos(w.roll));
     accel[2] = static_cast<float>(w.load * cos(w.tilt) * cos(w.roll));
   }
-  gyro[0] = static_cast<float>(w.tilt_rate * m5_imu_degrees);
-  gyro[1] = 0.0f;
-  gyro[2] = 0.0f;
+  gyro[0] = static_cast<float>((w.tilt_rate + w.gyro_bias[0]) * m5_imu_degrees);
+  gyro[1] = static_cast<float>(w.gyro_bias[1] * m5_imu_degrees);
+  gyro[2] = static_cast<float>(w.gyro_bias[2] * m5_imu_degrees);
   tempore_trace("IMU accel %.3f %.3f %.3f g, gyro %.2f %.2f %.2f deg/s",
                 accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2]);
   return static_cast<m5::IMU_Class::sensor_mask_t>(

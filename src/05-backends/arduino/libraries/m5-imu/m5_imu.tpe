@@ -23,9 +23,12 @@
    on the BMI270, 25 to 1600 Hz in powers of two, and on a unit of the MPU6886
    family the sample rate of 1 kHz divided by an integer; on another unit it
    does nothing. CheckAtRest () reads the unit four times, the readings
-   started 6 ms apart, and returns whether it is at rest: the magnitude of each acceleration between
-   0.9 and 1.1 g and that of each angular rate below 20 degrees per second.
-   It is a check of plausibility, not a self-test of the sensor. Their
+   started 6 ms apart, and returns whether it is at rest by the variation of
+   the readings: the magnitude of each acceleration between 0.9 and 1.1 g,
+   the greatest less the least angular rate about each axis below 5 degrees
+   per second, and the angle between the first and the last acceleration
+   below 2 degrees, so that a constant bias of the gyroscope does not affect
+   it. It is a check of plausibility, not a self-test of the sensor. Their
    default implementations take a time within the bounds; that of
    CheckAtRest returns true.
 

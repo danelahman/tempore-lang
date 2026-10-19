@@ -42,8 +42,13 @@
 // wheel at full drive, the onset of motion at a drive of about 70, and a
 // right wheel half as fast as the left at a drive of 300.
 //
+// The gyroscope of the unit reads a constant bias of PLANT_GYRO_BIAS degrees
+// per second about its y axis, 25 by default, as measured on a BALA2 at
+// rest; the step reads the rate about the x axis.
+//
 // The body is held at the initial tilt PLANT_TILT, in radians, as by a hand,
-// and released when a motor is first driven or at PLANT_RELEASE_MS
+// turning at PLANT_HELD_RATE radians per second (0 unless the build flag
+// sets it), and released when a motor is first driven or at PLANT_RELEASE_MS
 // milliseconds, whichever comes first, turning at PLANT_RELEASE_RATE radians
 // per second (0 unless the build flag sets it). A hand stands the released
 // body up again at the initial tilt and holds it still, until a motor is
@@ -75,6 +80,14 @@
 
 #ifndef PLANT_OFFSET
 #define PLANT_OFFSET 0.0
+#endif
+
+#ifndef PLANT_GYRO_BIAS
+#define PLANT_GYRO_BIAS 25.0
+#endif
+
+#ifndef PLANT_HELD_RATE
+#define PLANT_HELD_RATE 0.0
 #endif
 
 #ifndef PLANT_RELEASE_RATE
@@ -141,7 +154,11 @@ double torque(int i, double d, double w) {
 
 __attribute__((weak)) bool plant_stand_up(double) { return false; }
 
-void world_start(tempore_world &w) { w.tilt = PLANT_TILT; }
+void world_start(tempore_world &w) {
+  w.tilt = PLANT_TILT;
+  w.tilt_rate = PLANT_HELD_RATE;
+  w.gyro_bias[1] = PLANT_GYRO_BIAS / degrees;
+}
 
 void world_advance(tempore_world &w, double dt) {
   if (released && plant_stand_up(w.time)) {
