@@ -20,9 +20,9 @@ typedef enum { WIFI_PS_NONE = 0 } wifi_ps_type_t;
 typedef enum { WIFI_SECOND_CHAN_NONE = 0 } wifi_second_chan_t;
 
 typedef struct {
-  int unused;
+  int nvs_enable;
 } wifi_init_config_t;
-#define WIFI_INIT_CONFIG_DEFAULT() {0}
+#define WIFI_INIT_CONFIG_DEFAULT() {1}
 
 esp_err_t esp_event_loop_create_default();
 esp_err_t esp_wifi_init(const wifi_init_config_t *config);

@@ -51,8 +51,9 @@ rejected:
 The host simulation for 12 s. The controller sends Beat until 1.5 s, Arm
 for 1 s, Drive (100, 0) from 2.5 s, Disarm at 3.5 s, Beat, Arm again for
 1 s from 6.2 s, Drive (-100, 0) from 7.2 s, nothing from 7.6 s, and Beat
-again from 10 s. The robot starts the link, is calibrated at rest, held
-upright, beeps at 2 kHz when it waits for Arm, is armed once a poll finds
+again from 10 s. The robot starts the link before its first step and its
+first report, is calibrated at rest, held upright, beeps at 2 kHz when it
+waits for Arm, is armed once a poll finds
 Arm, and disarmed at the Disarm; it then falls, so that the at-rest check
 fails and it shows "Hold still", until the user stands it up at 3.8 s and
 holds it still; it is calibrated anew, beeps, is armed again and balances;
@@ -67,36 +68,36 @@ the readings, admits. The tilts of the plant, whose digits depend on the C
 library, are not shown:
 
   $ tempore --emit-arduino balance_remote --device $app/balance_remote.device.json --host-simulate 12 $app/balance_remote.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\|ESP-NOW model\)\|Plant: \(tilt\|largest\)' | awk '/ESP-NOW: sent tag 5,/ { a = $7; sub(/,$/, "", a); if (a == last) next; last = a; print $1, $2, "ESP-NOW: status, phase " a; next } { print }'
+  [31.245 ms] Display cleared
+  [35.045 ms] Display at (0, 2): Remote robot
+  [37.805 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [100.245 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer FF:FF:FF:FF:FF:FF, not encrypted
-  [132.000 ms] Display cleared
-  [135.800 ms] Display at (0, 2): Remote robot
-  [138.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [142.340 ms] Display at (0, 102): Calibrating
-  [142.440 ms] ESP-NOW: status, phase 2.000
-  [664.943 ms] Display at (0, 102): Hold upright
-  [1668.903 ms] Display at (0, 102): Waiting for Arm
-  [1668.953 ms] Speaker: 2000 Hz for 80 ms
-  [1669.053 ms] ESP-NOW: status, phase 0.000
-  [2072.713 ms] Display at (0, 102): Armed
-  [2072.813 ms] ESP-NOW: status, phase 1.000
-  [3525.333 ms] Display at (0, 102): Disarmed
-  [3529.113 ms] Display at (0, 102): Calibrating
-  [3529.213 ms] ESP-NOW: status, phase 2.000
-  [4048.019 ms] ESP-NOW: status, phase 3.000
-  [4051.779 ms] Display at (0, 102): Hold still
-  [4555.559 ms] Display at (0, 102): Calibrating
-  [5074.362 ms] ESP-NOW: status, phase 2.000
-  [5078.162 ms] Display at (0, 102): Hold upright
-  [6082.122 ms] Display at (0, 102): Waiting for Arm
-  [6082.172 ms] Speaker: 2000 Hz for 80 ms
-  [6082.272 ms] ESP-NOW: status, phase 0.000
-  [6886.032 ms] Display at (0, 102): Armed
-  [6886.132 ms] ESP-NOW: status, phase 1.000
-  [9649.172 ms] Display at (0, 102): Link lost
-  [9649.222 ms] Speaker: 880 Hz for 200 ms
-  [10005.682 ms] Display at (0, 102): Armed
+  [111.585 ms] Display at (0, 102): Calibrating
+  [111.685 ms] ESP-NOW: status, phase 2.000
+  [634.188 ms] Display at (0, 102): Hold upright
+  [1638.148 ms] Display at (0, 102): Waiting for Arm
+  [1638.198 ms] Speaker: 2000 Hz for 80 ms
+  [1638.298 ms] ESP-NOW: status, phase 0.000
+  [2041.958 ms] Display at (0, 102): Armed
+  [2042.058 ms] ESP-NOW: status, phase 1.000
+  [3519.778 ms] Display at (0, 102): Disarmed
+  [3523.558 ms] Display at (0, 102): Calibrating
+  [3523.658 ms] ESP-NOW: status, phase 2.000
+  [4043.019 ms] ESP-NOW: status, phase 3.000
+  [4046.779 ms] Display at (0, 102): Hold still
+  [4550.559 ms] Display at (0, 102): Calibrating
+  [5069.362 ms] ESP-NOW: status, phase 2.000
+  [5073.162 ms] Display at (0, 102): Hold upright
+  [6077.122 ms] Display at (0, 102): Waiting for Arm
+  [6077.172 ms] Speaker: 2000 Hz for 80 ms
+  [6077.272 ms] ESP-NOW: status, phase 0.000
+  [6881.032 ms] Display at (0, 102): Armed
+  [6881.132 ms] ESP-NOW: status, phase 1.000
+  [9644.172 ms] Display at (0, 102): Link lost
+  [9644.222 ms] Speaker: 880 Hz for 200 ms
+  [10013.282 ms] Display at (0, 102): Armed
   [12000.000 ms] End of the simulation
-  [12000.000 ms] Plant: released at 6887.0 ms
+  [12000.000 ms] Plant: released at 6882.0 ms
 
 Held askew at 0.5 rad (28.6 degrees) from the start, the robot is
 calibrated, since it is held still, but not armed at the Arm of 1.5 s: the
@@ -108,12 +109,12 @@ not driven:
   $ cd _arduino/projects/balance_remote
   $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_TILT=0.5 -pthread -I host -I src src/*.cpp host/*.cpp -o askew
   $ ./askew 3000000 | grep 'Display at (0, 102)\|motors were never'
-  [142.340 ms] Display at (0, 102): Calibrating
-  [664.943 ms] Display at (0, 102): Hold upright
-  [1668.903 ms] Display at (0, 102): Waiting for Arm
-  [2072.833 ms] Display at (0, 102): Not upright
-  [2076.613 ms] Display at (0, 102): Calibrating
-  [2599.176 ms] Display at (0, 102): Hold still
+  [111.585 ms] Display at (0, 102): Calibrating
+  [634.188 ms] Display at (0, 102): Hold upright
+  [1638.148 ms] Display at (0, 102): Waiting for Arm
+  [2042.078 ms] Display at (0, 102): Not upright
+  [2045.858 ms] Display at (0, 102): Calibrating
+  [2568.421 ms] Display at (0, 102): Hold still
   [3000.000 ms] Plant: the motors were never driven
 
 Held and turned steadily by 0.1 rad/s (5.7 degrees per second), the robot
@@ -123,10 +124,10 @@ the 2 degrees of rest_cosine over the samples:
 
   $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_HELD_RATE=0.1 -pthread -I host -I src src/*.cpp host/*.cpp -o turned
   $ ./turned 1900000 | grep 'Display at (0, 102)\|motors were never'
-  [142.340 ms] Display at (0, 102): Calibrating
-  [664.903 ms] Display at (0, 102): Hold still
-  [1168.683 ms] Display at (0, 102): Calibrating
-  [1691.779 ms] Display at (0, 102): Hold still
+  [111.585 ms] Display at (0, 102): Calibrating
+  [634.148 ms] Display at (0, 102): Hold still
+  [1137.928 ms] Display at (0, 102): Calibrating
+  [1661.779 ms] Display at (0, 102): Hold still
   [1900.000 ms] Plant: the motors were never driven
   $ cd ../../..
 

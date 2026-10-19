@@ -179,9 +179,10 @@ let step ((tilt, speed, integral, position, heading) : state) : state
     perform SetMotors (0i, 0i);
     (tilt, speed, 0.0, now, difference))
 
-(* The initial state: the encoders reset, and the tilt from the
-   accelerometer. *)
+(* The initial state, after the start of the link, before the first period:
+   the encoders reset, and the tilt from the accelerometer. *)
 let start () : state =
+  let _ = perform LinkStart remote_channel in
   perform ResetEncoders ();
   let accel, _ = perform ReadImu () in
   (tilt_x_of_accel accel, 0.0, 0.0, 0.0, 0.0)
@@ -503,13 +504,26 @@ let rec session (n : nat) : unit
        else ());
       session m
 
-(* The supervision starts the link, before its first report, draws the name
-   and the footer once, and repeats the sessions. *)
+(* Waits until the step has read the unit, at most n polls 10 ms apart: the
+   number of the last reading is positive only after the reading of start,
+   which follows LinkStart, so that a Report after it follows LinkStart. *)
+let rec await_link (n : nat) : unit # {(Reading; !10)*; (Reading | 0)} =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      let number, _ = perform Reading () in
+      if number > 0i then ()
+      else (
+        delay 10;
+        await_link m)
+
+(* The supervision draws the name and the footer once, waits for the link,
+   and repeats the sessions. *)
 let supervise () =
-  let _ = perform LinkStart remote_channel in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Remote robot");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  await_link 1000;
   session 4000000000;
   perform Disarm ()
 

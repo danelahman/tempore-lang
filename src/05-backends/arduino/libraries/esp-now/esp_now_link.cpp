@@ -5,7 +5,10 @@
 // as a station on a channel, with its power saving off, and ESP-NOW with the
 // peer ESP_NOW_PEER, in a task pinned to core 0, which it waits for, so that
 // the interrupt of the radio is allocated on core 0 whatever the core of the
-// caller. The callbacks of ESP-NOW run in the task of the Wi-Fi driver.
+// caller. The Wi-Fi driver keeps its configuration in memory, not in the
+// non-volatile storage of the flash; the calibration of the radio is still
+// read from it, and written to it when it changes. The callbacks of ESP-NOW
+// run in the task of the Wi-Fi driver.
 //
 // A peer ESP_NOW_PEER requires the key ESP_NOW_KEY, 32 hexadecimal digits,
 // and the converse: the link to the peer is then encrypted and authenticated
@@ -184,6 +187,7 @@ const char *begin() {
   if (!initialised(esp_event_loop_create_default()))
     return "ESP-NOW: the event loop did not start";
   wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
+  config.nvs_enable = 0;
   if (!succeeded(esp_wifi_init(&config)) ||
       !succeeded(esp_wifi_set_storage(WIFI_STORAGE_RAM)) ||
       !succeeded(esp_wifi_set_mode(WIFI_MODE_STA)) ||

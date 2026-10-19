@@ -27,10 +27,11 @@
    running on core 0, the tasks of the application on core 1 and the link
    encrypted, the profile of the device (2026-10-19) measured SetMotors at
    0.260 to 0.498 ms, ReadEncoders at 0.450 to 0.929 ms and ResetEncoders at
-   0.524 to 0.789 ms. Their bounds there have the upper bound 1.5 times the
-   greatest time measured with the radio, rounded up, and the lower bound
-   the least time measured with or without it, rounded down: SetMotors
-   [0.2, 0.75], ReadEncoders [0.45, 1.4] and ResetEncoders [0.3, 1.2]. *)
+   0.524 to 0.789 ms; earlier runs measured ReadEncoders at 0.431 ms at
+   least. Their bounds there have the upper bound 1.5 times the greatest
+   time measured with the radio, rounded up, and the lower bound the least
+   time measured with or without it, rounded down: SetMotors [0.2, 0.75],
+   ReadEncoders [0.4, 1.4] and ResetEncoders [0.3, 1.2]. *)
 
 operation SetMotors : int * int ~> unit # [0.2, 0.45]
 default SetMotors _ = delay 1/5

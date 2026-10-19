@@ -811,8 +811,10 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
   `esp-now` and `bala2-remote`, sharing the binding file and host model of
   `bala2`.
   - Under the bounds of `m5stack-gray-radio`, the step takes 1.2 to 4.5 ms,
-    and its period is 5 ms. Both tasks run on core 1, apart from the radio,
-    started by the supervision, on core 0, the step at the higher priority.
+    and its period is 5 ms. Both tasks run on core 1, apart from the radio
+    on core 0, the step at the higher priority. The initial function of the
+    step starts the link before the first period, and the supervision
+    reports only after the first reading of the unit, which follows it.
   - The calibration is boxed in two nested boxes. The outer box,
     `[{≥1000 & ~Command}, {≤600000 & ~Command}]`, opens the arming at least
     a second and at most 10 minutes after the calibration, the bias
