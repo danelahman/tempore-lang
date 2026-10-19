@@ -241,17 +241,14 @@ let group keep k (c, items) =
   | Some _ | None -> c
 
 (* The interval [s] read as ends and groups of items: [ends] are its ends,
-   [most] the largest number of items in a group, [ends_at k] and
+   [most] the largest number of items in a group, and [ends_at k] and
    [interval_at k] the ends and the interval with every group reduced to [k]
-   items, and [one_end_at k] the interval with its first ([Beginning]) or last
-   ([End]) end so reduced and the others replaced by […], if it has more than
-   one end. *)
+   items. *)
 type reduced = {
   ends : string list;
   most : int;
   ends_at : int -> string list;
   interval_at : int -> string;
-  one_end_at : int -> string option;
 }
 
 let reduced keep s =
@@ -265,16 +262,7 @@ let reduced keep s =
   in
   let ends_at k = List.map (group keep k) groups in
   let at k = opening ^ String.concat ", " (ends_at k) ^ closing in
-  let one_end_at k =
-    match (keep, groups) with
-    | _, ([] | [ _ ]) -> None
-    | Beginning, first :: _ ->
-        Some (opening ^ group keep k first ^ ", " ^ ellipsis ^ closing)
-    | End, groups ->
-        let last = List.nth groups (List.length groups - 1) in
-        Some (opening ^ ellipsis ^ ", " ^ group keep k last ^ closing)
-  in
-  { ends; most; ends_at; interval_at = at; one_end_at }
+  { ends; most; ends_at; interval_at = at }
 
 (* The first or last [n - 1] characters of [s] with the ellipsis. *)
 let cut_ellipsis keep n s =
@@ -290,26 +278,6 @@ let shorten keep s =
     let fits k = List.for_all (fun c -> length c <= limit) (ends_at k) in
     let rec fit k = if k <= 1 || fits k then k else fit (k - 1) in
     at (fit (max 1 (most - 1)))
-
-let shorten_total keep n s =
-  if length s <= n then Some s
-  else
-    let { most; interval_at = at; one_end_at; _ } = reduced keep s in
-    if most = 0 then if n >= 2 then Some (cut_ellipsis keep n s) else None
-    else
-      let rec fit at k =
-        if k < 1 then None
-        else
-          match at k with
-          | Some candidate when length candidate <= n -> Some candidate
-          | _ -> fit at (k - 1)
-      in
-      let k = max 1 (most - 1) in
-      match fit (fun k -> Some (at k)) k with
-      | Some _ as fitted -> fitted
-      | None -> fit one_end_at most
-
-let event_limit = 50
 
 (* Reports *)
 
@@ -334,31 +302,20 @@ let report ?run t =
   let of_run index = Option.fold ~none:true ~some:(Int.equal index) run in
   let row (entry : entry) =
     let mark = String.concat "" (List.init entry.depth (fun _ -> "· ")) in
-    (* The event, its grade, and the event and grade shortened. *)
-    let event, grade, short_event, status =
+    (* The event and its grade, empty for an unbox. *)
+    let event, grade, status =
       match entry.event with
       | Call { op; grade; returned } ->
-          (op, grade, op, if returned then Plain else Pending)
-      | Delay { grade } -> ("delay", grade, "delay", Plain)
-      | Box { name; grade; _ } ->
-          let box = "box " ^ name ^ " with grade " in
-          let room = event_limit - length mark - length box in
-          let shortened =
-            match shorten_total Beginning room grade with
-            | Some g -> g
-            | None -> ellipsis
-          in
-          (box ^ grade, "", box ^ shortened, Plain)
-      | Unbox { name; _ } ->
-          let unbox = "unbox " ^ name in
-          (unbox, "", unbox, Plain)
+          (op, grade, if returned then Plain else Pending)
+      | Delay { grade } -> ("delay", grade, Plain)
+      | Box { name; grade; _ } -> ("box " ^ name, grade, Plain)
+      | Unbox { name; _ } -> ("unbox " ^ name, "", Plain)
     in
     let start = if entry.depth = 0 then entry.start else "" in
     let run = string_of_int entry.run in
     {
       cells = [ run; start; mark ^ event; grade ];
-      short =
-        [ run; shorten End start; mark ^ short_event; shorten Beginning grade ];
+      short = [ run; shorten End start; mark ^ event; shorten Beginning grade ];
       status;
       depth = entry.depth;
     }

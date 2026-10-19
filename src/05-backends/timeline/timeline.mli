@@ -83,22 +83,6 @@ val shorten : keep -> string -> string
     cut to its first or last [limit - 1] characters, with […] after or before
     them. *)
 
-val event_limit : int
-(** [event_limit] is 50, the number of characters an event cell may have when
-    shortened for display. *)
-
-val shorten_total : keep -> int -> string -> string option
-(** [shorten_total keep n g] is the printed grade [g] shortened as a whole to at
-    most [n] characters: [g] if it has at most [n], otherwise every group of
-    more than [k] items in all its ends keeps only its first ([Beginning]) or
-    last ([End]) [k] items, the others replaced by […], [k] being the largest
-    number for which the grade has at most [n] characters. If there is no such
-    number, an interval keeps only its first ([Beginning]) or last ([End]) end,
-    so reduced to the largest number of items for which it fits, the other ends
-    replaced by […]. A grade without a brace group is cut to [n - 1] characters
-    with […]. [None] if none of these fits (at least 1 item for a brace group,
-    [n] at least 2 otherwise). *)
-
 (** {1 Reports} *)
 
 (** How a row of a report is marked. *)
@@ -110,10 +94,7 @@ type row = {
   cells : string list;
   short : string list;
       (** the cells shortened for display: the grade accumulated by
-          {!shorten}[ End], the grades of events by {!shorten}[ Beginning], the
-          box grade in an event cell by {!shorten_total}[ Beginning] so that the
-          cell has at most {!event_limit} characters, or [box x with grade …] if
-          it does not fit *)
+          {!shorten}[ End], the grades of events by {!shorten}[ Beginning] *)
   status : status;
   depth : int;
       (** the depth of its entry; a row of positive depth belongs to the default
@@ -141,11 +122,12 @@ val report : ?run:int -> t -> report
     - [Start] is the grade accumulated before the entry, at depth 0; it is empty
       for the entries of a default implementation, which start at the start of
       the call at depth 0 they belong to.
-    - [Event] is the operation called, [delay], [box x with grade g] with the
-      box grade [g], or [unbox x], preceded by a mark [· ] per level of depth.
+    - [Event] is the operation called, [delay], [box x] or [unbox x], preceded
+      by a mark [· ] per level of depth.
     - [Grade] is the declared grade of a call (the row pending until its default
-      implementation has returned) or the grade of a delay; it is empty for
-      boxes and unboxes, which add nothing to the grade accumulated. *)
+      implementation has returned), the grade of a delay, or the grade a box is
+      boxed at; it is empty for unboxes. Boxes and unboxes add nothing to the
+      grade accumulated. *)
 
 val text : ?full:bool -> report -> string
 (** [text ?full report] is [report] as plain text: its title, then a line for

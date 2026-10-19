@@ -87,7 +87,7 @@ let () =
          "1 |  | · delay | 2 1 plain";
          "1 |  | · B | 2 1 plain";
          "1 |  | · · delay | 1 2 plain";
-         "1 |  | · box x with grade 3 |  1 plain";
+         "1 |  | · box x | 3 1 plain";
          "1 | 5 | unbox x |  0 plain";
          "2 | 0 | C | 1 0 pending";
        ]
@@ -97,12 +97,12 @@ let () =
     String.concat "\n"
       [
         "Timeline";
-        "Run  Start  Event                 Grade";
-        "1    0      A                     5";
-        "1           · delay               2";
-        "1           · B                   2";
-        "1           · · delay             1";
-        "1           · box x with grade 3";
+        "Run  Start  Event      Grade";
+        "1    0      A          5";
+        "1           · delay    2";
+        "1           · B        2";
+        "1           · · delay  1";
+        "1           · box x    3";
         "1    5      unbox x";
         "Run 1 returned () at 5.";
         "";
@@ -143,47 +143,26 @@ let () =
   in
   check End long ("…" ^ String.sub long 11 39);
   check Beginning long (String.sub long 0 39 ^ "…");
-  (* the grade shortened as a whole *)
-  let total keep n grade expected =
-    let shortened = Timeline.shorten_total keep n grade in
-    if shortened <> expected then
-      fail "shorten_total %d %s: differs from the expectation" n grade
-  in
+  (* a box row names the box in its event and shortens its grade as the
+     grade of an operation *)
   let both = "[" ^ washed ^ ", " ^ washed ^ "]" in
-  total Beginning 28 both (Some "[{Ethanol; …}, {Ethanol; …}]");
-  total End 28 both (Some "[{…; (0 | 1)}, {…; (0 | 1)}]");
-  total Beginning 60 both
-    (Some "[{Ethanol; ChangeTip; …}, {Ethanol; ChangeTip; …}]");
-  total Beginning 200 both (Some both);
-  total Beginning 20 both (Some "[{Ethanol; …}, …]");
-  total End 20 both (Some "[…, {…; (0 | 1)}]");
-  total Beginning 10 both None;
-  let binding = "{AddBeads; ![5, 10]; MagnetOn}" in
-  let bindings = "[" ^ binding ^ ", " ^ binding ^ "]" in
-  total Beginning 27 bindings (Some "[{AddBeads; …}, …]");
-  total Beginning 28 bindings (Some "[{AddBeads; ![5, 10]; …}, …]");
-  total End 27 bindings (Some "[…, {…; MagnetOn}]");
-  total Beginning 20 long (Some (String.sub long 0 19 ^ "…"));
-  total Beginning 1 long None;
-  (* the event cell of a box row fits the limit, or loses its grade *)
-  let box name =
-    let t =
-      Timeline.observe
-        (Boxed { at = "0"; resource = "r"; name; grade = both })
-        Timeline.empty
-    in
-    match (Timeline.report t).rows with
-    | [ { short = [ _; _; event; _ ]; _ } ] -> event
-    | _ ->
-        fail "box row";
-        ""
+  let t =
+    Timeline.observe
+      (Boxed { at = "0"; resource = "r"; name = "washed"; grade = both })
+      Timeline.empty
   in
-  if box "washed" <> "box washed with grade [{Ethanol; …}, {Ethanol; …}]" then
-    fail "box event: %s" (box "washed");
-  if
-    box "aVeryLongNameOfABoundResource"
-    <> "box aVeryLongNameOfABoundResource with grade …"
-  then fail "box event: %s" (box "aVeryLongNameOfABoundResource")
+  match (Timeline.report t).rows with
+  | [
+   { cells = [ _; _; "box washed"; full ]; short = [ _; _; event; short ]; _ };
+  ] ->
+      if full <> both then fail "box grade: %s" full;
+      if event <> "box washed" then fail "box event: %s" event;
+      if
+        short
+        <> "[{Ethanol; ChangeTip; Ethanol; 2; …}, {Ethanol; ChangeTip; \
+            Ethanol; 2; …}]"
+      then fail "box grade shortened: %s" short
+  | _ -> fail "box row"
 
 (* The registry *)
 
@@ -298,21 +277,18 @@ let run_example (entry : ExampleIndex.entry) =
             if report.columns <> [ "Run"; "Start"; "Event"; "Grade" ] then
               fail "%s: columns" entry.path;
             (* every call finished, a grade exactly for the rows other than
-               boxes and unboxes, and a start for exactly the rows at the top
-               level *)
-            let rec resource event =
+               unboxes, and a start for exactly the rows at the top level *)
+            let rec unbox event =
               if String.starts_with ~prefix:"· " event then
-                resource (String.sub event 3 (String.length event - 3))
-              else
-                String.starts_with ~prefix:"box " event
-                || String.starts_with ~prefix:"unbox " event
+                unbox (String.sub event 3 (String.length event - 3))
+              else String.starts_with ~prefix:"unbox " event
             in
             List.iter
               (fun (row : BackendRegistry.row) ->
                 match (row.status, row.cells) with
                 | Plain, [ _; start; event; grade ]
-                  when grade = "" = resource event
-                       && start = "" = (row.depth > 0) ->
+                  when grade = "" = unbox event && start = "" = (row.depth > 0)
+                  ->
                     ()
                 | _ -> fail "%s: %s" entry.path (text_of_row row))
               report.rows;
@@ -597,14 +573,14 @@ let () =
     String.concat "\n"
       [
         "Timeline";
-        "Run  Start   Event                    Grade";
-        "1    [0, 0]  box p with grade [3, 5]";
-        "1    [0, 0]  delay                    [1, 1]";
-        "1    [1, 1]  box q with grade [2, 3]";
-        "1    [1, 1]  Op                       [2, 3]";
-        "1            · delay                  [2, 2]";
+        "Run  Start   Event    Grade";
+        "1    [0, 0]  box p    [3, 5]";
+        "1    [0, 0]  delay    [1, 1]";
+        "1    [1, 1]  box q    [2, 3]";
+        "1    [1, 1]  Op       [2, 3]";
+        "1            · delay  [2, 2]";
         "1    [3, 4]  unbox q";
-        "1    [3, 4]  box b with grade [0, 0]";
+        "1    [3, 4]  box b    [0, 0]";
         "1    [3, 4]  unbox b";
         "1    [3, 4]  unbox p";
         "Run 1 returned () at [3, 4].";
