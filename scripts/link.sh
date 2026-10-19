@@ -17,9 +17,8 @@
 #   esptool and recorded under ROLE if it is missing or different; it is an
 #   error if PEER has the same address.
 # - The key is REMOTE_KEY if set, and else that of the link file; without
-#   one, it is taken from the key file REMOTE_KEY_FILE, by default
-#   $HOME/.config/tempore/keys/NAME.key, if it exists, and else generated,
-#   16 bytes of `openssl rand` or of /dev/urandom, and recorded.
+#   one, it is generated, 16 bytes of `openssl rand` or of /dev/urandom, and
+#   recorded.
 # - The peer is REMOTE_PEER if set, and else the address recorded under
 #   PEER; without one it is an error, which names TARGET, the target that
 #   records it.
@@ -170,7 +169,6 @@ read_address() {
 }
 
 file=${REMOTE_LINK_FILE:-${HOME:?}/.config/tempore/links/$name}
-old_key_file=${REMOTE_KEY_FILE:-$HOME/.config/tempore/keys/$name.key}
 
 if [ -n "${REMOTE_KEY:-}" ]; then
   valid_key "$REMOTE_KEY" || error "REMOTE_KEY is not 32 hexadecimal digits"
@@ -212,13 +210,6 @@ if [ -n "${REMOTE_KEY:-}" ]; then
   report "key of REMOTE_KEY"
 elif [ -n "$key" ]; then
   report "key of $file"
-elif [ -e "$old_key_file" ]; then
-  key=$(tr -d ' \r\n' < "$old_key_file")
-  valid_key "$key" ||
-    error "the key file $old_key_file is not 32 hexadecimal digits"
-  entries=$(printf 'key %s\n%s' "$key" "$entries")
-  changed=true
-  report "key taken over from $old_key_file into $file"
 else
   if command -v openssl > /dev/null 2>&1; then
     key=$(openssl rand -hex 16)

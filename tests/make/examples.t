@@ -288,8 +288,7 @@ The other examples run no link:
 
 The link file of a link holds its key and the address of the board of each
 role. A fake esptool, TEMPORE_ESPTOOL, prints the address held by the file
-named as its port; HOME, the link file and the key file of the link are in
-the test directory:
+named as its port; HOME and the link file are in the test directory:
 
   $ mkdir link
   $ cat > link/esptool <<'EOF'
@@ -304,7 +303,6 @@ the test directory:
   $ echo 24:0a:c4:12:34:57 > link/controller
   $ export HOME="$PWD/link/home" TEMPORE_ESPTOOL="$PWD/link/esptool"
   $ export REMOTE_LINK_FILE="$PWD/link/links/bala2-remote"
-  $ export REMOTE_KEY_FILE="$PWD/link/keys/bala2-remote.key"
   $ unset REMOTE_KEY REMOTE_PEER
   $ link () { sh scripts/link.sh "$@" 2>&1 | sed -e "s|$PWD|.|g" -e 's/esp_now_key=.*/esp_now_key=(the key)/'; }
 
@@ -392,24 +390,9 @@ read:
   Error: the link file ./link/links/bala2-remote, line 2: the name robot is repeated
   Error: the link file ./link/links/bala2-remote, line 1: the name "2robot" is not a name
 
-Without a link file, the key is taken over from the key file of the link,
-if it exists:
-
-  $ rm link/links/bala2-remote
-  $ mkdir -p link/keys
-  $ echo 000102030405060708090a0b0c0d0e0f > link/keys/bala2-remote.key
-  $ link -p link/robot bala2-remote robot controller
-  ESP-NOW link bala2-remote: key taken over from ./link/keys/bala2-remote.key into ./link/links/bala2-remote
-  ESP-NOW link bala2-remote: the robot 24:0A:C4:12:34:58 recorded in ./link/links/bala2-remote
-  Error: the link file ./link/links/bala2-remote has no address of the controller: connect the controller and upload to it first, or set REMOTE_PEER
-  $ cat link/links/bala2-remote
-  # The ESP-NOW link bala2-remote: its key and the address of the board of each role.
-  key=000102030405060708090a0b0c0d0e0f
-  robot=24:0A:C4:12:34:58
-
 Concurrent builds agree on one key, generated once:
 
-  $ rm -r link/links link/keys
+  $ rm -r link/links
   $ export REMOTE_PEER=24:0a:c4:12:34:57
   $ for i in 1 2 3 4; do sh scripts/link.sh -p link/robot bala2-remote robot controller > printed$i 2> log$i & done; wait
   $ unset REMOTE_PEER
