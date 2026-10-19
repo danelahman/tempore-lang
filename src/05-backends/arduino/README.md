@@ -929,17 +929,18 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   - An armed iteration drives only on the latest status of the robot,
     received at most 200 ms earlier, if it is armed, and else sends Beat
     and shows "No link"; the tilt of the robot is shown from that status.
-  - Drive takes the speed from the pitch and the turn from the roll, each
-    with a dead zone of 5 degrees and bounded, of a reading boxed so that
-    it is the latest and at most 2 ms old, measured from the neutral tilt
-    recorded at the tap on Arm, boxed with `{≥0 & ~SendDisarm}` so that
-    it is used only within its session.
-  - A bubble level, `DrawLevel`, shows the tilt beyond the neutral tilt,
-    pitch forwards moving the bubble up and roll to the right moving it
-    right: the dead zone fills the inner circle and the bounds of the speed
-    and the turn reach the edge; green while the robot confirms, grey
-    without a link, dark grey while disarmed. The buttons Arm and Disarm
-    stay below it.
+  - Drive takes the speed from the pitch and the turn from the roll, so
+    that a tilt forwards drives the robot forwards and a tilt to the right
+    turns it to the right, each with a dead zone of 5 degrees and bounded,
+    of a reading boxed so that it is the latest and at most 2 ms old,
+    measured from the neutral tilt recorded at the tap on Arm, boxed with
+    `{≥0 & ~SendDisarm}` so that it is used only within its session.
+  - A bubble level, `DrawLevel`, shows the tilt beyond the neutral tilt in
+    its direction, a tilt forwards moving the bubble up and a tilt to the
+    right moving it right: the dead zone fills the inner circle and the
+    bounds of the speed and the turn reach the edge; green while the robot
+    confirms, grey without a link, dark grey while disarmed. The buttons
+    Arm and Disarm stay below it.
   - An armed iteration redraws at most one item: the state when it
     changes, or else the bubble or the tilt of the robot, in turn.
   - The make variable `REMOTE_PEER`, the address of the robot, sets the

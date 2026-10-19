@@ -175,11 +175,15 @@ let bubble (angle : float) =
   in
   int_of_float (whole (if angle < 0.0 then ~-.d else d))
 
-(* The vial with its bubble at an offset, pitch forwards drawing the bubble
-   up and roll to the right drawing it right, as a stick pushed that way. *)
+(* The vial with its bubble at an offset in the direction of the tilt, as a
+   stick pushed that way: a tilt forwards draws the bubble up and a tilt to
+   the right draws it right. The CoreS3, held as a remote, reads a tilt
+   forwards as a negative pitch and a tilt to the right as a negative roll,
+   and the y axis of the screen points down, so that the offset is the
+   negated roll across and the pitch down. *)
 let draw_bubble (pitch : float) (roll : float) (colour : nat) =
   perform DrawLevel
-    (vial_x, vial_y, vial_r, bubble roll, ~-!(bubble pitch), colour)
+    (vial_x, vial_y, vial_r, ~-!(bubble roll), bubble pitch, colour)
 
 (* Disarmed: Beat every 10.5 ms after a reading of the touch screen, until a
    tap on Arm; false if none comes in n readings. With dim, the first
@@ -206,8 +210,10 @@ type view = bool * float * bool
    ends the phase at a tap on Disarm; otherwise it unboxes the status of the
    robot received at the end of the last iteration, or by the handshake.
    If that status is of an armed robot, the link holds, and the iteration
-   sends Drive with the speed from the pitch and the turn from the roll of
-   the reading, each less that of the neutral tilt of the session; else it
+   sends Drive with the speed from the pitch and the turn from the negated
+   roll of the reading, each less that of the neutral tilt of the session,
+   so that a tilt forwards drives the robot forwards and a tilt to the
+   right turns it to the right; else it
    sends Beat. It redraws at most one item: the state, "Armed" or "No link",
    when it changes, and else, in turn, the bubble of the tilt beyond the
    neutral tilt, green with the link and grey without, or the tilt of the
@@ -244,7 +250,7 @@ let rec armed (n : nat) ((link_shown, shown_tilt, bubble_next) : view)
         let pitch = tilt_x_of_accel accel -. neutral_pitch in
         let roll = tilt_y_of_accel accel -. neutral_roll in
         let speed = command speed_gain speed_limit pitch in
-        let turn = command turn_gain turn_limit roll in
+        let turn = command turn_gain turn_limit (~-.roll) in
         let link = remote_armed status in
         let tilt =
           match status with Status (_, t) -> t | NoStatus -> shown_tilt
@@ -340,7 +346,7 @@ let armed_redrawn (zero : neutral) (latest : latest_status)
   let pitch = tilt_x_of_accel accel -. neutral_pitch in
   let roll = tilt_y_of_accel accel -. neutral_roll in
   let speed = command speed_gain speed_limit pitch in
-  let turn = command turn_gain turn_limit roll in
+  let turn = command turn_gain turn_limit (~-.roll) in
   if remote_armed status then perform SendDrive (speed, turn)
   else perform SendBeat ()
 *)

@@ -42,9 +42,10 @@ for 1 s, and once more until the status of the robot, scripted armed from
 neutral tilt, and shows "Armed", the tilt of the robot and a green bubble
 in the vial centred at (62, 122): zero at first, the bubble centred; from
 2.2 s, pitched forwards by 30 degrees, 20 beyond the neutral tilt, a speed
-of 240 counts per second, the bubble 33 pixels up (14 for the dead zone and
-15 / 25 of the remaining 32); from 3 s, flat and rolled by 15 degrees, -80
-and a turn of 40, the bubble 20 pixels down and 27 right; from 3.5 s, zero,
+of -240 counts per second, forwards for the robot, the bubble 33 pixels up
+(14 for the dead zone and 15 / 25 of the remaining 32); from 3 s, flat and
+rolled to the right by 15 degrees, a speed of 80, backwards, and a turn of
+40, to the right, the bubble 20 pixels down and 27 right; from 3.5 s, zero,
 the bubble centred. From 3.8 s the robot sends nothing for 400 ms: once its last
 status is older than 50 ms, the controller sends Beat and shows "No link"
 and a grey bubble, and drives again when the status returns, at a tilt of
@@ -74,9 +75,9 @@ at most one band:
   [2032.324 ms] Display at (0, 32): Armed
   [2044.204 ms] Display disc at (62, 122), radius 9: 0x00c000
   [2059.047 ms] Display at (130, 113): 2.5
-  [2208.586 ms] ESP-NOW: sent tag 2, 240.000, 0.000
+  [2208.586 ms] ESP-NOW: sent tag 2, -240.000, 0.000
   [2208.963 ms] Display disc at (62, 89), radius 9: 0x00c000
-  [3002.670 ms] ESP-NOW: sent tag 2, -80.000, 40.000
+  [3002.670 ms] ESP-NOW: sent tag 2, 80.000, 40.000
   [3014.550 ms] Display disc at (89, 142), radius 9: 0x00c000
   [3509.179 ms] ESP-NOW: sent tag 2, 0.000, 0.000
   [3521.059 ms] Display disc at (62, 122), radius 9: 0x00c000

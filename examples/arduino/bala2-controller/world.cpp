@@ -4,9 +4,13 @@
 // The CoreS3 lies flat until 0.9 s, and is then held pitched forwards by 10
 // degrees, the neutral tilt recorded at the tap on Arm at 1 s; it is
 // pitched forwards by 30 degrees from 2.2 s, 20 beyond the neutral tilt,
-// then flat and rolled by 15 degrees from 3 s, 10 behind it, and from 3.5 s
-// held at the neutral tilt again, with a tap on Disarm at 4.6 s. Each tap
-// lasts 100 ms.
+// which drives the robot forwards and draws the bubble up, then flat and
+// rolled to the right by 15 degrees from 3 s, 10 behind the neutral tilt,
+// which drives it backwards, turns it to the right and draws the bubble down
+// and right, and from 3.5 s held at the neutral tilt again, with a tap on
+// Disarm at 4.6 s. Each tap lasts 100 ms. As on the device, the unit reads a
+// tilt forwards as a negative pitch and a tilt to the right as a negative
+// roll.
 //
 // The robot, the peer of the host model of the package esp-now, sends its
 // status every 20 ms: disarmed until 1.5 s, armed at a tilt of 2.5 degrees
@@ -38,8 +42,8 @@ void world_advance(tempore_world &w, double) {
                        : within(t, 3.0, 0.5)  ? 0
                                               : 10;
   const double roll = within(t, 3.0, 0.5) ? 15 : 0;
-  w.accel[0] = -sin(roll * degree);
-  w.accel[1] = sin(pitch * degree) * cos(roll * degree);
+  w.accel[0] = sin(roll * degree);
+  w.accel[1] = -sin(pitch * degree) * cos(roll * degree);
   w.accel[2] = cos(pitch * degree) * cos(roll * degree);
   const bool arm = within(t, 1.0, 0.1), disarm = within(t, 4.6, 0.1);
   w.touched = arm || disarm;
