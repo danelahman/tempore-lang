@@ -16,9 +16,9 @@
 
    On the profile m5stack-gray-radio, an M5Stack Gray with its radio
    running, the profile of the device (2026-10-19, the remote BALA2 at a
-   period of 5 ms) measured Beep at 0.169 to 0.186 ms, two calls: [0.15,
-   0.3]. The default implementation takes 0.15 ms, within the bounds of
-   every board.
+   period of 5 ms) measured Beep at 0.169 to 0.186 ms, and its monitor
+   0.107 ms on a second robot: [0.1, 0.3]. The default implementation takes
+   0.15 ms, within the bounds of every board.
 
    On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
    core 0, the tasks of the application on core 1 and the link encrypted, the

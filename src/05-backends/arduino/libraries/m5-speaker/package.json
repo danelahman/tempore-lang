@@ -17,6 +17,6 @@
   "bindings": ["Beep"],
   "init": "m5_speaker_init",
   "bounds": {
-    "m5stack-gray-radio": { "Beep": [0.15, 0.3] }
+    "m5stack-gray-radio": { "Beep": [0.1, 0.3] }
   }
 }
