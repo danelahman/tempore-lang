@@ -7,6 +7,7 @@
        --package m5-imu \
        --package m5-display \
        --package m5-touch \
+       --package m5-speaker \
        --package esp-now \
        --package bala2-remote \
        --board m5stack-cores3 \
@@ -25,13 +26,13 @@
    task, sending the messages of the package bala2-remote, one operation per
    message, to the robot of examples/arduino/bala2-remote, under 50 ms
    apart, and receiving its status, on which it drives; a bubble level
-   shows the tilt that steers it, and a label whether the link is
-   encrypted. On the board: make arduino-bala2-controller-upload
-   REMOTE_PEER=XX:XX:XX:XX:XX:XX, the address of the robot, which encrypts
-   the link with the key shared with the robot (by default broadcast and
-   unencrypted; see the README of the Arduino backend); simulated on the
-   host, with world.cpp tilting and touching the device: make
-   arduino-bala2-controller-simulate. *)
+   shows the tilt that steers it, a label whether the link is encrypted,
+   and a short tone acknowledges a tap on Arm or Disarm. On the board:
+   make arduino-bala2-controller-upload REMOTE_PEER=XX:XX:XX:XX:XX:XX, the
+   address of the robot, which encrypts the link with the key shared with
+   the robot (by default broadcast and unencrypted; see the README of the
+   Arduino backend); simulated on the host, with world.cpp tilting and
+   touching the device: make arduino-bala2-controller-simulate. *)
 
 (* The command of a tilt: the dead zone, in degrees, and the gain and the
    bound of the speed of the wheels, in encoder counts per second, per
@@ -291,26 +292,28 @@ let rec armed (n : nat) ((link_shown, shown_tilt, bubble_next) : view)
 (* Correctly accepted by the typechecker: a session sends Beat until a tap
    on Arm, records the neutral tilt, sends Arm 80 times and then until the
    robot confirms, Drive or Beat until a tap on Disarm, and Disarm 20
-   times, in this order; its grade is the protocol of the controller, and
-   its strict waits and operations bound the time from the end of one
-   message to the start of the next by 46.95 ms, below the 50 ms within
-   which the robot expects one: after the last Disarm, the wait of 12.5 ms,
-   the redraw of the state, up to 33 ms, and the reading of the touch
-   screen, before the first Beat; the bubble, dimmed, is redrawn after that
-   Beat. *)
+   times, in this order; a tone of 60 ms, started by Beep, which returns at
+   once, acknowledges each accepted tap: 1760 Hz on Arm and 880 Hz on
+   Disarm. Its grade is the protocol of the controller, and its strict
+   waits and operations bound the time from the end of one message to the
+   start of the next by 46.95 ms, below the 50 ms within which the robot
+   expects one: after the last Disarm, the wait of 12.5 ms, the redraw of
+   the state, up to 33 ms, and the reading of the touch screen, before the
+   first Beat; the bubble, dimmed, is redrawn after that Beat. *)
 let rec session (n : nat) (v : view) : unit
     # {((ReadTouch; SendBeat; (DrawLevel | 0); !21/2)*; (ReadTouch | 0);
-        ReadImu; (SendArm; !25/2)^80; SendArm; !25/2; Receive;
+        Beep; ReadImu; (SendArm; !25/2)^80; SendArm; !25/2; Receive;
         (SendArm; !25/2; Receive)*;
         (ReadImu; ReadTouch; (SendDrive | SendBeat);
          (ShowTextAt | ShowNumberAt | DrawLevel | 0); !21/2; Receive)*;
-        (ReadImu; ReadTouch | 0); (SendDisarm; !25/2)^20; ShowTextAt)*;
+        (ReadImu; ReadTouch | 0); Beep; (SendDisarm; !25/2)^20; ShowTextAt)*;
        ((ReadTouch; SendBeat; (DrawLevel | 0); !21/2)*; (ReadTouch | 0) | 0)}
     =
   match n with
   | 0 -> ()
   | m + 1 ->
       if idle 4000000000 true then (
+        perform Beep (1760, 60);
         let zero = record_neutral () in
         arming ();
         let latest = confirm 40 in
@@ -318,6 +321,7 @@ let rec session (n : nat) (v : view) : unit
         let v =
           armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest
         in
+        perform Beep (880, 60);
         disarming ();
         perform ShowTextAt (0, 30, 2, "Disarmed");
         session m v)

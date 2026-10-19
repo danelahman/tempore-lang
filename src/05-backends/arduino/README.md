@@ -961,6 +961,8 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     times, for 1 s, and then until the status of the robot confirms, Drive
     or Beat until a tap on Disarm, and Disarm 20 times, each message under
     50 ms after the last.
+  - A tone of 60 ms, `Beep`, acknowledges an accepted tap: 1760 Hz on Arm
+    and 880 Hz on Disarm, before the first message that follows it.
   - An armed iteration drives only on the latest status of the robot,
     received at most 200 ms earlier, if it is armed, and else sends Beat
     and shows "No link"; the tilt of the robot is shown from that status.
