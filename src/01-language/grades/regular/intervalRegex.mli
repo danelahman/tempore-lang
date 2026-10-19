@@ -41,11 +41,13 @@
     A brace literal is read on a side: an operation name, a union of names, [_],
     [~A] and [_ & ~A] are operation sets; a delay [d], an interval [[a, b]] and
     the one-sided intervals [≤d], [<d], [≥d] and [>d] are budgets, and under [!]
-    strict waits; a two-sided interval is read by its hull on the side, [[a, b]]
-    as [≤b] on the upper side and [≥a] on the lower one, and a one-sided
-    interval of the other side is rejected, [≥0] and [≤∞] being both. [r?] is
-    [r | 0], and [0] the empty word. Over whole time steps, an open end is
-    closed at the next integer inward, [<3] being [≤2], and fractions are
+    strict waits; the intersection [(I & S)] of an interval [I] with an
+    operation set [S] is a budget restricted to [S], as [≥0 & ~Read] or
+    [(≤5 & (Scan | Turn))]; a two-sided interval is read by its hull on the
+    side, [[a, b]] as [≤b] on the upper side and [≥a] on the lower one, and a
+    one-sided interval of the other side is rejected, [≥0] and [≤∞] being both.
+    [r?] is [r | 0], and [0] the empty word. Over whole time steps, an open end
+    is closed at the next integer inward, [<3] being [≤2], and fractions are
     rejected. *)
 
 open Grade
@@ -161,9 +163,9 @@ module type S = sig
       @raise Invalid_literal
         on [lit] if [r] has a fraction over whole time steps, a one-sided
         interval of the other side, [!_], a complement or an intersection of
-        expressions, the complement of an interval, a budget restricted to an
-        operation set, or, if [finite], a repetition [*], an unbounded count or
-        a cofinite operation set. *)
+        expressions, the complement of an interval, or, if [finite], a
+        repetition [*], an unbounded count or a cofinite operation set as a
+        letter. *)
 
   val show : t -> string
   (** [show r] prints [r] as the contents of a brace literal: [!≤2] or [!<2] and

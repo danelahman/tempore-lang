@@ -87,7 +87,13 @@ let rec to_regex ~grid e =
         (fun a b -> Grade.Union (a, b))
         (List.map (fun n -> Grade.Letter n) names)
   | R.Letter (R.Stretch (R.Names [], iv)) -> Grade.Strict (interval iv)
-  | R.Letter (R.Stretch (_, iv)) -> interval iv
+  | R.Letter (R.Stretch (R.All, iv)) -> interval iv
+  | R.Letter (R.Stretch (R.Names names, iv)) ->
+      Grade.Inter
+        ( interval iv,
+          fold
+            (fun a b -> Grade.Union (a, b))
+            (List.map (fun n -> Grade.Letter n) names) )
   | R.Seq es ->
       fold (fun a b -> Grade.Seq (a, b)) (List.map (to_regex ~grid) es)
   | R.Alt es ->
@@ -307,6 +313,74 @@ let positive =
     verdict "matched" (R.op "B") (R.op "B") true;
   ]
 
+(* Restricted budgets and the window rule: an operation that is not matched
+   belongs to the set of every budget it overlaps; a budget of the lesser word
+   to one whose set contains its own. *)
+let restricted =
+  let rb names iv = R.Letter (R.Stretch (R.Names names, iv)) in
+  let up = R.at_most and low = R.at_least in
+  [
+    verdict "window: both sets" (R.op "C")
+      (R.Seq [ rb [ "C" ] (up 2); rb [ "A"; "C" ] (up 2) ])
+      true;
+    verdict "window: one set without it" (R.op "C")
+      (R.Seq [ rb [ "C" ] (up 2); rb [ "A" ] (up 2) ])
+      false;
+    verdict "window: within one" (R.op "C")
+      (R.Seq [ rb [ "C" ] (up 4); rb [ "A" ] (up 2) ])
+      true;
+    verdict "lower window: both sets" (R.op "C")
+      (R.Seq [ rb [ "C" ] (low 1); rb [ "A"; "C" ] (low 1) ])
+      true;
+    verdict "lower window: one set without it" (R.op "C")
+      (R.Seq [ rb [ "C" ] (low 1); rb [ "A" ] (low 1) ])
+      false;
+    verdict "a budget into a wider one"
+      (rb [ "A" ] (up 2))
+      (rb [ "A"; "C" ] (up 2))
+      true;
+    verdict "a budget into a narrower one"
+      (rb [ "A"; "C" ] (up 2))
+      (rb [ "A" ] (up 2))
+      false;
+    verdict "an unrestricted budget into a restricted one"
+      (R.budget (up 2))
+      (rb [ "A"; "C" ] (up 2))
+      false;
+    verdict "a wait into a restricted budget"
+      (R.strict (up 2))
+      (rb [ "A" ] (up 2))
+      true;
+    verdict "a restricted budget into a wait"
+      (rb [ "A" ] (up 2))
+      (R.strict (up 2))
+      false;
+    verdict "monotone: first premise"
+      (R.Seq [ R.strict (up 1); rb [ "A" ] (up 1) ])
+      (R.Seq [ R.strict (up 1); rb [ "A"; "C" ] (up 1) ])
+      true;
+    verdict "monotone: product"
+      (R.Seq
+         [
+           R.strict (up 1);
+           rb [ "A" ] (up 1);
+           rb [ "A" ] (up 1);
+           R.strict (up 1);
+         ])
+      (R.Seq
+         [
+           R.strict (up 1);
+           rb [ "A"; "C" ] (up 1);
+           rb [ "A" ] (up 1);
+           R.strict (up 1);
+         ])
+      true;
+    verdict "an excluded operation"
+      (R.Seq [ R.op "A"; R.op "B"; R.op "A" ])
+      (R.Seq [ R.op "A"; rb [ "A"; "C" ] (up 3); R.op "A" ])
+      false;
+  ]
+
 (* {1 Random cross-check}
 
    Small random star-free expressions on one side, the core against the
@@ -323,6 +397,18 @@ let random_running_time ~whole = function
       else { R.lo = 1; lo_open = true; hi = Some 3; hi_open = false }
   | n -> invalid_arg n
 
+(* [random_set ()] is a set of the operations for a restricted budget. *)
+let random_set () =
+  R.Names
+    (List.nth [ [ "A" ]; [ "C" ]; [ "A"; "B" ]; [ "A"; "C" ] ] (Random.int 4))
+
+(* [wider set] is a set containing [set]. *)
+let wider = function
+  | R.Names [ "A" ] -> R.Names [ "A"; "C" ]
+  | R.Names [ "C" ] -> R.Names [ "A"; "C" ]
+  | R.Names _ -> R.All
+  | R.All -> R.All
+
 let random_expr ~whole ~upper =
   let letter () =
     let d = Random.int 3 in
@@ -331,12 +417,13 @@ let random_expr ~whole ~upper =
       if upper then R.at_most ~open_:opened (d + 1)
       else R.at_least ~open_:opened d
     in
-    match Random.int 6 with
+    match Random.int 8 with
     | 0 -> R.op "A"
     | 1 -> R.op "B"
     | 2 -> R.op "C"
     | 3 -> R.strict iv
     | 4 -> R.budget iv
+    | 5 | 6 -> R.Letter (R.Stretch (random_set (), iv))
     | _ -> R.Letter (R.Op [ "A"; "B" ])
   in
   let rec expr depth =
@@ -362,7 +449,8 @@ let rec perturb ~whole ~upper x =
   in
   match x with
   | R.Letter (R.Stretch (set, _)) -> (
-      match Random.int 5 with
+      match Random.int 6 with
+      | 5 -> R.Letter (R.Stretch (wider set, iv ()))
       | 0 -> R.Letter (R.Stretch (set, iv ()))
       | 1 -> R.budget (iv ())
       | 2 -> R.Seq [ R.Letter (R.Stretch (set, iv ())); R.budget (iv ()) ]
@@ -423,7 +511,9 @@ let cross_checks =
 
 let () =
   let checks =
-    List.concat (f4 @ upper_rows @ lower_rows @ unflanked @ open_ends @ positive)
+    List.concat
+      (f4 @ upper_rows @ lower_rows @ unflanked @ open_ends @ positive
+     @ restricted)
     @ cross_checks
     @ [
         check "counterexamples"

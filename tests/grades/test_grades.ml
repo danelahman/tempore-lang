@@ -1884,6 +1884,19 @@ let cover =
         Braces (Seq (Delays (Closed (Rational.of_int 1), Unbounded), letter_b));
         Tuple [ Int 1; Int 4 ];
         Interval (Open (Int 0), Closed (Braces letter_a));
+        Braces (Inter (Above (Closed Rational.zero), Compl letter_a));
+        Braces
+          (Seq
+             ( letter_a,
+               Seq
+                 ( Inter
+                     ( Below (Closed (Rational.of_int 2)),
+                       Union (letter_b, letter_c) ),
+                   letter_b ) ));
+        Braces
+          (Seq
+             ( Inter (Above (Closed (Rational.of_int 1)), Compl letter_c),
+               letter_b ));
       ]
   | (Rational_regex | Rational_regex_timed) as family ->
       let frac n d = Frac (Rational.make n d) in
@@ -1915,6 +1928,18 @@ let cover =
              ( Delays (Closed (Rational.make 3 2), Unbounded),
                Seq (letter_a, Star Any) ));
         rat 3 2;
+        Braces (Inter (Above (Closed Rational.zero), Compl letter_a));
+        Braces
+          (Seq
+             ( letter_a,
+               Seq
+                 ( Inter
+                     ( Below (Open (Rational.make 5 2)),
+                       Union (letter_b, letter_c) ),
+                   letter_b ) ));
+        Braces
+          (Seq
+             (Inter (Above (Open (Rational.make 1 2)), Compl letter_c), letter_b));
       ]
       @
       if family = Rational_regex_timed then
@@ -2751,6 +2776,16 @@ let interval_letter_laws =
       leq "F4 premise" "{1}" "{!1; 1}" true;
       product "F4: {1}·{1} <= {1; !1; 1}" ("{1}", "{1}") ("{1}", "{!1; 1}") true;
       leq "F4 product" "{1; 1}" "{1; !1; 1}" true;
+      leq "window rule: both sets" "{C}" "{(2 & C); (2 & (A | C))}" true;
+      leq "window rule: a set without it" "{C}" "{(2 & C); (2 & A)}" false;
+      leq "a restricted budget into a wider one" "{(2 & A)}" "{2 & (A | C)}"
+        true;
+      leq "a budget into a restricted one" "{2}" "{2 & (A | C)}" false;
+      leq "an excluded operation" "{A; S; A}" "{A; (3 & ~S); A}" false;
+      product "window rule: monotone"
+        ("{!1; (1 & A)}", "{(1 & A); !1}")
+        ("{!1; (1 & (A | C))}", "{(1 & A); !1}")
+        true;
       check
         (M.name ^ ": delays are a monoid morphism")
         (M.equal running_times
@@ -2803,6 +2838,10 @@ let interval_letter_laws =
         "{0}";
       check (M.name ^ ": the top") (M.is_top running_times (lit "{≥0}")) "{≥0}";
       leq "no flank" "{A; !5; C; B}" "{A; !5; B}" false;
+      leq "window rule: both sets" "{C}" "{(1 & C); (1 & (A | C))}" true;
+      leq "window rule: a set without it" "{C}" "{(1 & C); (1 & A)}" false;
+      leq "an excluded operation" "{A; S; A}" "{A; (≥0 & ~S); A}" false;
+      leq "a restricted flank" "{A; !2; B}" "{(≥0 & ~S); A; !≥2; B}" true;
     ]
     @ List.map
         (fun (name, r, g, expected) -> leq name (braces r) (flanked g) expected)

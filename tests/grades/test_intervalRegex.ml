@@ -165,7 +165,18 @@ let rejections =
        with an operation set only";
     rejects `Upper "{A; >=0 & ~B; C}"
       "a restricted budget in a sequence is written in parentheses";
-    rejects `Upper "{(>=0 & ~B)}" "budgets restricted to an operation set";
+    reads `Upper "{(>=0 & ~B)}" "≥0 & ~B";
+    reads `Lower "{>=0 & ~Receive}" "≥0 & ~Receive";
+    reads `Upper "{A; (≤5 & (Scan | Turn)); B}" "A; (≤5 & (Scan | Turn)); B";
+    reads `Upper "{A; ((Scan | Turn) & <=5); B}" "A; (≤5 & (Scan | Turn)); B";
+    reads `Upper "{(≤1 & A); (≤2 & A)}" "≤3 & A";
+    reads `Upper "{(≤1 & A); ≤1}" "(≤1 & A); ≤1";
+    reads `Upper "{(≤1 & A) | (≤3 & A)}" "≤3 & A";
+    reads `Lower "{(≥1 & A) | (≥3 & A)}" "≥1 & A";
+    reads `Upper "{(≤1 & ~(A | B))*}" "≥0 & ~(A | B)";
+    rejects `Upper "{(!≤1 & A)}" "the intersection `&` applies";
+    reads `Upper "{(≤1 & (A & B))}" "!≤1";
+    reads ~finite:true `Upper "{A; (≤3 & ~B)}" "A; (≤3 & ~B)";
     rejects `Upper "{!_}" "`!_` is no letter of these grades";
     rejects `Upper "{!~[2, 3]}" "the complement of an interval is not one-sided";
     rejects `Upper "{~[2, 3]}" "the complement of an interval is not one-sided";
@@ -206,6 +217,11 @@ let zips text expected =
 
 let zipping =
   [
+    expect "zips a restricted interval" show_option
+      ~expected:(Some "[1000, 600000] & ~Command")
+      (zip_pair "{≥1000 & ~Command}" "{≤600000 & ~Command}");
+    expect "does not zip different sets" show_option ~expected:None
+      (zip_pair "{≥1000 & ~Command}" "{≤600000 & ~Receive}");
     zips "{AddEthanol; ![0.5, 1.5]}" "AddEthanol; ![0.5, 1.5]";
     zips "{!400}" "!400";
     zips "{[1000, 600000]}" "[1000, 600000]";

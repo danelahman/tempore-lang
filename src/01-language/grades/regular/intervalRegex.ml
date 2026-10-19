@@ -132,7 +132,13 @@ module Printed = struct
     | Ops s -> ops s
     | Length (s, text) when Ops.is_empty s -> atom ("!" ^ text)
     | Length (Ops.Except [], text) -> atom text
-    | Length (s, text) -> atom ("(" ^ text ^ " & " ^ at 2 (ops s) ^ ")")
+    | Length (s, text) ->
+        let set =
+          match s with
+          | Ops.Only _ -> at 2 (ops s)
+          | Ops.Except names -> "~" ^ at 5 (alternatives names)
+        in
+        { text = text ^ " & " ^ set; level = 1 }
     | Seq ts ->
         {
           text = String.concat "; " (List.map (fun t -> at 3 (print t)) ts);
@@ -651,12 +657,10 @@ struct
                           (if DelaySet.mem Rational.zero s then zero_cut else c)
                     | _ -> stretch set c)
                   (extremum s)
-          | Inter (a, b)
-            when (delays_only a && Option.is_some (ops_of b))
-                 || (delays_only b && Option.is_some (ops_of a)) ->
-              fail
-                "budgets restricted to an operation set, such as `(≥0 & \
-                 ~Read)`, are not read by these grades"
+          | Inter (a, b) when delays_only a && Option.is_some (ops_of b) ->
+              go (Ops.inter set (Option.get (ops_of b))) a
+          | Inter (a, b) when delays_only b && Option.is_some (ops_of a) ->
+              go (Ops.inter set (Option.get (ops_of a))) b
           | Inter (a, b) ->
               let hint =
                 match (last a, first b) with
