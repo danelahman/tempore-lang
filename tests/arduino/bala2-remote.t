@@ -40,7 +40,7 @@ type information:
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
 
-Under the bounds of m5stack-gray-radio the step takes up to 4.5 ms, so that
+Under the bounds of m5stack-gray-radio the step takes up to 4.6 ms, so that
 its period of 5 ms is the least whole number of milliseconds, and 4 ms is
 rejected:
 
@@ -76,26 +76,26 @@ library, are not shown:
   [111.685 ms] ESP-NOW: status, phase 2.000
   [634.188 ms] Display at (0, 102): Hold upright
   [1638.148 ms] Display at (0, 102): Waiting for Arm
-  [1638.198 ms] Speaker: 2000 Hz for 80 ms
-  [1638.298 ms] ESP-NOW: status, phase 0.000
-  [2041.958 ms] Display at (0, 102): Armed
-  [2042.058 ms] ESP-NOW: status, phase 1.000
-  [3519.778 ms] Display at (0, 102): Disarmed
-  [3523.558 ms] Display at (0, 102): Calibrating
-  [3523.658 ms] ESP-NOW: status, phase 2.000
+  [1638.298 ms] Speaker: 2000 Hz for 80 ms
+  [1638.398 ms] ESP-NOW: status, phase 0.000
+  [2042.058 ms] Display at (0, 102): Armed
+  [2042.158 ms] ESP-NOW: status, phase 1.000
+  [3519.878 ms] Display at (0, 102): Disarmed
+  [3523.658 ms] Display at (0, 102): Calibrating
+  [3523.758 ms] ESP-NOW: status, phase 2.000
   [4043.019 ms] ESP-NOW: status, phase 3.000
   [4046.779 ms] Display at (0, 102): Hold still
   [4550.559 ms] Display at (0, 102): Calibrating
   [5069.362 ms] ESP-NOW: status, phase 2.000
   [5073.162 ms] Display at (0, 102): Hold upright
   [6077.122 ms] Display at (0, 102): Waiting for Arm
-  [6077.172 ms] Speaker: 2000 Hz for 80 ms
-  [6077.272 ms] ESP-NOW: status, phase 0.000
-  [6881.032 ms] Display at (0, 102): Armed
-  [6881.132 ms] ESP-NOW: status, phase 1.000
-  [9644.172 ms] Display at (0, 102): Link lost
-  [9644.222 ms] Speaker: 880 Hz for 200 ms
-  [10013.282 ms] Display at (0, 102): Armed
+  [6077.272 ms] Speaker: 2000 Hz for 80 ms
+  [6077.372 ms] ESP-NOW: status, phase 0.000
+  [6881.132 ms] Display at (0, 102): Armed
+  [6881.232 ms] ESP-NOW: status, phase 1.000
+  [9644.272 ms] Display at (0, 102): Link lost
+  [9644.422 ms] Speaker: 880 Hz for 200 ms
+  [10013.482 ms] Display at (0, 102): Armed
   [12000.000 ms] End of the simulation
   [12000.000 ms] Plant: released at 6882.0 ms
 
@@ -112,9 +112,9 @@ not driven:
   [111.585 ms] Display at (0, 102): Calibrating
   [634.188 ms] Display at (0, 102): Hold upright
   [1638.148 ms] Display at (0, 102): Waiting for Arm
-  [2042.078 ms] Display at (0, 102): Not upright
-  [2045.858 ms] Display at (0, 102): Calibrating
-  [2568.421 ms] Display at (0, 102): Hold still
+  [2042.178 ms] Display at (0, 102): Not upright
+  [2045.958 ms] Display at (0, 102): Calibrating
+  [2568.521 ms] Display at (0, 102): Hold still
   [3000.000 ms] Plant: the motors were never driven
 
 Held and turned steadily by 0.1 rad/s (5.7 degrees per second), the robot

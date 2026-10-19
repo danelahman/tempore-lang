@@ -205,7 +205,7 @@ let draw_bubble (pitch : float) (roll : float) (colour : nat) =
    the armed phase; the phase of the robot by its latest status; or
    "Switch on the robot" when no status has come for fresh_iterations
    iterations of the disarmed phase, of at least 10.5 ms each, about 1 s,
-   while the robot reports its phase at least every 570 ms. *)
+   while the robot reports its phase at least every 572 ms. *)
 type guide = Blank | Silent | Phase of phase
 
 let fresh_iterations = 90

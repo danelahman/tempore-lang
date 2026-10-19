@@ -12,8 +12,13 @@
    down, and the upper bound 1.5 times the greatest, rounded up. Beep took
    0.055 to 0.082 ms in the digital level, and its monitor reported 0.03 ms
    in the sprint start system (2026-10-15), whose task has a lower priority
-   than the task of the speaker: [0, 0.15]. They are not measured on other
-   boards. *)
+   than the task of the speaker: [0, 0.15].
+
+   On the profile m5stack-gray-radio, an M5Stack Gray with its radio
+   running, the profile of the device (2026-10-19, the remote BALA2 at a
+   period of 5 ms) measured Beep at 0.169 to 0.186 ms, two calls: [0.15,
+   0.3]. They are not measured on other boards. The default implementation
+   takes 0.15 ms, within the bounds of both boards. *)
 
 operation Beep : nat * nat ~> unit # [0, 0.15]
-default Beep _ = delay 1/20
+default Beep _ = delay 3/20

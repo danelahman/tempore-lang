@@ -248,8 +248,9 @@ lower bound is the least time measured, rounded down, and the upper bound 1.5
 times the greatest, rounded up. Each declaration states its measurements and
 how the bounds not measured directly, such as those of `i2c`, are derived.
 
-- The bounds of `ConfigureImu`, `CheckAtRest`, `ReadTouch` and `Beep` are
-  measured on the CoreS3 only.
+- The bounds of `ConfigureImu` and `ReadTouch` are measured on the CoreS3
+  only, and those of `CheckAtRest` and `Beep` on the CoreS3 and on
+  `m5stack-gray-radio`.
 - The least times of `ShowTextAt` and `ShowNumberAt` depend on the text, so
   their lower bound is that of `ShowText`.
 - The bounds of `ShowTimeAt`, `ShowColourTextAt`, `ShowColourNumberAt`,
@@ -810,7 +811,7 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
   rigid regular expressions of timed operations, with the packages
   `esp-now` and `bala2-remote`, sharing the binding file and host model of
   `bala2`.
-  - Under the bounds of `m5stack-gray-radio`, the step takes 1.2 to 4.5 ms,
+  - Under the bounds of `m5stack-gray-radio`, the step takes 1.15 to 4.6 ms,
     and its period is 5 ms. Both tasks run on core 1, apart from the radio
     on core 0, the step at the higher priority. The initial function of the
     step starts the link before the first period, and the supervision
@@ -835,14 +836,14 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
     robot shows "Hold still" and measures again. The robot is
     armed only within 10 degrees of the balance point, and else shows "Not
     upright". The wait
-    for Arm is therefore bounded, 500 polls 400 ms apart, about 202 s,
+    for Arm is therefore bounded, 500 polls 400 ms apart, about 203 s,
     written without a recursion so that its grade is a bounded repetition,
     and each session calibrates anew.
   - The robot sends its phase to the controller by the operation `Report`
     of the example, bound in `bala2/bindings.cpp` for the programs that
     perform it: calibrating at each check at rest and twice in the hold
     that follows, calibrating after a failed check, ready at each poll for
-    Arm and armed at each iteration of the drive, at least every 570 ms.
+    Arm and armed at each iteration of the drive, at least every 572 ms.
   - When the calibration succeeds and the wait for Arm begins, the robot
     beeps once, 2 kHz for 80 ms.
   - Each iteration of the drive applies the message it receives, with its
@@ -850,7 +851,7 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
     command, Disarm, which returns to waiting for Arm, or zero setpoints.
   - The grade of a session is its protocol: Arm, commands and Disarm, in
     this order; it fixes each iteration of the drive, which takes 12.5 to
-    50.1 ms. After about 2 s without a message the robot shows "Link lost"
+    52.8 ms. After about 2 s without a message the robot shows "Link lost"
     and beeps once, and stays armed, and shows "Armed" again when messages
     return.
   - The make variable `REMOTE_PEER`, the address of the controller, sets

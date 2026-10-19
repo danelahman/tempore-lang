@@ -48,8 +48,8 @@
    the greatest times measured with the radio running on core 0, the tasks
    on core 1 and the link encrypted (2026-10-19), rounded up, or those of
    balance.tpe if larger: Publish took at most 0.020 ms, Setpoints 0.064
-   ms, Attitude 0.348 ms, Arm 0.007 ms, Disarm 0.016 ms and Command 0.437
-   ms. *)
+   ms, and 0.115 ms in a run at a period of 5 ms, Attitude 0.348 ms, Arm
+   0.007 ms, Disarm 0.016 ms and Command 0.437 ms. *)
 
 (* A calibration, the bias of the gyroscope, non-eternal: it is kept only
    in its boxes, and once unboxed it is used at once, not after a wait. *)
@@ -58,7 +58,7 @@ noneternal type calibration = Calibration of float
 operation Publish : float * float * float * float ~> unit # {Publish} within (0, 0.05]
 default Publish _ = delay 1/100
 
-operation Setpoints : unit ~> bool * float * float * float # {Setpoints} within (0, 0.1]
+operation Setpoints : unit ~> bool * float * float * float # {Setpoints} within (0, 0.2]
 default Setpoints () = delay 1/100; (true, 0.0, 0.0, 0.0)
 
 operation Attitude : unit ~> float * float # {Attitude} within (0, 0.55]
@@ -82,8 +82,9 @@ default Reading () = delay 1/100; (1i, ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0)))
 (* Report code sends the status of the robot to the controller: the code of
    its phase, by remote_phase_code of the package bala2-remote, and the tilt
    last published by the step; bound in bindings.cpp. It took 0.131 to
-   2.384 ms (2026-10-19). *)
-operation Report : nat ~> unit # {Report} within (0, 3.6]
+   2.384 ms (2026-10-19), and 0.137 to 3.778 ms in a run at a period of
+   5 ms. *)
+operation Report : nat ~> unit # {Report} within (0, 5.7]
 default Report _ = delay 1/10
 
 let report (p : phase) = perform Report (remote_phase_code p)
@@ -131,7 +132,7 @@ let clamp (limit : float) (x : float) =
 (* Correctly accepted by the typechecker: the step reads the unit, the
    encoders and the setpoints, publishes the attitude, the speed and the
    reference tilt, and commands the motors, each once and in this order; its
-   durations, 1.2 to 4.5 ms, lie below its period of 5 ms. The reading of
+   durations, 1.15 to 4.6 ms, lie below its period of 5 ms. The reading of
    the unit is boxed with any number of reads of the encoders and the
    setpoints, without delays: it is used only if no other operation, in
    particular no command of the motors, and no delay has come since it was
@@ -299,7 +300,7 @@ type calibrated =
    are judged in turn. If the robot is not at rest, the calibration reports
    Unsettled, shows "Hold still" and is repeated after 500 ms in the phase
    Unsettled; after n repetitions it ends with the last measurement.
-   CheckAtRest takes 17.95 to 33 ms, and a measurement 517.95 to 541.6 ms. *)
+   CheckAtRest takes 17.95 to 33 ms, and a measurement 517.95 to 543.7 ms. *)
 let rec measure (p : phase) (n : nat) : calibrated
     # {(Report; CheckAtRest; (Reading; !10)*; Report; ShowTextAt; !500;
         ShowTextAt)*;
@@ -365,12 +366,12 @@ let upright_limit = 10.0
 (* The wait for Arm, bounded so that the calibration stays within its 10
    minutes: a poll reports the phase Ready, waits 400 ms, and is true at an
    Arm message of the controller, which repeats Arm for 1 s: two Receives
-   lie at most 403.75 ms apart, Report taking at most 3.6 ms and Receive
-   0.15 ms, so that at least two fall within those 1 s,
+   lie at most 406.3 ms apart, Report taking at most 5.7 ms and Receive
+   0.6 ms, so that at least two fall within those 1 s,
    each finding an Arm at most 12.5 ms old. The message received is unboxed
    after the report, within 150 ms and before any further Receive, and
    decided after the wait. wait5, wait25 and wait125 repeat the poll up to
-   5, 25 and 125 times, and wait_arm up to 500 times, about 202 s, without a
+   5, 25 and 125 times, and wait_arm up to 500 times, about 203 s, without a
    recursion, whose grade would be a star. *)
 let poll_arm () : bool # {Receive; Report; !400} =
   let latest = remote_receive () in
@@ -416,7 +417,7 @@ let wait_arm () : bool # {(Receive; Report; !400)^[1, 500]} =
    "Armed" again; each of these iterations then reports the phase Armed.
    Disarm disarms the robot and ends the drive. The grade fixes the
    operations and the strict wait of each iteration, which therefore takes
-   12.5 to 50.1 ms by the bounds of its operations, 12.5 to 17.1 ms without
+   12.5 to 52.8 ms by the bounds of its operations, 12.5 to 19.5 ms without
    a display call, below the 200 ms after which a command expires. *)
 (* Shows "Armed" again at the first message after the link was reported
    lost. *)
@@ -463,8 +464,8 @@ let rec drive (n : nat) (silent : nat) : unit
 
 (* Correctly accepted by the typechecker: a session calibrates the robot at
    rest, holds it upright for a second, beeps and waits for Arm, reporting
-   its phase at least every 570 ms. At Arm it unboxes the calibration, at
-   least a second and at most about 203 s old, with no Command since, and
+   its phase at least every 572 ms. At Arm it unboxes the calibration, at
+   least a second and at most about 204 s old, with no Command since, and
    opens the arming window; in it, it reads the published tilt and unboxes
    the calibration; if the tilt lies within upright_limit of the balance
    point it arms the robot and drives it until Disarm, and else shows "Not
@@ -529,7 +530,7 @@ let supervise () =
 
 (* Correctly rejected by the typechecker: a session that reads the tilt
    once, after the hold, and arms the robot on it after the wait for Arm,
-   which may take 202 s, in which the robot may have tipped over; the
+   which may take 203 s, in which the robot may have tipped over; the
    arming window demands the reading of the tilt within it:
 
      Typing error: Variable `arming` is unboxed with the unit grade `{0}`

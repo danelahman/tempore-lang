@@ -51,7 +51,7 @@ reference with the default implementations of the operations:
     {!0.6},
     { resource_0 ↦ Offsets (0., -0.) # {CheckAtRest; Beep} },
     {!18},
-    {!0.05}
+    {!0.15}
   ]
   
 
@@ -156,9 +156,9 @@ new rate after each, rejected by its check during the shaking at about
   [69.696 ms] Display at (0, 174): surface, tap Set reference
   [1064.003 ms] Display at (0, 152): Hold still...
   [1067.563 ms] Display at (0, 174):
-  [2352.968 ms] Speaker: 2000 Hz for 100 ms
-  [2357.008 ms] Display at (0, 152): Reference valid for 0:30
-  [2360.908 ms] Display at (0, 174): (checked at rest)
+  [2353.068 ms] Speaker: 2000 Hz for 100 ms
+  [2357.108 ms] Display at (0, 152): Reference valid for 0:30
+  [2361.008 ms] Display at (0, 174): (checked at rest)
   [2552.218 ms] Display disc at (60, 90), radius 8: 0x00e000
   [2560.598 ms] Display at (130, 123): LEVEL
   [2564.638 ms] Display at (0, 152): Reference valid for 0:29
@@ -169,29 +169,29 @@ new rate after each, rejected by its check during the shaking at about
   [4560.598 ms] Display at (130, 123): LEVEL
   [4564.638 ms] Display at (0, 152): Reference valid for 0:27
   [5052.103 ms] IMU: accelerometer at 400 Hz
-  [5070.756 ms] Speaker: 600 Hz for 50 ms
-  [5073.903 ms] Display at (157, 200): Sensor 400->100Hz
-  [5086.946 ms] Display at (0, 152): Reconfigured, now 400 Hz:
-  [5090.966 ms] Display at (0, 174): reference kept, at rest
+  [5070.856 ms] Speaker: 600 Hz for 50 ms
+  [5074.003 ms] Display at (157, 200): Sensor 400->100Hz
+  [5087.046 ms] Display at (0, 152): Reconfigured, now 400 Hz:
+  [5091.066 ms] Display at (0, 174): reference kept, at rest
   [5314.323 ms] Display at (0, 152): Reference valid for 0:27
   [5318.223 ms] Display at (0, 174): (checked at rest)
   [5552.103 ms] IMU: accelerometer at 100 Hz
-  [5570.756 ms] Speaker: 600 Hz for 50 ms
-  [5573.903 ms] Display at (157, 200): Sensor 100->400Hz
-  [5574.821 ms] Display disc at (55, 82), radius 8: 0x808080
-  [5583.101 ms] Display at (130, 123):
-  [5587.161 ms] Display at (0, 152): Reconfigured, now 100 Hz:
-  [5591.221 ms] Display at (0, 174): old reference not trusted
+  [5570.856 ms] Speaker: 600 Hz for 50 ms
+  [5574.003 ms] Display at (157, 200): Sensor 100->400Hz
+  [5574.921 ms] Display disc at (55, 82), radius 8: 0x808080
+  [5583.201 ms] Display at (130, 123):
+  [5587.261 ms] Display at (0, 152): Reconfigured, now 100 Hz:
+  [5591.321 ms] Display at (0, 174): old reference not trusted
   [6064.003 ms] Display at (0, 152): Hold still...
   [6067.563 ms] Display at (0, 174):
-  [7352.968 ms] Speaker: 400 Hz for 400 ms
-  [7356.908 ms] Display at (0, 152): Moved during check:
-  [7360.828 ms] Display at (0, 174): reference rejected
+  [7353.068 ms] Speaker: 400 Hz for 400 ms
+  [7357.008 ms] Display at (0, 152): Moved during check:
+  [7360.928 ms] Display at (0, 174): reference rejected
   [8064.003 ms] Display at (0, 152): Hold still...
   [8067.563 ms] Display at (0, 174):
-  [9352.968 ms] Speaker: 2000 Hz for 100 ms
-  [9357.008 ms] Display at (0, 152): Reference valid for 0:30
-  [9360.908 ms] Display at (0, 174): (checked at rest)
+  [9353.068 ms] Speaker: 2000 Hz for 100 ms
+  [9357.108 ms] Display at (0, 152): Reference valid for 0:30
+  [9361.008 ms] Display at (0, 174): (checked at rest)
   [9552.218 ms] Display disc at (60, 90), radius 8: 0x00e000
   [9560.598 ms] Display at (130, 123): LEVEL
   [9564.638 ms] Display at (0, 152): Reference valid for 0:29
@@ -203,8 +203,8 @@ shown here every five seconds, and its expiry after 120 steps:
   $ tempore --emit-arduino level --device $app/level.device.json --host-simulate 40 $app/level.tpe |
   >   grep 'Display at (0, 1[57][24])\|simulation' | changes |
   >   grep -v '^\[[0-8][0-9]\{0,3\}\.\|valid for 0:[0-9][1-46-9]'
-  [9357.008 ms] Display at (0, 152): Reference valid for 0:30
-  [9360.908 ms] Display at (0, 174): (checked at rest)
+  [9357.108 ms] Display at (0, 152): Reference valid for 0:30
+  [9361.008 ms] Display at (0, 174): (checked at rest)
   [13564.323 ms] Display at (0, 152): Reference valid for 0:25
   [18564.323 ms] Display at (0, 152): Reference valid for 0:20
   [23564.323 ms] Display at (0, 152): Reference valid for 0:15
