@@ -11,19 +11,25 @@ controller.
   $ packages --typecheck-only $app/balance_remote.tpe
 
 The rejected variants, each loaded after the application: a session that
-unboxes the calibration right after the hold and arms the robot with it
-after the wait for Arm, the calibration being non-eternal; a measurement
-that checks the robot at rest before it disarms it and samples the rates
-after the Disarm; and an iteration that polls again before it applies the
-message received first, no longer the latest:
+reads the tilt before the wait for Arm and arms the robot on it, outside
+the arming window; a session that commands zero setpoints before the
+arming, within the box of the calibration; an iteration that polls again
+before it applies the message received first, no longer the latest; a
+session that opens the arming window right after the hold and arms the
+robot after the wait for Arm; and a measurement that checks the robot at
+rest before it disarms it and samples the rates after the Disarm:
 
-  $ for v in early unsettled polled; do packages --typecheck-only $app/balance_remote.tpe bala2-remote/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out; done
+  $ for v in stale_tilt stopped polled early unsettled; do packages --typecheck-only $app/balance_remote.tpe bala2-remote/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out; done
   [1]
-  Typing error: Variable `calibration` is used with grade `{(Receive; Report; !400)^[1, 500]}` accumulated since it was bound, but its type `calibration` is not eternal
+  Typing error: Variable `arming` is unboxed with the unit grade `{0}` accumulated since it was bound, which is not below its box grade `{Attitude; ([0, 1) & ~(Command | Receive))}`
   [1]
-  Typing error: Variable `checked` is unboxed with grade `{Disarm; (Attitude; !10)*}` accumulated since it was bound, which is not below its box grade `{(Attitude; !10)*}`
+  Typing error: Variable `calibrated` is unboxed with grade `{ShowTextAt; !1000; (Receive; Report; !400)^[1, 500]; Command}` accumulated since it was bound, which is not below its box grade `{[1000, 600000] & ~Command}`
   [1]
   Typing error: Variable `latest` is unboxed with grade `{Receive; Disarm?}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~Receive}`
+  [1]
+  Typing error: Variable `arming` is unboxed with grade `{(Receive; Report; !400)^[1, 500]}` accumulated since it was bound, which is not below its box grade `{Attitude; ([0, 1) & ~(Command | Receive))}`
+  [1]
+  Typing error: Variable `checked` is unboxed with grade `{Disarm; (Attitude; !10)*}` accumulated since it was bound, which is not below its box grade `{(Attitude; !10)*}`
 
 The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information:

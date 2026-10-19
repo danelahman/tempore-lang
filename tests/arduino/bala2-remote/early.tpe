@@ -1,13 +1,15 @@
-(* A session that unboxes the calibration right after the hold, when its age
-   is checked, and arms the robot with it after the wait for Arm, after
-   balance_remote.tpe. *)
+(* A session that opens the arming window right after the hold, when the age
+   of the calibration is checked, and arms the robot with it after the wait
+   for Arm, after balance_remote.tpe. *)
 
 let session_early () =
   let calibrated = calibrate () in
   perform ShowTextAt (0, 100, 2, "Hold upright");
   delay 1000;
-  unbox calibrated as calibration in
+  unbox calibrated as open_arming in
+  let arming = open_arming () in
   if wait_arm () then (
+    unbox arming as calibration in
     perform Arm calibration;
     drive 4000000000 0)
   else ()
