@@ -347,7 +347,7 @@ atomic operations call binding functions and are commented. The compound
 operations, which have neither binding functions nor defaults, are neither
 errors nor warnings.
 
-  $ ../../tempore --grades regex-timed-rigid-interval-symbolic --emit-opentrons cleanup.py \
+  $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-opentrons cleanup.py \
   >   --bind $examples/cleanup_bindings.py --time-unit minutes $examples/cleanup.tpe
   Wrote _opentrons/protocols/cleanup.py
   $ simulate cleanup.py
@@ -365,19 +365,19 @@ errors nor warnings.
   comment: Tempore timeline: At 90 s: delay of 420 s
   delay(seconds=420.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
-  comment: Tempore timeline: At 510 s: operation `MagnetOn` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 510 s: operation `MagnetOn` took 30 s, within its running-time bounds (0, 60] s
   comment: Tempore timeline: At 540 s: delay of 240 s
   delay(seconds=240.0)
   pipette.transfer(80, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
   comment: Tempore timeline: At 780 s: operation `RemoveLiquid` took 90 s, within its running-time bounds [60, 120] s
   pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='once')
-  comment: Tempore timeline: At 870 s: operation `AddEthanol` took 45 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 870 s: operation `AddEthanol` took 45 s, within its running-time bounds (0, 60] s
   comment: Tempore timeline: At 915 s: delay of 60 s
   delay(seconds=60.0)
   pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
   comment: Tempore timeline: At 975 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
   pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='once')
-  comment: Tempore timeline: At 1065 s: operation `AddEthanol` took 45 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1065 s: operation `AddEthanol` took 45 s, within its running-time bounds (0, 60] s
   comment: Tempore timeline: At 1110 s: delay of 60 s
   delay(seconds=60.0)
   pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
@@ -385,13 +385,13 @@ errors nor warnings.
   comment: Tempore timeline: At 1260 s: delay of 180 s
   delay(seconds=180.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, 'D2', use_gripper=True)
-  comment: Tempore timeline: At 1440 s: operation `MagnetOff` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1440 s: operation `MagnetOff` took 30 s, within its running-time bounds (0, 60] s
   pipette.transfer(25, A3 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 20), new_tip='always')
   comment: Tempore timeline: At 1470 s: operation `AddBuffer` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore timeline: At 1560 s: delay of 180 s
   delay(seconds=180.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
-  comment: Tempore timeline: At 1740 s: operation `MagnetOn` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1740 s: operation `MagnetOn` took 30 s, within its running-time bounds (0, 60] s
   comment: Tempore timeline: At 1770 s: delay of 240 s
   delay(seconds=240.0)
   pipette.transfer(20, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of D3, B1 of D3, C1 of D3, D1 of D3], new_tip='always')
@@ -468,8 +468,8 @@ The rejected variants of the examples.
   Typing error: Variable `incubating` is unboxed with grade `[30, 30]` accumulated since it was bound, which is not below its box grade `[60, ∞)`
   $ ../../tempore --grades regex-timed-rigid-interval-symbolic --typecheck-only $examples/washes_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: This function's body has grade `[{0 | Wash; (Wash; ChangeTip)*}, {0 | Wash; (Wash; ChangeTip)*}]`, which does not match its annotated grade `[{(Wash; ChangeTip)*}, {(Wash; ChangeTip)*}]`
-  $ ../../tempore --grades regex-timed-rigid-interval-symbolic --typecheck-only $examples/cleanup_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `k` is unboxed with grade `[{RemoveEthanol; !1; AddEthanol}, {RemoveEthanol; !1; AddEthanol}]` accumulated since it was bound, which is not below its box grade `[{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]`
+  $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/cleanup_reject.tpe 2>&1 | grep 'Typing error'
+  Typing error: Variable `k` is unboxed with grade `{RemoveEthanol; !1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; 1; RemoveEthanol}`
   $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/purification_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `warm` is unboxed with grade `[{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}, {!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}]` accumulated since it was bound, which is not below its box grade `[{0}, {40}]`
   Typing error: The resource inequality `[{AddEthanol; ![0.5, 1.5]; RemoveEthanol}, {AddEthanol; ![0.5, 1.5]; RemoveEthanol}] <= [{AddEthanol; ![0.5, 1.5]}, {AddEthanol; ![0.5, 1.5]}]` does not hold
