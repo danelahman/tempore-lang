@@ -117,7 +117,7 @@ module type S = sig
     | Star of t  (** Repetition *)
     | Repeat of t * Count.t
         (** Bounded repetition [r^c]: the count [c] neither [{0}], [{1}] nor
-            [[0, ∞)], a single number [n ≥ 2] if [r] is nullable, the operand
+            [\[0, ∞)], a single number [n ≥ 2] if [r] is nullable, the operand
             neither the empty word or language nor a repetition [s*] *)
 
   val view : t -> view

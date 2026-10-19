@@ -1,4 +1,4 @@
-(** Intervals of natural numbers, [[m, n]] or [[m, ∞)]: the counts of a bounded
+(** Intervals of natural numbers, [[m, n]] or [\[m, ∞)]: the counts of a bounded
     repetition [r^C] of the regular expressions of grades, and the numbers of
     occurrences of the event-separation grades. *)
 
@@ -15,7 +15,7 @@ val point : int -> t
 (** [point n] is [[n, n]]. *)
 
 val unbounded : t
-(** [[0, ∞)], all natural numbers. *)
+(** [\[0, ∞)], all natural numbers. *)
 
 val mem : int -> t -> bool
 (** [mem k c] is whether [k] is in [c]. *)
@@ -30,7 +30,7 @@ val shift : t -> int -> t option
 (** [shift c j] is [c ⊖ j = {k - j : k ∈ c, k ≥ j}], [None] if it is empty. *)
 
 val below : t -> t
-(** [below c] is [[0, n]] for [c = [m, n]], and [[0, ∞)] if [c] is unbounded:
+(** [below c] is [[0, n]] for [c = [m, n]], and [\[0, ∞)] if [c] is unbounded:
     the counts of a repetition of a nullable expression, which contains the
     words of every smaller count. *)
 
