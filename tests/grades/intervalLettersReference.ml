@@ -9,13 +9,7 @@
    spans, in order; a strict wait of the greater word holds waiting only; a
    budget stretch holds any items whose operations belong to its set, an item
    overlapping several stretches belonging to the set of each (the window
-   rule). An operation of running time [0] that is not matched occupies a
-   point of a budget stretch whose set contains it, possibly a stretch of
-   length [0] (the point rule). A budget stretch of length [0] is a point:
-   it does not vanish, and occupies a point of a budget stretch of the
-   greater word whose set contains its own; a strict wait of length [0]
-   vanishes.
-
+   rule). A stretch of length [0] vanishes. Running times are positive.
 
    Lengths are integers of a base grid. Open ends are read with two orders of
    infinitesimals: the exact words of the lesser grade approach an open end by
@@ -130,7 +124,8 @@ let words ~dense ~running_time ~k ~dx skeleton =
     | Stretch (set, iv) ->
         List.map
           (fun d ->
-            if set = Names [] then if d = 0 then None else Some (IWait d)
+            if d = 0 then None
+            else if set = Names [] then Some (IWait d)
             else Some (IBudget (set, d)))
           (samples ~dense ~k ~dx iv)
   in
@@ -202,27 +197,23 @@ let fits items pieces =
           || i < n
              && admits set items.(i)
              &&
-             if r = 0 then
-               let i', r' = next i in
-               go i' r' j u
-             else
-               let candidates =
-                 List.sort_uniq Int.compare
-                   (r
-                   :: List.filter
-                        (fun d -> d > 0 && d < r)
-                        ((lo - u)
-                        :: (match hi with Some h -> [ h - u ] | None -> [])))
-               in
-               List.exists
-                 (fun d ->
-                   (match hi with Some h -> u + d <= h | None -> true)
-                   &&
-                   if d = r then
-                     let i', r' = next i in
-                     go i' r' j (u + d)
-                   else go i (r - d) j (u + d))
-                 candidates
+             let candidates =
+               List.sort_uniq Int.compare
+                 (r
+                 :: List.filter
+                      (fun d -> d > 0 && d < r)
+                      ((lo - u)
+                      :: (match hi with Some h -> [ h - u ] | None -> [])))
+             in
+             List.exists
+               (fun d ->
+                 (match hi with Some h -> u + d <= h | None -> true)
+                 &&
+                 if d = r then
+                   let i', r' = next i in
+                   go i' r' j (u + d)
+                 else go i (r - d) j (u + d))
+               candidates
   in
   let r0 = if n > 0 then length items.(0) else 0 in
   go 0 r0 0 0

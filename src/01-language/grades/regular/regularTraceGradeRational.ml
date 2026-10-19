@@ -97,6 +97,7 @@ struct
   let plus _ = None
   let commutative = false
   let needs_op_bounds = false
+  let duration_ends = Grade.Both_ends
   let duration_bounds _bounds _ = None
   let inhabited _bounds _rho = true
   let events rho = L.names rho.language

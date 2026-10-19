@@ -5793,6 +5793,13 @@ it names none:
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The upper running-time bound of operation `Heat` must be positive
   ======================================================================
+  traces_reject_bounds_zero_lower.tpe
+  ======================================================================
+  File "traces_reject_bounds_zero_lower.tpe", line 10, characters 0-52:
+  10 | operation Heat : unit ~> unit # {Heat} within [0, 2]
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The running time of operation `Heat` must be positive: write the lower end of its bounds above 0 or open at 0, as `within (0, 1]`
+  ======================================================================
   traces_reject_default_bounds.tpe
   ======================================================================
   File "traces_reject_default_bounds.tpe", line 13, characters 0-28:

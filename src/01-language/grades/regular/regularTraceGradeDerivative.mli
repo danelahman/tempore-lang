@@ -86,6 +86,7 @@ module Constants : sig
   val unit_least : bool
   val commutative : bool
   val needs_op_bounds : bool
+  val duration_ends : Grade.ends
 
   val duration_bounds :
     Grade.bounds ->

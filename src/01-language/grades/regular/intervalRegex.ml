@@ -176,7 +176,6 @@ let two_sided lo hi =
       Some ((if f then "[" else "(") ^ Rational.show a ^ ", ∞)")
   | Finite (a, f), Finite (b, g) -> (
       match Rational.compare a b with
-      | 0 when f && g && Rational.sign a = 0 -> Some "[0, 0]"
       | 0 when f && g -> Some (Rational.show a)
       | k when k < 0 ->
           Some
@@ -250,7 +249,7 @@ struct
   let nullable_view = function
     | Empty | Op _ -> false
     | Eps | Star _ -> true
-    | Stretch (s, c) -> Ops.is_empty s && (side = Upper || is_zero c)
+    | Stretch (_, c) -> side = Upper || is_zero c
     | Concat (r, s) -> r.nullable && s.nullable
     | Union rs -> List.exists (fun r -> r.nullable) rs
     | Repeat (r, c) -> c.least = 0 || r.nullable
@@ -301,10 +300,7 @@ struct
      empty language. *)
   let stretch s c =
     match (side, c) with
-    | Upper, Finite (a, f) when Rational.sign a = 0 ->
-        if not f then empty
-        else if Ops.is_empty s then eps
-        else make (Stretch (s, c))
+    | Upper, Finite (a, f) when Rational.sign a = 0 -> if f then eps else empty
     | Lower, Infinite -> empty
     | _ -> make (Stretch (s, c))
 

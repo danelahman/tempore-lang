@@ -32,10 +32,10 @@
    bindings are those of examples/arduino/tilt, and their bounds those
    measured there. *)
 
-operation Publish : float ~> unit # {Publish} within [0, 0.05]
+operation Publish : float ~> unit # {Publish} within (0, 0.05]
 default Publish _ = delay 1/100
 
-operation Latest : unit ~> float # {Latest} within [0, 0.05]
+operation Latest : unit ~> float # {Latest} within (0, 0.05]
 default Latest () = delay 1/100; 0.0
 
 (* The period of the step, in seconds, and the weight of the gyroscope in the

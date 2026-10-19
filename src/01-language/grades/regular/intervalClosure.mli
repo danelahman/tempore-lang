@@ -5,11 +5,11 @@
     operations of the word of [y] occur in that of [x] at the same time spans,
     in order; a strict wait of [y] holds waiting only; a stretch of [y] holds
     the items of [x] that its set admits, an item overlapping several stretches
-    admitted by each, an operation of running time [0] occupying a point of one.
-    On one-sided intervals the closures are monotone in every length, so that a
-    word of [x] is read at its extremal lengths: its suprema on the upper side,
-    its infima on the lower side, where a stretch that may have length [0] is
-    read both as absent and as positive.
+    admitted by each; running times are positive. On one-sided intervals the
+    closures are monotone in every length, so that a word of [x] is read at its
+    extremal lengths: its suprema on the upper side, its infima on the lower
+    side, where a stretch that may have length [0] is read both as absent and as
+    positive.
 
     {2 Decision}
 
@@ -50,15 +50,14 @@ module Make
       search, each length chosen close enough to its end. *)
 
   val max_weight : world -> E.t -> cut option
-  (** [max_weight world e] is the supremum of the durations of the words of [e]
-      with each stretch at its cut, [None] if it has none over [world]: on the
-      upper side the supremum of the durations of [e]. *)
+  (** [max_weight world e] is the supremum of the durations of the words of [e],
+      [None] if it has none over [world]: infinite on the lower side where [e]
+      has a stretch. *)
 
   val min_weight : world -> E.t -> cut option
-  (** [min_weight world e] is the infimum of the durations of the words of [e]
-      with each stretch at its cut, the stretch of every length at [0], [None]
-      if it has none over [world]: on the lower side the infimum of the
-      durations of [e]. *)
+  (** [min_weight world e] is the infimum of the durations of the words of [e],
+      [None] if it has none over [world]: its stretches of length [0] on the
+      upper side. *)
 
   val inhabited : world -> E.t -> bool
   (** [inhabited world e] is whether [e] has a word over [world]. *)

@@ -33,7 +33,7 @@
 
 (* ReadClock () is the time since start-up, in microseconds, modulo 2^32.
    Its bounds are PROVISIONAL, not yet measured. *)
-operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
+operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
 default ReadClock () = delay 1/100; 0
 
 (* An athlete at the start: the lane and the false starts charged to the

@@ -16,7 +16,7 @@ type beads = string
 operation Wash : beads ~> unit # {Wash} within [1, 2]
 default Wash beads = delay 1
 
-operation ChangeTip : unit ~> unit # {ChangeTip} within [0, 1]
+operation ChangeTip : unit ~> unit # {ChangeTip} within (0, 1]
 default ChangeTip () = delay 1
 
 (* Correctly rejected by the typechecker: the further washes share a tip,

@@ -123,7 +123,7 @@ let replacements () =
       ("time-lower-bound-rational", a, "operation A : unit ~> unit # 0\n");
       ( "regex-timed-interval-rational-symbolic",
         a,
-        "operation A : unit ~> unit # {A} within [0, 1]\n" );
+        "operation A : unit ~> unit # {A} within (0, 1]\n" );
       ("counts-upper-bound", a, "operation A : unit ~> unit # (A, 1)\n");
       ( "time-interval-rational",
         [ ("C", closed "0.5" "0.75") ],

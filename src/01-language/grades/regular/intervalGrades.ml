@@ -163,6 +163,7 @@ module Make (D : DELAYS) (N : NAMES) = struct
     let plus _ = None
     let commutative = false
     let needs_op_bounds = true
+    let duration_ends = if S.lower then Lower_end else Upper_end
 
     let of_delay d =
       let q = Delay.to_rational d in
@@ -303,6 +304,7 @@ module Make (D : DELAYS) (N : NAMES) = struct
     let plus _ = None
     let commutative = false
     let needs_op_bounds = true
+    let duration_ends = Both_ends
 
     let duration_bounds bounds (l, u) =
       to_durations (Lower.min_weight bounds l) (Upper.max_weight bounds u)

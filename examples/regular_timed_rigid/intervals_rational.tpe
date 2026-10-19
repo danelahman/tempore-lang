@@ -18,7 +18,7 @@ type sample = Sample of nat
 operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
 default ReadImu () = delay 0.6; 3
 
-operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
+operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
 default ReadClock () = delay 0.02; 1200
 
 operation Redraw : unit ~> unit # {Redraw} within [0.05, 33]

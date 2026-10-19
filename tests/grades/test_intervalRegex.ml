@@ -119,7 +119,7 @@ let normal_forms =
       "(Receive; Report; !≥400)^[1, 500]";
     reads `Upper "{(!2)*}" "!≥0";
     reads `Lower "{(!2)*}" "(!≥2)?";
-    reads `Lower "{(>=0)*}" "≥0?";
+    reads `Lower "{(>=0)*}" "≥0";
     reads `Lower "{(!>=0)*}" "!≥0";
     reads `Upper "{[2, 5]}" "≤5";
     reads `Lower "{[2, 5]}" "≥2";
@@ -127,12 +127,12 @@ let normal_forms =
     reads ~whole:true `Lower "{(2, 5]}" "≥3";
     reads `Upper "{<3}" "<3";
     reads ~whole:true `Upper "{<3}" "≤2";
-    reads ~whole:true `Upper "{<1}" "≤0";
+    reads ~whole:true `Upper "{<1}" "0";
     reads ~whole:true `Upper "{!<1}" "0";
     reads `Upper "{1 | 3}" "≤3";
     reads `Lower "{1 | 3}" "≥1";
     reads `Lower "{0 | 3}" "≥3?";
-    reads `Upper "{0 | 3}" "≤3?";
+    reads `Upper "{0 | 3}" "≤3";
     reads `Upper "{0 | !3}" "!≤3";
     reads `Upper "{0}" "0";
     reads `Lower "{>=0}" "≥0";
@@ -214,7 +214,7 @@ let zipping =
     zips "{≥0}" "≥0";
     zips "{(Receive; Report; !400)^[1, 500]}" "(Receive; Report; !400)^[1, 500]";
     zips "{(A | B); 2 | C; 3}" "(A | B); 2 | C; 3";
-    zips "{[0, 0]}" "[0, 0]";
+    zips "{[0, 1]}" "[0, 1]";
     zips "{A?; 3}" "A?; 3";
     expect "zips a lower bound with the top" show_option
       ~expected:(Some "[1000, ∞)")

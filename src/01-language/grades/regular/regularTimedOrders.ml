@@ -111,6 +111,7 @@ struct
     let leq_symbol = "<="
     let commutative = false
     let needs_op_bounds = true
+    let duration_ends = Grade.Both_ends
     let duration_bounds bounds rho = duration_bounds bounds rho rho
     let inhabited = W.inhabited
     let events = L.events
@@ -197,6 +198,7 @@ struct
     let plus _ = None
     let commutative = false
     let needs_op_bounds = true
+    let duration_ends = Grade.Both_ends
     let duration_bounds bounds (lo, hi) = duration_bounds bounds lo hi
 
     let inhabited bounds (lo, hi) =

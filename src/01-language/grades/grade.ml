@@ -61,6 +61,13 @@ type bounds = {
 }
 
 type completeness = Delay.completeness = Complete | Partial
+type ends = Both_ends | Lower_end | Upper_end
+
+let union_ends e e' =
+  match (e, e') with
+  | Both_ends, _ | _, Both_ends -> Both_ends
+  | Lower_end, Upper_end | Upper_end, Lower_end -> Both_ends
+  | e, _ -> e
 
 module type S = sig
   type t
@@ -85,6 +92,7 @@ module type S = sig
   val unit_least : bool
   val commutative : bool
   val needs_op_bounds : bool
+  val duration_ends : ends
 
   val duration_bounds :
     bounds -> t -> (Rational.t bound * Rational.t bound) option

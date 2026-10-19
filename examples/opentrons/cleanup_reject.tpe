@@ -12,7 +12,7 @@
      - Top [{0}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
 
-operation AddEthanol : unit ~> unit # {AddEthanol} within [0, 1]
+operation AddEthanol : unit ~> unit # {AddEthanol} within (0, 1]
 default AddEthanol () = delay 1
 
 operation RemoveEthanol : unit ~> unit # {RemoveEthanol} within [1, 2]

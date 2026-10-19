@@ -12,8 +12,7 @@ let running_time = function
   | "S" -> R.point 1
   | "C" -> R.closed 3 4
   | "L" | "O" | "K" | "R" | "A" -> R.point 1
-  | "B" -> R.closed 0 2
-  | "Z" -> R.point 0
+  | "B" -> { R.lo = 0; lo_open = true; hi = Some 2; hi_open = false }
   | "P" -> { R.lo = 0; lo_open = true; hi = Some 1; hi_open = false }
   | name -> invalid_arg ("running_time: " ^ name)
 
@@ -96,7 +95,7 @@ let rec to_regex ~grid e =
   | R.Rep (e, m, n) ->
       Grade.Repeat (to_regex ~grid e, Grades.Count.make m (Some n))
 
-let operations = [ "A"; "B"; "C"; "H"; "K"; "L"; "O"; "P"; "R"; "S"; "Z" ]
+let operations = [ "A"; "B"; "C"; "H"; "K"; "L"; "O"; "P"; "R"; "S" ]
 
 (* The running times of the reference, in units of [1/grid]. *)
 let bounds_of ?(operations = operations) ~grid running_time =
@@ -285,21 +284,25 @@ let open_ends =
       true;
   ]
 
-(* The point rule: an operation of running time 0 occupies a point of a
-   budget, of length 0 if need be, and never a point of a strict wait. *)
-let points =
+(* Running times are positive, open at 0 if need be: an operation occupies a
+   positive stretch of a budget, never one of a strict wait, and a stretch of
+   length 0 vanishes. *)
+let positive =
   [
-    verdict "in a budget" (R.op "Z") (R.budget (R.at_most 1)) true;
-    verdict "in a budget of length 0" (R.op "Z") (R.budget R.unbounded) true;
-    verdict "not in a wait" (R.op "Z") (R.strict (R.at_most 1)) false;
-    verdict "not in no stretch" (R.op "Z") R.Eps false;
+    verdict "in a budget" (R.op "P") (R.budget (R.at_most 1)) true;
+    verdict "in the top" (R.op "P") (R.budget R.unbounded) true;
+    verdict "not in a wait" (R.op "P") (R.strict (R.at_most 1)) false;
+    verdict "not in no stretch" (R.op "P") R.Eps false;
     verdict "at the end of a budget"
-      (R.Seq [ R.strict (R.point 1); R.op "Z" ])
+      (R.Seq [ R.strict (R.point 1); R.op "P" ])
       (R.Seq [ R.strict (R.point 1); R.budget (R.at_most 1) ])
       true;
     verdict "between waits"
-      (R.Seq [ R.strict (R.point 1); R.op "Z"; R.strict (R.point 1) ])
-      (R.strict (R.point 2))
+      (R.Seq [ R.strict (R.point 1); R.op "P"; R.strict (R.point 1) ])
+      (R.strict (R.at_most 3))
+      false;
+    verdict "a budget of length 0 vanishes" (R.budget R.unbounded)
+      (R.Alt [ R.Eps; R.budget (R.at_least 1) ])
       false;
     verdict "matched" (R.op "B") (R.op "B") true;
   ]
@@ -312,11 +315,12 @@ let points =
 
 let random_running_time ~whole = function
   | "A" -> if whole then R.point 1 else R.point 2
-  | "B" -> if whole then R.closed 0 2 else R.closed 0 3
+  | "B" ->
+      if whole then R.closed 1 2
+      else { R.lo = 0; lo_open = true; hi = Some 3; hi_open = false }
   | "C" ->
       if whole then R.closed 1 2
       else { R.lo = 1; lo_open = true; hi = Some 3; hi_open = false }
-  | "Z" -> R.point 0
   | n -> invalid_arg n
 
 let random_expr ~whole ~upper =
@@ -330,7 +334,7 @@ let random_expr ~whole ~upper =
     match Random.int 6 with
     | 0 -> R.op "A"
     | 1 -> R.op "B"
-    | 2 -> if Random.bool () then R.op "C" else R.op "Z"
+    | 2 -> R.op "C"
     | 3 -> R.strict iv
     | 4 -> R.budget iv
     | _ -> R.Letter (R.Op [ "A"; "B" ])
@@ -386,8 +390,7 @@ let cross_check ~whole ~upper n =
     in
     let reference = R.leq ~dense:(not whole) ~running_time x y
     and core =
-      core ~operations:[ "A"; "B"; "C"; "Z" ] ~whole ~grid ~upper running_time x
-        y
+      core ~operations:[ "A"; "B"; "C" ] ~whole ~grid ~upper running_time x y
     in
 
     if reference = core then begin
@@ -420,7 +423,7 @@ let cross_checks =
 
 let () =
   let checks =
-    List.concat (f4 @ upper_rows @ lower_rows @ unflanked @ open_ends @ points)
+    List.concat (f4 @ upper_rows @ lower_rows @ unflanked @ open_ends @ positive)
     @ cross_checks
     @ [
         check "counterexamples"

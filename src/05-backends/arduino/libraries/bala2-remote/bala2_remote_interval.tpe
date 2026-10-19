@@ -12,22 +12,22 @@
    with its tag, so that grades tell the messages apart. Their bounds are
    those of Send, provisional. *)
 
-operation SendArm : unit ~> unit # {SendArm} within [0, 1]
+operation SendArm : unit ~> unit # {SendArm} within (0, 1]
 default SendArm _ = delay 1/10
 
-operation SendDrive : float * float ~> unit # {SendDrive} within [0, 1]
+operation SendDrive : float * float ~> unit # {SendDrive} within (0, 1]
 default SendDrive _ = delay 1/10
 
-operation SendDisarm : unit ~> unit # {SendDisarm} within [0, 1]
+operation SendDisarm : unit ~> unit # {SendDisarm} within (0, 1]
 default SendDisarm _ = delay 1/10
 
 (* SendStatus (armed, tilt) queues the status of the robot to the peer,
    with the provisional bounds of Send. *)
 
-operation SendStatus : bool * float ~> unit # {SendStatus} within [0, 1]
+operation SendStatus : bool * float ~> unit # {SendStatus} within (0, 1]
 default SendStatus _ = delay 1/10
 
-operation SendBeat : unit ~> unit # {SendBeat} within [0, 1]
+operation SendBeat : unit ~> unit # {SendBeat} within (0, 1]
 default SendBeat _ = delay 1/10
 
 (* A message received, to be used within 150 ms. *)

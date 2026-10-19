@@ -75,6 +75,7 @@ module Durations = struct
   let plus _ = None
   let commutative = true
   let needs_op_bounds = false
+  let duration_ends = Grade.Both_ends
   let duration_bounds _bounds _ = None
   let inhabited _bounds _ = true
   let events _ = []

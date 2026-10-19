@@ -473,12 +473,8 @@ struct
               if Steps.whole then Finite (Rational.of_int 1, true)
               else Finite (Rational.zero, false)
             in
-            let point =
-              if Ops.is_empty s then (`Skip, Skip, j)
-              else (`Length (s, zero_cut), Read { kind; weight = zero }, j)
-            in
             [
-              point;
+              (`Skip, Skip, j);
               (`Length (s, positive), Read { kind; weight = plain positive }, j);
             ]
           else [ (`Length (s, c), Read { kind; weight = plain c }, j) ])
@@ -606,8 +602,8 @@ struct
 
   (* [extreme ~longest world e] is the greatest (or least) duration of the
      words of [e], each operation at the running time of [world] and each
-     stretch at its cut, the stretch of every length at [0] for the least,
-     [None] if [e] has no word over [world]. *)
+     stretch at the end of its interval (or at the other end), [None] if [e]
+     has no word over [world]. *)
   let extreme ~longest world e =
     let g = graph e in
     (* The greater of two durations among suprema, [a⁻ < a], or the lesser
@@ -642,9 +638,10 @@ struct
           @ List.map
               (fun e ->
                 ( g.dst.(e),
-                  match g.cut.(e) with
-                  | Infinite when not longest -> zero_cut
-                  | c -> c ))
+                  match (upper, longest) with
+                  | true, true | false, false -> g.cut.(e)
+                  | true, false -> zero_cut
+                  | false, true -> Infinite ))
               g.out.(n))
         g.ops
     in

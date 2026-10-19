@@ -828,7 +828,7 @@ program
 
 ```
 operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
-operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
+operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
 operation Redraw : unit ~> unit # {Redraw} within [0.05, 33]
 
 let polls () =
@@ -907,7 +907,7 @@ program
 
 ```
 operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
-operation Beep : unit ~> unit # {Beep} within [0, 0.15]
+operation Beep : unit ~> unit # {Beep} within (0, 0.15]
 
 let sampled () =
   let first = perform ReadImu () in
@@ -1364,7 +1364,9 @@ operation Tx : string ~> unit # {Tx} within [2, 3]
 
 The bounds are durations, written as for `delay` (see [Delays](#delays)), with
 `lo <= hi` and `hi` positive. Either end may be open, as in `within (lo, hi)`,
-`within [lo, hi)` or `within (lo, hi]`, the interval being non-empty.
+`within [lo, hi)` or `within (lo, hi]`, the interval being non-empty. The
+running time is positive: `lo` is above 0, or open at 0, as in
+`within (0, 1]`.
 
 The rational monoids of timed operations accept fractional bounds such as
 `within [1/2, 3/2)`; under the other monoids of timed operations, which count

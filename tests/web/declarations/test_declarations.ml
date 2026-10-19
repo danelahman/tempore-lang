@@ -46,7 +46,7 @@ let () =
     "(* p *)\n\
      let full = 1\n\n\
      operation Show : nat * string ~> unit\n\
-    \    # {Show} within [0, 33]\n\
+    \    # {Show} within (0, 33]\n\
      default Show _ = delay 3\n"
   in
   let sources = [ { WebDeclarations.filename; text } ] in
@@ -65,7 +65,7 @@ let () =
   (match WebDeclarations.place sources Operation (at "Show") with
   | Some { line = 4; text; filename = f; _ } ->
       check "lines of an operation"
-        (text = "operation Show : nat * string ~> unit\n# {Show} within [0, 33]"
+        (text = "operation Show : nat * string ~> unit\n# {Show} within (0, 33]"
         && f = filename)
   | _ -> fail "place of an operation");
   check "place outside the sources"

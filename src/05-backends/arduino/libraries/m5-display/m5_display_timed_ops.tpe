@@ -39,13 +39,13 @@ operation ShowColourNumberAt
 default ShowColourNumberAt _ = delay 3
 
 operation DrawButton : nat * nat * nat * nat * string ~> unit
-    # {DrawButton} within [0, 33]
+    # {DrawButton} within (0, 33]
 default DrawButton _ = delay 3
 
 operation DrawBar : nat * nat * nat * nat * nat * nat ~> unit
-    # {DrawBar} within [0, 33]
+    # {DrawBar} within (0, 33]
 default DrawBar _ = delay 1
 
 operation DrawLevel : nat * nat * nat * int * int * nat ~> unit
-    # {DrawLevel} within [0, 10]
+    # {DrawLevel} within (0, 10]
 default DrawLevel _ = delay 1

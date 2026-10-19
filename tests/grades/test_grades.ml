@@ -1712,7 +1712,9 @@ let running_times =
     Grade.running_time =
       (fun o ->
         let lo, hi = List.assoc o table in
-        (Grade.Closed (Rational.of_int lo), Grade.Closed (Rational.of_int hi)));
+        ( (if lo = 0 then Grade.Open Rational.zero
+           else Grade.Closed (Rational.of_int lo)),
+          Grade.Closed (Rational.of_int hi) ));
     operations = List.map fst table;
   }
 
@@ -2703,7 +2705,9 @@ let interval_letter_laws =
       Grade.running_time =
         (fun o ->
           let lo, hi = List.assoc o table in
-          (Grade.Closed (Rational.of_int lo), Grade.Closed (Rational.of_int hi)));
+          ( (if lo = 0 then Grade.Open Rational.zero
+             else Grade.Closed (Rational.of_int lo)),
+            Grade.Closed (Rational.of_int hi) ));
       operations = List.map fst table;
     }
   in

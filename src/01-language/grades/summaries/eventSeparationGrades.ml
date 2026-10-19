@@ -241,6 +241,7 @@ let unit_least = false
 let plus _ = None
 let commutative = false
 let needs_op_bounds = true
+let duration_ends = Grade.Both_ends
 let of_delay = Terms.of_delay
 let witnesses ~degree:_ _bounds = sampled mul
 

@@ -2,7 +2,7 @@
    monoid: the atomic 'Probe' and the compound 'Measure' have neither a binding
    function nor a default implementation, and are performed under handlers. *)
 
-operation Probe : unit ~> nat # {Probe} within [0, 1]
+operation Probe : unit ~> nat # {Probe} within (0, 1]
 operation Measure : unit ~> nat # {Probe; Probe}
 
 let measure =

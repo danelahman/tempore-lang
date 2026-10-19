@@ -46,10 +46,10 @@ type eluates = string
 operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
 default AddBeads () = delay 2
 
-operation MagnetOn : unit ~> unit # {MagnetOn} within [0, 1]
+operation MagnetOn : unit ~> unit # {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1
 
-operation MagnetOff : unit ~> unit # {MagnetOff} within [0, 1]
+operation MagnetOff : unit ~> unit # {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1
 
 (* Removing the supernatant from the beads, an ethanol wash of the beads,
@@ -62,7 +62,7 @@ default RemoveLiquid beads = delay 2
 operation Wash : beads ~> unit # {Wash} within [1, 2]
 default Wash beads = delay 1
 
-operation ChangeTip : unit ~> unit # {ChangeTip} within [0, 1]
+operation ChangeTip : unit ~> unit # {ChangeTip} within (0, 1]
 default ChangeTip () = delay 1
 
 operation EluteDNA : beads ~> eluates # {EluteDNA} within [1, 2]

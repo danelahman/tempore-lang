@@ -560,6 +560,12 @@ module Make (C : Constraint.S) = struct
             Error.typing ~loc
               "The upper running-time bound of operation `%s` must be positive"
               op_name
+        | Some (Grades.Grade.Closed lo, _) when Grades.Rational.sign lo <= 0 ->
+            Error.typing ~loc
+              "The running time of operation `%s` must be positive: write the \
+               lower end of its bounds above 0 or open at 0, as `within (0, \
+               1]`"
+              op_name
         | Some bounds -> StringMap.add op_name bounds env.op_bounds)
     | true, Ast.EpsConst (c, _), Some _ ->
         Error.typing ~loc
@@ -1557,15 +1563,31 @@ module Make (C : Constraint.S) = struct
       with_annotation_vars (C.free_vars_ty ty)
         (default_constraint env ~loc op signature abs eps) )
 
+  (* The duration of a default implementation is checked against the declared
+     running-time bounds of its operation on the ends its grade bounds
+     ({!Grades.Grade.S.duration_ends}): both where the durations are bounded
+     above, if the grade bounds both ends, and otherwise the end it bounds, an
+     infinite upper end not checked. *)
   let check_default_duration env ~loc op grade =
     let op_name = Ast.OpName.string_of op in
-    match
-      ( StringMap.find_opt op_name env.op_bounds,
-        finite_durations (running_times env) grade )
-    with
+    let lower, upper =
+      match GS.E.duration_ends with
+      | Grades.Grade.Both_ends -> (true, true)
+      | Grades.Grade.Lower_end -> (true, false)
+      | Grades.Grade.Upper_end -> (false, true)
+    in
+    let durations =
+      match GS.E.duration_ends with
+      | Grades.Grade.Both_ends -> finite_durations (running_times env) grade
+      | Grades.Grade.Lower_end | Grades.Grade.Upper_end ->
+          GS.E.duration_bounds (running_times env) grade
+    in
+    match (StringMap.find_opt op_name env.op_bounds, durations) with
     | Some (lo, hi), Some (lo', hi')
-      when Grades.Grade.compare_ends ~lower:true lo lo' > 0
-           || Grades.Grade.compare_ends ~lower:false hi' hi > 0 ->
+      when (lower && Grades.Grade.compare_ends ~lower:true lo lo' > 0)
+           || upper
+              && (match hi' with Grades.Grade.Unbounded -> false | _ -> true)
+              && Grades.Grade.compare_ends ~lower:false hi' hi > 0 ->
         let show (lo, hi) =
           Grades.Grade.show_interval Grades.Rational.show lo hi
         in

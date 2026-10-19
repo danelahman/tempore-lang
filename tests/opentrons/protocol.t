@@ -423,35 +423,35 @@ the steps, and the binding function of AddBeads returns the beads.
   comment: Tempore timeline: At 90 s: delay of 450 s
   delay(seconds=450.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
-  comment: Tempore timeline: At 540 s: operation `MagnetOn` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 540 s: operation `MagnetOn` took 30 s, within its running-time bounds (0, 60] s
   comment: Tempore timeline: At 570 s: delay of 240 s
   delay(seconds=240.0)
   pipette.transfer(80, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
   comment: Tempore timeline: At 810 s: operation `RemoveSupernatant` took 90 s, within its running-time bounds [60, 120] s
   pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='once')
-  comment: Tempore timeline: At 900 s: operation `AddEthanol` took 45 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 900 s: operation `AddEthanol` took 45 s, within its running-time bounds (0, 60] s
   comment: Tempore timeline: At 945 s: delay of 60 s
   delay(seconds=60.0)
   pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
   comment: Tempore timeline: At 1005 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
   pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='once')
-  comment: Tempore timeline: At 1095 s: operation `AddEthanol` took 45 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1095 s: operation `AddEthanol` took 45 s, within its running-time bounds (0, 60] s
   comment: Tempore timeline: At 1140 s: delay of 45 s
   delay(seconds=45.0)
   pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
   comment: Tempore timeline: At 1185 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
   pipette.transfer(10, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
-  comment: Tempore timeline: At 1275 s: operation `RemoveResidualEthanol` took 45 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1275 s: operation `RemoveResidualEthanol` took 45 s, within its running-time bounds (0, 60] s
   comment: Tempore timeline: At 1320 s: delay of 210 s
   delay(seconds=210.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, 'D2', use_gripper=True)
-  comment: Tempore timeline: At 1530 s: operation `MagnetOff` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1530 s: operation `MagnetOff` took 30 s, within its running-time bounds (0, 60] s
   pipette.transfer(25, A3 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 20), new_tip='always')
   comment: Tempore timeline: At 1560 s: operation `EluteDNA` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore timeline: At 1650 s: delay of 180 s
   delay(seconds=180.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
-  comment: Tempore timeline: At 1830 s: operation `MagnetOn` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1830 s: operation `MagnetOn` took 30 s, within its running-time bounds (0, 60] s
   comment: Tempore timeline: At 1860 s: delay of 150 s
   delay(seconds=150.0)
   pipette.transfer(20, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], new_tip='always')

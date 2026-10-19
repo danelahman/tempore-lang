@@ -148,6 +148,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let plus _ = None
     let commutative = false
     let needs_op_bounds = true
+    let duration_ends = Grade.Both_ends
     let events = Trace.events
 
     let duration_bounds bounds p =
@@ -192,6 +193,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let plus _ = None
     let commutative = false
     let needs_op_bounds = true
+    let duration_ends = Grade.Both_ends
 
     let duration_bounds bounds = function
       | Within p -> trace_duration_bounds bounds p (Within p)
@@ -242,6 +244,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let plus _ = None
     let commutative = false
     let needs_op_bounds = true
+    let duration_ends = Grade.Both_ends
 
     let events (lo, hi) =
       List.sort_uniq String.compare (Trace.events lo @ UpperTraces.events hi)

@@ -17,10 +17,10 @@ type stamp = Stamp of nat
 (* The operations of a reaction timer, in milliseconds: a start signal, a
    reading of the clock, a reading of the inertial unit and a redraw of the
    screen. *)
-operation Beep : unit ~> unit # {Beep} within [0, 0.15]
+operation Beep : unit ~> unit # {Beep} within (0, 0.15]
 default Beep () = delay 0.1
 
-operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
+operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
 default ReadClock () = delay 0.02; 1200
 
 operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]

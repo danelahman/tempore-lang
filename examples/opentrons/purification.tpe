@@ -41,24 +41,24 @@ type beads = string
 operation AddBeads : sample ~> beads # {AddBeads} within [1, 2]
 default AddBeads samples = delay 3/2; "beads"
 
-operation MagnetOn : unit ~> unit # {MagnetOn} within [0, 1]
+operation MagnetOn : unit ~> unit # {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1/2
 
-operation MagnetOff : unit ~> unit # {MagnetOff} within [0, 1]
+operation MagnetOff : unit ~> unit # {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1/2
 
 operation RemoveSupernatant : beads ~> unit # {RemoveSupernatant}
   within [1, 2]
 default RemoveSupernatant beads = delay 3/2
 
-operation AddEthanol : unit ~> unit # {AddEthanol} within [0, 1]
+operation AddEthanol : unit ~> unit # {AddEthanol} within (0, 1]
 default AddEthanol () = delay 3/4
 
 operation RemoveEthanol : unit ~> unit # {RemoveEthanol} within [1, 2]
 default RemoveEthanol () = delay 3/2
 
 operation RemoveResidualEthanol : beads ~> unit # {RemoveResidualEthanol}
-  within [0, 1]
+  within (0, 1]
 default RemoveResidualEthanol beads = delay 3/4
 
 operation EluteDNA : beads ~> unit # {EluteDNA} within [1, 2]

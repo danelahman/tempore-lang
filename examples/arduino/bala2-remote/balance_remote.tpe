@@ -44,29 +44,29 @@
    in its boxes, and once unboxed it is used at once, not after a wait. *)
 noneternal type calibration = Calibration of float
 
-operation Publish : float * float * float * float ~> unit # {Publish} within [0, 0.05]
+operation Publish : float * float * float * float ~> unit # {Publish} within (0, 0.05]
 default Publish _ = delay 1/100
 
-operation Setpoints : unit ~> bool * float * float * float # {Setpoints} within [0, 0.05]
+operation Setpoints : unit ~> bool * float * float * float # {Setpoints} within (0, 0.05]
 default Setpoints () = delay 1/100; (true, 0.0, 0.0, 0.0)
 
-operation Attitude : unit ~> float * float # {Attitude} within [0, 0.05]
+operation Attitude : unit ~> float * float # {Attitude} within (0, 0.05]
 default Attitude () = delay 1/100; (0.0, 0.0)
 
-operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
+operation Arm : calibration ~> unit # {Arm} within (0, 0.05]
 default Arm _ = delay 1/100
 
-operation Disarm : unit ~> unit # {Disarm} within [0, 0.05]
+operation Disarm : unit ~> unit # {Disarm} within (0, 0.05]
 default Disarm () = delay 1/100
 
-operation Command : float * float ~> unit # {Command} within [0, 0.05]
+operation Command : float * float ~> unit # {Command} within (0, 0.05]
 default Command _ = delay 1/100
 
 (* Report armed sends the status of the robot to the controller: whether it
    is armed and the tilt last published by the step, through the package
    bala2-remote; bound in bindings.cpp. Its bounds are those of Attitude and
    of the provisional bounds of SendStatus together: [0, 1.05]. *)
-operation Report : bool ~> unit # {Report} within [0, 1.05]
+operation Report : bool ~> unit # {Report} within (0, 1.05]
 default Report _ = delay 1/10
 
 (* The control step. The state is the tilt, in degrees, filtered from the
