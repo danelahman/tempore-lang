@@ -2873,6 +2873,100 @@ let interval_letter_laws =
   @ lower (module G.Traces.Lower)
   @ lower (module G.TracesRational.Lower)
 
+(* An item that overflows a stretch of an upper bound into a later stretch of
+   the same gap, a strict wait between them passed at length 0 (suggested by
+   the formalisation). [x = {!≤1; (≤2 & A)}] is below
+   [y = {(≤2 & A); !≤1; (≤1 & A)}]: a word of [x] of a wait [a ≤ 1] and an
+   [A]-stretch [b ≤ 2] fits [y] with the strict wait at length 0, the first
+   stretch of length [min (a + b) 2] and the last of the rest, at most 1, the
+   [A]-stretch of [x] overlapping both, which admit it. The contrasts: a word
+   of duration 4, the sum of the caps of [y], fixes the strict wait at [[2, 3]]
+   inside the [A]-stretch or the operation [A] of [x]; and a last stretch
+   without [A] admits no overflow. The interval instance reads the same
+   literals by their hulls; its lower components are ordered, every stretch
+   being [≥0]. *)
+let interval_letter_overflow =
+  let module G = Grades.IntervalGrades in
+  (* [running_times hi] is the running time [[1, hi]] of [A] and [[1, 1]] of
+     [B]. *)
+  let running_times hi =
+    {
+      Grade.running_time =
+        (fun o ->
+          ( Grade.Closed (Rational.of_int 1),
+            Grade.Closed (if o = "A" then hi else Rational.of_int 1) ));
+      operations = [ "A"; "B" ];
+    }
+  in
+  let checks (type a) (module M : Grade.S with type t = a) cases =
+    let module P = Reader (M) in
+    let lit text =
+      match P.parse text with
+      | Ok rho -> rho
+      | Error e -> failwith (M.name ^ ": " ^ text ^ ": " ^ e)
+    in
+    List.map
+      (fun (name, hi, x, y, expected) ->
+        expect
+          (M.name ^ ": " ^ name ^ ": " ^ x ^ " <= " ^ y)
+          show_bool ~expected
+          (M.leq (running_times hi) (lit x) (lit y)))
+      cases
+  in
+  let n = Rational.of_int and q = Rational.make in
+  let y = "{(≤2 & A); !≤1; (≤1 & A)}" in
+  let whole =
+    [
+      (* A stretch of [x] fits [y] whatever the running time of [A]. *)
+      ("stretch overflow", n 2, "{!≤1; (≤2 & A)}", y, true);
+      ("stretch overflow", n 1, "{!≤1; (≤2 & A)}", y, true);
+      (* [A] of [hi(A) = 2] after a wait of 1 spans [[1, 3]]. *)
+      ("operation overflow", n 2, "{!≤1; A}", y, true);
+      (* [A] of [hi(A) = 3] after a wait of 1 spans [[1, 4]] around the
+         strict wait. *)
+      ("operation over a strict wait", n 3, "{!≤1; A}", y, false);
+      ("stretch over a strict wait", n 2, "{!≤1; (≤3 & A)}", y, false);
+      (* The rest of the [A]-stretch falls into a strict wait or a stretch
+         without [A]. *)
+      ( "overflow into another set",
+        n 2,
+        "{!≤1; (≤2 & A)}",
+        "{(≤2 & A); !≤1; (≤1 & B)}",
+        false );
+    ]
+  in
+  (* The same cases at half the lengths. *)
+  let rational =
+    let y = "{(≤1 & A); !≤1/2; (≤1/2 & A)}" in
+    [
+      ("half: stretch overflow", n 1, "{!≤1/2; (≤1 & A)}", y, true);
+      ("half: operation overflow", n 1, "{!≤1/2; A}", y, true);
+      ("half: operation over a strict wait", q 3 2, "{!≤1/2; A}", y, false);
+      ("half: stretch over a strict wait", n 1, "{!≤1/2; (≤3/2 & A)}", y, false);
+    ]
+  in
+  let interval =
+    let y = "{([0, 2] & A); ![0, 1]; ([0, 1] & A)}" in
+    [
+      ("interval: stretch overflow", n 2, "{![0, 1]; ([0, 2] & A)}", y, true);
+      ("interval: operation overflow", n 2, "{![0, 1]; A}", y, true);
+      ("interval: operation over a strict wait", n 3, "{![0, 1]; A}", y, false);
+      ( "interval: stretch over a strict wait",
+        n 2,
+        "{![0, 1]; ([0, 3] & A)}",
+        y,
+        false );
+    ]
+  in
+  checks (module G.Regex.Upper) whole
+  @ checks (module G.Traces.Upper) whole
+  @ checks (module G.RegexRational.Upper) (whole @ rational)
+  @ checks (module G.TracesRational.Upper) (whole @ rational)
+  @ checks (module G.Regex.Interval) interval
+  @ checks (module G.Traces.Interval) interval
+  @ checks (module G.RegexRational.Interval) interval
+  @ checks (module G.TracesRational.Interval) interval
+
 (* The laws of the mode-switch costs on grades over the modes [Off], [On] and
    [Idle], the modes not named and [Stuck]: changes of mode, operations
    performed only in some modes, traces stuck at a cost, entries of the modes
@@ -3682,6 +3776,7 @@ let () =
     @ inclusion_laws @ indexed @ mode_laws @ resource_laws @ interval_read_back
     @ schedule_laws @ resource_construction_laws @ finite_laws @ ranges
     @ flow_tops @ duration_bounds @ mode_time_laws @ interval_letter_laws
+    @ interval_letter_overflow
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

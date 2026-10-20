@@ -381,6 +381,68 @@ let restricted =
       false;
   ]
 
+(* An item that overflows a stretch of an upper bound into a later stretch of
+   the same gap, a strict wait between them passed at length 0 (suggested by
+   the formalisation): the reference and the core over whole steps and over
+   halves, the lengths in units of the grid and [A] of running time
+   [[1, hi]]. A word of duration the sum of the caps of the greater grade
+   fixes its strict wait inside the overflowing item. *)
+let overflow =
+  let rb names iv = R.Letter (R.Stretch (R.Names names, iv)) in
+  let up = R.at_most in
+  let case name ~grid ~hi x y expected =
+    let running_time = function
+      | "A" -> R.closed grid hi
+      | "B" -> R.closed grid grid
+      | n -> invalid_arg n
+    in
+    let label =
+      Printf.sprintf "overflow, grid %d, hi(A) = %d: %s: %s <= %s" grid hi name
+        (R.show x) (R.show y)
+    in
+    let whole = grid = 1 in
+    [
+      expect label string_of_bool ~expected
+        (R.leq ~dense:(not whole) ~running_time x y);
+      expect (label ^ " (core)") string_of_bool ~expected
+        (core ~operations:[ "A"; "B" ] ~whole ~grid ~upper:true running_time x y);
+    ]
+  in
+  List.concat_map
+    (fun grid ->
+      let y =
+        R.Seq
+          [
+            rb [ "A" ] (up (2 * grid)); R.strict (up grid); rb [ "A" ] (up grid);
+          ]
+      in
+      let wait = R.strict (up grid) in
+      [
+        case "stretch" ~grid ~hi:(2 * grid)
+          (R.Seq [ wait; rb [ "A" ] (up (2 * grid)) ])
+          y true;
+        case "stretch" ~grid ~hi:grid
+          (R.Seq [ wait; rb [ "A" ] (up (2 * grid)) ])
+          y true;
+        case "operation" ~grid ~hi:(2 * grid) (R.Seq [ wait; R.op "A" ]) y true;
+        case "operation over a strict wait" ~grid ~hi:(3 * grid)
+          (R.Seq [ wait; R.op "A" ])
+          y false;
+        case "stretch over a strict wait" ~grid ~hi:(2 * grid)
+          (R.Seq [ wait; rb [ "A" ] (up (3 * grid)) ])
+          y false;
+        case "into another set" ~grid ~hi:(2 * grid)
+          (R.Seq [ wait; rb [ "A" ] (up (2 * grid)) ])
+          (R.Seq
+             [
+               rb [ "A" ] (up (2 * grid));
+               R.strict (up grid);
+               rb [ "B" ] (up grid);
+             ])
+          false;
+      ])
+    [ 1; 2 ]
+
 (* {1 Random cross-check}
 
    Small random star-free expressions on one side, the core against the
@@ -513,7 +575,7 @@ let () =
   let checks =
     List.concat
       (f4 @ upper_rows @ lower_rows @ unflanked @ open_ends @ positive
-     @ restricted)
+     @ restricted @ overflow)
     @ cross_checks
     @ [
         check "counterexamples"
