@@ -143,7 +143,12 @@ end
     - (A2) [act (m · m') n = act m (act m' n)];
     - (A3) [act m ⊥ = ⊥] and [act m (n ⊔ n') = act m n ⊔ act m n'];
     - (A4) [act (m ⊔ m') n = act m n ⊔ act m' n];
-    - (A5) [act] is monotone in both arguments.
+    - (A5) [act] is monotone in both arguments;
+    - (A6) [m ≾ M.one] and [act m n ≾ ⊥] imply [n ≾ ⊥].
+
+    A1–A5 give every law but the right half of the zero-product law, which A6
+    gives; A6 holds if [M.one] is least in [M] or if no [act m] sends an element
+    other than [⊥] to [⊥].
 
     The unit is least iff it is in [M], and [mul] is not taken to commute.
 

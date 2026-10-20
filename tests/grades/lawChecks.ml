@@ -665,12 +665,13 @@ let acted (type m n) (module G : Grade.S with type t = m * n) bounds =
   end : Constructions.SEMILATTICE
     with type t = n)
 
-(* [action_laws a ms ns] checks the laws A1–A5 of the action [a] of the grades
+(* [action_laws a ms ns] checks the laws A1–A6 of the action [a] of the grades
    [ms] on the elements [ns], equality on the elements being mutual order:
    the unit acts trivially (A1), the action of a product is the composite of
    the actions (A2), each action preserves the bottom and the joins (A3), the
-   action of a join is the join of the actions (A4), and the action is
-   monotone in both arguments (A5). *)
+   action of a join is the join of the actions (A4), the action is monotone
+   in both arguments (A5), and the action of a grade below the unit sends
+   only the bottom to the bottom (A6). *)
 let action_laws a ms ns =
   let name law = a.label ^ ": " ^ law in
   let equal n n' = a.leq_n n n' && a.leq_n n' n in
@@ -730,6 +731,14 @@ let action_laws a ms ns =
       (fun (m, n, n') ->
         implies (a.leq_n n n') (a.leq_n (a.act m n) (a.act m n')))
       mnn;
+    all
+      (name "A6 bottom reflected below the unit")
+      (fun (m, n) -> a.show_m m ^ " on " ^ a.show_n n)
+      (fun (m, n) ->
+        implies
+          (a.leq m a.one && a.leq_n (a.act m n) a.bottom)
+          (a.leq_n n a.bottom))
+      (List.concat_map (fun m -> List.map (fun n -> (m, n)) ns) ms);
   ]
 
 (* [semidirect_laws (module G) a bounds samples] checks that the product of
