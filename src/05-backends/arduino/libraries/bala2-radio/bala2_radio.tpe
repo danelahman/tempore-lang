@@ -1,12 +1,12 @@
 (* The package bala2-radio under time-interval-rational, in milliseconds:
-   sending and receiving the messages of bala2_radio_protocol.tpe through
-   the operations Send and Receive of the package esp-now, which a program
+   sending and receiving the messages of bala2_radio_protocol.tpe through the
+   operations Send and ReceiveMessage of the package esp-now, which a program
    using this package also names, before it.
 
    A message received is boxed with [0, 150): it is used within 150 ms of its
    reception. *)
 
-(* One operation per message: SendArm, SendDrive (speed, turn), SendDisarm
+(* One operation per message: SendStart, SendDrive (speed, turn), SendStop
    and SendBeat queue the packet of their message to the peer, as Send does
    with its tag, so that grades tell the messages apart. Their bounds are
    those of Send, provisional.
@@ -14,21 +14,21 @@
    On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
    core 0, the tasks of the application on core 1 and the link encrypted, the
    profile of the device (2026-10-19, two sessions of the remote controller,
-   110 s and 276 s) measured SendArm at 0.033 to 0.224 ms, SendDisarm at
+   110 s and 276 s) measured SendStart at 0.033 to 0.224 ms, SendStop at
    0.041 to 0.205 ms, SendBeat at 0.015 to 0.311 ms and SendDrive at 0.130 to
    0.290 ms. Their bounds there are the least time measured, rounded down,
-   and 1.5 times the greatest, rounded up: SendArm [0, 0.35], SendDisarm [0,
+   and 1.5 times the greatest, rounded up: SendStart [0, 0.35], SendStop [0,
    0.35], SendBeat [0, 0.5] and SendDrive [0.1, 0.45]. SendStatus is not
    measured. *)
 
-operation SendArm : unit ~> unit # [0, 1]
-default SendArm _ = delay 1/10
+operation SendStart : unit ~> unit # [0, 1]
+default SendStart _ = delay 1/10
 
 operation SendDrive : float * float ~> unit # [0, 1]
 default SendDrive _ = delay 1/10
 
-operation SendDisarm : unit ~> unit # [0, 1]
-default SendDisarm _ = delay 1/10
+operation SendStop : unit ~> unit # [0, 1]
+default SendStop _ = delay 1/10
 
 (* SendStatus (code, tilt) queues the status of the robot to the peer: the
    code of its phase, by remote_phase_code, and its tilt; with the
@@ -49,7 +49,7 @@ let remote_send (m : message) = perform Send (remote_encode m)
 (* The latest message from the peer, received at most remote_age_limit ms
    ago, or Nothing, boxed for its use. *)
 let remote_receive () : fresh =
-  let r = remote_decode (perform Receive remote_age_limit) in
+  let r = remote_decode (perform ReceiveMessage remote_age_limit) in
   box [0, 150) r
 
 (* A status received, to be used within 200 ms of its reception. *)
@@ -58,6 +58,6 @@ type fresh_status = [[0, 200)]status
 (* The latest status of the peer, received at most remote_age_limit ms ago,
    or NoStatus, boxed for its use. *)
 let remote_status () : fresh_status =
-  let s = remote_status_decode (perform Receive remote_age_limit) in
+  let s = remote_status_decode (perform ReceiveMessage remote_age_limit) in
   box [0, 200) s
 

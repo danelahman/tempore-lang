@@ -133,22 +133,22 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   - `LinkStart` starts the radio and ESP-NOW on a channel, on core 0, and
     returns whether the link is encrypted, true for every link;
   - `Send` queues a packet and returns without waiting;
-  - `Receive` returns, without waiting, the latest packet from the peer if it
+  - `ReceiveMessage` returns, without waiting, the latest packet from the peer if it
     arrived at most a given number of milliseconds ago.
 - `bala2-radio`: the messages of the remote control of the BALA2, shared by
   the robot and the controller, over `esp-now`, listed before it, declared
   under `time-interval-rational` and the regular expressions of timed
   operations with intervals or upper bounds:
-  - the type `message`, `Arm`, `Drive (speed, turn)`, `Disarm` or `Beat`;
-  - `SendArm`, `SendDrive`, `SendDisarm` and `SendBeat`, one operation per
+  - the type `message`, `Start`, `Drive (speed, turn)`, `Stop` or `Beat`;
+  - `SendStart`, `SendDrive`, `SendStop` and `SendBeat`, one operation per
     message, so that grades tell the messages apart;
   - `remote_receive`, the latest message received at most 50 ms ago, or
-    `Nothing`, boxed with `[0, 150)`, so that a command is applied at most
+    `Nothing`, boxed with `[0, 150)`, so that a move is applied at most
     200 ms after it was sent, and under the rigid grades with
-    `{<150 & ~Receive}`, its setpoints of the non-eternal type `setpoints`;
+    `{<150 & ~ReceiveMessage}`, its setpoints of the non-eternal type `setpoints`;
   - `SendStatus` and `remote_status`, the status of the robot, its phase and
     tilt, the latest received at most 50 ms ago, boxed with `[0, 200)`, and
-    under the rigid grades with `{<200 & ~Receive}`.
+    under the rigid grades with `{<200 & ~ReceiveMessage}`.
 
 ### Bounds per board
 
@@ -552,8 +552,8 @@ programmed, without PlatformIO.
 The BALA2 examples record a run without the USB cable under the build flag
 `BALANCE_RECORD` of
 [`bala2/bindings.cpp`](../../../examples/arduino/bala2/bindings.cpp), the
-interval of the samples in milliseconds. From the first arming after
-start-up, the recording holds the tilt, the rate of the gyroscope, the speed
+interval of the samples in milliseconds. From the first start of the
+balancing after start-up, the recording holds the tilt, the rate of the gyroscope, the speed
 of the wheels, the reference tilt of the speed loop, the drives of the motors
 and the counts of the encoders. Once complete, it is printed over the serial
 port as CSV, repeatedly. It survives a reset, but not a loss of power.
@@ -563,9 +563,10 @@ port as CSV, repeatedly. It survives a reset, but not a loss of power.
     make arduino-bala2-record
 
 builds and uploads the project `_arduino/projects/balance-record` and reads
-the port for `CAPTURE` seconds. The robot then calibrates, arms and records
+the port for `CAPTURE` seconds. The robot then calibrates, starts balancing
+and records
 on the cable. To record a run without it, remove the cable and reset the
-core with its power button, which starts a new recording at the next arming;
+core with its power button, which starts a new recording at the next start;
 the core keeps running on its battery.
 
 After the run, with the core still on, connect the cable and run
@@ -654,39 +655,40 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
   declared running times of the operations:
   - the control step finishes within its 5 ms period;
   - the motors are driven from a reading of the unit at most 2 ms old;
-  - the robot is armed only with a calibration at least 1 s old;
-  - the supervision renews its command within 200 ms, before it expires.
+  - the balancing is started only with a calibration at least 1 s old;
+  - the supervision renews its move within 200 ms, before it expires.
 - [`bala2-regex`](../../../examples/arduino/bala2-regex/balance_regex.tpe):
   the same robot under the regular expressions of timed operations, which
   fix the order of the operations of its step and its supervision. The
   typechecker proves, under the declared running times of the operations:
   - the control step reads the unit, the encoders and the setpoints,
-    publishes and commands the motors, each once and in this order, within
+    publishes and drives the motors, each once and in this order, within
     its 5 ms period;
   - the motors are driven from a reading of the unit after which only the
     encoders and the setpoints are read;
-  - the calibration disarms the robot before it reads the rates, each within
+  - the calibration stops the balancing before it reads the rates, each within
     10 ms of the last, with nothing in between;
-  - the robot is armed at least 1 s after the message that asks for it to be
-    held upright;
-  - each command is sent again within 200 ms;
-  - the supervision calibrates, arms, drives and disarms, in this order.
+  - the balancing is started at least 1 s after the message that asks for
+    the robot to be held upright;
+  - each move is sent again within 200 ms;
+  - the supervision calibrates, starts, drives and stops, in this order.
 - [`bala2-radio-robot`](../../../examples/arduino/bala2-radio-robot/robot.tpe):
   the robot of `bala2-regex` driven by the controller `bala2-radio-controller` over
   an encrypted ESP-NOW link, under the rigid regular expressions of timed
-  operations; the grade of a session is its protocol, Arm, commands and
-  Disarm, in this order. The typechecker proves, under the declared running
+  operations; the grade of a session is its protocol, StartBalancing, moves
+  and StopBalancing, in this order. The typechecker proves, under the declared running
   times of the operations:
   - the control step finishes within its 5 ms period;
   - each message received is acted on within 150 ms, before the next
     reception;
-  - the robot arms only with a calibration at least 1 s and at most
-    10 minutes old, with no motion command since it was taken;
-  - the tilt that decides arming is read less than 1 ms before arming, with
-    no reception or command in between;
+  - the balancing starts only with a calibration at least 1 s and at most
+    10 minutes old, with no move since it was taken;
+  - the tilt that decides the start is read less than 1 ms before it, with
+    no reception or move in between;
   - the at-rest verdict of a calibration is used only after its samples,
     with no other operation in between;
-  - each session is Arm, then commands, then Disarm, in this order.
+  - each session is StartBalancing, then moves, then StopBalancing, in this
+    order.
 - [`wheels`](../../../examples/arduino/wheels/wheels.tpe): a wheel check of
   the robot on a stand, its speeds and spin-up times measured over windows of
   fixed traces. The typechecker proves, under the declared running times of
@@ -779,7 +781,7 @@ port variable `PORT_M5STACK_CORES3_RADIO`.
     takes at most 6 s.
 - [`bala2-radio-controller`](../../../examples/arduino/bala2-radio-controller/controller.tpe):
   the controller of [`bala2-radio-robot`](#m5stack-gray), driving the robot by the
-  tilt of the device and arming and disarming it by touch, under the rigid
+  tilt of the device and starting and stopping it by touch, under the rigid
   regular expressions of timed operations. The typechecker proves, under the
   declared running times of the operations:
   - every message to the robot follows the previous one within 50 ms, in
@@ -787,9 +789,9 @@ port variable `PORT_M5STACK_CORES3_RADIO`.
   - it drives only on a robot status received within the last 200 ms, from
     a tilt read within the last 2 ms;
   - the neutral tilt of a session is used only within that session, before
-    its Disarm;
-  - each session is Beat, then Arm 80 times and until the robot confirms,
-    then Drive or Beat, then Disarm 20 times.
+    its Stop;
+  - each session is Beat, then Start 80 times and until the robot confirms,
+    then Drive or Beat, then Stop 20 times.
 
 #### Pairing the robot and the controller
 
@@ -865,16 +867,16 @@ USB identifiers ([Ports](#ports)).
 2. Switch on the robot and hold it upright and still. It calibrates,
    "Hold upright" on the controller ("Hold still" while it moves), and
    sounds one tone when it is ready.
-3. With "Ready: tap Arm" shown, tap Arm, within about 200 s of the
-   tone; a high tone acknowledges the tap. The robot arms only upright,
+3. With "Now tap Start" shown, tap Start, within about 200 s of the
+   tone; a high tone acknowledges the tap. The robot starts only upright,
    within 10 degrees of its balance point, and then balances.
 4. Tilt the controller from the tilt at the tap: forwards drives the robot
    forwards, to the right turns it to the right; the bubble moves in the
    direction of the tilt.
-5. Tap Disarm; a low tone acknowledges the tap, the robot stops its
+5. Tap Stop; a low tone acknowledges the tap, the robot stops its
    motors, and it calibrates again for the next session.
 
-When the wait for Arm ends without one, the robot calibrates again. When
+When the wait for Start ends without one, the robot calibrates again. When
 no message arrives for about 2 s, as when the controller is switched off,
 the robot sounds one tone and keeps balancing in place, with zero
 setpoints, until a message arrives.

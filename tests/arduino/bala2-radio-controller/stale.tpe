@@ -1,18 +1,18 @@
-(* A session that redraws the armed screen after the handshake and then
+(* A session that redraws the balancing screen after the handshake and then
    drives on its confirmation, after controller.tpe. *)
 
 let session_stale () =
   let zero = record_neutral () in
-  arming ();
+  starting ();
   let latest = confirm 40 in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Robot remote");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
-  perform ShowTextAt (0, 30, 2, "Armed");
+  perform ShowTextAt (0, 30, 2, "Balancing");
   perform ShowTextAt (130, 66, 2, "Robot tilt");
-  perform DrawButton (0, 188, 156, 40, "Arm");
-  perform DrawButton (164, 188, 156, 40, "Disarm");
+  perform DrawButton (0, 188, 156, 40, "Start");
+  perform DrawButton (164, 188, 156, 40, "Stop");
   unbox latest as status in
   unbox zero as _ in
-  if remote_armed status then perform SendDrive (0.0, 0.0)
+  if remote_balancing status then perform SendDrive (0.0, 0.0)
   else perform SendBeat ()

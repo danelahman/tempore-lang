@@ -19,31 +19,30 @@
    waiting for its transmission. A packet the radio cannot queue is dropped
    and counted. A Send before LinkStart is a run-time error.
 
-   Receive age returns (true, tag, first, second), the latest packet received
-   from the peer, if it arrived at most age milliseconds ago, and else
-   (false, 0, 0, 0). It does not wait, and returns the same packet while it
-   is not older than age. A packet from another address, of another format or
-   with a float that is not finite is discarded.
+   ReceiveMessage age returns (true, tag, first, second), the latest packet
+   received from the peer, if it arrived at most age milliseconds ago, and else
+   (false, 0, 0, 0). It does not wait, and returns the same packet while it is
+   not older than age. A packet from another address, of another format or with
+   a float that is not finite is discarded.
 
-   The bounds are provisional, not yet measured on a device: LinkStart
-   [0, 1500], Send [0, 1], Receive [0, 0.1]. The default implementations take
+   The bounds are provisional, not yet measured on a device: LinkStart [0,
+   1500], Send [0, 1], ReceiveMessage [0, 0.1]. The default implementations take
    a time within the bounds of every board, LinkStart 88 ms, send nothing,
    receive nothing and start an encrypted link.
 
-   On the profile m5stack-gray-radio, an M5Stack Gray, the radio on core 0,
-   the tasks of the application on core 1 and the link encrypted, the
-   profile of the device (2026-10-19) measured LinkStart at 88.500 to 95.847
-   ms, 85.516 ms in a later run and 100.176 ms in a run at a period of 5 ms,
-   and Receive at 0.002 to 0.078 ms, and at 0.003 to 0.387 ms in the run at
-   5 ms. Their bounds there are the least time measured, rounded down, and
-   1.5 times the greatest, rounded up: LinkStart [85.5, 144] and Receive
-   [0, 0.6].
+   On the profile m5stack-gray-radio, an M5Stack Gray, the radio on core 0, the
+   tasks of the application on core 1 and the link encrypted, the profile of the
+   device (2026-10-19) measured LinkStart at 88.500 to 95.847 ms, 85.516 ms in a
+   later run and 100.176 ms in a run at a period of 5 ms, and ReceiveMessage at
+   0.002 to 0.078 ms, and at 0.003 to 0.387 ms in the run at 5 ms. Their bounds
+   there are the least time measured, rounded down, and 1.5 times the greatest,
+   rounded up: LinkStart [85.5, 144] and ReceiveMessage [0, 0.6].
 
-   On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
-   core 0, the tasks of the application on core 1 and the link encrypted, the
-   profile of the device (2026-10-19, two sessions of the remote controller,
-   110 s and 276 s) measured LinkStart at 36.843 to 45.063 ms and Receive at
-   0.001 to 0.026 ms: by the same rule LinkStart [36.5, 68] and Receive [0,
+   On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on core
+   0, the tasks of the application on core 1 and the link encrypted, the profile
+   of the device (2026-10-19, two sessions of the remote controller, 110 s and
+   276 s) measured LinkStart at 36.843 to 45.063 ms and ReceiveMessage at 0.001
+   to 0.026 ms: by the same rule LinkStart [36.5, 68] and ReceiveMessage [0,
    0.05]. The upper bound of LinkStart there is widened to 90, so that its
    default implementation lies within the bounds of both profiles with the
    radio; LinkStart runs once, at start-up. *)
@@ -54,5 +53,5 @@ default LinkStart _ = delay 88; true
 operation Send : nat * float * float ~> unit # [0, 1]
 default Send _ = delay 1/10
 
-operation Receive : nat ~> bool * nat * float * float # [0, 1/10]
-default Receive _ = delay 1/100; (false, 0, 0.0, 0.0)
+operation ReceiveMessage : nat ~> bool * nat * float * float # [0, 1/10]
+default ReceiveMessage _ = delay 1/100; (false, 0, 0.0, 0.0)

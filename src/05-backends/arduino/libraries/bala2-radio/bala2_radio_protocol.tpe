@@ -2,15 +2,15 @@
    M5Stack BALA2 and their encoding as packets of the package esp-now, under
    every grade system of the package.
 
-   A message is encoded as a packet of a tag and two floats: Arm as tag 1,
-   Drive (speed, turn) as tag 2 with the speed and the turn, Disarm as tag 3
-   and Beat as tag 4, the unused floats 0, as do the bindings of SendArm,
-   SendDrive, SendDisarm and SendBeat in bala2_radio.cpp. A packet of
+   A message is encoded as a packet of a tag and two floats: Start as tag 1,
+   Drive (speed, turn) as tag 2 with the speed and the turn, Stop as tag 3
+   and Beat as tag 4, the unused floats 0, as do the bindings of SendStart,
+   SendDrive, SendStop and SendBeat in bala2_radio.cpp. A packet of
    another tag, and no packet, decode to Nothing.
 
    The robot answers with its status: its phase and its tilt, in degrees,
    encoded as tag 5 with the code of the phase and the tilt, as does the
-   binding of SendStatus. The codes: 0 ready for Arm, 1 armed, 2
+   binding of SendStatus. The codes: 0 ready for Start, 1 balancing, 2
    calibrating, 3 calibrating after a check that found the robot moving. A
    packet of another tag or code, and no packet, decode to NoStatus.
 
@@ -20,7 +20,7 @@
    150 ms, the box of remote_receive. A command is thus applied at most
    200 ms after it was sent, the expiry of the commands of the robot. *)
 
-type message = Arm | Drive of float * float | Disarm | Beat
+type message = Start | Drive of float * float | Stop | Beat
 type received = Got of message | Nothing
 
 (* The setpoints of a Drive command, the speed and the turn, non-eternal:
@@ -28,7 +28,7 @@ type received = Got of message | Nothing
 noneternal type setpoints = Setpoints of float * float
 
 (* The phase of the robot, and its status: its phase and its tilt. *)
-type phase = Ready | Armed | Calibrating | Unsettled
+type phase = Ready | Balancing | Calibrating | Unsettled
 type status = Status of phase * float | NoStatus
 
 (* The Wi-Fi channel of the link, for LinkStart. *)
@@ -40,19 +40,19 @@ let remote_age_limit = 50
 (* The packet of a message: its tag and two floats. *)
 let remote_encode (m : message) =
   match m with
-  | Arm -> (1, 0.0, 0.0)
+  | Start -> (1, 0.0, 0.0)
   | Drive (speed, turn) -> (2, speed, turn)
-  | Disarm -> (3, 0.0, 0.0)
+  | Stop -> (3, 0.0, 0.0)
   | Beat -> (4, 0.0, 0.0)
 
-(* The message of the result of Receive: Nothing for no packet or a packet of
-   an unknown tag. *)
+(* The message of the result of ReceiveMessage: Nothing for no packet or a
+   packet of an unknown tag. *)
 let remote_decode ((fresh, tag, first, second) : bool * nat * float * float) =
   if fresh then
     match tag with
-    | 1 -> Got Arm
+    | 1 -> Got Start
     | 2 -> Got (Drive (first, second))
-    | 3 -> Got Disarm
+    | 3 -> Got Stop
     | 4 -> Got Beat
     | _ -> Nothing
   else Nothing
@@ -67,23 +67,23 @@ let remote_setpoints (r : received) =
 
 (* The code of a phase. *)
 let remote_phase_code (p : phase) =
-  match p with Ready -> 0 | Armed -> 1 | Calibrating -> 2 | Unsettled -> 3
+  match p with Ready -> 0 | Balancing -> 1 | Calibrating -> 2 | Unsettled -> 3
 
 (* The packet of a status. *)
 let remote_status_encode (p : phase) (tilt : float) =
   (5, float_of_nat (remote_phase_code p), tilt)
 
-(* The status of the result of Receive: NoStatus for no packet, a packet of
-   another tag or an unknown code. *)
+(* The status of the result of ReceiveMessage: NoStatus for no packet, a packet
+   of another tag or an unknown code. *)
 let remote_status_decode
     ((fresh, tag, first, second) : bool * nat * float * float) =
   if not (fresh && tag = 5) then NoStatus
   else if first = 0.0 then Status (Ready, second)
-  else if first = 1.0 then Status (Armed, second)
+  else if first = 1.0 then Status (Balancing, second)
   else if first = 2.0 then Status (Calibrating, second)
   else if first = 3.0 then Status (Unsettled, second)
   else NoStatus
 
-(* Whether a status is that of an armed robot. *)
-let remote_armed (s : status) =
-  match s with Status (Armed, _) -> true | _ -> false
+(* Whether a status is that of a balancing robot. *)
+let remote_balancing (s : status) =
+  match s with Status (Balancing, _) -> true | _ -> false

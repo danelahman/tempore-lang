@@ -37,16 +37,15 @@
 
 (* The exchange between the tasks, as in balance.tpe. The step publishes the
    tilt, in degrees, the rate of the gyroscope, in degrees per second, the
-   filtered speed of the wheels, in encoder counts per second, and the
-   reference tilt of the speed loop, in degrees, and reads the setpoints:
-   whether the robot is armed, the bias of the gyroscope, the speed of the
-   wheels, in encoder counts per second, and the difference of the drives of
-   the motors, which turns the robot. The supervision reads the attitude,
-   arms the robot with a calibration of the gyroscope, disarms it, and
-   commands a speed and a turn; a command older than 200 ms is replaced by
-   zero setpoints. The default implementations describe an armed robot
-   without commands. The bounds of their running times are those of
-   balance.tpe. *)
+   filtered speed of the wheels, in encoder counts per second, and the reference
+   tilt of the speed loop, in degrees, and reads the setpoints: whether the
+   robot is balancing, the bias of the gyroscope, the speed of the wheels, in
+   encoder counts per second, and the difference of the drives of the motors,
+   which turns the robot. The supervision reads the latest tilt, starts the
+   balancing with a calibration of the gyroscope, stops it, and moves the robot
+   at a speed and a turn; a move older than 200 ms is replaced by zero
+   setpoints. The default implementations describe a balancing robot without
+   moves. The bounds of their running times are those of balance.tpe. *)
 
 type calibration = Calibration of float
 
@@ -56,17 +55,17 @@ default Publish _ = delay 1/100
 operation Setpoints : unit ~> bool * float * float * float # {Setpoints} within (0, 0.05]
 default Setpoints () = delay 1/100; (true, 0.0, 0.0, 0.0)
 
-operation Attitude : unit ~> float * float # {Attitude} within (0, 0.05]
-default Attitude () = delay 1/100; (0.0, 0.0)
+operation LatestTilt : unit ~> float * float # {LatestTilt} within (0, 0.05]
+default LatestTilt () = delay 1/100; (0.0, 0.0)
 
-operation Arm : calibration ~> unit # {Arm} within (0, 0.05]
-default Arm _ = delay 1/100
+operation StartBalancing : calibration ~> unit # {StartBalancing} within (0, 0.05]
+default StartBalancing _ = delay 1/100
 
-operation Disarm : unit ~> unit # {Disarm} within (0, 0.05]
-default Disarm () = delay 1/100
+operation StopBalancing : unit ~> unit # {StopBalancing} within (0, 0.05]
+default StopBalancing () = delay 1/100
 
-operation Command : float * float ~> unit # {Command} within (0, 0.05]
-default Command _ = delay 1/100
+operation Move : float * float ~> unit # {Move} within (0, 0.05]
+default Move _ = delay 1/100
 
 (* The control step. The state is the tilt, in degrees, filtered from the
    inertial measurement unit; the speed of the wheels, in encoder counts per
@@ -108,20 +107,20 @@ let clamp (limit : float) (x : float) =
   if x < ~-.limit then ~-.limit else if x > limit then limit else x
 
 (* Correctly accepted by the typechecker: the step reads the unit, the
-   encoders and the setpoints, publishes the attitude, the speed and the
+   encoders and the setpoints, publishes the tilt, the speed and the
    reference tilt, and commands the motors, each once and in this order; its
    durations, 1.2 to 2.8 ms, are checked against its period of 5 ms by the
    device. The reading of the unit is boxed with any number of reads of the
    encoders and the setpoints, without delays: it is used only if no other
    operation, in particular no command of the motors, and no delay has come
    since it was taken. While a turn is commanded, the heading held follows the
-   difference of the counts; disarmed, the step holds the present heading. *)
+   difference of the counts; stopped, the step holds the present heading. *)
 let step ((tilt, speed, integral, position, heading) : state) : state
     # {ReadImu; ReadEncoders; Setpoints; Publish; SetMotors} =
   let reading = perform ReadImu () in
   box {(ReadEncoders | Setpoints)*} reading as fresh in
   let left, right = perform ReadEncoders () in
-  let armed, bias, target, turn = perform Setpoints () in
+  let balancing, bias, target, turn = perform Setpoints () in
   unbox fresh as imu in
   let accel, gyro = imu in
   let raw, _, _ = gyro in
@@ -142,7 +141,7 @@ let step ((tilt, speed, integral, position, heading) : state) : state
       (~-.((speed_gain *. error) +. (integral_gain *. integral)))
   in
   perform Publish (tilt, raw, speed, reference);
-  if armed && magnitude tilt <= cutoff then
+  if balancing && magnitude tilt <= cutoff then
     let drive =
       (tilt_gain *. (tilt -. balance_point -. reference)) +. (rate_gain *. rate)
     in
@@ -166,7 +165,7 @@ let start () : state =
   (tilt_x_of_accel accel, 0.0, 0.0, 0.0, 0.0)
 
 (* Correctly rejected by the typechecker: the step stops the motors of a
-   disarmed robot before it uses the reading of the unit, which is then
+   stopped robot before it uses the reading of the unit, which is then
    taken before a command of the motors:
 
      Typing error: Variable `fresh` is unboxed with grade
@@ -183,8 +182,8 @@ let step_stopped
   let reading = perform ReadImu () in
   box {(ReadEncoders | Setpoints)*} reading as fresh in
   let left, right = perform ReadEncoders () in
-  let armed, bias, target, turn = perform Setpoints () in
-  (if armed then () else perform SetMotors (0i, 0i));
+  let balancing, bias, target, turn = perform Setpoints () in
+  (if balancing then () else perform SetMotors (0i, 0i));
   unbox fresh as imu in
   let accel, gyro = imu in
   let raw, _, _ = gyro in
@@ -202,22 +201,22 @@ let step_stopped
 (* Correctly accepted by the typechecker: the sum of n rates, each read
    after the last within 10 ms, with no other operation between. *)
 
-let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; 10)*} =
+let rec rate_sum (n : nat) (sum : float) : float # {(LatestTilt; 10)*} =
   match n with
   | 0 -> sum
   | m + 1 ->
-      let _, rate = perform Attitude () in
+      let _, rate = perform LatestTilt () in
       delay 10;
       rate_sum m (sum +. rate)
 
 (* Correctly accepted by the typechecker: the measurement of the bias
-   disarms the robot, clears the display, writes the title and the footer
+   stops the balancing, clears the display, writes the title and the footer
    and shows a message before it reads
    the rates, in this order. *)
 let measure_bias () : float
-    # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
-       (Attitude; 10)*} =
-  perform Disarm ();
+    # {StopBalancing; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (LatestTilt; 10)*} =
+  perform StopBalancing ();
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Balancing robot with regexes");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
@@ -225,19 +224,19 @@ let measure_bias () : float
   let sum = rate_sum 50 0.0 in
   sum /. 50.0
 
-(* Correctly rejected by the typechecker: the measurement does not disarm
-   the robot first, so that the motors may move it while the rates are read:
+(* Correctly rejected by the typechecker: the measurement does not stop
+   the balancing first, so that the motors may move it while the rates are read:
 
      Typing error: This function's body has grade `{ClearDisplay;
-       ShowTextAt^2; ShowText; (Attitude; 10)*}`, which does not match its
-       annotated grade `{Disarm; ClearDisplay; ShowTextAt^2; ShowText;
-       (Attitude; 10)*}`
+       ShowTextAt^2; ShowText; (LatestTilt; 10)*}`, which does not match its
+       annotated grade `{StopBalancing; ClearDisplay; ShowTextAt^2; ShowText;
+       (LatestTilt; 10)*}`
        ...
 *)
 (*
-let measure_bias_armed () : float
-    # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
-       (Attitude; 10)*} =
+let measure_bias_balancing () : float
+    # {StopBalancing; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (LatestTilt; 10)*} =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Balancing robot with regexes");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
@@ -250,24 +249,25 @@ let measure_bias_armed () : float
    of rates left, which stretches the time between two readings to up to
    22.5 ms:
 
-     Typing error: This function's body has grade `{(Attitude; ShowNumber;
+     Typing error: This function's body has grade `{(LatestTilt; ShowNumber;
        !10; …)?}`, which does not match its annotated grade
-       `{(Attitude; 10)*}`
+       `{(LatestTilt; 10)*}`
        ...
 *)
 (*
-let rec rate_sum_shown (n : nat) (sum : float) : float # {(Attitude; 10)*} =
+let rec rate_sum_shown (n : nat) (sum : float) : float # {(LatestTilt; 10)*} =
   match n with
   | 0 -> sum
   | m + 1 ->
-      let _, rate = perform Attitude () in
+      let _, rate = perform LatestTilt () in
       perform ShowNumber (float_of_nat m);
       delay 10;
       rate_sum_shown m (sum +. rate)
 *)
 
 (* The calibration is boxed with a message on the display followed by a
-   delay of at least a second: arming the robot needs it unboxed, that is,
+   delay of at least a second: starting the balancing needs it unboxed,
+   that is,
    at least a second after the message that asks for the robot to be held
    upright. *)
 let calibrate () =
@@ -275,48 +275,49 @@ let calibrate () =
   box {ShowText; [1000, ∞)} (Calibration bias)
 
 (* Correctly accepted by the typechecker: an iteration of the drive shows
-   the last tilt every tenth iteration, waits 100 ms, reads the attitude and
-   sends the command, in this order. The command is boxed with a delay below
+   the last tilt every tenth iteration, waits 100 ms, reads the latest tilt
+   and sends the move, in this order. The setpoints are boxed with a delay below
    200 ms from its sending, and the next iteration sends it unboxed: it is
    renewed within at most 112.6 ms, before the step replaces it by zero
    setpoints. *)
 let rec drive (n : nat) (tilt : float) (command : [[0, 200)](float * float))
-    : unit # {((ShowNumber | 0); 100; Attitude; Command)*} =
+    : unit # {((ShowNumber | 0); 100; LatestTilt; Move)*} =
   match n with
   | 0 -> ()
   | m + 1 ->
       (if m mod 10 = 0 then perform ShowNumber tilt else ());
       delay 100;
-      let latest_tilt, _ = perform Attitude () in
+      let latest_tilt, _ = perform LatestTilt () in
       unbox command as setpoints in
-      perform Command setpoints;
+      perform Move setpoints;
       drive m latest_tilt (box [0, 200) setpoints)
 
 (* Correctly accepted by the typechecker: the robot is calibrated, held
-   upright for a second, armed with a calibration 1000.05 to 1012.5 ms old,
-   and driven for about 13 years, after which it is disarmed. Its grade is
-   the protocol of the supervision: calibrate, arm, drive and disarm, in
+   upright for a second, started with a calibration 1000.05 to 1012.5 ms
+   old, and driven for about 13 years, after which it is stopped. Its grade
+   is the protocol of the supervision: calibrate, start, drive and stop, in
    this order. *)
 let supervise () : unit
-    # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
-       (Attitude; 10)*; ShowText; 1000; Arm; ShowText; Attitude; Command;
-       ((ShowNumber | 0); 100; Attitude; Command)*; Disarm} =
+    # {StopBalancing; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (LatestTilt; 10)*; ShowText; 1000; StartBalancing; ShowText; LatestTilt;
+       Move;
+       ((ShowNumber | 0); 100; LatestTilt; Move)*; StopBalancing} =
   let token = calibrate () in
   perform ShowText "Hold upright";
   delay 1000;
   unbox token as calibration in
-  perform Arm calibration;
-  perform ShowText "Armed";
-  let tilt, _ = perform Attitude () in
+  perform StartBalancing calibration;
+  perform ShowText "Balancing";
+  let tilt, _ = perform LatestTilt () in
   let setpoints = (0.0, 0.0) in
-  perform Command setpoints;
+  perform Move setpoints;
   drive 4000000000 tilt (box [0, 200) setpoints);
-  perform Disarm ()
+  perform StopBalancing ()
 
 (* The box of the calibration demands the message and bounds the time to
-   the arming from below, but not the operations within its delay: any
+   the start from below, but not the operations within its delay: any
    operation may come there, at the upper bound of its running time, so
-   that a second measurement of the bias between the message and the arming
+   that a second measurement of the bias between the message and the start
    is not excluded. The box of the reading of the unit, without delays,
    excludes every other operation. *)
 

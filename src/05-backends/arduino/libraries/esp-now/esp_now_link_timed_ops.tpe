@@ -11,5 +11,5 @@ default LinkStart _ = delay 88; true
 operation Send : nat * float * float ~> unit # {Send} within (0, 1]
 default Send _ = delay 1/10
 
-operation Receive : nat ~> bool * nat * float * float # {Receive} within (0, 1/10]
-default Receive _ = delay 1/100; (false, 0, 0.0, 0.0)
+operation ReceiveMessage : nat ~> bool * nat * float * float # {ReceiveMessage} within (0, 1/10]
+default ReceiveMessage _ = delay 1/100; (false, 0, 0.0, 0.0)

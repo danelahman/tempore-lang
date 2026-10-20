@@ -1,19 +1,20 @@
 // The bindings of the operations of balance.tpe,
 // ../bala2-regex/balance_regex.tpe and ../bala2-radio-robot/robot.tpe: the
 // exchange between the control step and the supervision, in atomic variables,
-// and the safe state; and Report and Reading, of
+// and the safe state; and ReportStatus and Reading, of
 // ../bala2-radio-robot/robot.tpe only, compiled only for a program that
 // performs them.
 //
-// The supervision arms the robot with the bias of the gyroscope and commands
-// a speed and a turn; a command older than BALANCE_COMMAND_MS milliseconds
-// (200 unless the build flag sets it) is replaced by zero setpoints, so that
-// the robot holds its position. The control step publishes the tilt, the rate
-// of the gyroscope, the filtered speed of the wheels and the reference tilt of
-// the speed loop. In the safe state the robot is disarmed.
+// The supervision starts the balancing with the bias of the gyroscope and
+// moves the robot at a speed and a turn; a move older than BALANCE_MOVE_MS
+// milliseconds (200 unless the build flag sets it) is replaced by zero
+// setpoints, so that the robot holds its position. The control step publishes
+// the tilt, the rate of the gyroscope, the filtered speed of the wheels and
+// the reference tilt of the speed loop. In the safe state the balancing is
+// stopped.
 //
 // Under the build flag BALANCE_SLOW_FROM_MS, in the host simulation, the
-// publication of the attitude takes 3 ms from that time on, beyond the bounds
+// publication of the tilt takes 3 ms from that time on, beyond the bounds
 // of Publish, so that its monitor stops the device; on the device the flag has
 // no effect, since tempore_elapse_us does not wait there.
 //
@@ -21,8 +22,9 @@
 // publication starts a task of the lowest priority on core 0, which logs at
 // that interval the tilt and the rate of the gyroscope last published, the
 // drives last written to the motors and the counts last read from the
-// encoders, and logs each arming with its bias of the gyroscope. The timed
-// bindings themselves do not log, except for the expiry of a command. The
+// encoders, and logs each start of the balancing with its bias of the
+// gyroscope. The timed bindings themselves do not log, except for the expiry
+// of a move. The
 // start of the task lies outside the bounds of Publish, so that the target
 // -log of the examples monitors under the policy warn, which logs that call.
 //
@@ -34,7 +36,7 @@
 // Under the build flag BALANCE_RECORD, an interval in milliseconds, the first
 // publication starts two tasks on core 0, which record and print the run:
 //
-// - The recorder, of priority 1, takes from the first arming after start-up
+// - The recorder, of priority 1, takes from the first start after start-up
 //   one sample every BALANCE_RECORD milliseconds, BALANCE_RECORD_SAMPLES
 //   samples (3000 unless the build flag sets it), and then stops: the values
 //   last published by the step, the drives last written and the counts last
@@ -48,7 +50,7 @@
 //   every BALANCE_RECORD_REPEAT_MS milliseconds (10000 unless the build flag
 //   sets it); a recording begins with a line "# Recording", which gives its
 //   sequence number, the identifier of its run, a random number drawn at its
-//   arming, and its number of samples, and ends with "# End of recording".
+//   start, and its number of samples, and ends with "# End of recording".
 //   At 115200 baud a copy of 3000 samples takes about 11 seconds.
 //
 // The two recordings of the last two start-ups are kept in two slots of
@@ -67,7 +69,7 @@
 
 #include "tempore_bindings.h"
 
-#ifdef TEMPORE_PERFORMS_Report
+#ifdef TEMPORE_PERFORMS_ReportStatus
 #include "bala2_radio.h"
 #endif
 
@@ -83,15 +85,15 @@
 #include <esp_random.h>
 #endif
 
-#ifndef BALANCE_COMMAND_MS
-#define BALANCE_COMMAND_MS 200
+#ifndef BALANCE_MOVE_MS
+#define BALANCE_MOVE_MS 200
 #endif
 
-static std::atomic<bool> balance_armed{false};
+static std::atomic<bool> balance_on{false};
 static std::atomic<float> balance_bias{0};
 static std::atomic<float> balance_speed{0};
 static std::atomic<float> balance_turn{0};
-static std::atomic<int64_t> balance_command_us{0};
+static std::atomic<int64_t> balance_move_us{0};
 static std::atomic<bool> balance_expired{false};
 static std::atomic<float> balance_tilt{0};
 static std::atomic<float> balance_rate{0};
@@ -102,16 +104,16 @@ static std::atomic<float> balance_reference{0};
 static std::atomic<bool> balance_logging{false};
 
 static void balance_log(void *) {
-  bool armed = false;
+  bool balancing = false;
   for (;;) {
     vTaskDelay(pdMS_TO_TICKS(BALANCE_LOG));
-    if (balance_armed.load() != armed) {
-      armed = !armed;
-      if (armed)
-        tempore_log("Armed, gyroscope bias %.3f deg/s",
+    if (balance_on.load() != balancing) {
+      balancing = !balancing;
+      if (balancing)
+        tempore_log("Balancing, gyroscope bias %.3f deg/s",
                     static_cast<double>(balance_bias.load()));
       else
-        tempore_log("Disarmed");
+        tempore_log("Stopped");
     }
     int16_t left_drive, right_drive;
     int32_t left_count, right_count;
@@ -208,12 +210,12 @@ static uint32_t balance_run_id() {
 #endif
 }
 
-// Takes the samples of the slot balance_slot from the first arming on.
+// Takes the samples of the slot balance_slot from the first start on.
 static void balance_record_task(void *) {
   balance_record &r = balance_records[balance_slot];
   const TickType_t interval = pdMS_TO_TICKS(BALANCE_RECORD);
   TickType_t wake = xTaskGetTickCount();
-  while (!balance_armed.load()) vTaskDelayUntil(&wake, interval);
+  while (!balance_on.load()) vTaskDelayUntil(&wake, interval);
   r.run = balance_run_id();
   for (uint32_t i = 0; i < BALANCE_RECORD_SAMPLES; ++i) {
     if (i > 0) vTaskDelayUntil(&wake, interval);
@@ -244,7 +246,7 @@ static void balance_print(const balance_record &r, bool kept) {
   char line[128];
   snprintf(line, sizeof line,
            "# Recording %lu, run %08lx, %lu of %d samples every %d ms from "
-           "the arming%s",
+           "the start%s",
            static_cast<unsigned long>(r.sequence),
            static_cast<unsigned long>(r.run),
            static_cast<unsigned long>(r.length), BALANCE_RECORD_SAMPLES,
@@ -339,41 +341,44 @@ tempore_result_Publish binding_Publish(tempore_argument_Publish a) {
 }
 
 tempore_result_Setpoints binding_Setpoints(tempore_argument_Setpoints) {
-  const bool armed = balance_armed.load();
+  const bool balancing = balance_on.load();
   const bool expired =
-      armed && tempore_clock_us() - balance_command_us.load() >
-                   BALANCE_COMMAND_MS * 1000LL;
+      balancing && tempore_clock_us() - balance_move_us.load() >
+                   BALANCE_MOVE_MS * 1000LL;
   if (expired && !balance_expired.exchange(true))
-    tempore_log("Supervision: no command for %d ms; setpoints zero",
-                BALANCE_COMMAND_MS);
+    tempore_log("Supervision: no move for %d ms; setpoints zero",
+                BALANCE_MOVE_MS);
   if (!expired) balance_expired.store(false);
-  return {armed, balance_bias.load(), expired ? 0.0f : balance_speed.load(),
+  return {balancing, balance_bias.load(), expired ? 0.0f : balance_speed.load(),
           expired ? 0.0f : balance_turn.load()};
 }
 
-tempore_result_Attitude binding_Attitude(tempore_argument_Attitude) {
+tempore_result_LatestTilt binding_LatestTilt(tempore_argument_LatestTilt) {
   return {balance_tilt.load(), balance_rate.load()};
 }
 
 // The bias of a calibration: the float of its only constructor, the only
 // member of the union arg of its structure, whose member name the compiler
 // numbers.
-static float balance_bias_of(const tempore_argument_Arm &calibration) {
+static float
+balance_bias_of(const tempore_argument_StartBalancing &calibration) {
   float bias;
   memcpy(&bias, &calibration.arg, sizeof bias);
   return bias;
 }
 
-tempore_result_Arm binding_Arm(tempore_argument_Arm calibration) {
+tempore_result_StartBalancing
+binding_StartBalancing(tempore_argument_StartBalancing calibration) {
   const float bias = balance_bias_of(calibration);
   balance_bias.store(bias);
-  balance_command_us.store(tempore_clock_us());
-  balance_armed.store(true);
+  balance_move_us.store(tempore_clock_us());
+  balance_on.store(true);
   return {};
 }
 
-tempore_result_Disarm binding_Disarm(tempore_argument_Disarm) {
-  balance_armed.store(false);
+tempore_result_StopBalancing
+binding_StopBalancing(tempore_argument_StopBalancing) {
+  balance_on.store(false);
   return {};
 }
 
@@ -419,21 +424,22 @@ tempore_result_Reading binding_Reading(tempore_argument_Reading) {
 }
 #endif
 
-#ifdef TEMPORE_PERFORMS_Report
-// Report of ../bala2-radio-robot/robot.tpe: the status of the robot, the
-// code of its phase and the tilt last published, sent to the controller
+#ifdef TEMPORE_PERFORMS_ReportStatus
+// ReportStatus of ../bala2-radio-robot/robot.tpe: the status of the robot,
+// the code of its phase and the tilt last published, sent to the controller
 // through the package bala2-radio.
-tempore_result_Report binding_Report(tempore_argument_Report phase) {
+tempore_result_ReportStatus
+binding_ReportStatus(tempore_argument_ReportStatus phase) {
   bala2_radio_send_status(phase, balance_tilt.load());
   return {};
 }
 #endif
 
-tempore_result_Command binding_Command(tempore_argument_Command a) {
+tempore_result_Move binding_Move(tempore_argument_Move a) {
   balance_speed.store(a.c0);
   balance_turn.store(a.c1);
-  balance_command_us.store(tempore_clock_us());
+  balance_move_us.store(tempore_clock_us());
   return {};
 }
 
-void balance_safe_state() { balance_armed.store(false); }
+void balance_safe_state() { balance_on.store(false); }

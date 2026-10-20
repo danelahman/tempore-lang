@@ -1,4 +1,4 @@
-(* An iteration of the drive that polls again for a Disarm before it applies
+(* An iteration of the drive that polls again for a Stop before it applies
    the message received first, after robot.tpe. *)
 
 let drive_polled () =
@@ -6,10 +6,11 @@ let drive_polled () =
   let newer = remote_receive () in
   unbox newer as polled in
   let n, _ = polled in
-  (match n with Got Disarm -> perform Disarm () | _ -> ());
+  (match n with Got Stop -> perform StopBalancing () | _ -> ());
   unbox latest as received in
   let r, setpoints = received in
   match r with
   | Got (Drive _) ->
-      (match setpoints with Setpoints (speed, turn) -> perform Command (speed, turn))
-  | _ -> perform Command (0.0, 0.0)
+      (match setpoints with
+       | Setpoints (speed, turn) -> perform Move (speed, turn))
+  | _ -> perform Move (0.0, 0.0)
