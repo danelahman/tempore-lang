@@ -99,8 +99,8 @@ found by the identifiers of its hardware:
 
   $ make -s --no-print-directory -n arduino-tilt-upload | grep tempore' ' | tr -s ' '
   port=$(sh scripts/port.sh m5stack-cores3) || exit 1; ./tempore --grades time-interval-rational --emit-arduino tilt --device examples/arduino/tilt/tilt.device.json --monitor abort --upload --port "$port" examples/arduino/tilt/tilt.tpe
-  $ for t in bala2-upload bala2-regex-log bala2-record bala2-capture bala2-remote-upload \
-  >   bala2-controller-profile steps-record steps-capture steps-erase wheels-upload; do
+  $ for t in bala2-upload bala2-regex-log bala2-record bala2-capture bala2-radio-robot-upload \
+  >   bala2-radio-controller-profile steps-record steps-capture steps-erase wheels-upload; do
   >   make -s --no-print-directory -n "arduino-$t" |
   >     grep -o -e 'port\.sh [^)]*' -e 'link\.sh -p [^ ]*' -e '--port [^ ]*' | tr '\n' ' ' |
   >     sed "s|^|$t: |; s/ $//"; echo
@@ -109,8 +109,8 @@ found by the identifiers of its hardware:
   bala2-regex-log: port.sh m5stack-gray --port "$port"
   bala2-record: port.sh m5stack-gray --port "$port"
   bala2-capture: port.sh m5stack-gray --port "$port"
-  bala2-remote-upload: port.sh m5stack-gray-radio link.sh -p "$port" --port "$port"
-  bala2-controller-profile: port.sh m5stack-cores3-radio link.sh -p "$port" --port "$port"
+  bala2-radio-robot-upload: port.sh m5stack-gray-radio link.sh -p "$port" --port "$port"
+  bala2-radio-controller-profile: port.sh m5stack-cores3-radio link.sh -p "$port" --port "$port"
   steps-record: port.sh m5stack-cores3 --port "$port"
   steps-capture: port.sh m5stack-cores3 --port "$port"
   steps-erase: port.sh m5stack-cores3 --port "$port"
@@ -142,10 +142,10 @@ with the radio is by default that of its hardware:
   ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino wheels --device examples/arduino/wheels/wheels.device.json --monitor abort --upload --port /dev/ttyUSB1 examples/arduino/wheels/wheels.tpe
   $ dry arduino-bala2-upload PORT=/dev/ttyUSB0 PORT_M5STACK_GRAY=/dev/ttyUSB1
   ./tempore --grades time-interval-rational --emit-arduino balance --device examples/arduino/bala2/balance.device.json --monitor abort --upload --port /dev/ttyUSB0 examples/arduino/bala2/balance.tpe
-  $ make -s --no-print-directory -n arduino-bala2-remote-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 | grep -o 'port\.sh\|link\.sh -p [^ ]*\|--port [^ ]*'
+  $ make -s --no-print-directory -n arduino-bala2-radio-robot-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 | grep -o 'port\.sh\|link\.sh -p [^ ]*\|--port [^ ]*'
   link.sh -p /dev/ttyUSB1
   --port /dev/ttyUSB1
-  $ make -s --no-print-directory -n arduino-bala2-remote-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 PORT_M5STACK_GRAY_RADIO=/dev/ttyUSB2 | grep -o -e '--port [^ ]*'
+  $ make -s --no-print-directory -n arduino-bala2-radio-robot-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 PORT_M5STACK_GRAY_RADIO=/dev/ttyUSB2 | grep -o -e '--port [^ ]*'
   --port /dev/ttyUSB2
   $ (export PORT_M5STACK_CORES3=/dev/ttyACM1
   >  make -s --no-print-directory -n arduino-steps-erase | grep -o 'port\.sh\|--port [^ ]*')
@@ -268,48 +268,48 @@ passes the peer and the key that it prints as the build flags ESP_NOW_PEER
 and ESP_NOW_KEY through shell variables, so that the command does not show
 the key; a build without an upload reads no port:
 
-  $ make -s --no-print-directory -n arduino-bala2-remote-build | grep tempore' ' | tr -s ' '
-  link=$(sh scripts/link.sh -t arduino-bala2-controller-upload bala2-remote robot controller) && eval "$link" && PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino balance_remote --device examples/arduino/bala2-remote/balance_remote.device.json --monitor abort --build examples/arduino/bala2-remote/balance_remote.tpe
-  $ make -s --no-print-directory -n arduino-bala2-remote-profile BRIGHTNESS=60 | grep -o '^link=[^&]*\|PLATFORMIO_BUILD_FLAGS="[^"]*"'
-  link=$(sh scripts/link.sh -p /dev/cu.usbserial-02012C91 -t arduino-bala2-controller-upload bala2-remote robot controller) 
+  $ make -s --no-print-directory -n arduino-bala2-radio-robot-build | grep tempore' ' | tr -s ' '
+  link=$(sh scripts/link.sh -t arduino-bala2-radio-controller-upload bala2-radio robot controller) && eval "$link" && PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino robot --device examples/arduino/bala2-radio-robot/robot.device.json --monitor abort --build examples/arduino/bala2-radio-robot/robot.tpe
+  $ make -s --no-print-directory -n arduino-bala2-radio-robot-profile BRIGHTNESS=60 | grep -o '^link=[^&]*\|PLATFORMIO_BUILD_FLAGS="[^"]*"'
+  link=$(sh scripts/link.sh -p /dev/cu.usbserial-02012C91 -t arduino-bala2-radio-controller-upload bala2-radio robot controller) 
   PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key"
-  $ make -s --no-print-directory -n arduino-bala2-controller-upload PORT_M5STACK_CORES3=/dev/ttyACM0 | grep -o '^link=[^&]*'
-  link=$(sh scripts/link.sh -p /dev/ttyACM0 -t arduino-bala2-remote-upload bala2-remote controller robot) 
+  $ make -s --no-print-directory -n arduino-bala2-radio-controller-upload PORT_M5STACK_CORES3=/dev/ttyACM0 | grep -o '^link=[^&]*'
+  link=$(sh scripts/link.sh -p /dev/ttyACM0 -t arduino-bala2-radio-robot-upload bala2-radio controller robot) 
 
 PAIR, REPLACE=1 and MOVE=1 are passed as the options -P, -r and -m;
 REPLACE=0 and MOVE=0 pass none, and another value of either is an error:
 
-  $ make -s --no-print-directory -n arduino-bala2-controller-upload PORT_M5STACK_CORES3=/dev/ttyACM0 PAIR=2 | grep -o '^link=[^&]*'
-  link=$(sh scripts/link.sh -p /dev/ttyACM0 -t arduino-bala2-remote-upload -P '2' bala2-remote controller robot) 
-  $ make -s --no-print-directory -n arduino-bala2-remote-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 REPLACE=1 | grep -o '^link=[^&]*'
-  link=$(sh scripts/link.sh -p /dev/ttyUSB1 -t arduino-bala2-controller-upload -r bala2-remote robot controller) 
-  $ make -s --no-print-directory -n arduino-bala2-remote-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 PAIR=2 MOVE=1 | grep -o '^link=[^&]*'
-  link=$(sh scripts/link.sh -p /dev/ttyUSB1 -t arduino-bala2-controller-upload -P '2' -m bala2-remote robot controller) 
-  $ make -s --no-print-directory -n arduino-bala2-remote-build PAIR=b_2 REPLACE=0 MOVE=0 | grep -o '^link=[^&]*'
-  link=$(sh scripts/link.sh -t arduino-bala2-controller-upload -P 'b_2' bala2-remote robot controller) 
-  $ make -s --no-print-directory -n arduino-bala2-remote-build REPLACE=yes 2>&1 | grep -o 'REPLACE.*'
+  $ make -s --no-print-directory -n arduino-bala2-radio-controller-upload PORT_M5STACK_CORES3=/dev/ttyACM0 PAIR=2 | grep -o '^link=[^&]*'
+  link=$(sh scripts/link.sh -p /dev/ttyACM0 -t arduino-bala2-radio-robot-upload -P '2' bala2-radio controller robot) 
+  $ make -s --no-print-directory -n arduino-bala2-radio-robot-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 REPLACE=1 | grep -o '^link=[^&]*'
+  link=$(sh scripts/link.sh -p /dev/ttyUSB1 -t arduino-bala2-radio-controller-upload -r bala2-radio robot controller) 
+  $ make -s --no-print-directory -n arduino-bala2-radio-robot-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 PAIR=2 MOVE=1 | grep -o '^link=[^&]*'
+  link=$(sh scripts/link.sh -p /dev/ttyUSB1 -t arduino-bala2-radio-controller-upload -P '2' -m bala2-radio robot controller) 
+  $ make -s --no-print-directory -n arduino-bala2-radio-robot-build PAIR=b_2 REPLACE=0 MOVE=0 | grep -o '^link=[^&]*'
+  link=$(sh scripts/link.sh -t arduino-bala2-radio-controller-upload -P 'b_2' bala2-radio robot controller) 
+  $ make -s --no-print-directory -n arduino-bala2-radio-robot-build REPLACE=yes 2>&1 | grep -o 'REPLACE.*'
   REPLACE is 1 or 0, not yes.  Stop.
-  $ make -s --no-print-directory -n arduino-bala2-remote-build MOVE=yes 2>&1 | grep -o 'MOVE.*'
+  $ make -s --no-print-directory -n arduino-bala2-radio-robot-build MOVE=yes 2>&1 | grep -o 'MOVE.*'
   MOVE is 1 or 0, not yes.  Stop.
 
 PAIR and REMOTE_LINK_FILE, when set, and REPLACE and MOVE, when 1, taken
 from the environment rather than from the command line, are also passed
 by the option -e, by which scripts/link.sh reports them:
 
-  $ PAIR=b_2 make -s --no-print-directory -n arduino-bala2-remote-build REPLACE=0 | grep -o '^link=[^&]*'
-  link=$(sh scripts/link.sh -t arduino-bala2-controller-upload -P 'b_2' -e PAIR bala2-remote robot controller) 
-  $ PAIR=b_2 make -s --no-print-directory -n arduino-bala2-remote-build PAIR=3 | grep -o '^link=[^&]*'
-  link=$(sh scripts/link.sh -t arduino-bala2-controller-upload -P '3' bala2-remote robot controller) 
-  $ REMOTE_LINK_FILE=other MOVE=1 REPLACE=0 make -s --no-print-directory -n arduino-bala2-remote-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 | grep -o '^link=[^&]*'
-  link=$(sh scripts/link.sh -p /dev/ttyUSB1 -t arduino-bala2-controller-upload -m -e REMOTE_LINK_FILE -e MOVE bala2-remote robot controller) 
-  $ REMOTE_LINK_FILE=other REPLACE=1 make -s --no-print-directory -n arduino-bala2-remote-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 REMOTE_LINK_FILE=other | grep -o '^link=[^&]*'
-  link=$(sh scripts/link.sh -p /dev/ttyUSB1 -t arduino-bala2-controller-upload -r -e REPLACE bala2-remote robot controller) 
+  $ PAIR=b_2 make -s --no-print-directory -n arduino-bala2-radio-robot-build REPLACE=0 | grep -o '^link=[^&]*'
+  link=$(sh scripts/link.sh -t arduino-bala2-radio-controller-upload -P 'b_2' -e PAIR bala2-radio robot controller) 
+  $ PAIR=b_2 make -s --no-print-directory -n arduino-bala2-radio-robot-build PAIR=3 | grep -o '^link=[^&]*'
+  link=$(sh scripts/link.sh -t arduino-bala2-radio-controller-upload -P '3' bala2-radio robot controller) 
+  $ REMOTE_LINK_FILE=other MOVE=1 REPLACE=0 make -s --no-print-directory -n arduino-bala2-radio-robot-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 | grep -o '^link=[^&]*'
+  link=$(sh scripts/link.sh -p /dev/ttyUSB1 -t arduino-bala2-radio-controller-upload -m -e REMOTE_LINK_FILE -e MOVE bala2-radio robot controller) 
+  $ REMOTE_LINK_FILE=other REPLACE=1 make -s --no-print-directory -n arduino-bala2-radio-robot-upload PORT_M5STACK_GRAY=/dev/ttyUSB1 REMOTE_LINK_FILE=other | grep -o '^link=[^&]*'
+  link=$(sh scripts/link.sh -p /dev/ttyUSB1 -t arduino-bala2-radio-controller-upload -r -e REPLACE bala2-radio robot controller) 
 
 The other examples run no link:
 
   $ for d in examples/arduino/*/; do
   >   n=$(basename "$d")
-  >   case $n in bala2-remote|bala2-controller) continue;; esac
+  >   case $n in bala2-radio-robot|bala2-radio-controller) continue;; esac
   >   make -s --no-print-directory -n "arduino-$n-build" "arduino-$n-upload" |
   >     grep -l 'link\|ESP_NOW' > /dev/null && echo "$n"
   > done
@@ -340,40 +340,40 @@ The first upload, to the robot, generates the key, records the address of
 the robot, and stops, the controller not yet recorded; the upload to the
 controller records it and builds; the robot is then built with its address:
 
-  $ link -p link/robot -t arduino-bala2-controller-upload bala2-remote robot controller
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote, first pairing
-  ESP-NOW link bala2-remote: key generated in ./link/links/bala2-remote
-  ESP-NOW link bala2-remote: the robot 24:0A:C4:12:34:56 recorded in ./link/links/bala2-remote
-  Error: the link file ./link/links/bala2-remote has no address of the controller: connect the controller and upload to it first (make arduino-bala2-controller-upload), or set REMOTE_PEER
-  $ link -p link/controller bala2-remote controller robot
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote, first pairing
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
-  ESP-NOW link bala2-remote: the controller 24:0A:C4:12:34:57 recorded in ./link/links/bala2-remote
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:56, the robot
+  $ link -p link/robot -t arduino-bala2-radio-controller-upload bala2-radio robot controller
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio, first pairing
+  ESP-NOW link bala2-radio: key generated in ./link/links/bala2-radio
+  ESP-NOW link bala2-radio: the robot 24:0A:C4:12:34:56 recorded in ./link/links/bala2-radio
+  Error: the link file ./link/links/bala2-radio has no address of the controller: connect the controller and upload to it first (make arduino-bala2-radio-controller-upload), or set REMOTE_PEER
+  $ link -p link/controller bala2-radio controller robot
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio, first pairing
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio
+  ESP-NOW link bala2-radio: the controller 24:0A:C4:12:34:57 recorded in ./link/links/bala2-radio
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:56, the robot
   esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x56
   esp_now_key=(the key)
-  $ link -p link/robot bala2-remote robot controller
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote, found by the address of the robot
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:57, the controller
+  $ link -p link/robot bala2-radio robot controller
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio, found by the address of the robot
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:57, the controller
   esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x57
   esp_now_key=(the key)
-  $ sed 's/^key=.*/key=(the key)/' link/links/bala2-remote
-  # The ESP-NOW link bala2-remote: its key and the address of the board of each role.
+  $ sed 's/^key=.*/key=(the key)/' link/links/bala2-radio
+  # The ESP-NOW link bala2-radio: its key and the address of the board of each role.
   key=(the key)
   robot=24:0A:C4:12:34:56
   controller=24:0A:C4:12:34:57
-  $ ls -ld link/links link/links/bala2-remote | cut -c 1-10
+  $ ls -ld link/links link/links/bala2-radio | cut -c 1-10
   drwx------
   -rw-------
   $ ls -A link/links
-  bala2-remote
+  bala2-radio
 
 The key printed is that of the file, and no build without an upload reads
 a port:
 
-  $ key=$(sed -n 's/^key=//p' link/links/bala2-remote)
-  $ sh scripts/link.sh bala2-remote robot controller 2> /dev/null | grep -c "^esp_now_key=$key$"
+  $ key=$(sed -n 's/^key=//p' link/links/bala2-radio)
+  $ sh scripts/link.sh bala2-radio robot controller 2> /dev/null | grep -c "^esp_now_key=$key$"
   1
 
 A board that no link file records, with the default pair complete, stops
@@ -382,145 +382,145 @@ and the two choices. REPLACE=1 replaces the board of the default pair, with
 the change reported; the replaced board is then in no link file:
 
   $ echo 24:0A:C4:12:34:58 > link/robot2
-  $ link -p link/robot2 -t arduino-bala2-controller-upload bala2-remote robot controller
-  Error: the board on link/robot2, 24:0A:C4:12:34:58, is in no link file of bala2-remote as the robot, and the default pair, ./link/links/bala2-remote, has the robot 24:0A:C4:12:34:56: run with PAIR=<name> to start or join another pair, or with REPLACE=1 to replace the robot 24:0A:C4:12:34:56 in the default pair
-  $ link -p link/robot2 -r bala2-remote robot controller | grep -v esp_now
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote, replacing the robot 24:0A:C4:12:34:56
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
-  ESP-NOW link bala2-remote: the robot changed from 24:0A:C4:12:34:56 to 24:0A:C4:12:34:58 in ./link/links/bala2-remote
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:57, the controller
-  $ link -p link/robot2 bala2-remote robot controller | grep -v esp_now
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote, found by the address of the robot
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:57, the controller
-  $ link -p link/robot bala2-remote robot controller
-  Error: the board on link/robot, 24:0A:C4:12:34:56, is in no link file of bala2-remote as the robot, and the default pair, ./link/links/bala2-remote, has the robot 24:0A:C4:12:34:58: run with PAIR=<name> to start or join another pair, or with REPLACE=1 to replace the robot 24:0A:C4:12:34:58 in the default pair
+  $ link -p link/robot2 -t arduino-bala2-radio-controller-upload bala2-radio robot controller
+  Error: the board on link/robot2, 24:0A:C4:12:34:58, is in no link file of bala2-radio as the robot, and the default pair, ./link/links/bala2-radio, has the robot 24:0A:C4:12:34:56: run with PAIR=<name> to start or join another pair, or with REPLACE=1 to replace the robot 24:0A:C4:12:34:56 in the default pair
+  $ link -p link/robot2 -r bala2-radio robot controller | grep -v esp_now
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio, replacing the robot 24:0A:C4:12:34:56
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio
+  ESP-NOW link bala2-radio: the robot changed from 24:0A:C4:12:34:56 to 24:0A:C4:12:34:58 in ./link/links/bala2-radio
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:57, the controller
+  $ link -p link/robot2 bala2-radio robot controller | grep -v esp_now
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio, found by the address of the robot
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:57, the controller
+  $ link -p link/robot bala2-radio robot controller
+  Error: the board on link/robot, 24:0A:C4:12:34:56, is in no link file of bala2-radio as the robot, and the default pair, ./link/links/bala2-radio, has the robot 24:0A:C4:12:34:58: run with PAIR=<name> to start or join another pair, or with REPLACE=1 to replace the robot 24:0A:C4:12:34:58 in the default pair
 
 The board of the other role is an error, as is a port that esptool does
 not read:
 
-  $ link -p link/controller bala2-remote robot controller
-  Error: the board on link/controller, 24:0A:C4:12:34:57, is recorded as the controller in ./link/links/bala2-remote: it is the controller of that pair, not a robot
-  $ link -p link/none bala2-remote robot controller
+  $ link -p link/controller bala2-radio robot controller
+  Error: the board on link/controller, 24:0A:C4:12:34:57, is recorded as the controller in ./link/links/bala2-radio: it is the controller of that pair, not a robot
+  $ link -p link/none bala2-radio robot controller
   Could not open link/none
   Error: the address of the board on link/none was not read by ./link/esptool
 
-PAIR starts a second pair, in the link file bala2-remote-PAIR, with a key of
+PAIR starts a second pair, in the link file bala2-radio-PAIR, with a key of
 its own; the missing controller is named with its PAIR. The controller of
 the second pair joins it by PAIR; then each board of either pair finds its
 link file by its address, and a build without a port takes the default
 pair or PAIR:
 
   $ echo 24:0A:C4:12:34:59 > link/controller2
-  $ link -p link/robot -t arduino-bala2-controller-upload bala2-remote robot controller
-  Error: the board on link/robot, 24:0A:C4:12:34:56, is in no link file of bala2-remote as the robot, and the default pair, ./link/links/bala2-remote, has the robot 24:0A:C4:12:34:58: run with PAIR=<name> to start or join another pair, or with REPLACE=1 to replace the robot 24:0A:C4:12:34:58 in the default pair
-  $ link -p link/robot -t arduino-bala2-controller-upload -P 2 bala2-remote robot controller
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote-2, PAIR=2
-  ESP-NOW link bala2-remote: key generated in ./link/links/bala2-remote-2
-  ESP-NOW link bala2-remote: the robot 24:0A:C4:12:34:56 recorded in ./link/links/bala2-remote-2
-  Error: the link file ./link/links/bala2-remote-2 has no address of the controller: connect the controller and upload to it first (make arduino-bala2-controller-upload PAIR=2), or set REMOTE_PEER
-  $ link -p link/controller2 -t arduino-bala2-remote-upload bala2-remote controller robot
-  Error: the board on link/controller2, 24:0A:C4:12:34:59, is in no link file of bala2-remote as the controller, and the default pair, ./link/links/bala2-remote, has the controller 24:0A:C4:12:34:57: run with PAIR=<name> to start or join another pair (pairs: 2), or with REPLACE=1 to replace the controller 24:0A:C4:12:34:57 in the default pair
-  $ link -p link/controller2 -P 2 bala2-remote controller robot | grep -v esp_now
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote-2, PAIR=2
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote-2
-  ESP-NOW link bala2-remote: the controller 24:0A:C4:12:34:59 recorded in ./link/links/bala2-remote-2
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:56, the robot
-  $ link -p link/robot bala2-remote robot controller
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote-2, found by the address of the robot
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote-2
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:59, the controller
+  $ link -p link/robot -t arduino-bala2-radio-controller-upload bala2-radio robot controller
+  Error: the board on link/robot, 24:0A:C4:12:34:56, is in no link file of bala2-radio as the robot, and the default pair, ./link/links/bala2-radio, has the robot 24:0A:C4:12:34:58: run with PAIR=<name> to start or join another pair, or with REPLACE=1 to replace the robot 24:0A:C4:12:34:58 in the default pair
+  $ link -p link/robot -t arduino-bala2-radio-controller-upload -P 2 bala2-radio robot controller
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio-2, PAIR=2
+  ESP-NOW link bala2-radio: key generated in ./link/links/bala2-radio-2
+  ESP-NOW link bala2-radio: the robot 24:0A:C4:12:34:56 recorded in ./link/links/bala2-radio-2
+  Error: the link file ./link/links/bala2-radio-2 has no address of the controller: connect the controller and upload to it first (make arduino-bala2-radio-controller-upload PAIR=2), or set REMOTE_PEER
+  $ link -p link/controller2 -t arduino-bala2-radio-robot-upload bala2-radio controller robot
+  Error: the board on link/controller2, 24:0A:C4:12:34:59, is in no link file of bala2-radio as the controller, and the default pair, ./link/links/bala2-radio, has the controller 24:0A:C4:12:34:57: run with PAIR=<name> to start or join another pair (pairs: 2), or with REPLACE=1 to replace the controller 24:0A:C4:12:34:57 in the default pair
+  $ link -p link/controller2 -P 2 bala2-radio controller robot | grep -v esp_now
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio-2, PAIR=2
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio-2
+  ESP-NOW link bala2-radio: the controller 24:0A:C4:12:34:59 recorded in ./link/links/bala2-radio-2
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:56, the robot
+  $ link -p link/robot bala2-radio robot controller
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio-2, found by the address of the robot
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio-2
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:59, the controller
   esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x59
   esp_now_key=(the key)
-  $ link -p link/controller2 bala2-remote controller robot
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote-2, found by the address of the controller
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote-2
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:56, the robot
+  $ link -p link/controller2 bala2-radio controller robot
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio-2, found by the address of the controller
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio-2
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:56, the robot
   esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x56
   esp_now_key=(the key)
-  $ link -p link/robot2 bala2-remote robot controller
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote, found by the address of the robot
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:57, the controller
+  $ link -p link/robot2 bala2-radio robot controller
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio, found by the address of the robot
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:57, the controller
   esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x57
   esp_now_key=(the key)
-  $ link -t arduino-bala2-controller-upload bala2-remote robot controller | grep -v esp_now
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote of the default pair
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:57, the controller
-  $ link -t arduino-bala2-controller-upload -P 2 bala2-remote robot controller | grep -v esp_now
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote-2, PAIR=2
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote-2
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:59, the controller
-  $ link -P 3 -t arduino-bala2-controller-upload bala2-remote robot controller
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote-3, PAIR=3
-  ESP-NOW link bala2-remote: key generated in ./link/links/bala2-remote-3
-  Error: the link file ./link/links/bala2-remote-3 has no address of the controller: connect the controller and upload to it first (make arduino-bala2-controller-upload PAIR=3), or set REMOTE_PEER
-  $ test "$(sed -n 's/^key=//p' link/links/bala2-remote)" != "$(sed -n 's/^key=//p' link/links/bala2-remote-2)"
+  $ link -t arduino-bala2-radio-controller-upload bala2-radio robot controller | grep -v esp_now
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio of the default pair
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:57, the controller
+  $ link -t arduino-bala2-radio-controller-upload -P 2 bala2-radio robot controller | grep -v esp_now
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio-2, PAIR=2
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio-2
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:59, the controller
+  $ link -P 3 -t arduino-bala2-radio-controller-upload bala2-radio robot controller
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio-3, PAIR=3
+  ESP-NOW link bala2-radio: key generated in ./link/links/bala2-radio-3
+  Error: the link file ./link/links/bala2-radio-3 has no address of the controller: connect the controller and upload to it first (make arduino-bala2-radio-controller-upload PAIR=3), or set REMOTE_PEER
+  $ test "$(sed -n 's/^key=//p' link/links/bala2-radio)" != "$(sed -n 's/^key=//p' link/links/bala2-radio-2)"
   $ ls -A link/links
-  bala2-remote
-  bala2-remote-2
-  bala2-remote-3
+  bala2-radio
+  bala2-radio-2
+  bala2-radio-3
 
 A board recorded in another link file is not recorded by PAIR (see below,
 MOVE). A board recorded in several link files, here by an edit, is an
 error without PAIR, which names the files; a board recorded under the
 other role, in any link file, is an error:
 
-  $ link -p link/robot -P 3 bala2-remote robot controller
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote-3, PAIR=3
-  Error: the board on link/robot, 24:0A:C4:12:34:56, is recorded as the robot in ./link/links/bala2-remote-2, not in ./link/links/bala2-remote-3 of PAIR=3: run with MOVE=1 to move it to ./link/links/bala2-remote-3, or without PAIR=3 to keep it in its link file
-  $ echo robot=24:0a:c4:12:34:56 >> link/links/bala2-remote-3
-  $ link -p link/robot bala2-remote robot controller
-  Error: the board on link/robot, 24:0A:C4:12:34:56, is recorded as the robot in several link files, ./link/links/bala2-remote-2, ./link/links/bala2-remote-3: choose one by PAIR=<name> with MOVE=1, which removes the board from the others
-  $ link -p link/controller2 bala2-remote robot controller
-  Error: the board on link/controller2, 24:0A:C4:12:34:59, is recorded as the controller in ./link/links/bala2-remote-2: it is the controller of that pair, not a robot
-  $ rm link/links/bala2-remote-3
+  $ link -p link/robot -P 3 bala2-radio robot controller
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio-3, PAIR=3
+  Error: the board on link/robot, 24:0A:C4:12:34:56, is recorded as the robot in ./link/links/bala2-radio-2, not in ./link/links/bala2-radio-3 of PAIR=3: run with MOVE=1 to move it to ./link/links/bala2-radio-3, or without PAIR=3 to keep it in its link file
+  $ echo robot=24:0a:c4:12:34:56 >> link/links/bala2-radio-3
+  $ link -p link/robot bala2-radio robot controller
+  Error: the board on link/robot, 24:0A:C4:12:34:56, is recorded as the robot in several link files, ./link/links/bala2-radio-2, ./link/links/bala2-radio-3: choose one by PAIR=<name> with MOVE=1, which removes the board from the others
+  $ link -p link/controller2 bala2-radio robot controller
+  Error: the board on link/controller2, 24:0A:C4:12:34:59, is recorded as the controller in ./link/links/bala2-radio-2: it is the controller of that pair, not a robot
+  $ rm link/links/bala2-radio-3
 
 A PAIR other than letters, digits, '-' and '_' is an error, as is REPLACE
 with PAIR, with REMOTE_LINK_FILE or without a port, and PAIR with
 REMOTE_LINK_FILE; files of other names in the directory are not link files
 of the link:
 
-  $ link -P 'a b' bala2-remote robot controller
+  $ link -P 'a b' bala2-radio robot controller
   Error: PAIR='a b' is not a name of letters, digits, '-' and '_'
-  $ link -P '' bala2-remote robot controller
+  $ link -P '' bala2-radio robot controller
   Error: PAIR='' is not a name of letters, digits, '-' and '_'
-  $ link -p link/robot2 -r -P 2 bala2-remote robot controller
+  $ link -p link/robot2 -r -P 2 bala2-radio robot controller
   Error: REPLACE=1 with PAIR=2: a board of the pair 2 is replaced without REPLACE=1
-  $ link -r bala2-remote robot controller
+  $ link -r bala2-radio robot controller
   Error: REPLACE=1 needs the port of the new board
-  $ (export REMOTE_LINK_FILE=link/other; link -p link/robot2 -r bala2-remote robot controller)
+  $ (export REMOTE_LINK_FILE=link/other; link -p link/robot2 -r bala2-radio robot controller)
   Error: REPLACE=1 with REMOTE_LINK_FILE: a board of REMOTE_LINK_FILE is replaced without REPLACE=1
-  $ (export REMOTE_LINK_FILE=link/other; link -P 2 bala2-remote robot controller)
+  $ (export REMOTE_LINK_FILE=link/other; link -P 2 bala2-radio robot controller)
   Error: PAIR=2 and REMOTE_LINK_FILE both name a link file
-  $ cp link/links/bala2-remote link/links/bala2-remote-x.bak
-  $ link -p link/robot2 bala2-remote robot controller | grep -v esp_now
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote, found by the address of the robot
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:57, the controller
-  $ rm link/links/bala2-remote-x.bak
+  $ cp link/links/bala2-radio link/links/bala2-radio-x.bak
+  $ link -p link/robot2 bala2-radio robot controller | grep -v esp_now
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio, found by the address of the robot
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:57, the controller
+  $ rm link/links/bala2-radio-x.bak
 
 MOVE is an error without a port, without PAIR or REMOTE_LINK_FILE, and with
 REPLACE; -e names one of PAIR, REPLACE, MOVE and REMOTE_LINK_FILE:
 
-  $ link -m -P 2 bala2-remote robot controller
+  $ link -m -P 2 bala2-radio robot controller
   Error: MOVE=1 needs the port of the board moved
-  $ link -p link/robot2 -m bala2-remote robot controller
+  $ link -p link/robot2 -m bala2-radio robot controller
   Error: MOVE=1 without PAIR or REMOTE_LINK_FILE: a board is moved to the link file that they name
-  $ link -p link/robot2 -r -m bala2-remote robot controller
+  $ link -p link/robot2 -r -m bala2-radio robot controller
   Error: REPLACE=1 with MOVE=1: MOVE=1 moves a board to the link file of PAIR or REMOTE_LINK_FILE, REPLACE=1 replaces one in the default pair
-  $ link -e PORT bala2-remote robot controller
+  $ link -e PORT bala2-radio robot controller
   Usage: link.sh [-p PORT] [-t TARGET] [-P PAIR] [-r] [-m] [-e VAR]... NAME ROLE PEER
 
 REMOTE_LINK_FILE names the link file of every board, without the lookup:
 
   $ echo 24:0a:c4:12:34:5a > link/robot3
-  $ (export REMOTE_LINK_FILE=link/other; link -p link/robot3 -t arduino-bala2-controller-upload bala2-remote robot controller)
-  ESP-NOW link bala2-remote: the link file link/other of REMOTE_LINK_FILE
-  ESP-NOW link bala2-remote: key generated in link/other
-  ESP-NOW link bala2-remote: the robot 24:0A:C4:12:34:5A recorded in link/other
-  Error: the link file link/other has no address of the controller: connect the controller and upload to it first (make arduino-bala2-controller-upload), or set REMOTE_PEER
+  $ (export REMOTE_LINK_FILE=link/other; link -p link/robot3 -t arduino-bala2-radio-controller-upload bala2-radio robot controller)
+  ESP-NOW link bala2-radio: the link file link/other of REMOTE_LINK_FILE
+  ESP-NOW link bala2-radio: key generated in link/other
+  ESP-NOW link bala2-radio: the robot 24:0A:C4:12:34:5A recorded in link/other
+  Error: the link file link/other has no address of the controller: connect the controller and upload to it first (make arduino-bala2-radio-controller-upload), or set REMOTE_PEER
   $ rm link/other
 
 A board recorded in a link file is not recorded in another by PAIR or
@@ -530,129 +530,129 @@ target, from its dry run, is run with the assignments of the command line
 exported, as make exports them to its commands; PAIR, REPLACE, MOVE and
 REMOTE_LINK_FILE from the environment are reported:
 
-  $ grep -h '^key=' link/links/bala2-remote link/links/bala2-remote-2 > link/keys
+  $ grep -h '^key=' link/links/bala2-radio link/links/bala2-radio-2 > link/keys
   $ made () { make -s --no-print-directory -n "$@" | sed -n 's/^link=\$(\([^)]*\)).*/\1/p'; }
   $ run () {
   >   (for a; do case $a in *=*) export "$a";; esac; done; eval "$(made "$@")") 2>&1 |
   >     sed -e "s|$PWD|.|g" -e 's/esp_now_key=.*/esp_now_key=(the key)/'
   > }
-  $ (export PAIR=2; run arduino-bala2-remote-upload PORT_M5STACK_GRAY=link/robot2)
-  ESP-NOW link bala2-remote: PAIR=2 is taken from the environment
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote-2, PAIR=2
-  Error: the board on link/robot2, 24:0A:C4:12:34:58, is recorded as the robot in ./link/links/bala2-remote, not in ./link/links/bala2-remote-2 of PAIR=2: run with MOVE=1 to move it to ./link/links/bala2-remote-2, or without PAIR=2 to keep it in its link file
+  $ (export PAIR=2; run arduino-bala2-radio-robot-upload PORT_M5STACK_GRAY=link/robot2)
+  ESP-NOW link bala2-radio: PAIR=2 is taken from the environment
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio-2, PAIR=2
+  Error: the board on link/robot2, 24:0A:C4:12:34:58, is recorded as the robot in ./link/links/bala2-radio, not in ./link/links/bala2-radio-2 of PAIR=2: run with MOVE=1 to move it to ./link/links/bala2-radio-2, or without PAIR=2 to keep it in its link file
 
 MOVE=1 records the board in the link file chosen, here replacing the robot
 of the pair 2, and then removes its line from the other link file, whose
 key and other address are kept:
 
-  $ (export PAIR=2; run arduino-bala2-remote-upload PORT_M5STACK_GRAY=link/robot2 MOVE=1)
-  ESP-NOW link bala2-remote: PAIR=2 is taken from the environment
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote-2, PAIR=2
-  ESP-NOW link bala2-remote: the board on link/robot2, 24:0A:C4:12:34:58, recorded as the robot in ./link/links/bala2-remote, is moved to ./link/links/bala2-remote-2, MOVE=1
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote-2
-  ESP-NOW link bala2-remote: the robot changed from 24:0A:C4:12:34:56 to 24:0A:C4:12:34:58 in ./link/links/bala2-remote-2
-  ESP-NOW link bala2-remote: the board 24:0A:C4:12:34:58 removed from ./link/links/bala2-remote, where it was the robot
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:59, the controller
+  $ (export PAIR=2; run arduino-bala2-radio-robot-upload PORT_M5STACK_GRAY=link/robot2 MOVE=1)
+  ESP-NOW link bala2-radio: PAIR=2 is taken from the environment
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio-2, PAIR=2
+  ESP-NOW link bala2-radio: the board on link/robot2, 24:0A:C4:12:34:58, recorded as the robot in ./link/links/bala2-radio, is moved to ./link/links/bala2-radio-2, MOVE=1
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio-2
+  ESP-NOW link bala2-radio: the robot changed from 24:0A:C4:12:34:56 to 24:0A:C4:12:34:58 in ./link/links/bala2-radio-2
+  ESP-NOW link bala2-radio: the board 24:0A:C4:12:34:58 removed from ./link/links/bala2-radio, where it was the robot
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:59, the controller
   esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x59
   esp_now_key=(the key)
-  $ sed 's/^key=.*/key=(the key)/' link/links/bala2-remote link/links/bala2-remote-2
-  # The ESP-NOW link bala2-remote: its key and the address of the board of each role.
+  $ sed 's/^key=.*/key=(the key)/' link/links/bala2-radio link/links/bala2-radio-2
+  # The ESP-NOW link bala2-radio: its key and the address of the board of each role.
   key=(the key)
   controller=24:0A:C4:12:34:57
-  # The ESP-NOW link bala2-remote: its key and the address of the board of each role.
+  # The ESP-NOW link bala2-radio: its key and the address of the board of each role.
   key=(the key)
   robot=24:0A:C4:12:34:58
   controller=24:0A:C4:12:34:59
-  $ grep -h '^key=' link/links/bala2-remote link/links/bala2-remote-2 | cmp - link/keys
-  $ ls -l link/links/bala2-remote link/links/bala2-remote-2 | cut -c 1-10
+  $ grep -h '^key=' link/links/bala2-radio link/links/bala2-radio-2 | cmp - link/keys
+  $ ls -l link/links/bala2-radio link/links/bala2-radio-2 | cut -c 1-10
   -rw-------
   -rw-------
   $ ls -A link/links
-  bala2-remote
-  bala2-remote-2
+  bala2-radio
+  bala2-radio-2
 
 The board, now in the link file chosen, proceeds; PAIR on the command line
 is not reported, and MOVE=1 then moves nothing:
 
-  $ run arduino-bala2-remote-upload PORT_M5STACK_GRAY=link/robot2 PAIR=2 | grep -v esp_now
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote-2, PAIR=2
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote-2
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:59, the controller
-  $ (export MOVE=1; run arduino-bala2-remote-upload PORT_M5STACK_GRAY=link/robot2 PAIR=2) | grep -v esp_now
-  ESP-NOW link bala2-remote: MOVE=1 is taken from the environment
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote-2, PAIR=2
-  ESP-NOW link bala2-remote: the board on link/robot2, 24:0A:C4:12:34:58, is in no other link file of bala2-remote: MOVE=1 moves nothing
-  ESP-NOW link bala2-remote: key of ./link/links/bala2-remote-2
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:59, the controller
+  $ run arduino-bala2-radio-robot-upload PORT_M5STACK_GRAY=link/robot2 PAIR=2 | grep -v esp_now
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio-2, PAIR=2
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio-2
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:59, the controller
+  $ (export MOVE=1; run arduino-bala2-radio-robot-upload PORT_M5STACK_GRAY=link/robot2 PAIR=2) | grep -v esp_now
+  ESP-NOW link bala2-radio: MOVE=1 is taken from the environment
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio-2, PAIR=2
+  ESP-NOW link bala2-radio: the board on link/robot2, 24:0A:C4:12:34:58, is in no other link file of bala2-radio: MOVE=1 moves nothing
+  ESP-NOW link bala2-radio: key of ./link/links/bala2-radio-2
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:59, the controller
 
 REMOTE_LINK_FILE likewise; a link file of the directory named by another
 path is that link file:
 
-  $ (export REMOTE_LINK_FILE=link/other; run arduino-bala2-controller-upload PORT_M5STACK_CORES3=link/controller)
-  ESP-NOW link bala2-remote: REMOTE_LINK_FILE=link/other is taken from the environment
-  ESP-NOW link bala2-remote: the link file link/other of REMOTE_LINK_FILE
-  Error: the board on link/controller, 24:0A:C4:12:34:57, is recorded as the controller in ./link/links/bala2-remote, not in link/other of REMOTE_LINK_FILE: run with MOVE=1 to move it to link/other, or without REMOTE_LINK_FILE to keep it in its link file
-  $ run arduino-bala2-controller-upload PORT_M5STACK_CORES3=link/controller REMOTE_LINK_FILE=link/other MOVE=1
-  ESP-NOW link bala2-remote: the link file link/other of REMOTE_LINK_FILE
-  ESP-NOW link bala2-remote: the board on link/controller, 24:0A:C4:12:34:57, recorded as the controller in ./link/links/bala2-remote, is moved to link/other, MOVE=1
-  ESP-NOW link bala2-remote: key generated in link/other
-  ESP-NOW link bala2-remote: the controller 24:0A:C4:12:34:57 recorded in link/other
-  ESP-NOW link bala2-remote: the board 24:0A:C4:12:34:57 removed from ./link/links/bala2-remote, where it was the controller
-  Error: the link file link/other has no address of the robot: connect the robot and upload to it first (make arduino-bala2-remote-upload), or set REMOTE_PEER
-  $ sed 's/^key=.*/key=(the key)/' link/links/bala2-remote
-  # The ESP-NOW link bala2-remote: its key and the address of the board of each role.
+  $ (export REMOTE_LINK_FILE=link/other; run arduino-bala2-radio-controller-upload PORT_M5STACK_CORES3=link/controller)
+  ESP-NOW link bala2-radio: REMOTE_LINK_FILE=link/other is taken from the environment
+  ESP-NOW link bala2-radio: the link file link/other of REMOTE_LINK_FILE
+  Error: the board on link/controller, 24:0A:C4:12:34:57, is recorded as the controller in ./link/links/bala2-radio, not in link/other of REMOTE_LINK_FILE: run with MOVE=1 to move it to link/other, or without REMOTE_LINK_FILE to keep it in its link file
+  $ run arduino-bala2-radio-controller-upload PORT_M5STACK_CORES3=link/controller REMOTE_LINK_FILE=link/other MOVE=1
+  ESP-NOW link bala2-radio: the link file link/other of REMOTE_LINK_FILE
+  ESP-NOW link bala2-radio: the board on link/controller, 24:0A:C4:12:34:57, recorded as the controller in ./link/links/bala2-radio, is moved to link/other, MOVE=1
+  ESP-NOW link bala2-radio: key generated in link/other
+  ESP-NOW link bala2-radio: the controller 24:0A:C4:12:34:57 recorded in link/other
+  ESP-NOW link bala2-radio: the board 24:0A:C4:12:34:57 removed from ./link/links/bala2-radio, where it was the controller
+  Error: the link file link/other has no address of the robot: connect the robot and upload to it first (make arduino-bala2-radio-robot-upload), or set REMOTE_PEER
+  $ sed 's/^key=.*/key=(the key)/' link/links/bala2-radio
+  # The ESP-NOW link bala2-radio: its key and the address of the board of each role.
   key=(the key)
-  $ grep -h '^key=' link/links/bala2-remote link/links/bala2-remote-2 | cmp - link/keys
-  $ (export REMOTE_LINK_FILE=link/links/../links/bala2-remote-2; run arduino-bala2-remote-upload PORT_M5STACK_GRAY=link/robot2 | grep -v esp_now)
-  ESP-NOW link bala2-remote: REMOTE_LINK_FILE=link/links/../links/bala2-remote-2 is taken from the environment
-  ESP-NOW link bala2-remote: the link file link/links/../links/bala2-remote-2 of REMOTE_LINK_FILE
-  ESP-NOW link bala2-remote: key of link/links/../links/bala2-remote-2
-  ESP-NOW link bala2-remote: peer 24:0A:C4:12:34:59, the controller
+  $ grep -h '^key=' link/links/bala2-radio link/links/bala2-radio-2 | cmp - link/keys
+  $ (export REMOTE_LINK_FILE=link/links/../links/bala2-radio-2; run arduino-bala2-radio-robot-upload PORT_M5STACK_GRAY=link/robot2 | grep -v esp_now)
+  ESP-NOW link bala2-radio: REMOTE_LINK_FILE=link/links/../links/bala2-radio-2 is taken from the environment
+  ESP-NOW link bala2-radio: the link file link/links/../links/bala2-radio-2 of REMOTE_LINK_FILE
+  ESP-NOW link bala2-radio: key of link/links/../links/bala2-radio-2
+  ESP-NOW link bala2-radio: peer 24:0A:C4:12:34:59, the controller
   $ rm link/other link/keys
 
 REMOTE_PEER and REMOTE_KEY, here a fake key, take precedence over the link
 file; a malformed one is an error:
 
-  $ REMOTE_PEER=24:0a:c4:00:00:09 REMOTE_KEY=000102030405060708090a0b0c0d0e0f sh scripts/link.sh bala2-remote robot controller 2>&1 | sed "s|$PWD|.|g"
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote of the default pair
-  ESP-NOW link bala2-remote: key of REMOTE_KEY
-  ESP-NOW link bala2-remote: peer 24:0A:C4:00:00:09 of REMOTE_PEER
+  $ REMOTE_PEER=24:0a:c4:00:00:09 REMOTE_KEY=000102030405060708090a0b0c0d0e0f sh scripts/link.sh bala2-radio robot controller 2>&1 | sed "s|$PWD|.|g"
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio of the default pair
+  ESP-NOW link bala2-radio: key of REMOTE_KEY
+  ESP-NOW link bala2-radio: peer 24:0A:C4:00:00:09 of REMOTE_PEER
   esp_now_peer=0x24,0x0A,0xC4,0x00,0x00,0x09
   esp_now_key=000102030405060708090a0b0c0d0e0f
-  $ (export REMOTE_PEER=24:0a:c4:00:00; link bala2-remote robot controller)
+  $ (export REMOTE_PEER=24:0a:c4:00:00; link bala2-radio robot controller)
   Error: REMOTE_PEER is not six bytes in hexadecimal separated by colons
-  $ (export REMOTE_KEY=000102030405060708090a0b0c0d0e0g; link bala2-remote robot controller)
+  $ (export REMOTE_KEY=000102030405060708090a0b0c0d0e0g; link bala2-radio robot controller)
   Error: REMOTE_KEY is not 32 hexadecimal digits
 
 A malformed link file is an error, at its first malformed line; comments,
 empty lines, spaces, carriage returns, '-' in addresses and lower case are
 read:
 
-  $ printf '# A link\r\n\n key = 000102030405060708090A0B0C0D0E0F \r\nrobot=24-0a-c4-12-34-56\ncontroller=24:0A:C4:12:34:57\n' > link/links/bala2-remote
-  $ sh scripts/link.sh bala2-remote controller robot 2> /dev/null
+  $ printf '# A link\r\n\n key = 000102030405060708090A0B0C0D0E0F \r\nrobot=24-0a-c4-12-34-56\ncontroller=24:0A:C4:12:34:57\n' > link/links/bala2-radio
+  $ sh scripts/link.sh bala2-radio controller robot 2> /dev/null
   esp_now_peer=0x24,0x0A,0xC4,0x12,0x34,0x56
   esp_now_key=000102030405060708090A0B0C0D0E0F
   $ for content in 'key=0001' 'key 000102030405060708090a0b0c0d0e0f' 'robot=24:0a:c4:12:34' 'robot=24:0a:c4:12:34:5g' 'robot=24:0a:c4:12:34:56\nrobot=24:0a:c4:12:34:57' '2robot=24:0a:c4:12:34:56'; do
-  >   printf "$content\n" > link/links/bala2-remote; link bala2-remote controller robot
+  >   printf "$content\n" > link/links/bala2-radio; link bala2-radio controller robot
   > done
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote of the default pair
-  Error: the link file ./link/links/bala2-remote, line 1: the key is not 32 hexadecimal digits
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote of the default pair
-  Error: the link file ./link/links/bala2-remote, line 1: not NAME=VALUE
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote of the default pair
-  Error: the link file ./link/links/bala2-remote, line 1: the address of robot is not six bytes in hexadecimal separated by colons
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote of the default pair
-  Error: the link file ./link/links/bala2-remote, line 1: the address of robot is not six bytes in hexadecimal separated by colons
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote of the default pair
-  Error: the link file ./link/links/bala2-remote, line 2: the name robot is repeated
-  ESP-NOW link bala2-remote: the link file ./link/links/bala2-remote of the default pair
-  Error: the link file ./link/links/bala2-remote, line 1: the name "2robot" is not a name
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio of the default pair
+  Error: the link file ./link/links/bala2-radio, line 1: the key is not 32 hexadecimal digits
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio of the default pair
+  Error: the link file ./link/links/bala2-radio, line 1: not NAME=VALUE
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio of the default pair
+  Error: the link file ./link/links/bala2-radio, line 1: the address of robot is not six bytes in hexadecimal separated by colons
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio of the default pair
+  Error: the link file ./link/links/bala2-radio, line 1: the address of robot is not six bytes in hexadecimal separated by colons
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio of the default pair
+  Error: the link file ./link/links/bala2-radio, line 2: the name robot is repeated
+  ESP-NOW link bala2-radio: the link file ./link/links/bala2-radio of the default pair
+  Error: the link file ./link/links/bala2-radio, line 1: the name "2robot" is not a name
 
 Concurrent builds agree on one key, generated once:
 
   $ rm -r link/links
   $ export REMOTE_PEER=24:0a:c4:12:34:57
-  $ for i in 1 2 3 4; do sh scripts/link.sh -p link/robot bala2-remote robot controller > printed$i 2> log$i & done; wait
+  $ for i in 1 2 3 4; do sh scripts/link.sh -p link/robot bala2-radio robot controller > printed$i 2> log$i & done; wait
   $ unset REMOTE_PEER
   $ cat log* | grep -c generated
   1
@@ -660,10 +660,10 @@ Concurrent builds agree on one key, generated once:
   4
   $ grep -h esp_now_key printed* | sort -u | wc -l | tr -d ' '
   1
-  $ grep -h esp_now_key printed1 | grep -c "=$(sed -n 's/^key=//p' link/links/bala2-remote)$"
+  $ grep -h esp_now_key printed1 | grep -c "=$(sed -n 's/^key=//p' link/links/bala2-radio)$"
   1
   $ ls -A link/links
-  bala2-remote
+  bala2-radio
   $ rm -r link printed* log*
 
 BRIGHTNESS adds the flag TEMPORE_DISPLAY_BRIGHTNESS to the build flags of
@@ -726,7 +726,7 @@ listed apart:
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
   M5Stack CoreS3 with the radio, port PORT_M5STACK_CORES3_RADIO = found by USB 303a:1001:
-    NAME one of: bala2-controller
+    NAME one of: bala2-radio-controller
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
@@ -736,7 +736,7 @@ listed apart:
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
   M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = found by USB 10c4:ea60 or 1a86:55d4:
-    NAME one of: bala2-remote
+    NAME one of: bala2-radio-robot
     arduino-NAME-simulate         simulates the project on the host
     arduino-NAME-build            builds the project with PlatformIO
     arduino-NAME-upload           builds the project and uploads it to the board
@@ -752,7 +752,7 @@ listed apart:
     SIMULATE=                                    when set, the simulated seconds of every example
     MONITOR=                                     when set, the monitor policy of every target
     BRIGHTNESS=                                  when set, the display brightness, 0 to 100 % (default 24), of every build
-  ESP-NOW link bala2-remote, roles controller robot: paired by the link files bala2-remote and bala2-remote-PAIR
+  ESP-NOW link bala2-radio, roles controller robot: paired by the link files bala2-radio and bala2-radio-PAIR
     in ~/.config/tempore/links or REMOTE_LINK_DIR, each board found by its address, or REMOTE_LINK_FILE;
     REMOTE_PEER and REMOTE_KEY override its address and key
     PAIR=                                        when set, the pair of the board, by the link file LINK-PAIR
@@ -768,7 +768,7 @@ listed apart:
     arduino-steps-capture         reads the recordings from the port into _arduino/recordings/steps-TIME-N.csv
     arduino-steps-erase           erases the recordings on the device
   M5Stack CoreS3 with the radio, port PORT_M5STACK_CORES3_RADIO = found by USB 303a:1001:
-    NAME one of: bala2-controller
+    NAME one of: bala2-radio-controller
     arduino-NAME-profile          uploads the project with the profile and reads the port
   M5Stack Gray, port PORT_M5STACK_GRAY = found by USB 10c4:ea60 or 1a86:55d4:
     NAME one of: bala2 bala2-regex wheels
@@ -780,7 +780,7 @@ listed apart:
     arduino-bala2-regex-record    uploads the project with -DBALANCE_RECORD=20 and reads the port
     arduino-bala2-regex-capture   reads the recordings from the port into _arduino/recordings/bala2-regex-TIME.csv
   M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = found by USB 10c4:ea60 or 1a86:55d4:
-    NAME one of: bala2-remote
+    NAME one of: bala2-radio-robot
     arduino-NAME-profile          uploads the project with the profile and reads the port
   Variables, with their values:
     PORT=                                        when set, the port of every board

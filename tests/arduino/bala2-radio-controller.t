@@ -1,9 +1,9 @@
-The controller of examples/arduino/bala2-controller: the M5Stack CoreS3 that
-drives the BALA2 of examples/arduino/bala2-remote by its tilt over ESP-NOW,
-under the rigid regular expressions of timed operations, with the packages m5-imu, m5-display, m5-touch, m5-speaker, esp-now and bala2-remote:
+The controller of examples/arduino/bala2-radio-controller: the M5Stack CoreS3 that
+drives the BALA2 of examples/arduino/bala2-radio-robot by its tilt over ESP-NOW,
+under the rigid regular expressions of timed operations, with the packages m5-imu, m5-display, m5-touch, m5-speaker, esp-now and bala2-radio:
 its typing, its rejected variants, and its host simulation.
 
-  $ app=../../examples/arduino/bala2-controller
+  $ app=../../examples/arduino/bala2-radio-controller
   $ . ../helpers.sh
   $ from_header $app/controller.tpe
   $ packages --typecheck-only $app/controller.tpe
@@ -16,7 +16,7 @@ a session that redraws the screen after the handshake and then drives on
 its confirmation, which may then be older than 200 ms; and a session that
 sends Arm once, against the protocol of its grade:
 
-  $ for v in redrawn kept stale once; do packages --typecheck-only $app/controller.tpe bala2-controller/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out | cut -c 1-160; done
+  $ for v in redrawn kept stale once; do packages --typecheck-only $app/controller.tpe bala2-radio-controller/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out | cut -c 1-160; done
   [1]
   Typing error: Variable `latest_reading` is unboxed with grade `{ReadTouch; DrawLevel}` accumulated since it was bound, which is not below its box grade `{[0, 2]
   [1]

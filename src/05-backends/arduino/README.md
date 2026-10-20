@@ -135,7 +135,7 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
   - `Send` queues a packet and returns without waiting;
   - `Receive` returns, without waiting, the latest packet from the peer if it
     arrived at most a given number of milliseconds ago.
-- `bala2-remote`: the messages of the remote control of the BALA2, shared by
+- `bala2-radio`: the messages of the remote control of the BALA2, shared by
   the robot and the controller, over `esp-now`, listed before it, declared
   under `time-interval-rational` and the regular expressions of timed
   operations with intervals or upper bounds:
@@ -492,7 +492,7 @@ recordings from the serial output:
 `EXAMPLE_BUILD_FLAGS` gives the build flags of every device build of the
 example. `EXAMPLE_LINK` and `EXAMPLE_LINK_ROLE` name the encrypted ESP-NOW
 link of its device builds and the role of its board in it, as
-`bala2-remote` and `bala2-controller` do
+`bala2-radio-robot` and `bala2-radio-controller` do
 ([Pairing the robot and the controller](#pairing-the-robot-and-the-controller)).
 
 Instead of the awk program, `EXAMPLE_RECORD_TOOL` names a Python script by
@@ -643,7 +643,7 @@ it and names its make targets.
 ### M5Stack Gray
 
 The core of the M5Stack BALA2 self-balancing robot (profile `m5stack-gray`,
-port variable `PORT_M5STACK_GRAY`; for `bala2-remote`, which runs the radio,
+port variable `PORT_M5STACK_GRAY`; for `bala2-radio-robot`, which runs the radio,
 profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
 
 - [`bala2`](../../../examples/arduino/bala2/balance.tpe): a 5 ms balancing
@@ -671,8 +671,8 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
     held upright;
   - each command is sent again within 200 ms;
   - the supervision calibrates, arms, drives and disarms, in this order.
-- [`bala2-remote`](../../../examples/arduino/bala2-remote/balance_remote.tpe):
-  the robot of `bala2-regex` driven by the controller `bala2-controller` over
+- [`bala2-radio-robot`](../../../examples/arduino/bala2-radio-robot/robot.tpe):
+  the robot of `bala2-regex` driven by the controller `bala2-radio-controller` over
   an encrypted ESP-NOW link, under the rigid regular expressions of timed
   operations; the grade of a session is its protocol, Arm, commands and
   Disarm, in this order. The typechecker proves, under the declared running
@@ -701,7 +701,7 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
 ### M5Stack CoreS3 and CoreS3 Lite
 
 Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`; for
-`bala2-controller`, which runs the radio, profile `m5stack-cores3-radio`,
+`bala2-radio-controller`, which runs the radio, profile `m5stack-cores3-radio`,
 port variable `PORT_M5STACK_CORES3_RADIO`.
 
 - [`tilt`](../../../examples/arduino/tilt/tilt.tpe): a tilt display, with a
@@ -777,8 +777,8 @@ port variable `PORT_M5STACK_CORES3_RADIO`.
     the block is timed at once, with no pause above 2.5 ms;
   - a start with its outcome and the tally begins with On your marks and
     takes at most 6 s.
-- [`bala2-controller`](../../../examples/arduino/bala2-controller/controller.tpe):
-  the controller of [`bala2-remote`](#m5stack-gray), driving the robot by the
+- [`bala2-radio-controller`](../../../examples/arduino/bala2-radio-controller/controller.tpe):
+  the controller of [`bala2-radio-robot`](#m5stack-gray), driving the robot by the
   tilt of the device and arming and disarming it by touch, under the rigid
   regular expressions of timed operations. The typechecker proves, under the
   declared running times of the operations:
@@ -793,10 +793,10 @@ port variable `PORT_M5STACK_CORES3_RADIO`.
 
 #### Pairing the robot and the controller
 
-The robot and the controller share the encrypted link `bala2-remote`. Each
+The robot and the controller share the encrypted link `bala2-radio`. Each
 pair of boards has a link file in `~/.config/tempore/links`, outside the
-repository, of mode 600 in a directory of mode 700: `bala2-remote` for the
-default pair, `bala2-remote-PAIR` for the pair `PAIR`. It holds the key and
+repository, of mode 600 in a directory of mode 700: `bala2-radio` for the
+default pair, `bala2-radio-PAIR` for the pair `PAIR`. It holds the key and
 the address of the board of each role:
 
     key=0123456789abcdef0123456789abcdef
@@ -818,11 +818,11 @@ the key:
 
 One pair needs no setting. The first pairing, one board at a time:
 
-1. connect the robot and run `make arduino-bala2-remote-upload`: it
+1. connect the robot and run `make arduino-bala2-radio-robot-upload`: it
    records the address of the robot and the key, and stops;
-2. connect the controller and run `make arduino-bala2-controller-upload`:
+2. connect the controller and run `make arduino-bala2-radio-controller-upload`:
    it records its address and uploads;
-3. connect the robot again and run `make arduino-bala2-remote-upload`.
+3. connect the robot again and run `make arduino-bala2-radio-robot-upload`.
 
 With several pairs, each known board finds its pair by its address. A new
 board joins the default pair while that has no board of its role;

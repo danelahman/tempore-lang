@@ -1,11 +1,11 @@
-(* The package bala2-remote: the messages of the remote control of the
+(* The package bala2-radio: the messages of the remote control of the
    M5Stack BALA2 and their encoding as packets of the package esp-now, under
    every grade system of the package.
 
    A message is encoded as a packet of a tag and two floats: Arm as tag 1,
    Drive (speed, turn) as tag 2 with the speed and the turn, Disarm as tag 3
    and Beat as tag 4, the unused floats 0, as do the bindings of SendArm,
-   SendDrive, SendDisarm and SendBeat in bala2_remote.cpp. A packet of
+   SendDrive, SendDisarm and SendBeat in bala2_radio.cpp. A packet of
    another tag, and no packet, decode to Nothing.
 
    The robot answers with its status: its phase and its tilt, in degrees,

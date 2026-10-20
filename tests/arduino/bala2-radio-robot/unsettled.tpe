@@ -1,5 +1,5 @@
 (* A measurement that checks the robot at rest before it disarms it, and
-   samples the readings after the Disarm, after balance_remote.tpe. *)
+   samples the readings after the Disarm, after robot.tpe. *)
 
 let measure_unsettled () =
   let rest = perform CheckAtRest () in

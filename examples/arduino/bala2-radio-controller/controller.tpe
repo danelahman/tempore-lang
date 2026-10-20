@@ -9,9 +9,9 @@
        --package m5-touch \
        --package m5-speaker \
        --package esp-now \
-       --package bala2-remote \
+       --package bala2-radio \
        --board m5stack-cores3-radio \
-       examples/arduino/bala2-controller/controller.tpe
+       examples/arduino/bala2-radio-controller/controller.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
@@ -23,17 +23,17 @@
      - Product: concatenation of traces, componentwise *)
 
 (* Runs on the M5Stack CoreS3 (controller.device.json): 'remote' as a free
-   task, sending the messages of the package bala2-remote, one operation per
-   message, to the robot of examples/arduino/bala2-remote, under 50 ms
+   task, sending the messages of the package bala2-radio, one operation per
+   message, to the robot of examples/arduino/bala2-radio-robot, under 50 ms
    apart, and receiving its status, on which it drives; a bubble level
    shows the tilt that steers it, a label whether the link is encrypted,
    a line right of the vial, while disarmed, the guidance of the phase the
    robot reports, and a short tone acknowledges a tap on Arm or Disarm. On
-   the board: make arduino-bala2-controller-upload, which pairs it with the
-   robot by the link file of bala2-remote and encrypts the link (see the
+   the board: make arduino-bala2-radio-controller-upload, which pairs it with the
+   robot by the link file of bala2-radio and encrypts the link (see the
    README of the Arduino backend); simulated on the host, with world.cpp
    tilting and touching the device: make
-   arduino-bala2-controller-simulate. *)
+   arduino-bala2-radio-controller-simulate. *)
 
 (* The command of a tilt: the dead zone, in degrees, and the gain and the
    bound of the speed of the wheels, in encoder counts per second, per

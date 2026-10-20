@@ -39,7 +39,7 @@ package under other grades, and --package with --device are refused:
   $ ../../tempore --grades time-interval-rational filter.tpe 2>&1 | grep error
   Syntax error: Unknown name `ReadImu`
   $ ../../tempore --grades time-interval-rational --package m5-gyro filter.tpe 2>&1 | head -1 | sed 's/^.*tempore: //'
-  option '--package': 'm5-gyro' is not one of bala2-base, bala2-remote, esp-now, i2c, m5-display, m5-imu, m5-speaker, m5-touch.
+  option '--package': 'm5-gyro' is not one of bala2-base, bala2-radio, esp-now, i2c, m5-display, m5-imu, m5-speaker, m5-touch.
   $ ../../tempore --grades time-interval --package m5-imu filter.tpe
   Error: The package `m5-imu` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `event-separation`, `counts-upper-bound`, not `time-interval`
   [1]
@@ -348,7 +348,7 @@ A Send before LinkStart is a run-time error:
   [10.000 ms] End of the simulation
 
 The messages of the remote control of the BALA2, with the package
-bala2-remote over esp-now: the initial function sends one message of each
+bala2-radio over esp-now: the initial function sends one message of each
 kind, and the step shows the message received. The peer of the host model of
 the application sends Arm, Drive (0.5, -0.25), a packet of the unknown tag 9,
 Disarm and Beat, one every 20 ms, and then nothing; the unknown tag, and Beat
@@ -399,7 +399,7 @@ intervals or upper bounds:
   >   unbox fresh as r in
   >   r
   > EOF
-  $ for g in time-interval-rational regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-remote --typecheck-only window.tpe 2>&1 | grep error; done
+  $ for g in time-interval-rational regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only window.tpe 2>&1 | grep error; done
   Typing error: Variable `fresh` is unboxed with grade `[150, 151]` accumulated since it was bound, which is not below its box grade `[0, 150)`
   Typing error: Variable `fresh` is unboxed with grade `{Send; 150}` accumulated since it was bound, which is not below its box grade `{[0, 150)}`
   Typing error: Variable `fresh` is unboxed with grade `[{Send; 150}, {Send; 150}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 150)}]`
@@ -436,7 +436,7 @@ refused:
   >   remote_send Beat;
   >   match setpoints with Setpoints (speed, turn) -> speed +. turn
   > EOF
-  $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-remote --typecheck-only latest.tpe 2>&1 | grep error; done
+  $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only latest.tpe 2>&1 | grep error; done
   Typing error: Variable `latest` is unboxed with grade `{Send; !≤150}` accumulated since it was bound, which is not below its box grade `{<150 & ~Receive}`
   Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{<150 & ~Receive}`
   Typing error: Variable `setpoints` is used with grade `{Send}` accumulated since it was bound, but its type `setpoints` is not eternal
@@ -466,7 +466,7 @@ while no further Receive has come:
   >   unbox latest as s in
   >   remote_armed s
   > EOF
-  $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-remote --typecheck-only status.tpe 2>&1 | grep error; done
+  $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only status.tpe 2>&1 | grep error; done
   Typing error: Variable `latest` is unboxed with grade `{!≤200}` accumulated since it was bound, which is not below its box grade `{<200 & ~Receive}`
   Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{<200 & ~Receive}`
   Typing error: Variable `latest` is unboxed with grade `{!200}` accumulated since it was bound, which is not below its box grade `{[0, 200) & ~Receive}`
@@ -501,15 +501,15 @@ does a use after a display call of up to 33 ms:
 
 The package needs esp-now, listed before it:
 
-  $ ../../tempore --grades time-interval-rational --package bala2-remote --package esp-now --typecheck-only window.tpe
-  Error: The package `bala2-remote` needs the package `esp-now`, listed before it
+  $ ../../tempore --grades time-interval-rational --package bala2-radio --package esp-now --typecheck-only window.tpe
+  Error: The package `bala2-radio` needs the package `esp-now`, listed before it
   [1]
-  $ sed 's/"esp-now", "bala2-remote"/"bala2-remote", "esp-now"/' packages/remote.device.json > m.json
+  $ sed 's/"esp-now", "bala2-radio"/"bala2-radio", "esp-now"/' packages/remote.device.json > m.json
   $ ../../tempore --grades time-interval-rational --emit-arduino rejected --device m.json packages/remote.tpe
-  File "m.json", line 8, characters 15-29:
-  8 |   "packages": ["bala2-remote", "esp-now", "m5-display"]
-                     ^^^^^^^^^^^^^^
-  Compilation error: The package `bala2-remote` needs the package `esp-now`, listed before it
+  File "m.json", line 8, characters 15-28:
+  8 |   "packages": ["bala2-radio", "esp-now", "m5-display"]
+                     ^^^^^^^^^^^^^
+  Compilation error: The package `bala2-radio` needs the package `esp-now`, listed before it
   [1]
 
 Raw register transactions with the package i2c on a generic ESP32, against
@@ -671,7 +671,7 @@ unknown package and a package under other grades are refused:
   File "m.json", line 4, characters 15-20:
   4 |   "packages": ["spi"],
                      ^^^^^
-  Compilation error: Unknown package `spi`; accepted: `bala2-base`, `bala2-remote`, `esp-now`, `i2c`, `m5-display`, `m5-imu`, `m5-speaker`, `m5-touch`
+  Compilation error: Unknown package `spi`; accepted: `bala2-base`, `bala2-radio`, `esp-now`, `i2c`, `m5-display`, `m5-imu`, `m5-speaker`, `m5-touch`
   exit 1
   $ reject packages/memory.device.json packages/memory.tpe time-interval
   File "packages/memory.device.json", line 4, characters 15-20:

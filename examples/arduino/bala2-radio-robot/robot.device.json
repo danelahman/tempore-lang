@@ -6,7 +6,7 @@
     { "function": "supervise", "kind": "free", "repeat": true,
       "priority": 1, "core": 1 }
   ],
-  "packages": ["m5-imu", "m5-display", "m5-speaker", "bala2-base", "esp-now", "bala2-remote"],
+  "packages": ["m5-imu", "m5-display", "m5-speaker", "bala2-base", "esp-now", "bala2-radio"],
   "bindings": "../bala2/bindings.cpp",
   "safe_state": "balance_safe_state",
   "host_models": ["../bala2/plant.cpp", "controller.cpp"]

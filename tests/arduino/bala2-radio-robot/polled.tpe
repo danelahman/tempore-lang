@@ -1,5 +1,5 @@
 (* An iteration of the drive that polls again for a Disarm before it applies
-   the message received first, after balance_remote.tpe. *)
+   the message received first, after robot.tpe. *)
 
 let drive_polled () =
   let latest = remote_receive () in

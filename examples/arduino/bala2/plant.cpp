@@ -1,5 +1,5 @@
 // The host model of the M5Stack BALA2 for balance.tpe,
-// ../bala2-regex/balance_regex.tpe and ../bala2-remote/balance_remote.tpe: an
+// ../bala2-regex/balance_regex.tpe and ../bala2-radio-robot/robot.tpe: an
 // inverted pendulum on two wheels driven by two DC motors, as a world of the
 // host simulation.
 //

@@ -1,9 +1,9 @@
-// The host model of the controller of balance_remote.tpe: the peer of the
+// The host model of the controller of robot.tpe: the peer of the
 // host model of the package esp-now, which sends a message every 20 ms of
 // simulated time. It sends Beat until 1.5 s, Arm for 1 s, Drive (100, 0)
 // until 3.5 s, Disarm until 3.6 s, Beat until 6.2 s, Arm for 1 s,
 // Drive (-100, 0) until 7.6 s, nothing until 10 s, a loss of the link, and
-// then Beat again. The tags are those of the package bala2-remote. The
+// then Beat again. The tags are those of the package bala2-radio. The
 // status packets of the robot are logged by the host model of esp-now. The
 // user stands the robot up again at 3.8 s, after it fell at the Disarm, and
 // holds it still until it is armed and driven.

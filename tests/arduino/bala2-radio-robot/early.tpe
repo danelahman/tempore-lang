@@ -1,6 +1,6 @@
 (* A session that opens the arming window right after the hold, when the age
    of the calibration is checked, and arms the robot with it after the wait
-   for Arm, after balance_remote.tpe. *)
+   for Arm, after robot.tpe. *)
 
 let session_early () =
   let calibrated = calibrate () in

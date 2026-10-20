@@ -1,14 +1,14 @@
-The BALA2 application of examples/arduino/bala2-remote: the balancing robot
+The BALA2 application of examples/arduino/bala2-radio-robot: the balancing robot
 driven by a controller over ESP-NOW, under the rigid regular expressions of
-timed operations, with the packages esp-now and bala2-remote and the binding
+timed operations, with the packages esp-now and bala2-radio and the binding
 file and host model of examples/arduino/bala2:
 its typing, its rejected variants, and its host simulation with a scripted
 controller.
 
-  $ app=../../examples/arduino/bala2-remote
+  $ app=../../examples/arduino/bala2-radio-robot
   $ . ../helpers.sh
-  $ from_header $app/balance_remote.tpe
-  $ packages --typecheck-only $app/balance_remote.tpe
+  $ from_header $app/robot.tpe
+  $ packages --typecheck-only $app/robot.tpe
 
 The rejected variants, each loaded after the application: a session that
 reads the tilt before the wait for Arm and arms the robot on it, outside
@@ -19,7 +19,7 @@ session that opens the arming window right after the hold and arms the
 robot after the wait for Arm; and a measurement that checks the robot at
 rest before it disarms it and samples the readings after the Disarm:
 
-  $ for v in stale_tilt stopped polled early unsettled; do packages --typecheck-only $app/balance_remote.tpe bala2-remote/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out; done
+  $ for v in stale_tilt stopped polled early unsettled; do packages --typecheck-only $app/robot.tpe bala2-radio-robot/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out; done
   [1]
   Typing error: Variable `arming` is unboxed with the unit grade `{0}` accumulated since it was bound, which is not below its box grade `{Attitude; ([0, 1) & ~(Command | Receive))}`
   [1]
@@ -35,8 +35,8 @@ The PlatformIO project for the M5Stack Gray with its radio running (profile
 m5stack-gray-radio), its C++ sources checked without exceptions and run-time
 type information:
 
-  $ tempore --emit-arduino balance_remote --device $app/balance_remote.device.json $app/balance_remote.tpe > /dev/null
-  $ cd _arduino/projects/balance_remote
+  $ tempore --emit-arduino robot --device $app/robot.device.json $app/robot.tpe > /dev/null
+  $ cd _arduino/projects/robot
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
 
@@ -44,8 +44,8 @@ Under the bounds of m5stack-gray-radio the step takes up to 4.6 ms, so that
 its period of 5 ms is the least whole number of milliseconds, and 4 ms is
 rejected:
 
-  $ sed -e 's/"period": 5,/"period": 4,/' -e "s|\"\.\./bala2/|\"$app/../bala2/|g" -e "s|\"controller\.cpp\"|\"$app/controller.cpp\"|" $app/balance_remote.device.json > period.device.json
-  $ tempore --emit-arduino balance_period --device period.device.json $app/balance_remote.tpe 2>&1 | grep error
+  $ sed -e 's/"period": 5,/"period": 4,/' -e "s|\"\.\./bala2/|\"$app/../bala2/|g" -e "s|\"controller\.cpp\"|\"$app/controller.cpp\"|" $app/robot.device.json > period.device.json
+  $ tempore --emit-arduino balance_period --device period.device.json $app/robot.tpe 2>&1 | grep error
   Compilation error: The effect `{ReadImu; ReadEncoders; Setpoints; Publish; SetMotors}` of the function `step` of a periodic task is not below its period: its durations are not all below 4
 
 The host simulation for 12 s. The controller sends Beat until 1.5 s, Arm
@@ -67,7 +67,7 @@ second about its y axis, which the check at rest, judging the variation of
 the readings, admits. The tilts of the plant, whose digits depend on the C
 library, are not shown:
 
-  $ tempore --emit-arduino balance_remote --device $app/balance_remote.device.json --host-simulate 12 $app/balance_remote.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\|ESP-NOW model\)\|Plant: \(tilt\|largest\)' | awk '/ESP-NOW: sent tag 5,/ { a = $7; sub(/,$/, "", a); if (a == last) next; last = a; print $1, $2, "ESP-NOW: status, phase " a; next } { print }'
+  $ tempore --emit-arduino robot --device $app/robot.device.json --host-simulate 12 $app/robot.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\|ESP-NOW model\)\|Plant: \(tilt\|largest\)' | awk '/ESP-NOW: sent tag 5,/ { a = $7; sub(/,$/, "", a); if (a == last) next; last = a; print $1, $2, "ESP-NOW: status, phase " a; next } { print }'
   [31.245 ms] Display cleared
   [35.045 ms] Display at (0, 2): Remote robot
   [37.805 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
@@ -106,7 +106,7 @@ shows "Not upright" and calibrates anew; the body, released at 2 s, falls
 during that calibration, which therefore shows "Hold still"; the motors are
 not driven:
 
-  $ cd _arduino/projects/balance_remote
+  $ cd _arduino/projects/robot
   $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_TILT=0.5 -pthread -I host -I src src/*.cpp host/*.cpp -o askew
   $ ./askew 3000000 | grep 'Display at (0, 102)\|motors were never'
   [101.585 ms] Display at (0, 102): Calibrating

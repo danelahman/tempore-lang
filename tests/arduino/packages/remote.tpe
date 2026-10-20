@@ -1,4 +1,4 @@
-(* The messages of the package bala2-remote over the package esp-now on an
+(* The messages of the package bala2-radio over the package esp-now on an
    M5Stack Gray, with the package m5-display: the initial function starts the
    link and sends one message of each kind, and every 20 ms the step shows
    the message received, unboxed within its 150 ms window. Time is in

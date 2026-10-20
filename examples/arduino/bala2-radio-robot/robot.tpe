@@ -9,9 +9,9 @@
        --package m5-speaker \
        --package bala2-base \
        --package esp-now \
-       --package bala2-remote \
+       --package bala2-radio \
        --board m5stack-gray-radio \
-       examples/arduino/bala2-remote/balance_remote.tpe
+       examples/arduino/bala2-radio-robot/robot.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
@@ -24,14 +24,14 @@
 
 (* The robot of examples/arduino/bala2-regex (its control step, and the
    bindings.cpp and plant.cpp of examples/arduino/bala2), armed, driven and
-   disarmed by the messages of the package bala2-remote, under the bounds
+   disarmed by the messages of the package bala2-radio, under the bounds
    of the profile m5stack-gray-radio, measured on the Gray with its radio
    running. It reports its phase to the controller, which shows it, and
    beeps when it is ready for Arm. On the board: make
-   arduino-bala2-remote-upload, which pairs it with the controller by the
-   link file of bala2-remote and encrypts the link (see the README of the
+   arduino-bala2-radio-robot-upload, which pairs it with the controller by the
+   link file of bala2-radio and encrypts the link (see the README of the
    Arduino backend); simulated on the host, with controller.cpp scripting
-   the controller: make arduino-bala2-remote-simulate. *)
+   the controller: make arduino-bala2-radio-robot-simulate. *)
 
 (* The exchange between the tasks, as in balance.tpe. The step publishes the
    tilt, in degrees, the rate of the gyroscope, in degrees per second, the
@@ -80,7 +80,7 @@ operation Reading : unit ~> int * imu # {Reading} within (0, 0.65]
 default Reading () = delay 1/100; (1i, ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0)))
 
 (* Report code sends the status of the robot to the controller: the code of
-   its phase, by remote_phase_code of the package bala2-remote, and the tilt
+   its phase, by remote_phase_code of the package bala2-radio, and the tilt
    last published by the step; bound in bindings.cpp. It took 0.131 to
    2.384 ms (2026-10-19), and 0.137 to 3.778 ms in a run at a period of
    5 ms. *)

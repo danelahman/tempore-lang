@@ -1,10 +1,10 @@
-// The package bala2-remote: one operation for sending each message, over the
+// The package bala2-radio: one operation for sending each message, over the
 // packets of the package esp-now. The tags are those of remote_encode in
-// bala2_remote_protocol.tpe: Arm 1, Drive 2, Disarm 3 and Beat 4, the floats
+// bala2_radio_protocol.tpe: Arm 1, Drive 2, Disarm 3 and Beat 4, the floats
 // unused by a message 0; the status of the robot is tag 5, with the code of
 // its phase and the tilt.
 
-#include "bala2_remote.h"
+#include "bala2_radio.h"
 #include "esp_now_link.h"
 #include "tempore_bindings.h"
 
@@ -42,13 +42,13 @@ tempore_result_SendBeat binding_SendBeat(tempore_argument_SendBeat) {
 }
 #endif
 
-void bala2_remote_send_status(uint32_t phase, float tilt) {
+void bala2_radio_send_status(uint32_t phase, float tilt) {
   esp_now_link_send(status, static_cast<float>(phase), tilt);
 }
 
 #ifdef TEMPORE_PERFORMS_SendStatus
 tempore_result_SendStatus binding_SendStatus(tempore_argument_SendStatus a) {
-  bala2_remote_send_status(a.c0, a.c1);
+  bala2_radio_send_status(a.c0, a.c1);
   return {};
 }
 #endif
