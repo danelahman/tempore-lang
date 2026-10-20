@@ -2,8 +2,8 @@
    display, after balance.tpe. *)
 
 let drive_step_redrawn (n : nat) : unit # [0, 200) =
-  let tilt, _ = perform Attitude () in
-  perform Command (0.0, 0.0);
+  let tilt, _ = perform LatestTilt () in
+  perform Move (0.0, 0.0);
   perform ClearDisplay ();
   perform ShowText "Tilt";
   perform ShowNumber tilt;

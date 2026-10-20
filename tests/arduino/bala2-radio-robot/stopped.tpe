@@ -1,17 +1,17 @@
-(* A session that commands zero setpoints at Arm, to stop the wheels, before
-   it arms the robot, after robot.tpe. *)
+(* A session that moves with zero setpoints at Start, to stop the wheels,
+   before it starts the balancing, after robot.tpe. *)
 
 let session_stopped () =
   let calibrated = calibrate () in
   hold ();
-  if wait_arm () then (
-    perform Command (0.0, 0.0);
-    unbox calibrated as open_arming in
-    let arming = open_arming () in
-    let tilt, _ = perform Attitude () in
-    unbox arming as calibration in
+  if wait_start () then (
+    perform Move (0.0, 0.0);
+    unbox calibrated as open_starting in
+    let starting = open_starting () in
+    let tilt, _ = perform LatestTilt () in
+    unbox starting as calibration in
     if magnitude (tilt -. balance_point) <= upright_limit then (
-      perform Arm calibration;
+      perform StartBalancing calibration;
       drive 4000000000 0)
     else ())
   else ()

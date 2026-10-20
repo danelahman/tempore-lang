@@ -21,7 +21,7 @@
 // the tag, a 32-bit unsigned integer, and the two floats, each in IEEE 754
 // single precision, all little-endian. The callback of reception keeps the
 // latest packet from the peer and its time of arrival under a spinlock;
-// Receive copies them under the same spinlock.
+// ReceiveMessage copies them under the same spinlock.
 
 #include <Arduino.h>
 #include <esp_netif.h>
@@ -267,8 +267,9 @@ tempore_result_Send binding_Send(tempore_argument_Send a) {
 }
 #endif
 
-#ifdef TEMPORE_PERFORMS_Receive
-tempore_result_Receive binding_Receive(tempore_argument_Receive age_ms) {
+#ifdef TEMPORE_PERFORMS_ReceiveMessage
+tempore_result_ReceiveMessage binding_ReceiveMessage(
+    tempore_argument_ReceiveMessage age_ms) {
   portENTER_CRITICAL(&latest_lock);
   const packet p = latest;
   const int64_t arrival_us = latest_us;

@@ -10,8 +10,8 @@
     "regex-timed-rigid-interval-rational-symbolic": "bala2_radio_rigid.tpe"
   },
   "sources": ["bala2_radio.cpp", "bala2_radio.h"],
-  "bindings": ["SendArm", "SendDrive", "SendDisarm", "SendBeat", "SendStatus"],
+  "bindings": ["SendStart", "SendDrive", "SendStop", "SendBeat", "SendStatus"],
   "bounds": {
-    "m5stack-cores3-radio": { "SendArm": [0, 0.35], "SendDrive": [0.1, 0.45], "SendDisarm": [0, 0.35], "SendBeat": [0, 0.5] }
+    "m5stack-cores3-radio": { "SendStart": [0, 0.35], "SendDrive": [0.1, 0.45], "SendStop": [0, 0.35], "SendBeat": [0, 0.5] }
   }
 }

@@ -6,17 +6,17 @@
 
 let show (r : received) =
   match r with
-  | Got Arm -> perform ShowText "Arm"
+  | Got Start -> perform ShowText "Start"
   | Got (Drive (speed, _)) -> perform ShowNumber speed
-  | Got Disarm -> perform ShowText "Disarm"
+  | Got Stop -> perform ShowText "Stop"
   | Got Beat -> perform ShowText "Beat"
   | Nothing -> perform ShowText "Nothing"
 
 let start () =
   let _ = perform LinkStart 1 in
-  remote_send Arm;
+  remote_send Start;
   remote_send (Drive (0.5, -0.25));
-  remote_send Disarm;
+  remote_send Stop;
   remote_send Beat;
   perform SendStatus (1, 2.5);
   0

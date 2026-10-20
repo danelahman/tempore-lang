@@ -1,6 +1,6 @@
 // The package bala2-radio: one operation for sending each message, over the
 // packets of the package esp-now. The tags are those of remote_encode in
-// bala2_radio_protocol.tpe: Arm 1, Drive 2, Disarm 3 and Beat 4, the floats
+// bala2_radio_protocol.tpe: Start 1, Drive 2, Stop 3 and Beat 4, the floats
 // unused by a message 0; the status of the robot is tag 5, with the code of
 // its phase and the tilt.
 
@@ -10,13 +10,13 @@
 
 namespace {
 
-enum : uint32_t { arm = 1, drive = 2, disarm = 3, beat = 4, status = 5 };
+enum : uint32_t { start = 1, drive = 2, stop = 3, beat = 4, status = 5 };
 
 }  // namespace
 
-#ifdef TEMPORE_PERFORMS_SendArm
-tempore_result_SendArm binding_SendArm(tempore_argument_SendArm) {
-  esp_now_link_send(arm, 0.0f, 0.0f);
+#ifdef TEMPORE_PERFORMS_SendStart
+tempore_result_SendStart binding_SendStart(tempore_argument_SendStart) {
+  esp_now_link_send(start, 0.0f, 0.0f);
   return {};
 }
 #endif
@@ -28,9 +28,9 @@ tempore_result_SendDrive binding_SendDrive(tempore_argument_SendDrive a) {
 }
 #endif
 
-#ifdef TEMPORE_PERFORMS_SendDisarm
-tempore_result_SendDisarm binding_SendDisarm(tempore_argument_SendDisarm) {
-  esp_now_link_send(disarm, 0.0f, 0.0f);
+#ifdef TEMPORE_PERFORMS_SendStop
+tempore_result_SendStop binding_SendStop(tempore_argument_SendStop) {
+  esp_now_link_send(stop, 0.0f, 0.0f);
   return {};
 }
 #endif

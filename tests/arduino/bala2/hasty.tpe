@@ -1,4 +1,4 @@
-(* A supervision that arms the robot 100 ms after the message, after
+(* A supervision that starts the balancing 100 ms after the message, after
    balance.tpe. *)
 
 let supervise_hasty () =
@@ -6,5 +6,5 @@ let supervise_hasty () =
   perform ShowText "Hold upright";
   delay 100;
   unbox token as calibration in
-  perform Arm calibration;
+  perform StartBalancing calibration;
   drive 4000000000

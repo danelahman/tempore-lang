@@ -1,5 +1,5 @@
 (* The controller of the BALA2 on the M5Stack CoreS3: drive by tilt over
-   ESP-NOW, arm and disarm by touch, under rigid timed regular expressions
+   ESP-NOW, start and stop by touch, under rigid timed regular expressions
 
    Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
@@ -22,18 +22,17 @@
      - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
-(* Runs on the M5Stack CoreS3 (controller.device.json): 'remote' as a free
-   task, sending the messages of the package bala2-radio, one operation per
-   message, to the robot of examples/arduino/bala2-radio-robot, under 50 ms
-   apart, and receiving its status, on which it drives; a bubble level
-   shows the tilt that steers it, a label whether the link is encrypted,
-   a line right of the vial, while disarmed, the guidance of the phase the
-   robot reports, and a short tone acknowledges a tap on Arm or Disarm. On
-   the board: make arduino-bala2-radio-controller-upload, which pairs it with the
-   robot by the link file of bala2-radio and encrypts the link (see the
-   README of the Arduino backend); simulated on the host, with world.cpp
-   tilting and touching the device: make
-   arduino-bala2-radio-controller-simulate. *)
+(* Runs on the M5Stack CoreS3 (controller.device.json): 'remote' as a free task,
+   sending the messages of the package bala2-radio, one operation per message,
+   to the robot of examples/arduino/bala2-radio-robot, under 50 ms apart, and
+   receiving its status, on which it drives; a bubble level shows the tilt that
+   steers it, a label whether the link is encrypted, a line right of the vial,
+   while stopped, the guidance of the phase the robot reports, and a short tone
+   acknowledges a tap on Start or Stop. On the board: make
+   arduino-bala2-radio-controller-upload, which pairs it with the robot by the
+   link file of bala2-radio and encrypts the link (see the README of the Arduino
+   backend); simulated on the host, with world.cpp tilting and touching the
+   device: make arduino-bala2-radio-controller-simulate. *)
 
 (* The command of a tilt: the dead zone, in degrees, and the gain and the
    bound of the speed of the wheels, in encoder counts per second, per
@@ -62,91 +61,92 @@ let command (gain : float) (limit : float) (angle : float) =
     whole (clamp limit (gain *. (angle +. dead_zone)))
   else 0.0
 
-(* The buttons Arm and Disarm, 156 by 40 pixels, side by side at the bottom
+(* The buttons Start and Stop, 156 by 40 pixels, side by side at the bottom
    of the screen. *)
-type press = ArmPress | DisarmPress | NoPress
+type press = StartPress | StopPress | NoPress
 
 let press (x : nat) (y : nat) =
   if y < 188 then NoPress
-  else if x < 156 then ArmPress
-  else if x >= 164 then DisarmPress
+  else if x < 156 then StartPress
+  else if x >= 164 then StopPress
   else NoPress
 
-(* Arm, sent 80 times 12.5 ms apart, for 1 s, within which the robot, which
-   reads only the latest packet, polls at least twice; and Disarm, sent 20
-   times, for 250 ms, within which the armed robot reads at least five
+(* Start, sent 80 times 12.5 ms apart, for 1 s, within which the robot, which
+   reads only the latest packet, polls at least twice; and Stop, sent 20
+   times, for 250 ms, within which the balancing robot reads at least five
    messages. *)
-let arm_five () : unit # {(SendArm; !25/2)^5} =
-  perform SendArm ();
+let start_five () : unit # {(SendStart; !25/2)^5} =
+  perform SendStart ();
   delay 25/2;
-  perform SendArm ();
+  perform SendStart ();
   delay 25/2;
-  perform SendArm ();
+  perform SendStart ();
   delay 25/2;
-  perform SendArm ();
+  perform SendStart ();
   delay 25/2;
-  perform SendArm ();
+  perform SendStart ();
   delay 25/2
 
-let arm_twenty () : unit # {(SendArm; !25/2)^20} =
-  arm_five ();
-  arm_five ();
-  arm_five ();
-  arm_five ()
+let start_twenty () : unit # {(SendStart; !25/2)^20} =
+  start_five ();
+  start_five ();
+  start_five ();
+  start_five ()
 
-let arming () : unit # {(SendArm; !25/2)^80} =
-  arm_twenty ();
-  arm_twenty ();
-  arm_twenty ();
-  arm_twenty ()
+let starting () : unit # {(SendStart; !25/2)^80} =
+  start_twenty ();
+  start_twenty ();
+  start_twenty ();
+  start_twenty ()
 
-let disarm_five () : unit # {(SendDisarm; !25/2)^5} =
-  perform SendDisarm ();
+let stop_five () : unit # {(SendStop; !25/2)^5} =
+  perform SendStop ();
   delay 25/2;
-  perform SendDisarm ();
+  perform SendStop ();
   delay 25/2;
-  perform SendDisarm ();
+  perform SendStop ();
   delay 25/2;
-  perform SendDisarm ();
+  perform SendStop ();
   delay 25/2;
-  perform SendDisarm ();
+  perform SendStop ();
   delay 25/2
 
-let disarming () : unit # {(SendDisarm; !25/2)^20} =
-  disarm_five ();
-  disarm_five ();
-  disarm_five ();
-  disarm_five ()
+let stopping () : unit # {(SendStop; !25/2)^20} =
+  stop_five ();
+  stop_five ();
+  stop_five ();
+  stop_five ()
 
 (* The neutral tilt of a session: the pitch and the roll, in degrees, at
-   which the CoreS3 is held when Arm is tapped, from which the speed and the
-   turn are measured. It is boxed with {≥0 & ~SendDisarm}, so that it is
-   used only before the next Disarm, within its session. *)
-type neutral = [{≥0 & ~SendDisarm}](float * float)
+   which the CoreS3 is held when Start is tapped, from which the speed and the
+   turn are measured. It is boxed with {≥0 & ~SendStop}, so that it is
+   used only before the next Stop, within its session. *)
+type neutral = [{≥0 & ~SendStop}](float * float)
 
 (* Reads the neutral tilt. *)
 let record_neutral () : neutral # {ReadImu} =
   let accel, _ = perform ReadImu () in
-  box {≥0 & ~SendDisarm} (tilt_x_of_accel accel, tilt_y_of_accel accel)
+  box {≥0 & ~SendStop} (tilt_x_of_accel accel, tilt_y_of_accel accel)
 
-(* The handshake: after the arming, Arm again every 12.5 ms until the status
-   of the robot says it is armed, at most 40 more times; it returns the last
-   status received, in its box, for the first iteration of the armed
-   phase. *)
+(* The handshake: after starting, Start again every 12.5 ms until the
+   status of the robot says it is balancing, at most 40 more times; it
+   returns the last status received, in its box, for the first iteration of
+   the balancing phase. *)
 let rec confirm (n : nat) : latest_status
-    # {SendArm; !25/2; Receive; (SendArm; !25/2; Receive)*} =
-  perform SendArm ();
+    # {SendStart; !25/2; ReceiveMessage;
+       (SendStart; !25/2; ReceiveMessage)*} =
+  perform SendStart ();
   delay 25/2;
   let latest = remote_status () in
   unbox latest as s in
   match n with
   | 0 -> latest
-  | m + 1 -> if remote_armed s then latest else confirm m
+  | m + 1 -> if remote_balancing s then latest else confirm m
 
 (* The bubble level: a vial of radius 56 pixels centred at (62, 122), its
    inner circle of radius 14 marking the dead zone, and the greatest offset
    of the bubble, 46 pixels. The colours: green while the robot confirms it
-   is armed, grey without a link, and dark grey while disarmed. *)
+   is balancing, grey without a link, and dark grey while stopped. *)
 let vial_x = 62
 let vial_y = 122
 let vial_r = 56
@@ -204,9 +204,9 @@ let draw_bubble (pitch : float) (roll : float) (colour : nat) =
 (* The guidance line, at (130, 128) in text of size 2, right of the vial
    between the tilt of the robot and the encryption, where nothing else is
    drawn, of at most 15 characters, 180 pixels: nothing, before a status or
-   after the armed phase; the phase of the robot by its latest status; or
+   after the balancing phase; the phase of the robot by its latest status; or
    "Switch robot on" when no status has come for fresh_iterations
-   iterations of the disarmed phase, of at least 10.5 ms each, about 1 s,
+   iterations of the stopped phase, of at least 10.5 ms each, about 1 s,
    while the robot reports its phase at least every 572 ms. *)
 type guide = Blank | Silent | Phase of phase
 
@@ -219,32 +219,32 @@ let show_guide (g : guide) =
   | Silent ->
       perform ShowColourTextAt (130, 128, 2, grey, black, "Switch robot on")
   | Phase Ready ->
-      perform ShowColourTextAt (130, 128, 2, green, black, "Ready: tap Arm")
-  | Phase Armed ->
-      perform ShowColourTextAt (130, 128, 2, white, black, "Robot armed")
+      perform ShowColourTextAt (130, 128, 2, green, black, "Now tap Start")
+  | Phase Balancing ->
+      perform ShowColourTextAt (130, 128, 2, white, black, "Balancing")
   | Phase Calibrating ->
       perform ShowColourTextAt (130, 128, 2, white, black, "Hold upright")
   | Phase Unsettled ->
       perform ShowColourTextAt (130, 128, 2, amber, black, "Hold still")
 
-(* Disarmed: Beat every 10.5 ms after a reading of the touch screen, until a
-   tap on Arm; false if none comes in n readings. Each Beat is followed by
+(* Stopped: Beat every 10.5 ms after a reading of the touch screen, until a
+   tap on Start; false if none comes in n readings. Each Beat is followed by
    the status of the robot, unboxed at once: heard is the guidance of the
    latest status, age the number of iterations since it came, and shown the
    guidance shown. With dim, the first iteration draws the bubble centred
    and dark grey after its Beat; otherwise an iteration redraws the
-   guidance when it changes. It returns whether Arm was tapped and the
+   guidance when it changes. It returns whether Start was tapped and the
    guidance shown. *)
 let rec idle (n : nat) (dim : bool) (shown : guide) (heard : guide)
     (age : nat) : bool * guide
-    # {(ReadTouch; SendBeat; Receive; (DrawLevel | ShowColourTextAt | 0);
-        !21/2)*;
+    # {(ReadTouch; SendBeat; ReceiveMessage;
+        (DrawLevel | ShowColourTextAt | 0); !21/2)*;
        (ReadTouch | 0)} =
   match n with
   | 0 -> (false, shown)
   | m + 1 ->
       let touched, x, y = perform ReadTouch () in
-      if touched && press x y = ArmPress then (true, shown)
+      if touched && press x y = StartPress then (true, shown)
       else (
         perform SendBeat ();
         let latest = remote_status () in
@@ -272,44 +272,43 @@ let rec idle (n : nat) (dim : bool) (shown : guide) (heard : guide)
    guidance shown. *)
 type view = bool * float * bool * guide
 
-(* Correctly accepted by the typechecker: armed, an iteration reads the
+(* Correctly accepted by the typechecker: balancing, an iteration reads the
    unit by read_imu_boxed of the package m5-imu, reads the touch screen, and
-   ends the phase at a tap on Disarm; otherwise it unboxes the status of the
+   ends the phase at a tap on Stop; otherwise it unboxes the status of the
    robot received at the end of the last iteration, or by the handshake.
-   If that status is of an armed robot, the link holds, and the iteration
+   If that status is of a balancing robot, the link holds, and the iteration
    sends Drive with the speed from the pitch and the turn from the negated
    roll of the reading, each less that of the neutral tilt of the session,
    so that a tilt forwards drives the robot forwards and a tilt to the
    right, a positive roll, turns it to the right, a negative turn; else it
-   sends Beat. It redraws at most one item: the state, "Armed" or "No link",
+   sends Beat. It redraws at most one item: the state, "Balancing" or "No link",
    when it changes, else the guidance line, cleared once, and else, in
    turn, the bubble of the tilt beyond the neutral tilt, green with the link
    and grey without, or the tilt of the robot, if it changed and the link
    holds. It waits 10.5 ms and receives
    the status for the next iteration.
 
-   The boxes span the reading of the touch screen: that of the reading of
-   the unit, {[0, 2] & ~ReadImu}, so that the command is computed from the
-   latest reading, at most 2 ms old; that of the status, which also spans
-   the reading of the unit, {[0, 200) & ~Receive}, so that the command and
-   the tilt shown come from the latest status, received at most 200 ms
-   earlier. The neutral tilt is unboxed after the readings
-   and boxed again for the next iteration. An iteration takes 10.7 to 47.5
-   ms, a redraw of the state, the guidance or the tilt taking up to 33 ms
-   and one of the bubble up to 10 ms. *)
-let rec armed (n : nat)
+   The boxes span the reading of the touch screen: that of the reading of the
+   unit, {[0, 2] & ~ReadImu}, so that the command is computed from the latest
+   reading, at most 2 ms old; that of the status, which also spans the reading
+   of the unit, {[0, 200) & ~ReceiveMessage}, so that the command and the tilt
+   shown come from the latest status, received at most 200 ms earlier. The
+   neutral tilt is unboxed after the readings and boxed again for the next
+   iteration. An iteration takes 10.7 to 47.5 ms, a redraw of the state, the
+   guidance or the tilt taking up to 33 ms and one of the bubble up to 10 ms. *)
+let rec balancing (n : nat)
     ((link_shown, shown_tilt, bubble_next, guide_shown) : view)
     (zero : neutral) (latest : latest_status) : view
     # {(ReadImu; ReadTouch; (SendDrive | SendBeat);
         (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | 0);
-        !21/2; Receive)*;
+        !21/2; ReceiveMessage)*;
        (ReadImu; ReadTouch | 0)} =
   match n with
   | 0 -> (link_shown, shown_tilt, bubble_next, guide_shown)
   | m + 1 ->
       let latest_reading = read_imu_boxed () in
       let touched, x, y = perform ReadTouch () in
-      if touched && press x y = DisarmPress then
+      if touched && press x y = StopPress then
         (link_shown, shown_tilt, bubble_next, guide_shown)
       else
         unbox latest_reading as reading in
@@ -321,14 +320,14 @@ let rec armed (n : nat)
         let roll = tilt_y_of_accel accel -. neutral_roll in
         let speed = command speed_gain speed_limit pitch in
         let turn = command turn_gain turn_limit (~-.roll) in
-        let link = remote_armed status in
+        let link = remote_balancing status in
         let tilt =
           match status with Status (_, t) -> t | NoStatus -> shown_tilt
         in
         (if link then perform SendDrive (speed, turn) else perform SendBeat ());
         let view =
           if not (link = link_shown) then (
-            (if link then perform ShowTextAt (0, 30, 2, "Armed")
+            (if link then perform ShowTextAt (0, 30, 2, "Balancing")
              else perform ShowTextAt (0, 30, 2, "No link"));
             (link, shown_tilt, bubble_next, guide_shown))
           else if not (guide_shown = Blank) then (
@@ -345,34 +344,35 @@ let rec armed (n : nat)
         in
         delay 21/2;
         let latest = remote_status () in
-        armed m view (box {≥0 & ~SendDisarm} neutral) latest
+        balancing m view (box {≥0 & ~SendStop} neutral) latest
 
 (* Correctly accepted by the typechecker: a session sends Beat until a tap
-   on Arm, records the neutral tilt, sends Arm 80 times and then until the
-   robot confirms, Drive or Beat until a tap on Disarm, and Disarm 20
+   on Start, records the neutral tilt, sends Start 80 times and then until the
+   robot confirms, Drive or Beat until a tap on Stop, and Stop 20
    times, in this order; a tone of 60 ms, started by Beep, which returns at
-   once, acknowledges each accepted tap: 1760 Hz on Arm and 880 Hz on
-   Disarm. Its grade is the protocol of the controller, and its strict
+   once, acknowledges each accepted tap: 1760 Hz on Start and 880 Hz on
+   Stop. Its grade is the protocol of the controller, and its strict
    waits and operations bound the time from the end of one message to the
    start of the next by 47 ms, below the 50 ms within which the robot
-   expects one: after the last Disarm, the wait of 12.5 ms, the redraw of
+   expects one: after the last Stop, the wait of 12.5 ms, the redraw of
    the state, up to 33 ms, and the reading of the touch screen, before the
    first Beat; the bubble, dimmed, is redrawn after that Beat. Between two
-   Beats, and from the last Beat to the first Arm, at most 45.05 and 47.15
+   Beats, and from the last Beat to the first Start, at most 45.05 and 47.15
    ms pass, with a redraw of the guidance. *)
 let rec session (n : nat)
     ((link_shown, shown_tilt, bubble_next, guide_shown) : view) : unit
-    # {((ReadTouch; SendBeat; Receive; (DrawLevel | ShowColourTextAt | 0);
-         !21/2)*;
+    # {((ReadTouch; SendBeat; ReceiveMessage;
+         (DrawLevel | ShowColourTextAt | 0); !21/2)*;
         (ReadTouch | 0);
-        Beep; ReadImu; (SendArm; !25/2)^80; SendArm; !25/2; Receive;
-        (SendArm; !25/2; Receive)*;
+        Beep; ReadImu; (SendStart; !25/2)^80; SendStart; !25/2;
+        ReceiveMessage;
+        (SendStart; !25/2; ReceiveMessage)*;
         (ReadImu; ReadTouch; (SendDrive | SendBeat);
          (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | 0);
-         !21/2; Receive)*;
-        (ReadImu; ReadTouch | 0); Beep; (SendDisarm; !25/2)^20; ShowTextAt)*;
-       ((ReadTouch; SendBeat; Receive; (DrawLevel | ShowColourTextAt | 0);
-         !21/2)*;
+         !21/2; ReceiveMessage)*;
+        (ReadImu; ReadTouch | 0); Beep; (SendStop; !25/2)^20; ShowTextAt)*;
+       ((ReadTouch; SendBeat; ReceiveMessage;
+         (DrawLevel | ShowColourTextAt | 0); !21/2)*;
         (ReadTouch | 0)
        | 0)} =
   match n with
@@ -382,18 +382,18 @@ let rec session (n : nat)
       if tapped then (
         perform Beep (1760, 60);
         let zero = record_neutral () in
-        arming ();
+        starting ();
         let latest = confirm 40 in
         unbox zero as neutral in
         let v =
-          armed 4000000000
+          balancing 4000000000
             (link_shown, shown_tilt, bubble_next, shown)
-            (box {≥0 & ~SendDisarm} neutral)
+            (box {≥0 & ~SendStop} neutral)
             latest
         in
         perform Beep (880, 60);
-        disarming ();
-        perform ShowTextAt (0, 30, 2, "Disarmed");
+        stopping ();
+        perform ShowTextAt (0, 30, 2, "Stopped");
         session m v)
       else ()
 
@@ -402,15 +402,15 @@ let remote () =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Robot remote");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
-  perform ShowTextAt (0, 30, 2, "Disarmed");
+  perform ShowTextAt (0, 30, 2, "Stopped");
   perform ShowTextAt (130, 66, 2, "Robot tilt");
   perform ShowNumberAt (130, 92, 3, 1, 0.0);
   show_encryption encrypted;
-  perform DrawButton (0, 188, 156, 40, "Arm");
-  perform DrawButton (164, 188, 156, 40, "Disarm");
+  perform DrawButton (0, 188, 156, 40, "Start");
+  perform DrawButton (164, 188, 156, 40, "Stop");
   session 4000000000 (false, 0.0, true, Blank)
 
-(* Correctly rejected by the typechecker: an armed iteration that redraws the
+(* Correctly rejected by the typechecker: a balancing iteration that redraws the
    bubble of the last iteration after the readings, and then drives on the
    reading of the unit, which is then up to 10 ms old:
 
@@ -420,7 +420,7 @@ let remote () =
        ...
 *)
 (*
-let armed_redrawn (zero : neutral) (latest : latest_status)
+let balancing_redrawn (zero : neutral) (latest : latest_status)
     (shown : float * float) =
   let latest_reading = read_imu_boxed () in
   let _ = perform ReadTouch () in
@@ -435,66 +435,68 @@ let armed_redrawn (zero : neutral) (latest : latest_status)
   let roll = tilt_y_of_accel accel -. neutral_roll in
   let speed = command speed_gain speed_limit pitch in
   let turn = command turn_gain turn_limit (~-.roll) in
-  if remote_armed status then perform SendDrive (speed, turn)
+  if remote_balancing status then perform SendDrive (speed, turn)
   else perform SendBeat ()
 *)
 
 (* Correctly rejected by the typechecker: two sessions that keep the
    neutral tilt recorded before the first, so that the user need not hold
-   the CoreS3 still again, use it after a Disarm, while it may be held
+   the CoreS3 still again, use it after a Stop, while it may be held
    otherwise:
 
-     Typing error: Variable `zero` is unboxed with grade `{(SendArm;
-       !12.5)^80; …; (SendDisarm; !12.5)^20; (SendArm; !12.5)^80; …}`
+     Typing error: Variable `zero` is unboxed with grade `{(SendStart;
+       !12.5)^80; …; (SendStop; !12.5)^20; (SendStart; !12.5)^80; …}`
        accumulated since it was bound, which is not below its box grade
-       `{≥0 & ~SendDisarm}`
+       `{≥0 & ~SendStop}`
        ...
 *)
 (*
 let sessions_kept (v : view) =
   let zero = record_neutral () in
-  arming ();
+  starting ();
   let latest = confirm 40 in
   unbox zero as neutral in
   let v =
-    armed 4000000000 v (box {≥0 & ~SendDisarm} neutral) latest
+    balancing 4000000000 v (box {≥0 & ~SendStop} neutral) latest
   in
-  disarming ();
-  arming ();
+  stopping ();
+  starting ();
   let latest = confirm 40 in
   unbox zero as kept in
-  armed 4000000000 v (box {≥0 & ~SendDisarm} kept) latest
+  balancing 4000000000 v (box {≥0 & ~SendStop} kept) latest
 *)
 
-(* Correctly rejected by the typechecker: a session that redraws the armed
+(* Correctly rejected by the typechecker: a session that redraws the balancing
    screen after the handshake and then drives on its confirmation, which
    may then be older than 200 ms:
 
      Typing error: Variable `latest` is unboxed with grade `{ClearDisplay;
        ShowTextAt^4; DrawButton^2}` accumulated since it was bound, which is
-       not below its box grade `{[0, 200) & ~Receive}`
+       not below its box grade `{[0, 200) & ~ReceiveMessage}`
        ...
 *)
 (*
 let session_stale () =
   let zero = record_neutral () in
-  arming ();
+  starting ();
   let latest = confirm 40 in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Robot remote");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
-  perform ShowTextAt (0, 30, 2, "Armed");
+  perform ShowTextAt (0, 30, 2, "Balancing");
   perform ShowTextAt (130, 66, 2, "Robot tilt");
-  perform DrawButton (0, 188, 156, 40, "Arm");
-  perform DrawButton (164, 188, 156, 40, "Disarm");
+  perform DrawButton (0, 188, 156, 40, "Start");
+  perform DrawButton (164, 188, 156, 40, "Stop");
   unbox latest as status in
   unbox zero as _ in
-  if remote_armed status then perform SendDrive (0.0, 0.0)
+  if remote_balancing status then perform SendDrive (0.0, 0.0)
   else perform SendBeat ()
 *)
 
-(* An iteration of the armed phase from the default implementations of the
+(* An iteration of the balancing phase from the default implementations of the
    operations: no touch, the unit flat, no status, and Beat sent. *)
 run (
   let latest = remote_status () in
-  armed 1 (false, 0.0, true, Blank) (box {≥0 & ~SendDisarm} (0.0, 0.0)) latest)
+  balancing 1 (false, 0.0, true, Blank)
+    (box {≥0 & ~SendStop} (0.0, 0.0))
+    latest)

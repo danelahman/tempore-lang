@@ -1,18 +1,19 @@
-(* A session that sends Arm once, after controller.tpe. *)
+(* A session that sends Start once, after controller.tpe. *)
 
 let rec session_once (n : nat)
     ((link_shown, shown_tilt, bubble_next, guide_shown) : view) : unit
-    # {((ReadTouch; SendBeat; Receive; (DrawLevel | ShowColourTextAt | 0);
-         !21/2)*;
+    # {((ReadTouch; SendBeat; ReceiveMessage;
+         (DrawLevel | ShowColourTextAt | 0); !21/2)*;
         (ReadTouch | 0);
-        Beep; ReadImu; (SendArm; !25/2)^80; SendArm; !25/2; Receive;
-        (SendArm; !25/2; Receive)*;
+        Beep; ReadImu; (SendStart; !25/2)^80; SendStart; !25/2;
+        ReceiveMessage;
+        (SendStart; !25/2; ReceiveMessage)*;
         (ReadImu; ReadTouch; (SendDrive | SendBeat);
          (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | 0);
-         !21/2; Receive)*;
-        (ReadImu; ReadTouch | 0); Beep; (SendDisarm; !25/2)^20; ShowTextAt)*;
-       ((ReadTouch; SendBeat; Receive; (DrawLevel | ShowColourTextAt | 0);
-         !21/2)*;
+         !21/2; ReceiveMessage)*;
+        (ReadImu; ReadTouch | 0); Beep; (SendStop; !25/2)^20; ShowTextAt)*;
+       ((ReadTouch; SendBeat; ReceiveMessage;
+         (DrawLevel | ShowColourTextAt | 0); !21/2)*;
         (ReadTouch | 0)
        | 0)} =
   match n with
@@ -22,18 +23,18 @@ let rec session_once (n : nat)
       if tapped then (
         perform Beep (1760, 60);
         let zero = record_neutral () in
-        perform SendArm ();
+        perform SendStart ();
         delay 25/2;
         let latest = confirm 40 in
         unbox zero as neutral in
         let v =
-          armed 4000000000
+          balancing 4000000000
             (link_shown, shown_tilt, bubble_next, shown)
-            (box {≥0 & ~SendDisarm} neutral)
+            (box {≥0 & ~SendStop} neutral)
             latest
         in
         perform Beep (880, 60);
-        disarming ();
-        perform ShowTextAt (0, 30, 2, "Disarmed");
+        stopping ();
+        perform ShowTextAt (0, 30, 2, "Stopped");
         session_once m v)
       else ()

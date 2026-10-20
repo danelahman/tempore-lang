@@ -262,7 +262,7 @@ the safe-state hook of the application:
 A link over ESP-NOW with the package esp-now. LinkStart starts the radio,
 which the host model starts in 88 ms, and logs the address of the station
 and of the peer, the fixed peer of the host model with its fixed key; Send
-logs its packet. Receive returns the latest packet of
+logs its packet. ReceiveMessage returns the latest packet of
 the peer of the host model of the application, which sends one every 20 ms
 until 160 ms, arriving 2 ms later, if it arrived at most 50 ms ago, and
 otherwise nothing:
@@ -273,26 +273,26 @@ otherwise nothing:
   [88.000 ms] Operation LinkStart took 88000 us
   [88.100 ms] ESP-NOW: sent tag 1, 0.500, -0.250
   [88.100 ms] Operation Send took 100 us
-  [88.100 ms] Operation Receive took 0 us
+  [88.100 ms] Operation ReceiveMessage took 0 us
   [89.100 ms] Display: None
   [89.100 ms] Operation ShowText took 1000 us
   [89.100 ms] Delay 60000 us
   [110.000 ms] ESP-NOW model: packet of tag 5 arrives
   [130.000 ms] ESP-NOW model: packet of tag 6 arrives
-  [149.100 ms] Operation Receive took 0 us
+  [149.100 ms] Operation ReceiveMessage took 0 us
   [150.000 ms] ESP-NOW model: packet of tag 7 arrives
   [150.100 ms] Display: 6.000
   [150.100 ms] Operation ShowNumber took 1000 us
   [150.100 ms] Delay 60000 us
-  [210.100 ms] Operation Receive took 0 us
+  [210.100 ms] Operation ReceiveMessage took 0 us
   [211.100 ms] Display: None
   [211.100 ms] Operation ShowText took 1000 us
   [211.100 ms] Delay 60000 us
   [271.100 ms] End listen
   [350.000 ms] End of the simulation
-  $ grep -A 1 'tempore_argument_Receive;' _arduino/projects/radio/src/tempore_bindings.h
-  typedef uint32_t tempore_argument_Receive;
-  typedef tempore_tuple1 tempore_result_Receive;
+  $ grep -A 1 'tempore_argument_ReceiveMessage;' _arduino/projects/radio/src/tempore_bindings.h
+  typedef uint32_t tempore_argument_ReceiveMessage;
+  typedef tempore_tuple1 tempore_result_ReceiveMessage;
 
 The peer of the build flag ESP_NOW_PEER with the key of the build flag
 ESP_NOW_KEY, here a fake one, by which the link is encrypted, and a model of
@@ -350,8 +350,8 @@ A Send before LinkStart is a run-time error:
 The messages of the remote control of the BALA2, with the package
 bala2-radio over esp-now: the initial function sends one message of each
 kind, and the step shows the message received. The peer of the host model of
-the application sends Arm, Drive (0.5, -0.25), a packet of the unknown tag 9,
-Disarm and Beat, one every 20 ms, and then nothing; the unknown tag, and Beat
+the application sends Start, Drive (0.5, -0.25), a packet of the unknown tag 9,
+Stop and Beat, one every 20 ms, and then nothing; the unknown tag, and Beat
 once older than 50 ms, decode to Nothing:
 
   $ simulate remote remote 0.3 | grep 'ESP-NOW\|Display'
@@ -364,13 +364,13 @@ once older than 50 ms, decode to Nothing:
   [89.500 ms] Display: Nothing
   [109.000 ms] Display: Nothing
   [110.000 ms] ESP-NOW model: packet of tag 1 arrives
-  [129.000 ms] Display: Arm
+  [129.000 ms] Display: Start
   [130.000 ms] ESP-NOW model: packet of tag 2 arrives
   [149.000 ms] Display: 0.500
   [150.000 ms] ESP-NOW model: packet of tag 9 arrives
   [169.000 ms] Display: Nothing
   [170.000 ms] ESP-NOW model: packet of tag 3 arrives
-  [189.000 ms] Display: Disarm
+  [189.000 ms] Display: Stop
   [190.000 ms] ESP-NOW model: packet of tag 4 arrives
   [209.000 ms] Display: Beat
   [229.000 ms] Display: Beat
@@ -406,8 +406,8 @@ intervals or upper bounds:
 
 Under the rigid grades a message received comes in one box with its
 setpoints, the message with its setpoints zero, usable within 150 ms and
-while no further Receive has come: a use after 150 ms fails it, and so does
-a use after a further Receive. The setpoints are non-eternal, so that once
+while no further ReceiveMessage has come: a use after 150 ms fails it, and so does
+a use after a further ReceiveMessage. The setpoints are non-eternal, so that once
 unboxed they are matched at once: a match after a further operation is
 refused:
 
@@ -437,16 +437,16 @@ refused:
   >   match setpoints with Setpoints (speed, turn) -> speed +. turn
   > EOF
   $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only latest.tpe 2>&1 | grep error; done
-  Typing error: Variable `latest` is unboxed with grade `{Send; !≤150}` accumulated since it was bound, which is not below its box grade `{<150 & ~Receive}`
-  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{<150 & ~Receive}`
+  Typing error: Variable `latest` is unboxed with grade `{Send; !≤150}` accumulated since it was bound, which is not below its box grade `{<150 & ~ReceiveMessage}`
+  Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage}` accumulated since it was bound, which is not below its box grade `{<150 & ~ReceiveMessage}`
   Typing error: Variable `setpoints` is used with grade `{Send}` accumulated since it was bound, but its type `setpoints` is not eternal
-  Typing error: Variable `latest` is unboxed with grade `{Send; !150}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~Receive}`
-  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~Receive}`
+  Typing error: Variable `latest` is unboxed with grade `{Send; !150}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~ReceiveMessage}`
+  Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~ReceiveMessage}`
   Typing error: Variable `setpoints` is used with grade `{Send}` accumulated since it was bound, but its type `setpoints` is not eternal
 
 The status of the robot, sent by SendStatus as tag 5 and received by
 remote_status, under the rigid grades in one box, usable within 200 ms and
-while no further Receive has come:
+while no further ReceiveMessage has come:
 
   $ cat > status.tpe <<'EOF'
   > let soon () =
@@ -454,23 +454,23 @@ while no further Receive has come:
   >   perform SendStatus (1, 2.5);
   >   delay 190;
   >   unbox latest as s in
-  >   remote_armed s
+  >   remote_balancing s
   > let late () =
   >   let latest = remote_status () in
   >   delay 200;
   >   unbox latest as s in
-  >   remote_armed s
+  >   remote_balancing s
   > let again () =
   >   let latest = remote_status () in
   >   let _ = remote_status () in
   >   unbox latest as s in
-  >   remote_armed s
+  >   remote_balancing s
   > EOF
   $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only status.tpe 2>&1 | grep error; done
-  Typing error: Variable `latest` is unboxed with grade `{!≤200}` accumulated since it was bound, which is not below its box grade `{<200 & ~Receive}`
-  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{<200 & ~Receive}`
-  Typing error: Variable `latest` is unboxed with grade `{!200}` accumulated since it was bound, which is not below its box grade `{[0, 200) & ~Receive}`
-  Typing error: Variable `latest` is unboxed with grade `{Receive}` accumulated since it was bound, which is not below its box grade `{[0, 200) & ~Receive}`
+  Typing error: Variable `latest` is unboxed with grade `{!≤200}` accumulated since it was bound, which is not below its box grade `{<200 & ~ReceiveMessage}`
+  Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage}` accumulated since it was bound, which is not below its box grade `{<200 & ~ReceiveMessage}`
+  Typing error: Variable `latest` is unboxed with grade `{!200}` accumulated since it was bound, which is not below its box grade `{[0, 200) & ~ReceiveMessage}`
+  Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage}` accumulated since it was bound, which is not below its box grade `{[0, 200) & ~ReceiveMessage}`
 
 Under the rigid grades, read_imu_boxed of the package m5-imu reads the unit
 once and returns the reading in one box, usable within 2 ms and while no

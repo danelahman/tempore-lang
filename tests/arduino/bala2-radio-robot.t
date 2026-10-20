@@ -11,25 +11,26 @@ controller.
   $ packages --typecheck-only $app/robot.tpe
 
 The rejected variants, each loaded after the application: a session that
-reads the tilt before the wait for Arm and arms the robot on it, outside
-the arming window; a session that commands zero setpoints before the
-arming, within the box of the calibration; an iteration that polls again
+reads the tilt before the wait for Start and starts the balancing on it,
+outside the start window; a session that moves with zero setpoints before
+the start, within the box of the calibration; an iteration that polls again
 before it applies the message received first, no longer the latest; a
-session that opens the arming window right after the hold and arms the
-robot after the wait for Arm; and a measurement that checks the robot at
-rest before it disarms it and samples the readings after the Disarm:
+session that opens the start window right after the hold and starts the
+balancing after the wait for Start; and a measurement that checks the robot
+at rest before it stops the balancing and samples the readings after the
+StopBalancing:
 
   $ for v in stale_tilt stopped polled early unsettled; do packages --typecheck-only $app/robot.tpe bala2-radio-robot/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out; done
   [1]
-  Typing error: Variable `arming` is unboxed with the unit grade `{0}` accumulated since it was bound, which is not below its box grade `{Attitude; ([0, 1) & ~(Command | Receive))}`
+  Typing error: Variable `starting` is unboxed with the unit grade `{0}` accumulated since it was bound, which is not below its box grade `{LatestTilt; ([0, 1) & ~(Move | ReceiveMessage))}`
   [1]
-  Typing error: Variable `calibrated` is unboxed with grade `{Report; ShowTextAt; !500; Report; !500; ShowTextAt; Beep; (Receive; Report; !400)^[1, 500]; Command}` accumulated since it was bound, which is not below its box grade `{[1000, 600000] & ~Command}`
+  Typing error: Variable `calibrated` is unboxed with grade `{ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt; Beep; (ReceiveMessage; ReportStatus; !400)^[1, 500]; Move}` accumulated since it was bound, which is not below its box grade `{[1000, 600000] & ~Move}`
   [1]
-  Typing error: Variable `latest` is unboxed with grade `{Receive; Disarm?}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~Receive}`
+  Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage; StopBalancing?}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~ReceiveMessage}`
   [1]
-  Typing error: Variable `arming` is unboxed with grade `{(Receive; Report; !400)^[1, 500]}` accumulated since it was bound, which is not below its box grade `{Attitude; ([0, 1) & ~(Command | Receive))}`
+  Typing error: Variable `starting` is unboxed with grade `{(ReceiveMessage; ReportStatus; !400)^[1, 500]}` accumulated since it was bound, which is not below its box grade `{LatestTilt; ([0, 1) & ~(Move | ReceiveMessage))}`
   [1]
-  Typing error: Variable `checked` is unboxed with grade `{Disarm; (Reading; !10)*}` accumulated since it was bound, which is not below its box grade `{(Reading; !10)*}`
+  Typing error: Variable `checked` is unboxed with grade `{StopBalancing; (Reading; !10)*}` accumulated since it was bound, which is not below its box grade `{(Reading; !10)*}`
 
 The PlatformIO project for the M5Stack Gray with its radio running (profile
 m5stack-gray-radio), its C++ sources checked without exceptions and run-time
@@ -48,21 +49,21 @@ rejected:
   $ tempore --emit-arduino balance_period --device period.device.json $app/robot.tpe 2>&1 | grep error
   Compilation error: The effect `{ReadImu; ReadEncoders; Setpoints; Publish; SetMotors}` of the function `step` of a periodic task is not below its period: its durations are not all below 4
 
-The host simulation for 12 s. The controller sends Beat until 1.5 s, Arm
-for 1 s, Drive (100, 0) from 2.5 s, Disarm at 3.5 s, Beat, Arm again for
+The host simulation for 12 s. The controller sends Beat until 1.5 s, Start
+for 1 s, Drive (100, 0) from 2.5 s, Stop at 3.5 s, Beat, Start again for
 1 s from 6.2 s, Drive (-100, 0) from 7.2 s, nothing from 7.6 s, and Beat
 again from 10 s. The robot starts the link before its first step and its
 first report, is calibrated at rest, held upright, beeps at 2 kHz when it
-waits for Arm, is armed once a poll finds
-Arm, and disarmed at the Disarm; it then falls, so that the at-rest check
+waits for Start, is started once a poll finds Start, and stopped at the
+Stop; it then falls, so that the at-rest check
 fails and it shows "Hold still", until the user stands it up at 3.8 s and
-holds it still; it is calibrated anew, beeps, is armed again and balances;
+holds it still; it is calibrated anew, beeps, is started again and balances;
 it shows "Link lost" and beeps at 880 Hz about 2 s after the last message,
-staying armed, and "Armed" again when messages return. Its status, sent at
+still balancing, and "Balancing" again when messages return. Its status, sent at
 each check at rest, at each failed check, twice in the hold, at each poll
 and at each iteration of the drive, is shown when its phase changes: 2
-calibrating, 3 calibrating after a failed check, 0 ready for Arm, 1
-armed. The gyroscope of the plant reads a constant bias of 25 degrees per
+calibrating, 3 calibrating after a failed check, 0 ready for Start, 1
+balancing. The gyroscope of the plant reads a constant bias of 25 degrees per
 second about its y axis, which the check at rest, judging the variation of
 the readings, admits. The tilts of the plant, whose digits depend on the C
 library, are not shown:
@@ -75,32 +76,32 @@ library, are not shown:
   [101.585 ms] Display at (0, 102): Calibrating
   [101.685 ms] ESP-NOW: status, phase 2.000
   [624.819 ms] Display at (0, 102): Hold upright
-  [1628.779 ms] Display at (0, 102): Waiting for Arm
-  [1628.929 ms] Speaker: 2000 Hz for 80 ms
-  [1629.029 ms] ESP-NOW: status, phase 0.000
-  [2032.689 ms] Display at (0, 102): Armed
-  [2032.789 ms] ESP-NOW: status, phase 1.000
-  [3535.709 ms] Display at (0, 102): Disarmed
-  [3539.489 ms] Display at (0, 102): Calibrating
-  [3539.589 ms] ESP-NOW: status, phase 2.000
-  [4058.292 ms] ESP-NOW: status, phase 3.000
-  [4062.052 ms] Display at (0, 102): Hold still
-  [4565.832 ms] Display at (0, 102): Calibrating
-  [5084.635 ms] ESP-NOW: status, phase 2.000
-  [5088.435 ms] Display at (0, 102): Hold upright
-  [6092.395 ms] Display at (0, 102): Waiting for Arm
-  [6092.545 ms] Speaker: 2000 Hz for 80 ms
-  [6092.645 ms] ESP-NOW: status, phase 0.000
-  [6896.405 ms] Display at (0, 102): Armed
-  [6896.505 ms] ESP-NOW: status, phase 1.000
-  [9659.545 ms] Display at (0, 102): Link lost
-  [9659.695 ms] Speaker: 880 Hz for 200 ms
-  [10016.155 ms] Display at (0, 102): Armed
+  [1628.819 ms] Display at (0, 102): Waiting for Start
+  [1628.969 ms] Speaker: 2000 Hz for 80 ms
+  [1629.069 ms] ESP-NOW: status, phase 0.000
+  [2032.809 ms] Display at (0, 102): Balancing
+  [2032.909 ms] ESP-NOW: status, phase 1.000
+  [3535.809 ms] Display at (0, 102): Stopped
+  [3539.589 ms] Display at (0, 102): Calibrating
+  [3539.689 ms] ESP-NOW: status, phase 2.000
+  [4058.392 ms] ESP-NOW: status, phase 3.000
+  [4062.152 ms] Display at (0, 102): Hold still
+  [4565.932 ms] Display at (0, 102): Calibrating
+  [5086.019 ms] ESP-NOW: status, phase 2.000
+  [5089.819 ms] Display at (0, 102): Hold upright
+  [6093.819 ms] Display at (0, 102): Waiting for Start
+  [6093.969 ms] Speaker: 2000 Hz for 80 ms
+  [6094.069 ms] ESP-NOW: status, phase 0.000
+  [6897.909 ms] Display at (0, 102): Balancing
+  [6898.009 ms] ESP-NOW: status, phase 1.000
+  [9648.449 ms] Display at (0, 102): Link lost
+  [9648.599 ms] Speaker: 880 Hz for 200 ms
+  [10017.739 ms] Display at (0, 102): Balancing
   [12000.000 ms] End of the simulation
   [12000.000 ms] Plant: released at 6895.0 ms
 
 Held askew at 0.5 rad (28.6 degrees) from the start, the robot is
-calibrated, since it is held still, but not armed at the Arm of 1.5 s: the
+calibrated, since it is held still, but not started at the Start of 1.5 s: the
 published tilt lies beyond the 10 degrees of upright_limit, and the session
 shows "Not upright" and calibrates anew; the body, released at 2 s, falls
 during that calibration, which therefore shows "Hold still"; the motors are
@@ -111,9 +112,9 @@ not driven:
   $ ./askew 3000000 | grep 'Display at (0, 102)\|motors were never'
   [101.585 ms] Display at (0, 102): Calibrating
   [624.819 ms] Display at (0, 102): Hold upright
-  [1628.779 ms] Display at (0, 102): Waiting for Arm
-  [2032.809 ms] Display at (0, 102): Not upright
-  [2036.589 ms] Display at (0, 102): Calibrating
+  [1628.819 ms] Display at (0, 102): Waiting for Start
+  [2032.849 ms] Display at (0, 102): Not upright
+  [2036.629 ms] Display at (0, 102): Calibrating
   [2559.779 ms] Display at (0, 102): Hold still
   [3000.000 ms] Plant: the motors were never driven
 

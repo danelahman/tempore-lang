@@ -10,7 +10,7 @@ let step_stale ((tilt, speed, integral, position, heading) : state) : state
   let left2, right2 = perform ReadEncoders () in
   let left = (float_of_int left1 +. float_of_int left2) /. 2.0 in
   let right = (float_of_int right1 +. float_of_int right2) /. 2.0 in
-  let armed, bias, target, turn = perform Setpoints () in
+  let balancing, bias, target, turn = perform Setpoints () in
   unbox fresh as imu in
   let accel, gyro = imu in
   let raw, _, _ = gyro in

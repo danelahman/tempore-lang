@@ -1,6 +1,6 @@
 // The peer of a host model of an application: in its first five periods it
-// sends the packets of Arm, Drive (0.5, -0.25), a packet of the unknown tag
-// 9, Disarm and Beat, in this order, and then nothing.
+// sends the packets of Start, Drive (0.5, -0.25), a packet of the unknown tag
+// 9, Stop and Beat, in this order, and then nothing.
 
 #include <esp_now.h>
 

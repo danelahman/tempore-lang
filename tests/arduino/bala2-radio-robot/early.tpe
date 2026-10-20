@@ -1,14 +1,14 @@
-(* A session that opens the arming window right after the hold, when the age
-   of the calibration is checked, and arms the robot with it after the wait
-   for Arm, after robot.tpe. *)
+(* A session that opens the start window right after the hold, when the age
+   of the calibration is checked, and starts the balancing with it after the
+   wait for Start, after robot.tpe. *)
 
 let session_early () =
   let calibrated = calibrate () in
   hold ();
-  unbox calibrated as open_arming in
-  let arming = open_arming () in
-  if wait_arm () then (
-    unbox arming as calibration in
-    perform Arm calibration;
+  unbox calibrated as open_starting in
+  let starting = open_starting () in
+  if wait_start () then (
+    unbox starting as calibration in
+    perform StartBalancing calibration;
     drive 4000000000 0)
   else ()

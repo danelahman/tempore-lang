@@ -113,10 +113,10 @@ let normal_forms =
     reads `Upper "{(!400)^500}" "!≤200000";
     reads `Lower "{(!400)^500}" "!≥200000";
     reads `Lower "{(!400)^[0, 500]}" "(!≥400)?";
-    reads `Upper "{(Receive; Report; !400)^[1, 500]}"
-      "(Receive; Report; !≤400)^[1, 500]";
-    reads `Lower "{(Receive; Report; !400)^[1, 500]}"
-      "(Receive; Report; !≥400)^[1, 500]";
+    reads `Upper "{(ReceiveMessage; ReportStatus; !400)^[1, 500]}"
+      "(ReceiveMessage; ReportStatus; !≤400)^[1, 500]";
+    reads `Lower "{(ReceiveMessage; ReportStatus; !400)^[1, 500]}"
+      "(ReceiveMessage; ReportStatus; !≥400)^[1, 500]";
     reads `Upper "{(!2)*}" "!≥0";
     reads `Lower "{(!2)*}" "(!≥2)?";
     reads `Lower "{(>=0)*}" "≥0";
@@ -166,7 +166,7 @@ let rejections =
     rejects `Upper "{A; >=0 & ~B; C}"
       "a restricted budget in a sequence is written in parentheses";
     reads `Upper "{(>=0 & ~B)}" "≥0 & ~B";
-    reads `Lower "{>=0 & ~Receive}" "≥0 & ~Receive";
+    reads `Lower "{>=0 & ~ReceiveMessage}" "≥0 & ~ReceiveMessage";
     reads `Upper "{A; (≤5 & (Scan | Turn)); B}" "A; (≤5 & (Scan | Turn)); B";
     reads `Upper "{A; ((Scan | Turn) & <=5); B}" "A; (≤5 & (Scan | Turn)); B";
     reads `Upper "{(≤1 & A); (≤2 & A)}" "≤3 & A";
@@ -218,17 +218,18 @@ let zips text expected =
 let zipping =
   [
     expect "zips a restricted interval" show_option
-      ~expected:(Some "[1000, 600000] & ~Command")
-      (zip_pair "{≥1000 & ~Command}" "{≤600000 & ~Command}");
+      ~expected:(Some "[1000, 600000] & ~Move")
+      (zip_pair "{≥1000 & ~Move}" "{≤600000 & ~Move}");
     expect "does not zip different sets" show_option ~expected:None
-      (zip_pair "{≥1000 & ~Command}" "{≤600000 & ~Receive}");
+      (zip_pair "{≥1000 & ~Move}" "{≤600000 & ~ReceiveMessage}");
     zips "{AddEthanol; ![0.5, 1.5]}" "AddEthanol; ![0.5, 1.5]";
     zips "{!400}" "!400";
     zips "{[1000, 600000]}" "[1000, 600000]";
     zips "{(2, 3)}" "(2, 3)";
     zips "{[2, ∞)}" "[2, ∞)";
     zips "{≥0}" "≥0";
-    zips "{(Receive; Report; !400)^[1, 500]}" "(Receive; Report; !400)^[1, 500]";
+    zips "{(ReceiveMessage; ReportStatus; !400)^[1, 500]}"
+      "(ReceiveMessage; ReportStatus; !400)^[1, 500]";
     zips "{(A | B); 2 | C; 3}" "(A | B); 2 | C; 3";
     zips "{[0, 1]}" "[0, 1]";
     zips "{A?; 3}" "A?; 3";

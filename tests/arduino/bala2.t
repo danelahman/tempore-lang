@@ -31,8 +31,8 @@ implementations of the operations:
   
 
 The rejected variants, each loaded after the application: a stale reading of
-the unit, arming before the robot is held upright, and a supervisory
-iteration that may exceed the 200 ms of a command:
+the unit, a start of the balancing before the robot is held upright, and a
+supervisory iteration that may exceed the 200 ms of a move:
 
   $ for v in stale hasty redrawn; do packages --typecheck-only $app/balance.tpe bala2/$v.tpe; echo "[$?]"; done
   File "bala2/stale.tpe", lines 14-21, characters 2-58:
@@ -55,9 +55,9 @@ iteration that may exceed the 200 ms of a command:
     10 |   let left2, right2 = perform ReadEncoders () in
                                ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[0.45, 1]` accumulates here (operation `ReadEncoders`)
-    File "bala2/stale.tpe", line 13, characters 34-54:
-    13 |   let armed, bias, target, turn = perform Setpoints () in
-                                           ^^^^^^^^^^^^^^^^^^^^
+    File "bala2/stale.tpe", line 13, characters 38-58:
+    13 |   let balancing, bias, target, turn = perform Setpoints () in
+                                               ^^^^^^^^^^^^^^^^^^^^
     grade `[0, 0.05]` accumulates here (operation `Setpoints`)
     Note: the resource inequality `[2.4, 3.55] <= [0, 2]` does not hold
   [1]
@@ -102,8 +102,8 @@ exceptions and run-time type information, and its host build:
   $ cd ../../..
 
 The closed loop for 8 s from a tilt of 0.1 rad, the robot held until its
-motors are first driven: the supervision calibrates the gyroscope, arms the
-robot after a second and shows the tilt every second; the tilt stays below
+motors are first driven: the supervision calibrates the gyroscope, starts the
+balancing after a second and shows the tilt every second; the tilt stays below
 2.5 degrees from one second after the release. The digits of the simulated
 tilt depend on the rounding of the single-precision functions of the C
 library, so that the filter balanced checks the tilts, the position of the
@@ -138,7 +138,7 @@ they are:
   [37.865 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [38.865 ms] Display: Calibrating
   [539.865 ms] Display: Hold upright
-  [1540.865 ms] Display: Armed
+  [1540.865 ms] Display: Balancing
   [2441.865 ms] Display: a tilt below 2.5 degrees
   [3442.865 ms] Display: a tilt below 2.5 degrees
   [4443.865 ms] Display: a tilt below 2.5 degrees
@@ -161,7 +161,7 @@ step never drives the motors, and the robot falls when released at 2 s:
   [37.865 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [38.865 ms] Display: Calibrating
   [539.865 ms] Display: Hold upright
-  [1540.865 ms] Display: Armed
+  [1540.865 ms] Display: Balancing
   [2441.865 ms] Display: 80.124
   [3442.865 ms] Display: 80.212
   [4443.865 ms] Display: 80.214
@@ -185,7 +185,7 @@ the robot falls:
   [37.865 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [38.865 ms] Display: Calibrating
   [539.865 ms] Display: Hold upright
-  [1540.865 ms] Display: Armed
+  [1540.865 ms] Display: Balancing
   [2441.865 ms] Display: -0.044
   [3442.865 ms] Display: 0.084
   [4005.316 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
@@ -220,19 +220,19 @@ yellow above the footer every 500 ms:
   $ cd ../balance
 
 With the build flag BALANCE_LOG, here 500 ms, a task started by the first
-publication logs the published attitude, the drives last written and the
-counts last read, and the arming:
+publication logs the published tilt, the drives last written and the
+counts last read, and the start of the balancing:
 
-  $ build -DBALANCE_LOG=500 && ./simulation 3000000 | grep '\] \(Armed\|Tilt\)'
+  $ build -DBALANCE_LOG=500 && ./simulation 3000000 | grep '\] \(Balancing\|Tilt\)'
   [502.000 ms] Tilt 5.73 deg, rate 0.0 deg/s, drives 0 0, counts 0 0
   [1002.000 ms] Tilt 5.73 deg, rate 0.0 deg/s, drives 0 0, counts 0 0
   [1502.000 ms] Tilt 5.73 deg, rate 0.0 deg/s, drives 0 0, counts 0 0
-  [2002.000 ms] Armed, gyroscope bias 0.000 deg/s
+  [2002.000 ms] Balancing, gyroscope bias 0.000 deg/s
   [2002.000 ms] Tilt 0.02 deg, rate -1.7 deg/s, drives 71 181, counts 14 14
   [2502.000 ms] Tilt -0.07 deg, rate 3.3 deg/s, drives -78 -188, counts 12 12
 
 With the build flag BALANCE_RECORD, here 100 ms, and 20 samples, two tasks
-started by the first publication record the run from the arming for 2 s and
+started by the first publication record the run from the start for 2 s and
 print the recording, once complete, every 10 s; the filter recordings.awk of
 the target -capture extracts it. The recording has its header, the line of
 its columns and 20 rows of 9 fields, one every 100 ms; the tilt stays below 5
@@ -244,7 +244,7 @@ the wheels within 500:
   2
   $ awk -f ../../../$app/recordings.awk record.log > record.csv
   $ head -n 2 record.csv
-  # Recording 1, run 00000000, 20 of 20 samples every 100 ms from the arming
+  # Recording 1, run 00000000, 20 of 20 samples every 100 ms from the start
   time_ms,tilt_deg,rate_deg_s,speed_counts_s,reference_deg,left_drive,right_drive,left_count,right_count
   $ tail -n 1 record.csv
   # End of recording 1
@@ -283,7 +283,7 @@ copy, it extracts none:
   Skipped an incomplete copy of recording 1: 2999 of 3000 rows
   Skipped an incomplete copy of recording 1: no end line
 
-The closed loop over 120 s from the arming, recorded every 100 ms and built
+The closed loop over 120 s from the start, recorded every 100 ms and built
 without the trace, checked by the filter settled: given the balance tilt B
 and bounds T, R and S, it prints a row of the recording whose tilt is beyond
 the cutoff or, from 20 s on, whose tilt is not within T degrees of B, whose
@@ -397,21 +397,21 @@ function:
   $ ./simulation 6000000 | sed -n '/End of the simulation/,$p' | grep -v Plant
   [6000.000 ms] End of the simulation
   [6000.000 ms] Profile since start-up, times in microseconds
-    operation        calls       min       mean       max
-    ReadImu           1201       603      603.0       603
-    ShowText             3      1000     1000.0      1000
-    ShowNumber           4      1000     1000.0      1000
-    ClearDisplay         1     31000    31000.0     31000
-    ShowTextAt           2      2760     3310.0      3860
-    SetMotors         1200       245      245.0       245
-    ReadEncoders      1200       468      468.0       468
-    ResetEncoders        1       335      335.0       335
-    Publish           1200         0        0.0         0
-    Setpoints         1200         0        0.0         0
-    Attitude            95         0        0.0         0
-    Arm                  1         0        0.0         0
-    Disarm               1         0        0.0         0
-    Command             45         0        0.0         0
-    task             steps       min       mean       max    period  min interval  max interval  overruns
-    step              1200      1316     1316.0      1316      5000          4817          5000         0
+    operation         calls       min       mean       max
+    ReadImu            1201       603      603.0       603
+    ShowText              3      1000     1000.0      1000
+    ShowNumber            4      1000     1000.0      1000
+    ClearDisplay          1     31000    31000.0     31000
+    ShowTextAt            2      2760     3310.0      3860
+    SetMotors          1200       245      245.0       245
+    ReadEncoders       1200       468      468.0       468
+    ResetEncoders         1       335      335.0       335
+    Publish            1200         0        0.0         0
+    Setpoints          1200         0        0.0         0
+    LatestTilt           95         0        0.0         0
+    StartBalancing        1         0        0.0         0
+    StopBalancing         1         0        0.0         0
+    Move                 45         0        0.0         0
+    task              steps       min       mean       max    period  min interval  max interval  overruns
+    step               1200      1316     1316.0      1316      5000          4817          5000         0
   [6000.000 ms] End of the profile

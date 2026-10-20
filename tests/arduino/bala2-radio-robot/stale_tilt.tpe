@@ -1,16 +1,16 @@
-(* A session that reads the tilt once, after the hold, and arms the robot on
-   it after the wait for Arm, after robot.tpe. *)
+(* A session that reads the tilt once, after the hold, and starts the
+   balancing on it after the wait for Start, after robot.tpe. *)
 
 let session_stale_tilt () =
   let calibrated = calibrate () in
   hold ();
-  let tilt, _ = perform Attitude () in
-  if wait_arm () then (
-    unbox calibrated as open_arming in
-    let arming = open_arming () in
-    unbox arming as calibration in
+  let tilt, _ = perform LatestTilt () in
+  if wait_start () then (
+    unbox calibrated as open_starting in
+    let starting = open_starting () in
+    unbox starting as calibration in
     if magnitude (tilt -. balance_point) <= upright_limit then (
-      perform Arm calibration;
+      perform StartBalancing calibration;
       drive 4000000000 0)
     else ())
   else ()
