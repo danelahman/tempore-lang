@@ -1,5 +1,5 @@
 (* A session that commands zero setpoints at Arm, to stop the wheels, before
-   it arms the robot, after balance_remote.tpe. *)
+   it arms the robot, after robot.tpe. *)
 
 let session_stopped () =
   let calibrated = calibrate () in

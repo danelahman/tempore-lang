@@ -155,9 +155,9 @@ runs; the files of the examples changed between the revisions):
 
 | file | OLD (s) | NEW (s) |
 |---|---:|---:|
-| examples/arduino/bala2-remote/balance_remote.tpe | 1.10 | 0.30 |
+| examples/arduino/bala2-radio-robot/robot.tpe | 1.10 | 0.30 |
 | examples/arduino/starter/starter.tpe | 0.58 | 0.22 |
-| examples/arduino/bala2-controller/controller.tpe | 0.09 | 0.05 |
+| examples/arduino/bala2-radio-controller/controller.tpe | 0.09 | 0.05 |
 | examples/arduino/fall/fall.tpe | 0.09 | 0.05 |
 | examples/arduino/bala2-regex/balance_regex.tpe | 0.05 | 0.05 |
 | examples/opentrons/washes.tpe | < 0.01 | < 0.01 |
@@ -168,9 +168,9 @@ Other measurements of the same revisions:
 
 | measurement | OLD | NEW |
 |---|---:|---:|
-| `--emit-arduino` of balance_remote, native (s) | 1.23 | 0.36 |
+| `--emit-arduino` of robot, native (s) | 1.23 | 0.36 |
 | `--emit-arduino` of controller, native (s) | 0.12 | 0.07 |
-| web typecheck of balance_remote, headless Chrome (s) | 3.1 | 0.9 |
+| web typecheck of robot, headless Chrome (s) | 3.1 | 0.9 |
 | web typecheck of controller (s) | 0.6 | 0.4 |
 | web typecheck of washes (s) | 0.3 | 0.3 |
 

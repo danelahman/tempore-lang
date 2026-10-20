@@ -1,8 +1,8 @@
 // The bindings of the operations of balance.tpe,
-// ../bala2-regex/balance_regex.tpe and ../bala2-remote/balance_remote.tpe: the
+// ../bala2-regex/balance_regex.tpe and ../bala2-radio-robot/robot.tpe: the
 // exchange between the control step and the supervision, in atomic variables,
 // and the safe state; and Report and Reading, of
-// ../bala2-remote/balance_remote.tpe only, compiled only for a program that
+// ../bala2-radio-robot/robot.tpe only, compiled only for a program that
 // performs them.
 //
 // The supervision arms the robot with the bias of the gyroscope and commands
@@ -68,7 +68,7 @@
 #include "tempore_bindings.h"
 
 #ifdef TEMPORE_PERFORMS_Report
-#include "bala2_remote.h"
+#include "bala2_radio.h"
 #endif
 
 #if defined(BALANCE_LOG) || defined(BALANCE_RECORD)
@@ -420,11 +420,11 @@ tempore_result_Reading binding_Reading(tempore_argument_Reading) {
 #endif
 
 #ifdef TEMPORE_PERFORMS_Report
-// Report of ../bala2-remote/balance_remote.tpe: the status of the robot, the
+// Report of ../bala2-radio-robot/robot.tpe: the status of the robot, the
 // code of its phase and the tilt last published, sent to the controller
-// through the package bala2-remote.
+// through the package bala2-radio.
 tempore_result_Report binding_Report(tempore_argument_Report phase) {
-  bala2_remote_send_status(phase, balance_tilt.load());
+  bala2_radio_send_status(phase, balance_tilt.load());
   return {};
 }
 #endif

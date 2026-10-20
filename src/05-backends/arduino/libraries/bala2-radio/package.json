@@ -1,0 +1,17 @@
+{
+  "description": "The messages of the remote control of the M5Stack BALA2 over the package esp-now, shared by the robot and the controller",
+  "packages": ["esp-now"],
+  "definitions": "bala2_radio_protocol.tpe",
+  "declarations": {
+    "time-interval-rational": "bala2_radio.tpe",
+    "regex-timed-upper-bound-rational-symbolic": "bala2_radio_upper.tpe",
+    "regex-timed-interval-rational-symbolic": "bala2_radio_interval.tpe",
+    "regex-timed-rigid-upper-bound-rational-symbolic": "bala2_radio_rigid_upper.tpe",
+    "regex-timed-rigid-interval-rational-symbolic": "bala2_radio_rigid.tpe"
+  },
+  "sources": ["bala2_radio.cpp", "bala2_radio.h"],
+  "bindings": ["SendArm", "SendDrive", "SendDisarm", "SendBeat", "SendStatus"],
+  "bounds": {
+    "m5stack-cores3-radio": { "SendArm": [0, 0.35], "SendDrive": [0.1, 0.45], "SendDisarm": [0, 0.35], "SendBeat": [0, 0.5] }
+  }
+}

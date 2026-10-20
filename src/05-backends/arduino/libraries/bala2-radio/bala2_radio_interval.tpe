@@ -1,6 +1,6 @@
-(* The package bala2-remote under the interval grades of the regular
+(* The package bala2-radio under the interval grades of the regular
    expressions of timed operations over rational delays, in milliseconds: sending and receiving the messages of
-   bala2_remote_protocol.tpe through the operations Send and Receive of the
+   bala2_radio_protocol.tpe through the operations Send and Receive of the
    package esp-now, which a program using this package also names, before
    it.
 

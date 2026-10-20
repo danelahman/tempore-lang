@@ -17,10 +17,16 @@ tests show those runs in detail.
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
   ======================================================================
-  ../examples/arduino/bala2-controller/controller.tpe
+  ../examples/arduino/bala2-radio-controller/controller.tpe
   ======================================================================
   === Run 1 ===
   return (false, 0., false, Blank)
+  
+  ======================================================================
+  ../examples/arduino/bala2-radio-robot/robot.tpe
+  ======================================================================
+  === Run 1 ===
+  return (2.8812, 0., 0., 0., 0.)
   
   ======================================================================
   ../examples/arduino/bala2-regex/balance_regex.tpe
@@ -34,12 +40,6 @@ tests show those runs in detail.
   
   === Run 3 ===
   return ((89.6343246251, 0., 0., 0., 0.), 0.)
-  
-  ======================================================================
-  ../examples/arduino/bala2-remote/balance_remote.tpe
-  ======================================================================
-  === Run 1 ===
-  return (2.8812, 0., 0., 0., 0.)
   
   ======================================================================
   ../examples/arduino/bala2/balance.tpe

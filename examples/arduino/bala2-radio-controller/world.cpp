@@ -18,7 +18,7 @@
 // tilt of 1.5 degrees until 4.9 s, calibrating until 5.6 s, calibrating
 // after a failed check at rest until 6.3 s, calibrating until 7 s, ready
 // for Arm until 7.6 s, and nothing after, switched off. The phases are
-// coded as by remote_phase_code of the package bala2-remote.
+// coded as by remote_phase_code of the package bala2-radio.
 
 #include <Arduino.h>
 #include <esp_now.h>
