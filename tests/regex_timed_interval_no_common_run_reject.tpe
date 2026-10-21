@@ -1,0 +1,24 @@
+(* Run this test with the 'regex-timed-interval-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-symbolic \
+       tests/regex_timed_interval_no_common_run_reject.tpe
+
+   Rejected under the 'regex-timed-interval-symbolic' grading monoid: no run
+   meets both ends of an interval whose lower end guarantees a fetch and whose
+   upper end permits only stores, which bank no time to pay for a fetch, nor of
+   one whose lower end lasts longer than its upper end permits. *)
+
+type token = Token of string
+
+operation Fetch : unit ~> unit # {Fetch} within [2, 4]
+operation Store : unit ~> unit # {Store} within [1, 2]
+
+(* A fetch guaranteed, any number of stores permitted. *)
+let only_stores () =
+  box [{Fetch}, {Store*}] (Token "f") as f in
+  perform Fetch ();
+  unbox f as tok in
+  tok
+
+(* At least 4 time units guaranteed, at most 3 permitted. *)
+operation Slow : unit ~> unit # [{4; Fetch*}, {Store; 1}]

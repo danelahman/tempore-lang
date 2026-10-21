@@ -304,13 +304,28 @@ module Implicit (State : Map.OrderedType) = struct
     a.dead a.start || go (States.singleton a.start) [ a.start ]
 end
 
+let intersection a b =
+  {
+    start = (a.start, b.start);
+    step = (fun (p, q) x -> (a.step p x, b.step q x));
+    accepts = (fun (p, q) -> a.accepts p && b.accepts q);
+    dead = (fun (p, q) -> a.dead p || b.dead q);
+    lead = (fun (p, q) -> max (a.lead p) (b.lead q));
+    leap = (fun (p, q) k -> (a.leap p k, b.leap q k));
+  }
+
 module Product (Left : Map.OrderedType) (Right : Map.OrderedType) = struct
-  module Pairs = Set.Make (struct
+  module Pair = struct
     type t = Left.t * Right.t
 
     let compare (p, q) (p', q') =
       match Left.compare p p' with 0 -> Right.compare q q' | c -> c
-  end)
+  end
+
+  module Pairs = Set.Make (Pair)
+  module Both = Implicit (Pair)
+
+  let intersect n a b = not (Both.is_empty n (intersection a b))
 
   (* Breadth-first search of the product of [a] and [b] for a pair of states
      final in [a] only, by depths, the first found giving a shortest word. The

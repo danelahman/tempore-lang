@@ -18,6 +18,7 @@ module type WORLD = sig
   val min_weight : world -> grade -> Rational.t bound option
   val max_weight : world -> grade -> Rational.t bound option
   val inhabited : bounds -> grade -> bool
+  val consistent : bounds -> grade -> grade -> bool
   val literal_of_word : word -> lit
   val single : lit -> bool
   val number : lit -> Rational.t option
@@ -190,9 +191,21 @@ struct
     let hash (lo, hi) = Hashing.combine (L.hash lo) (L.hash hi)
 
     (* [joint_vacuous bounds (lo, hi)] is the reason no run meets both ends
-       [lo] and [hi], each of which has a trace ({!Grade.no_common_run}). The
-       condition is not decided: every such pair is accepted. *)
-    let joint_vacuous _bounds (_lo, _hi) = None
+       [lo] and [hi], each of which has a trace ({!Grade.no_common_run}). A
+       trace of a language covers and is permitted by itself, the empty trace
+       covers the unit and is permitted by every trace, and every trace is
+       permitted by the top. *)
+    let joint_vacuous bounds (lo, hi) =
+      if
+        L.compare lo hi = 0
+        || L.compare lo Lower.top = 0
+        || L.compare hi Upper.top = 0
+      then None
+      else
+        match durations_apart (duration_bounds bounds lo hi) with
+        | Some _ as reason -> Some (no_common_run reason)
+        | None when W.consistent bounds lo hi -> None
+        | None -> Some (no_common_run None)
 
     let vacuous bounds (lo, hi) =
       match Common.vacuous bounds lo with

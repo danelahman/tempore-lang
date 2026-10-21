@@ -177,9 +177,18 @@ module Implicit (State : Map.OrderedType) : sig
       not dead, a state of lead [k ≥ 1] followed by its [leap] by [k] alone. *)
 end
 
+val intersection : 'a automaton -> 'b automaton -> ('a * 'b) automaton
+(** [intersection a b] is the automaton of the words accepted by both [a] and
+    [b], over the pairs of their states: the product automaton, a pair dead if
+    either state is, and its lead the greater of theirs. *)
+
 (** The products of the implicit automata over states ordered by [Left.compare]
     with those over states ordered by [Right.compare]. *)
 module Product (Left : Map.OrderedType) (Right : Map.OrderedType) : sig
+  val intersect : int -> Left.t automaton -> Right.t automaton -> bool
+  (** [intersect n a b] is whether some word over [n] letters is accepted by
+      both [a] and [b], by {!Implicit.is_empty} of their {!intersection}. *)
+
   val counterexample :
     int -> Left.t automaton -> Right.t automaton -> int list option
   (** [counterexample n a b] is a shortest word over [n] letters accepted by [a]

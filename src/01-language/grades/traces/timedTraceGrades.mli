@@ -136,7 +136,11 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) : sig
       literal [{...}] abbreviates the interval of a set with itself, a delay [d]
       the interval [[{d}, {d}]] and [[d, e]] the interval [[{d}, {e}]]; an open
       numeric endpoint is read by [N.close]. Either end may be [⊤], the top of
-      its order. *)
+      its order. An interval admits a run iff its upper end is [⊤] or some trace
+      of its lower end and some trace of its upper end are
+      {!TimedTrace.Make.consistent}, at the values of the ends of the
+      running-time bounds; where the durations of the ends are apart, they are
+      the reason given ({!Grade.durations_apart}). *)
 end
 
 (** {1 Traces over whole time steps}

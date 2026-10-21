@@ -119,6 +119,19 @@ module Make (D : Delay.MONUS) : sig
       itself discharges a demand for an operation, which is what a guarantee
       wants and what makes this order not the converse of {!allowance}. *)
 
+  val consistent : (string -> D.t) -> (string -> D.t) -> trace -> trace -> bool
+  (** [consistent lo_running_time hi_running_time p q] is whether some trace
+      covers the guarantee [p], operations at [lo_running_time], and is
+      permitted by the bound [q], operations at [hi_running_time]. It is decided
+      by a joint walk of [p] and [q] with no trace built, carrying the slack of
+      the coverage order and the budget of the allowance order that such a trace
+      would have banked: the budget is spent on the delays of [p] after the
+      slack, and on its operations that [q] does not name; an operation both
+      name resets both; and an operation of [q] that [p] does not name is
+      skipped or performed, turning the budget and its [lo_running_time] into
+      slack. The walk is sound and complete if each [lo_running_time] is at most
+      the [hi_running_time] of the same operation. *)
+
   val upper_bound_le : (string -> D.t) -> traces -> traces -> bool
   (** [upper_bound_le running_time p q] is the Hoare lift of the allowance
       order, the order of the lower powerdomain:

@@ -26,6 +26,11 @@
  (libraries utils language grades parser sugaredAst))
 
 (test
+ (name test_runConsistency)
+ (modules test_runConsistency)
+ (libraries grades parser sugaredAst lawChecks))
+
+(test
  (name test_timedTraces)
  (modules test_timedTraces)
  (libraries grades parser sugaredAst lawChecks))

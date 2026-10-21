@@ -124,6 +124,13 @@ val no_common_run : string option -> string
     its ends denotes a trace but no run meets both, followed by [reason] where
     one is given ({!S.vacuous}). *)
 
+val durations_apart :
+  (Rational.t bound * Rational.t bound) option -> string option
+(** [durations_apart durations] is the reason, for {!no_common_run}, that no run
+    meets both ends of an interval whose lower end lasts at least the value of
+    the lower end of [durations] and whose upper end at most that of its upper
+    end, if the former exceeds the latter, and [None] otherwise. *)
+
 val unless_inhabited : bool -> string option
 (** [unless_inhabited b] is no reason if [b] holds and {!no_trace} otherwise. *)
 

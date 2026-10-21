@@ -61,6 +61,14 @@ module type WORLD = sig
   (** [inhabited bounds rho] is whether [rho] has a trace over the declared
       operations and the names it mentions, the running times aside. *)
 
+  val consistent : bounds -> grade -> grade -> bool
+  (** [consistent bounds lo hi] is whether some trace covers a trace of [lo],
+      each operation running for the value of the lower end of its running-time
+      bounds, and is permitted by a trace of [hi], each operation running for
+      the value of the upper end: whether the upward closure of [lo] meets the
+      downward closure of [hi]. The world of the decision has the classes of the
+      names of equal pairs of running times. *)
+
   val literal_of_word : word -> lit
   (** [literal_of_word w] is the literal of the single trace [w], its strict
       delays written [!d]. *)
@@ -88,7 +96,14 @@ end
 
 (** The grades over [L] in the world [W], named ["regex-timed-lower-bound"],
     ["regex-timed-upper-bound"] and ["regex-timed-interval"], each followed by
-    [W.suffix]. *)
+    [W.suffix].
+
+    An interval admits a run ({!Grade.S.vacuous}) iff each of its ends has a
+    trace and {!WORLD.consistent} holds of them; it holds where the ends are the
+    same language, the lower end is the unit or the upper end the top. The
+    duration test comes first: if the least weight of the lower end exceeds the
+    greatest weight of the upper end, no run meets both, the reason given by
+    {!Grade.durations_apart}. *)
 module Make
     (L : Grade.S)
     (W : WORLD with type grade = L.t and type delay = L.Delay.t) : sig
