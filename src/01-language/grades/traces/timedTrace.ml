@@ -205,6 +205,51 @@ module Make (D : Delay.MONUS) = struct
             true (* use-delay *)
         | _ -> false)
 
+  (** Tables by a slack, a budget and two positions. *)
+  module Resources = Memo.Make (struct
+    type t = D.t * D.t * int * int
+
+    let equal (k, b, i, j) (k', b', i', j') =
+      Int.equal i i' && Int.equal j j' && D.equal k k' && D.equal b b'
+
+    let hash (k, b, i, j) =
+      Hashing.combine
+        (Hashing.combine (Hashing.combine (D.hash k) (D.hash b)) i)
+        j
+  end)
+
+  (* The search is memoised by slack, budget and positions; each rule advances
+     in [p] or [q], so it terminates. *)
+  let consistent lo_running_time hi_running_time p q =
+    let p = Array.of_list p and q = Array.of_list q in
+    let at trace i = if i < Array.length trace then Some trace.(i) else None in
+    let table = Resources.create 64 in
+    let rec go k b i j =
+      Resources.find_or_add table (k, b, i, j) (fun () ->
+          rules k b i j (at p i) (at q j))
+    and rules k b i j p q =
+      match (p, q) with
+      | None, _ -> true (* done *)
+      | Some (Ev o), Some (Ev o')
+        when String.equal o o' && go D.zero D.zero (i + 1) (j + 1) ->
+          true (* match *)
+      | Some (Ev o), _
+        when D.leq (hi_running_time o) b
+             && go D.zero (D.monus b (hi_running_time o)) (i + 1) j ->
+          true (* pay *)
+      | Some (Wait d), _
+        when D.leq d (D.add k b)
+             && go (D.monus k d) (D.monus b (D.monus d k)) (i + 1) j ->
+          true (* spend *)
+      | _, Some (Wait e) when go k (D.add b e) i (j + 1) -> true (* bank *)
+      | _, Some (Ev _) when go k b i (j + 1) -> true (* skip *)
+      | _, Some (Ev o)
+        when go (D.add (D.add k b) (lo_running_time o)) D.zero i (j + 1) ->
+          true (* fill *)
+      | _ -> false
+    in
+    go D.zero D.zero 0 0
+
   let upper_bound_le running_time p q =
     List.for_all
       (fun s -> List.exists (fun t -> allowance running_time D.zero s t) q)

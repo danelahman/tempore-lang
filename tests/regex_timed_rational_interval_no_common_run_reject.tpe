@@ -1,0 +1,24 @@
+(* Run this test with the 'regex-timed-interval-rational-symbolic' grading
+   monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-rational-symbolic \
+       tests/regex_timed_rational_interval_no_common_run_reject.tpe
+
+   Rejected under the 'regex-timed-interval-rational-symbolic' grading monoid:
+   no run meets both ends of an interval whose lower end guarantees a wait of
+   more than 2 and whose upper end permits one of at most 2, nor of one whose
+   lower end lasts longer than its upper end permits. *)
+
+type token = Token of string
+
+operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
+
+(* A wait of more than 2 guaranteed, at most 2 permitted. *)
+let waiting () =
+  box [{(2, 3)}, {[0, 2]}] (Token "w") as w in
+  delay 5/2;
+  unbox w as tok in
+  tok
+
+(* At least 5/2 time units guaranteed, at most 2 permitted. *)
+operation Slow : unit ~> unit # [{5/2}, {Sample; 1/2}]

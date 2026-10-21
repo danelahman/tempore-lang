@@ -79,7 +79,15 @@
     {!DelayTimedClosure.Graph.inhabited}. There is nothing to decide if the
     grades are the same expression in normal form or [ρ'] is the top. A grade is
     the top if its expression is that of the top, and otherwise iff the order
-    decides [⊤ ≾ ρ]. *)
+    decides [⊤ ≾ ρ].
+
+    An interval admits a run iff some trace covers a trace of its lower end and
+    is permitted by a trace of its upper end ({!RegularTimedOrders.Make}), each
+    operation running for the value of the lower, respectively upper, end of its
+    running-time bounds, as if both were closed. It is decided by
+    {!JointWalk.consistent} on the graphs of the two ends, over the names the
+    grades mention and, of the other declared operations, the least of each pair
+    of these values. *)
 
 (** Lower bounds, in the coverage order at [lo]. *)
 module Lower :

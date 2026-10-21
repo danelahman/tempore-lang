@@ -258,10 +258,11 @@ let show_bounds =
    implementation by gap derivatives agree with the verdicts [reference] of an
    implementation by letters, given for each comparison as whether it holds,
    whether the grades are equal, and the counterexample, as the numbers of
-   operations of its components with any other measure, and whether it is a
-   trace of the lesser grade outside the closure of the greater: the verdicts
-   agree, and a counterexample is found by both or neither, valid and with no
-   more operations in each component, a trace shortest in symbols. *)
+   operations of its components with any other measure, whether it is equal to
+   the lesser grade, and whether it is below the lesser grade and not below
+   the greater: the verdicts agree, and a counterexample is found by both or
+   neither, valid and, unless either is equal to the lesser grade, with no more
+   operations in each component, a trace shortest in symbols. *)
 let close reference found =
   List.length reference = List.length found
   && List.for_all2
@@ -270,12 +271,13 @@ let close reference found =
          &&
          match (e, e') with
          | None, None -> true
-         | Some (components, _), Some (components', valid') ->
+         | Some (components, lesser, _), Some (components', lesser', valid') ->
              valid'
-             && List.for_all2
-                  (fun (operations, _) (operations', _) ->
-                    operations' <= operations)
-                  components components'
+             && (lesser || lesser'
+                || List.for_all2
+                     (fun (operations, _) (operations', _) ->
+                       operations' <= operations)
+                     components components')
          | Some _, None | None, Some _ -> false)
        reference found
 
@@ -695,6 +697,9 @@ module Suite (I : IMPLEMENTATION) = struct
         (name "the upper component")
         (Interval.inhabited only_a (In.lit "[{A}, {_ & ~1 & ~A}]"));
       holds (name "both components")
+        (Interval.inhabited only_a (In.lit "[{A}, {3}]"));
+      fails
+        (name "no run meets both components")
         (Interval.inhabited only_a (In.lit "[{A}, {1}]"));
     ]
 
@@ -717,8 +722,8 @@ module Suite (I : IMPLEMENTATION) = struct
 
   (* [verdicts bounds (r, r')] is, for each grade, whether [r] is below [r'],
      whether they are equal, and the measures of the shortest traces of the
-     components of the counterexample with whether it is valid, [r] and [r']
-     read as grades. *)
+     components of the counterexample with whether it is equal to the lesser
+     grade and whether it is valid, [r] and [r'] read as grades. *)
   let verdicts bounds (r, r') =
     match (grade r, grade r') with
     | Some rho, Some rho' ->
@@ -727,7 +732,9 @@ module Suite (I : IMPLEMENTATION) = struct
             G.equal bounds x y,
             Option.map
               (fun e ->
-                (measures e, G.leq bounds e x && not (G.leq bounds e y)))
+                ( measures e,
+                  G.equal bounds e x,
+                  G.leq bounds e x && not (G.leq bounds e y) ))
               (G.counterexample bounds x y) )
         in
         let single rho = [ measure rho ] in
@@ -881,8 +888,9 @@ let printed_operations text =
 
 (* The verdicts of the implementation [I] on long delays: under each order,
    whether a grade is below another, whether they are equal, and the number of
-   operations and length of the counterexample with whether it is valid; and
-   whether the interval of the grades is below its converse. *)
+   operations and length of the counterexample with whether it is equal to the
+   lesser grade and whether it is valid; and whether the interval of the grades
+   is below its converse. *)
 module Long (I : IMPLEMENTATION) = struct
   include I
 
@@ -901,6 +909,7 @@ module Long (I : IMPLEMENTATION) = struct
               (fun w ->
                 let text = L.show w in
                 ( [ (printed_operations text, printed_length text) ],
+                  G.equal bounds w rho,
                   G.leq bounds w rho && not (G.leq bounds w rho') ))
               (G.counterexample bounds rho rho') )
         in
@@ -1318,8 +1327,9 @@ let random_shared ~longest ~depth table state =
 (* The verdicts of the implementation [I] over the operations of given running
    times: under each order, whether a grade is below another, whether they are
    equal, and the word of the counterexample over the operations, with whether
-   it is a trace of the lesser grade outside the closure of the greater; and the
-   running-time bounds implied by the grades and their inhabitation. *)
+   it is equal to the lesser grade and whether it is a trace of the lesser grade
+   outside the closure of the greater; and the running-time bounds implied by
+   the grades and their inhabitation. *)
 module Shared (I : IMPLEMENTATION) = struct
   include I
 
@@ -1350,7 +1360,10 @@ module Shared (I : IMPLEMENTATION) = struct
           ( G.leq bounds x y,
             G.equal bounds x y,
             Option.map
-              (fun e -> (words e, G.leq bounds e x && not (G.leq bounds e y)))
+              (fun e ->
+                ( words e,
+                  G.equal bounds e x,
+                  G.leq bounds e x && not (G.leq bounds e y) ))
               (G.counterexample bounds x y) )
         in
         let single rho = [ word names rho ] in
@@ -1399,7 +1412,7 @@ let shared =
     | Some (orders, _, _) ->
         List.for_all
           (fun (_, _, found) ->
-            match found with Some (_, valid) -> valid | None -> true)
+            match found with Some (_, _, valid) -> valid | None -> true)
           orders
     | None -> true
   in

@@ -71,7 +71,19 @@ module type DECISIONS = sig
   val min_weight : World.t -> t -> (Rational.t * bool) option
   val max_weight : World.t -> t -> (Rational.t * bool) option
   val inhabited : World.t -> t -> bool
+  val consistent : World.t -> World.t -> t -> t -> bool
 end
+
+(* Tables by the numbers of two worlds and two grades. *)
+module Quadruples = Memo.Make (struct
+  type t = int * int * int * int
+
+  let equal (i, j, k, l) (i', j', k', l') =
+    Int.equal i i' && Int.equal j j' && Int.equal k k' && Int.equal l l'
+
+  let hash (i, j, k, l) =
+    Hashing.combine (Hashing.combine i j) (Hashing.combine k l)
+end)
 
 (* The decisions on the canonical automata of the grades, a verdict being that
    the search finds no word. *)
@@ -94,6 +106,13 @@ module ByAutomata = struct
   let min_weight = on_one Closure.min_weight
   let max_weight = on_one Closure.max_weight
   let inhabited = on_one Closure.inhabited
+
+  (* The two worlds have the same names. *)
+  let consistent (lo_world : World.t) (hi_world : World.t) rho rho' =
+    let names = List.map fst lo_world.operations in
+    JointWalk.consistent ~lo:lo_world.operations ~hi:hi_world.operations
+      (Closure.of_automaton names (L.automaton rho))
+      (Closure.of_automaton names (L.automaton rho'))
 end
 
 (* The decisions on the graphs of the gap derivatives of the expressions of the
@@ -137,6 +156,21 @@ module ByGaps = struct
   let min_weight = on Closure.Graph.min_weight
   let max_weight = on Closure.Graph.max_weight
   let inhabited world rho = Closure.Graph.inhabited (graph world rho)
+
+  (* The two worlds have the same names, and hence the same graphs; the
+     results are tabulated by the numbers of the worlds and of the normal
+     forms. *)
+  let consistent =
+    let table = Quadruples.create 64 in
+    fun (lo_world : World.t) (hi_world : World.t) rho rho' ->
+      Quadruples.find_or_add table
+        ( lo_world.id,
+          hi_world.id,
+          RationalRegex.hash (L.form rho),
+          RationalRegex.hash (L.form rho') )
+        (fun () ->
+          JointWalk.consistent ~lo:lo_world.operations ~hi:hi_world.operations
+            (graph lo_world rho) (graph hi_world rho'))
 end
 
 (* The grades over the languages [L], decided by [D], their names ending in
@@ -162,16 +196,16 @@ module Make
       let running_time endpoint bounds name =
         extremum (endpoint (bounds.running_time name))
 
-      (* [classes running_time names] is the classes of the names [names] of
-         equal running times, each with its running time and its names in
-         increasing order. *)
-      let classes running_time names =
+      (* [classes equal running_time names] is the classes of the names
+         [names] of running times equal by [equal], each with its running
+         time and its names in increasing order. *)
+      let classes equal running_time names =
         List.fold_right
           (fun name classes ->
             let c = running_time name in
             let rec add = function
               | [] -> [ (c, [ name ]) ]
-              | (c', names) :: classes when DelaySet.equal_extremum c c' ->
+              | (c', names) :: classes when equal c c' ->
                   (c', name :: names) :: classes
               | class_ :: classes -> class_ :: add classes
             in
@@ -208,7 +242,9 @@ module Make
         Memo.last (fun bounds ->
             Memo.by_identity (fun endpoint ->
                 let running_time = running_time endpoint bounds in
-                let classes = classes running_time bounds.operations in
+                let classes =
+                  classes DelaySet.equal_extremum running_time bounds.operations
+                in
                 let module Worlds = Memo.Make (World.NameList) in
                 Worlds.memoise (fun mentioned ->
                     World.make (operations running_time classes mentioned))))
@@ -222,6 +258,36 @@ module Make
       let world endpoint bounds rhos =
         worlds bounds endpoint
           (List.sort_uniq String.compare (List.concat_map L.events rhos))
+
+      (* The worlds of the joint decisions of a program, by the names the
+         grades decided mention: as those of [worlds], the classes being those
+         of equal pairs of the values of the ends of the running-time bounds,
+         each attained, at the lower and at the upper ends. *)
+      let joint_worlds =
+        Memo.last (fun bounds ->
+            let value endpoint name =
+              DelaySet.Finite
+                (end_value (endpoint (bounds.running_time name)), true)
+            in
+            let running_time name = (value fst name, value snd name) in
+            let equal (lo, hi) (lo', hi') =
+              DelaySet.equal_extremum lo lo' && DelaySet.equal_extremum hi hi'
+            in
+            let classes = classes equal running_time bounds.operations in
+            let module Worlds = Memo.Make (World.NameList) in
+            Worlds.memoise (fun mentioned ->
+                let operations = operations running_time classes mentioned in
+                ( World.make
+                    (List.map (fun (name, (lo, _)) -> (name, lo)) operations),
+                  World.make
+                    (List.map (fun (name, (_, hi)) -> (name, hi)) operations) )))
+
+      let consistent bounds lo hi =
+        let lo_world, hi_world =
+          joint_worlds bounds
+            (List.sort_uniq String.compare (L.events lo @ L.events hi))
+        in
+        D.consistent lo_world hi_world lo hi
 
       let in_allowance = D.in_allowance
       let in_coverage = D.in_coverage
