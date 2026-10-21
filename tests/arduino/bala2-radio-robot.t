@@ -24,7 +24,7 @@ StopBalancing:
   [1]
   Typing error: Variable `starting` is unboxed with the unit grade `{0}` accumulated since it was bound, which is not below its box grade `{LatestTilt; ([0, 1) & ~(Move | ReceiveMessage))}`
   [1]
-  Typing error: Variable `calibrated` is unboxed with grade `{ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt; Beep; (ReceiveMessage; ReportStatus; !400)^[1, 500]; Move}` accumulated since it was bound, which is not below its box grade `{[1000, 600000] & ~Move}`
+  Typing error: Variable `calibrated` is unboxed with grade `{ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt; Beep?; (ReceiveMessage; ReportStatus; !400)^[1, 500]; Move}` accumulated since it was bound, which is not below its box grade `{[1000, 600000] & ~Move}`
   [1]
   Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage; StopBalancing?}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~ReceiveMessage}`
   [1]
@@ -57,7 +57,8 @@ first report, is calibrated at rest, held upright, beeps at 2 kHz when it
 waits for Start, is started once a poll finds Start, and stopped at the
 Stop; it then falls, so that the at-rest check
 fails and it shows "Hold still", until the user stands it up at 3.8 s and
-holds it still; it is calibrated anew, beeps, is started again and balances;
+holds it still; it is calibrated anew, beeps, the session before having
+received Start, is started again and balances;
 it shows "Link lost" and beeps at 880 Hz about 2 s after the last message,
 still balancing, and "Balancing" again when messages return. Its status, sent at
 each check at rest, at each failed check, twice in the hold, at each poll

@@ -3,7 +3,7 @@
 
 let session_stopped () =
   let calibrated = calibrate () in
-  hold ();
+  hold true;
   if wait_start () then (
     perform Move (0.0, 0.0);
     unbox calibrated as open_starting in

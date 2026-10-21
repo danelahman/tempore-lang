@@ -4,7 +4,7 @@
 
 let session_early () =
   let calibrated = calibrate () in
-  hold ();
+  hold true;
   unbox calibrated as open_starting in
   let starting = open_starting () in
   if wait_start () then (
