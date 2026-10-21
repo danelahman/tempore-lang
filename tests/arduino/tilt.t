@@ -95,26 +95,26 @@ right corner once the display has drawn over it:
   [34.800 ms] Display at (0, 2): Tilt display
   [35.800 ms] Display: Tilt (degrees)
   [36.800 ms] Display: 5.706
-  [39.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [40.818 ms] Display at (254, 0): Battery 87%
-  [321.000 ms] Display cleared
-  [324.800 ms] Display at (0, 2): Tilt display
-  [325.800 ms] Display: Tilt (degrees)
-  [326.800 ms] Display: 2.997
-  [329.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [330.818 ms] Display at (254, 0): Battery 87%
-  [611.000 ms] Display cleared
-  [614.800 ms] Display at (0, 2): Tilt display
-  [615.800 ms] Display: Tilt (degrees)
-  [616.800 ms] Display: -1.797
-  [619.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [620.818 ms] Display at (254, 0): Battery 87%
-  [901.000 ms] Display cleared
-  [904.800 ms] Display at (0, 2): Tilt display
-  [905.800 ms] Display: Tilt (degrees)
-  [906.800 ms] Display: -5.394
-  [909.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [910.818 ms] Display at (254, 0): Battery 87%
+  [38.768 ms] Display at (188, 231): Typechecked by Tempore
+  [40.026 ms] Display at (254, 0): Battery 87%
+  [320.000 ms] Display cleared
+  [323.800 ms] Display at (0, 2): Tilt display
+  [324.800 ms] Display: Tilt (degrees)
+  [325.800 ms] Display: 2.997
+  [327.768 ms] Display at (188, 231): Typechecked by Tempore
+  [329.026 ms] Display at (254, 0): Battery 87%
+  [609.000 ms] Display cleared
+  [612.800 ms] Display at (0, 2): Tilt display
+  [613.800 ms] Display: Tilt (degrees)
+  [614.800 ms] Display: -1.797
+  [616.768 ms] Display at (188, 231): Typechecked by Tempore
+  [618.026 ms] Display at (254, 0): Battery 87%
+  [898.000 ms] Display cleared
+  [901.800 ms] Display at (0, 2): Tilt display
+  [902.800 ms] Display: Tilt (degrees)
+  [903.800 ms] Display: -5.394
+  [905.768 ms] Display at (188, 231): Typechecked by Tempore
+  [907.026 ms] Display at (254, 0): Battery 87%
   [1000.000 ms] End of the simulation
   $ tempore --emit-arduino tilt --device $app/tilt.device.json --host-simulate 1 $app/tilt.tpe | grep -c 'Release step'
   50
@@ -149,12 +149,12 @@ warnings and the last of them in yellow above the footer every 500 ms:
   $ cd _arduino/projects/tilt_warn
   $ tighten && build && ./simulation 1600000 | grep 'Monitor\|(0, 218)'
   [34.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
-  [324.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
+  [323.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
   [503.140 ms] Display at (0, 218): Monitor: 2 warnings, last ShowTextAt 3.8 ms
-  [614.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
-  [904.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
+  [612.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
+  [901.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
   [1006.140 ms] Display at (0, 218): Monitor: 4 warnings, last ShowTextAt 3.8 ms
-  [1194.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
-  [1484.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
+  [1190.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
+  [1479.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
   [1509.140 ms] Display at (0, 218): Monitor: 6 warnings, last ShowTextAt 3.8 ms
   $ cd ../../..

@@ -40,7 +40,7 @@ vial:
   $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DESP_NOW_PEER=0x24,0x0a,0xc4,0x00,0x00,0x07 -DESP_NOW_KEY=000102030405060708090a0b0c0d0e0f -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ ./simulation 200000 | grep 'ESP-NOW: started\|(130, 160)'
   [88.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:07, encrypted (CCMP)
-  [138.020 ms] Display at (130, 160): Encrypted
+  [137.228 ms] Display at (130, 160): Encrypted
   $ cd ../../..
 
 The host simulation for 9 s, the packets sent shown when they change. The
@@ -75,50 +75,50 @@ An iteration redraws at most one band:
   [88.000 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:02, encrypted (CCMP)
   [119.000 ms] Display cleared
   [122.800 ms] Display at (0, 2): Robot remote
-  [125.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [129.260 ms] Display at (0, 32): Stopped
-  [131.980 ms] Display at (130, 68): Robot tilt
-  [135.320 ms] Display at (130, 95): 0.0
-  [138.020 ms] Display at (130, 160): Encrypted
-  [140.516 ms] Display fill at (0, 188), 156 by 40: 0x303030
-  [141.772 ms] Display at (48, 200): Start
-  [144.268 ms] Display fill at (164, 188), 156 by 40: 0x303030
-  [145.504 ms] Display at (218, 200): Stop
-  [145.904 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [146.762 ms] Display at (254, 0): Battery 87%
-  [147.038 ms] Display disc at (62, 122), radius 9: 0x404040
-  [160.718 ms] Display at (130, 130): Now tap Start
-  [1010.968 ms] Speaker: 1760 Hz for 60 ms
-  [1011.671 ms] ESP-NOW: sent tag 1, 0.000, 0.000
-  [2033.174 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [2036.914 ms] Display at (0, 32): Balancing
-  [2050.937 ms] Display at (130, 130): 
-  [2062.817 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [2077.660 ms] Display at (130, 95): 2.5
-  [2204.193 ms] ESP-NOW: sent tag 2, -240.000, 0.000
-  [2204.570 ms] Display disc at (62, 89), radius 9: 0x00c000
-  [3009.780 ms] ESP-NOW: sent tag 2, 80.000, -40.000
-  [3010.157 ms] Display disc at (89, 142), radius 9: 0x00c000
-  [3504.786 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [3516.666 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [3850.253 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [3853.953 ms] Display at (0, 32): No link
-  [3877.336 ms] Display disc at (62, 122), radius 9: 0x808080
-  [4222.426 ms] ESP-NOW: sent tag 2, 0.000, 0.000
-  [4226.166 ms] Display at (0, 32): Balancing
-  [4238.046 ms] Display disc at (62, 122), radius 9: 0x00c000
-  [4252.889 ms] Display at (130, 95): 1.5
-  [4609.532 ms] Speaker: 880 Hz for 60 ms
-  [4609.632 ms] ESP-NOW: sent tag 3, 0.000, 0.000
-  [4865.232 ms] Display at (0, 32): Stopped
-  [4865.632 ms] ESP-NOW: sent tag 4, 0.000, 0.000
-  [4866.009 ms] Display disc at (62, 122), radius 9: 0x404040
-  [4879.609 ms] Display at (130, 130): Balancing
-  [4915.069 ms] Display at (130, 130): Hold upright
-  [5615.389 ms] Display at (130, 130): Hold still
-  [6315.749 ms] Display at (130, 130): Hold upright
-  [7016.129 ms] Display at (130, 130): Now tap Start
-  [8621.249 ms] Display at (130, 130): Switch robot on
+  [124.768 ms] Display at (188, 231): Typechecked by Tempore
+  [128.468 ms] Display at (0, 32): Stopped
+  [131.188 ms] Display at (130, 68): Robot tilt
+  [134.528 ms] Display at (130, 95): 0.0
+  [137.228 ms] Display at (130, 160): Encrypted
+  [139.724 ms] Display fill at (0, 188), 156 by 40: 0x303030
+  [140.980 ms] Display at (48, 200): Start
+  [143.476 ms] Display fill at (164, 188), 156 by 40: 0x303030
+  [144.712 ms] Display at (218, 200): Stop
+  [145.112 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [145.970 ms] Display at (254, 0): Battery 87%
+  [146.246 ms] Display disc at (62, 122), radius 9: 0x404040
+  [159.926 ms] Display at (130, 130): Now tap Start
+  [1010.176 ms] Speaker: 1760 Hz for 60 ms
+  [1010.879 ms] ESP-NOW: sent tag 1, 0.000, 0.000
+  [2032.382 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [2036.122 ms] Display at (0, 32): Balancing
+  [2050.145 ms] Display at (130, 130): 
+  [2062.025 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [2076.868 ms] Display at (130, 95): 2.5
+  [2203.401 ms] ESP-NOW: sent tag 2, -240.000, 0.000
+  [2203.778 ms] Display disc at (62, 89), radius 9: 0x00c000
+  [3008.988 ms] ESP-NOW: sent tag 2, 80.000, -40.000
+  [3009.365 ms] Display disc at (89, 142), radius 9: 0x00c000
+  [3503.994 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [3515.874 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [3849.461 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [3853.161 ms] Display at (0, 32): No link
+  [3876.544 ms] Display disc at (62, 122), radius 9: 0x808080
+  [4221.634 ms] ESP-NOW: sent tag 2, 0.000, 0.000
+  [4225.374 ms] Display at (0, 32): Balancing
+  [4237.254 ms] Display disc at (62, 122), radius 9: 0x00c000
+  [4252.097 ms] Display at (130, 95): 1.5
+  [4608.740 ms] Speaker: 880 Hz for 60 ms
+  [4608.840 ms] ESP-NOW: sent tag 3, 0.000, 0.000
+  [4864.440 ms] Display at (0, 32): Stopped
+  [4864.840 ms] ESP-NOW: sent tag 4, 0.000, 0.000
+  [4865.217 ms] Display disc at (62, 122), radius 9: 0x404040
+  [4878.817 ms] Display at (130, 130): Balancing
+  [4914.277 ms] Display at (130, 130): Hold upright
+  [5614.597 ms] Display at (130, 130): Hold still
+  [6314.957 ms] Display at (130, 130): Hold upright
+  [7015.337 ms] Display at (130, 130): Now tap Start
+  [8620.457 ms] Display at (130, 130): Switch robot on
 
 The packets are sent at most 50 ms apart, here 10.9 to 16.6 ms, Start 81
 times and Stop 20 times:

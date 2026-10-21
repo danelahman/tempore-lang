@@ -151,7 +151,7 @@ let show () =
   perform ShowText "Tilt (degrees)";
   unbox fresh as shown in
   perform ShowNumber shown;
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore");
   delay 250
 
 run step (start ())

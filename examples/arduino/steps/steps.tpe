@@ -346,7 +346,7 @@ let screen (steps : nat) =
   perform ShowTextAt (0, 134, 1, "Acceleration, 0 to 2 g; thresholds");
   show_calibrate false;
   show_reset false;
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore")
 
 (* The bands to redraw after the state before changes to after: the state,
    the cadence and the distance where it changes. *)

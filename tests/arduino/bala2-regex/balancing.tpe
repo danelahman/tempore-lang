@@ -6,7 +6,7 @@ let measure_bias_balancing () : float
        (LatestTilt; 10)*} =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Balancing robot with regexes");
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore");
   perform ShowText "Calibrating";
   let sum = rate_sum 50 0.0 in
   sum /. 50.0

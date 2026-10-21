@@ -149,11 +149,11 @@ new rate after each, rejected by its check during the shaking at about
   $ tempore --emit-arduino level --device $app/level.device.json --host-simulate 10 $app/level.tpe |
   >   grep 'Display disc\|Display at (\(130, 123\|0, 152\|0, 174\|157, 200\))\|Speaker\|accelerometer\|simulation' | changes
   [49.003 ms] Display at (157, 200): Sensor 100->400Hz
-  [51.963 ms] IMU: accelerometer at 100 Hz
-  [53.256 ms] Display disc at (55, 82), radius 8: 0x808080
-  [61.536 ms] Display at (130, 123):
-  [65.616 ms] Display at (0, 152): No reference: place on the
-  [69.696 ms] Display at (0, 174): surface, tap Set reference
+  [51.171 ms] IMU: accelerometer at 100 Hz
+  [52.464 ms] Display disc at (55, 82), radius 8: 0x808080
+  [60.744 ms] Display at (130, 123):
+  [64.824 ms] Display at (0, 152): No reference: place on the
+  [68.904 ms] Display at (0, 174): surface, tap Set reference
   [1064.003 ms] Display at (0, 152): Hold still...
   [1067.563 ms] Display at (0, 174):
   [2353.068 ms] Speaker: 2000 Hz for 100 ms

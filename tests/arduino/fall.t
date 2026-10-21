@@ -101,58 +101,58 @@ watch, in green, shows the falls counted:
 
   $ tempore --emit-arduino fall --device $app/fall.device.json --host-simulate 35 $app/fall.tpe > run.log
   $ grep 'Display at (\(9, 47\|6, 78\|0, 10[24]\))\|Display at (160\|Display fill at (0, 44)\|simulation' run.log | sed 's/ *$//'
-  [44.680 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [45.840 ms] Display at (9, 47): Watching
-  [49.580 ms] Display at (6, 78): for falls
-  [53.240 ms] Display at (0, 102): Falls
-  [55.540 ms] Display at (160, 102): 0
-  [2354.428 ms] Display fill at (0, 44), 320 by 30: 0xff8000
-  [2355.648 ms] Display at (9, 47): Are you OK?
-  [2359.468 ms] Display at (6, 78): Tap to cancel
-  [2366.886 ms] Display at (0, 104): 10
-  [3381.074 ms] Display at (0, 104): 9
-  [4395.261 ms] Display at (0, 104): 8
-  [5409.448 ms] Display at (0, 104): 7
-  [6423.635 ms] Display at (0, 104): 6
-  [7437.822 ms] Display at (0, 104): 5
-  [8452.010 ms] Display at (0, 104): 4
-  [9466.197 ms] Display at (0, 104): 3
-  [10480.384 ms] Display at (0, 104): 2
-  [11494.571 ms] Display at (0, 104): 1
-  [12547.298 ms] Display fill at (0, 44), 320 by 30: 0xe00000
-  [12548.398 ms] Display at (9, 47): ALARM
-  [12552.178 ms] Display at (6, 78): Tap to stop
-  [12555.938 ms] Display at (0, 102): Impact (g)
-  [12558.278 ms] Display at (160, 102): 3.5
-  [12564.458 ms] Display at (160, 124): 0.05
-  [13578.288 ms] Display fill at (0, 44), 320 by 30: 0xffffff
-  [13579.388 ms] Display at (9, 47): ALARM
-  [14593.218 ms] Display fill at (0, 44), 320 by 30: 0xe00000
-  [14594.318 ms] Display at (9, 47): ALARM
-  [15608.148 ms] Display fill at (0, 44), 320 by 30: 0xffffff
-  [15609.248 ms] Display at (9, 47): ALARM
-  [16623.228 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [16624.488 ms] Display at (9, 47): Alarm stopped
-  [16628.048 ms] Display at (6, 78):
-  [18672.728 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [18673.888 ms] Display at (9, 47): Watching
-  [18677.628 ms] Display at (6, 78): for falls
-  [18681.288 ms] Display at (0, 102): Falls
-  [18683.588 ms] Display at (160, 102): 1
-  [25355.332 ms] Display fill at (0, 44), 320 by 30: 0xff8000
-  [25356.552 ms] Display at (9, 47): Are you OK?
-  [25360.372 ms] Display at (6, 78): Tap to cancel
-  [25367.790 ms] Display at (0, 104): 10
-  [26381.978 ms] Display at (0, 104): 9
-  [27396.165 ms] Display at (0, 104): 8
-  [28408.202 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [28409.382 ms] Display at (9, 47): Cancelled
-  [28413.222 ms] Display at (6, 78): Glad you're OK
-  [30457.902 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [30459.062 ms] Display at (9, 47): Watching
-  [30462.802 ms] Display at (6, 78): for falls
-  [30466.462 ms] Display at (0, 102): Falls
-  [30468.762 ms] Display at (160, 102): 2
+  [43.888 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [45.048 ms] Display at (9, 47): Watching
+  [48.788 ms] Display at (6, 78): for falls
+  [52.448 ms] Display at (0, 102): Falls
+  [54.748 ms] Display at (160, 102): 0
+  [2352.844 ms] Display fill at (0, 44), 320 by 30: 0xff8000
+  [2354.064 ms] Display at (9, 47): Are you OK?
+  [2357.884 ms] Display at (6, 78): Tap to cancel
+  [2365.302 ms] Display at (0, 104): 10
+  [3379.490 ms] Display at (0, 104): 9
+  [4393.677 ms] Display at (0, 104): 8
+  [5407.864 ms] Display at (0, 104): 7
+  [6422.051 ms] Display at (0, 104): 6
+  [7436.238 ms] Display at (0, 104): 5
+  [8450.426 ms] Display at (0, 104): 4
+  [9464.613 ms] Display at (0, 104): 3
+  [10478.800 ms] Display at (0, 104): 2
+  [11492.987 ms] Display at (0, 104): 1
+  [12544.922 ms] Display fill at (0, 44), 320 by 30: 0xe00000
+  [12546.022 ms] Display at (9, 47): ALARM
+  [12549.802 ms] Display at (6, 78): Tap to stop
+  [12553.562 ms] Display at (0, 102): Impact (g)
+  [12555.902 ms] Display at (160, 102): 3.5
+  [12562.082 ms] Display at (160, 124): 0.05
+  [13575.912 ms] Display fill at (0, 44), 320 by 30: 0xffffff
+  [13577.012 ms] Display at (9, 47): ALARM
+  [14590.842 ms] Display fill at (0, 44), 320 by 30: 0xe00000
+  [14591.942 ms] Display at (9, 47): ALARM
+  [15605.772 ms] Display fill at (0, 44), 320 by 30: 0xffffff
+  [15606.872 ms] Display at (9, 47): ALARM
+  [16620.852 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [16622.112 ms] Display at (9, 47): Alarm stopped
+  [16625.672 ms] Display at (6, 78):
+  [18669.560 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [18670.720 ms] Display at (9, 47): Watching
+  [18674.460 ms] Display at (6, 78): for falls
+  [18678.120 ms] Display at (0, 102): Falls
+  [18680.420 ms] Display at (160, 102): 1
+  [25351.372 ms] Display fill at (0, 44), 320 by 30: 0xff8000
+  [25352.592 ms] Display at (9, 47): Are you OK?
+  [25356.412 ms] Display at (6, 78): Tap to cancel
+  [25363.830 ms] Display at (0, 104): 10
+  [26378.018 ms] Display at (0, 104): 9
+  [27392.205 ms] Display at (0, 104): 8
+  [28404.242 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [28405.422 ms] Display at (9, 47): Cancelled
+  [28409.262 ms] Display at (6, 78): Glad you're OK
+  [30453.150 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [30454.310 ms] Display at (9, 47): Watching
+  [30458.050 ms] Display at (6, 78): for falls
+  [30461.710 ms] Display at (0, 102): Falls
+  [30464.010 ms] Display at (160, 102): 2
   [35000.000 ms] End of the simulation
 The alarm sounds four tones, and a tone of 1500 Hz acknowledges each of the
 two taps; the time since the last event is redrawn every hundred readings,
@@ -164,9 +164,9 @@ every second:
   $ grep -c 'Speaker: 1500 Hz' run.log
   2
   $ grep 'Since last event' run.log | sed -n '1,3p'
-  [59.520 ms] Display at (0, 148): Since last event 0:00
-  [1137.645 ms] Display at (0, 148): Since last event 0:01
-  [18687.568 ms] Display at (0, 148): Since last event 0:00
+  [58.728 ms] Display at (0, 148): Since last event 0:00
+  [1136.853 ms] Display at (0, 148): Since last event 0:01
+  [18684.400 ms] Display at (0, 148): Since last event 0:00
   $ grep -c 'Display fill at (0, 1\(72\|80\))' run.log
   132
 
@@ -174,4 +174,4 @@ The scaffold draws the battery indicator in the top right corner after each
 drawing over it; the first time after the screen of the watch:
 
   $ grep -m 1 'Battery' run.log
-  [63.498 ms] Display at (254, 0): Battery 87%
+  [62.706 ms] Display at (254, 0): Battery 87%

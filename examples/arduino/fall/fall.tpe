@@ -162,7 +162,7 @@ let frame () =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Fall detector");
   perform ShowTextAt (0, 24, 1, "Alarm only 10-30 s after a fall, after asking you");
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore")
 
 (* A second of the countdown: the seconds left, large, a bar of their
    length, and twenty polls: 1000.05 to 1095 ms. *)

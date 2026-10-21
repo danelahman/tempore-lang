@@ -435,7 +435,7 @@ let frame () =
   perform ShowTextAt (0, 0, 2, "Sprint start system");
   perform ShowTextAt
     (0, 20, 1, "Gun 1.5-3 s after Set; judged within 1 s of the gun");
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore")
 
 (* The tally and the athlete on the screen, in four rows from the row 100,
    22 pixels apart, and the buttons, a label first and at most 495 ms in
