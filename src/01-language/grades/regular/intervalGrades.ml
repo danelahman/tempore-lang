@@ -171,7 +171,12 @@ module Make (D : DELAYS) (N : NAMES) = struct
       else E.stretch Ops.empty (I.Finite (q, true))
 
     let events = E.names
-    let inhabited bounds r = C.inhabited (compared (no_time bounds) [ r ]) r
+
+    (* An end alone is decided with every operation taking no time. *)
+    let vacuous bounds r =
+      unless_inhabited (C.inhabited (compared (no_time bounds) [ r ]) r)
+
+    let inhabited bounds r = inhabited_of vacuous bounds r
 
     let min_weight bounds r =
       C.min_weight (world ~lower:true bounds [ E.names r ]) r
@@ -295,10 +300,34 @@ module Make (D : DELAYS) (N : NAMES) = struct
 
     let hash (l, u) = Hashing.combine (Lower.hash l) (Upper.hash u)
 
+    (* [joint_vacuous bounds (l, u)] is the reason no run meets both ends [l]
+       and [u], each of which has a word, at the running times of [bounds]
+       ({!Grade.no_common_run}). The condition is not decided: every such pair
+       is accepted. *)
+    let joint_vacuous _bounds (_l, _u) = None
+
+    let vacuous bounds (l, u) =
+      match Lower.vacuous bounds l with
+      | Some _ as reason -> reason
+      | None -> (
+          match Upper.vacuous bounds u with
+          | Some _ as reason -> reason
+          | None -> joint_vacuous bounds (l, u))
+
+    let inhabited bounds rho = inhabited_of vacuous bounds rho
+
+    (* The pair of a witness in one end with the other end of the lesser
+       grade, if some run meets both its ends, and the lesser grade
+       otherwise. *)
     let counterexample bounds (l, u) (l', u') =
-      match Lower.counterexample bounds l l' with
-      | Some e -> Some (e, u)
-      | None -> Option.map (fun e -> (l, e)) (Upper.counterexample bounds u u')
+      let consistent e =
+        if Option.is_none (joint_vacuous bounds e) then e else (l, u)
+      in
+      Option.map consistent
+        (match Lower.counterexample bounds l l' with
+        | Some e -> Some (e, u)
+        | None ->
+            Option.map (fun e -> (l, e)) (Upper.counterexample bounds u u'))
 
     let unit_least = false
     let plus _ = None
@@ -308,9 +337,6 @@ module Make (D : DELAYS) (N : NAMES) = struct
 
     let duration_bounds bounds (l, u) =
       to_durations (Lower.min_weight bounds l) (Upper.max_weight bounds u)
-
-    let inhabited bounds (l, u) =
-      Lower.inhabited bounds l && Upper.inhabited bounds u
 
     let events (l, u) =
       List.sort_uniq String.compare (Lower.events l @ Upper.events u)

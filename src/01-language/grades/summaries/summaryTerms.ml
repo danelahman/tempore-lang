@@ -148,7 +148,11 @@ module Make (S : SUMMARY) = struct
         (S.counterexample (evaluate bounds c) (evaluate bounds d))
 
   let duration_bounds bounds c = S.duration (evaluate bounds c)
-  let inhabited bounds c = S.inhabited (evaluate bounds c)
+
+  let vacuous bounds c =
+    Grade.unless_inhabited (S.inhabited (evaluate bounds c))
+
+  let inhabited bounds c = Grade.inhabited_of vacuous bounds c
 
   let events c =
     let rec go acc c =

@@ -63,7 +63,8 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let duration_ends = Grade.Both_ends
     let events _ = []
     let duration_bounds _bounds n = Some (Closed (D.to_rational n), Unbounded)
-    let inhabited _bounds _ = true
+    let vacuous _bounds _ = None
+    let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
 
     let of_lit = function
       | Top -> top
@@ -107,7 +108,8 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
       | Ext.Fin n -> Some (Closed Rational.zero, Closed (D.to_rational n))
       | Ext.Inf -> Some (Closed Rational.zero, Unbounded)
 
-    let inhabited _bounds _ = true
+    let vacuous _bounds _ = None
+    let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
 
     let of_lit = function
       | Top | Inf -> top
@@ -220,7 +222,8 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
           | Ext.Fin m -> at c.hi_closed (D.to_rational m)
           | Ext.Inf -> Unbounded )
 
-    let inhabited _bounds _ = true
+    let vacuous _bounds _ = None
+    let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
 
     (** [interval lit lo hi] is the interval of the literal [lit] from [lo] to
         [hi], each a delay or [∞] with a flag for whether it is contained, and

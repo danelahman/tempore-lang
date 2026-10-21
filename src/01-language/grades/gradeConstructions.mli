@@ -67,7 +67,8 @@ module OfLattice (D : Delay.S) (L : LATTICE) :
     - [duration_bounds] is the intersection of the intervals of durations of the
       components ({!Grade.intersect_durations}), and is [None] only if neither
       determines one;
-    - [inhabited] holds iff it holds for both components;
+    - [vacuous] is the reason of the first component, or else that of the
+      second, and [inhabited] holds iff it holds for both components;
     - [events] are the events of either component;
     - [is_atomic name] and [is_top bounds] hold iff they hold for both
       components;
@@ -153,10 +154,10 @@ end
     The unit is least iff it is in [M], and [mul] is not taken to commute.
 
     The remaining fields are those of [M] on the first component:
-    [needs_op_bounds], [duration_bounds], [inhabited], [events] and [is_atomic];
-    [counterexample] pairs a witness in [M] with the second component of the
-    lesser grade, or else is the lesser grade itself if the order fails in the
-    second component.
+    [needs_op_bounds], [duration_bounds], [vacuous], [inhabited], [events] and
+    [is_atomic]; [counterexample] pairs a witness in [M] with the second
+    component of the lesser grade, or else is the lesser grade itself if the
+    order fails in the second component.
 
     The name is [M.name ^ "⋉" ^ N.name], and [leq_symbol] is [<=] if it is that
     of [M] and [≾] otherwise. [equal] and [is_top] are decided componentwise,
@@ -286,13 +287,13 @@ module Indexed : sig
   (** The maps to a grade [G], over its delays, with every operation pointwise
       and the default the unit: [one], [top] and [of_delay d] give every name
       those of [G], [mul], [join], [leq] and [equal] are taken name by name, and
-      [is_top], [inhabited] and [is_atomic] hold iff they hold at every name.
-      The unit is least and [mul] commutes iff they do so in [G];
-      [needs_op_bounds] is that of [G], [duration_bounds] is [None] and [events]
-      are those of every name. [counterexample] gives the lesser map, at the
-      first name where [G] offers one, the witness of [G] there. The witnesses
-      are described above, complete iff those of [G] are. The name is
-      ["G.name by name"]. *)
+      [is_top], [inhabited] and [is_atomic] hold iff they hold at every name,
+      and [vacuous] is the first reason of a name, the default first. The unit
+      is least and [mul] commutes iff they do so in [G]; [needs_op_bounds] is
+      that of [G], [duration_bounds] is [None] and [events] are those of every
+      name. [counterexample] gives the lesser map, at the first name where [G]
+      offers one, the witness of [G] there. The witnesses are described above,
+      complete iff those of [G] are. The name is ["G.name by name"]. *)
   module OfGrade (G : Grade.S) :
     Grade.S with type t = G.t t and type Delay.t = G.Delay.t
 end

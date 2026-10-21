@@ -154,7 +154,8 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let duration_bounds bounds p =
       trace_duration_bounds bounds p (Sets.Within p)
 
-    let inhabited _bounds _ = true
+    let vacuous _bounds _ = None
+    let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
     let of_delay = Trace.of_delay
     let of_bounds b = Trace.of_delay (fst (hull b))
     let is_atomic name p = Trace.equal p (atomic_traces name)
@@ -199,7 +200,8 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
       | Within p -> trace_duration_bounds bounds p (Within p)
       | Unbounded -> Some (Closed Rational.zero, Unbounded)
 
-    let inhabited _bounds _ = true
+    let vacuous _bounds _ = None
+    let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
     let of_delay d = Within (Trace.of_delay d)
     let of_bounds b = Within (Trace.of_delay (snd (hull b)))
     let is_atomic name p = compare p (Within (atomic_traces name)) = 0
@@ -250,7 +252,13 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
       List.sort_uniq String.compare (Trace.events lo @ UpperTraces.events hi)
 
     let duration_bounds bounds (lo, hi) = trace_duration_bounds bounds lo hi
-    let inhabited _bounds _ = true
+
+    (* [joint_vacuous bounds (lo, hi)] is the reason no run meets both ends
+       [lo] and [hi] ({!Grade.no_common_run}). The condition is not decided:
+       every pair is accepted. *)
+    let joint_vacuous _bounds (_lo, _hi) = None
+    let vacuous bounds rho = joint_vacuous bounds rho
+    let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
 
     (** [diagonal lit] is the pair of the set of traces [lit] denotes with
         itself. *)

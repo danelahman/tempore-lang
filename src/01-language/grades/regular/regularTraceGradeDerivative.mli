@@ -93,6 +93,7 @@ module Constants : sig
     'a ->
     (Rational.t Grade.bound * Rational.t Grade.bound) option
 
+  val vacuous : Grade.bounds -> 'a -> string option
   val inhabited : Grade.bounds -> 'a -> bool
 end
 

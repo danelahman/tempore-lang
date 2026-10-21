@@ -113,7 +113,8 @@ struct
     let needs_op_bounds = true
     let duration_ends = Grade.Both_ends
     let duration_bounds bounds rho = duration_bounds bounds rho rho
-    let inhabited = W.inhabited
+    let vacuous bounds rho = unless_inhabited (W.inhabited bounds rho)
+    let inhabited bounds rho = inhabited_of vacuous bounds rho
     let events = L.events
     let compare = L.compare
     let hash = L.hash
@@ -188,11 +189,33 @@ struct
 
     let hash (lo, hi) = Hashing.combine (L.hash lo) (L.hash hi)
 
+    (* [joint_vacuous bounds (lo, hi)] is the reason no run meets both ends
+       [lo] and [hi], each of which has a trace ({!Grade.no_common_run}). The
+       condition is not decided: every such pair is accepted. *)
+    let joint_vacuous _bounds (_lo, _hi) = None
+
+    let vacuous bounds (lo, hi) =
+      match Common.vacuous bounds lo with
+      | Some _ as reason -> reason
+      | None -> (
+          match Common.vacuous bounds hi with
+          | Some _ as reason -> reason
+          | None -> joint_vacuous bounds (lo, hi))
+
+    let inhabited bounds rho = inhabited_of vacuous bounds rho
+
+    (* The pair of a witness in one end with the other end of the lesser
+       grade, if some run meets both its ends, and the lesser grade
+       otherwise. *)
     let counterexample bounds (lo, hi) (lo', hi') =
-      match Lower.counterexample bounds lo lo' with
-      | Some e -> Some (e, hi)
-      | None ->
-          Option.map (fun e -> (lo, e)) (Upper.counterexample bounds hi hi')
+      let consistent e =
+        if Option.is_none (joint_vacuous bounds e) then e else (lo, hi)
+      in
+      Option.map consistent
+        (match Lower.counterexample bounds lo lo' with
+        | Some e -> Some (e, hi)
+        | None ->
+            Option.map (fun e -> (lo, e)) (Upper.counterexample bounds hi hi'))
 
     let unit_least = false
     let plus _ = None
@@ -200,9 +223,6 @@ struct
     let needs_op_bounds = true
     let duration_ends = Grade.Both_ends
     let duration_bounds bounds (lo, hi) = duration_bounds bounds lo hi
-
-    let inhabited bounds (lo, hi) =
-      W.inhabited bounds lo && W.inhabited bounds hi
 
     let events (lo, hi) =
       List.sort_uniq String.compare (Common.events lo @ Common.events hi)

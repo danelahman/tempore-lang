@@ -34,9 +34,9 @@
     the operations the program declares, over which their catch-all letter
     ranges: all of them, before or after the grade, so that a grade means the
     same throughout a program. The operations that depend on the order, [leq],
-    [equal], [counterexample], [duration_bounds] and [inhabited], take both as
-    an argument of type {!bounds}; the other grades ignore it. Running-time
-    bounds are kept as the non-negative rationals the source writes
+    [equal], [counterexample], [duration_bounds], [vacuous] and [inhabited],
+    take both as an argument of type {!bounds}; the other grades ignore it.
+    Running-time bounds are kept as the non-negative rationals the source writes
     ({!type-running_time}), and each grade reads them as its delays
     ({!read_bound}).
 
@@ -114,6 +114,22 @@ type bounds = {
           bounds. *)
 }
 (** The running times of the operations of a program. *)
+
+val no_trace : string
+(** The reason a grade admits no run when a grade, or one end of an interval,
+    denotes no trace of the declared operations ({!S.vacuous}). *)
+
+val no_common_run : string option -> string
+(** [no_common_run reason] is the reason an interval admits no run when each of
+    its ends denotes a trace but no run meets both, followed by [reason] where
+    one is given ({!S.vacuous}). *)
+
+val unless_inhabited : bool -> string option
+(** [unless_inhabited b] is no reason if [b] holds and {!no_trace} otherwise. *)
+
+val inhabited_of : (bounds -> 'a -> string option) -> bounds -> 'a -> bool
+(** [inhabited_of vacuous bounds rho] is whether [vacuous bounds rho] gives no
+    reason ({!S.inhabited}). *)
 
 (** Whether a list of witnesses decides the conditions it is given for
     ({!S.witnesses}). *)
@@ -225,11 +241,18 @@ module type S = sig
       ({!intersect_durations}). It is [None] for the grades that do not bound
       durations. *)
 
+  val vacuous : bounds -> t -> string option
+  (** [vacuous bounds rho] is the reason the grade [rho] admits no run of the
+      operations of [bounds], completing the sentence "the grade [rho] ...":
+      {!no_trace} if it, or one end of an interval, denotes no trace, and
+      {!no_common_run} if no run meets both ends of an interval. It is [None] if
+      [rho] admits a run; the typechecker rejects the grades of a program for
+      which it gives a reason. It is [None] for every grade whose meaning does
+      not depend on the declared operations. *)
+
   val inhabited : bounds -> t -> bool
-  (** [inhabited bounds rho] is whether the grade [rho] denotes at least one
-      trace of the operations of [bounds]; the typechecker rejects the grades of
-      a program that do not. It holds of every grade whose meaning does not
-      depend on the declared operations. *)
+  (** [inhabited bounds rho] is whether the grade [rho] admits at least one run
+      of the operations of [bounds], [inhabited_of vacuous bounds rho]. *)
 
   val events : t -> string list
   (** The operation names mentioned by a grade; empty for the time grades. *)

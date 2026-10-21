@@ -174,6 +174,9 @@ module Make (S : SUMMARY) : sig
   val duration_bounds : Grade.bounds -> t -> DurationIntervals.t option
   (** The {!SUMMARY.duration} of the evaluation. *)
 
+  val vacuous : Grade.bounds -> t -> string option
+  (** {!Grade.no_trace} unless the evaluation is {!SUMMARY.inhabited}. *)
+
   val inhabited : Grade.bounds -> t -> bool
   (** The {!SUMMARY.inhabited} of the evaluation. *)
 

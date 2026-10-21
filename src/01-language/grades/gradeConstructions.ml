@@ -40,7 +40,8 @@ module OfLattice (D : Delay.S) (L : LATTICE) = struct
   let needs_op_bounds = false
   let duration_ends = Grade.Both_ends
   let duration_bounds _bounds _ = None
-  let inhabited _bounds _ = true
+  let vacuous _bounds _ = None
+  let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
   let events _ = []
   let of_lit = function Grade.Top -> L.top | lit -> L.of_lit lit
   let accepts = Grade.reads_lit of_lit
@@ -97,7 +98,12 @@ struct
       (G1.duration_bounds bounds a)
       (G2.duration_bounds bounds b)
 
-  let inhabited bounds (a, b) = G1.inhabited bounds a && G2.inhabited bounds b
+  let vacuous bounds (a, b) =
+    match G1.vacuous bounds a with
+    | Some _ as reason -> reason
+    | None -> G2.vacuous bounds b
+
+  let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
   let events (a, b) = List.sort_uniq String.compare (G1.events a @ G2.events b)
 
   let of_lit = function
@@ -206,7 +212,8 @@ struct
   let needs_op_bounds = M.needs_op_bounds
   let duration_ends = M.duration_ends
   let duration_bounds bounds (m, _) = M.duration_bounds bounds m
-  let inhabited bounds (m, _) = M.inhabited bounds m
+  let vacuous bounds (m, _) = M.vacuous bounds m
+  let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
   let events (m, _) = M.events m
 
   (* A literal of the first component, a pair of literals of the components,
@@ -491,7 +498,11 @@ module Indexed = struct
     let needs_op_bounds = G.needs_op_bounds
     let duration_ends = G.duration_ends
     let duration_bounds _bounds _ = None
-    let inhabited bounds = for_all (G.inhabited bounds)
+
+    let vacuous bounds m =
+      List.find_map (G.vacuous bounds) (m.others :: List.map snd m.named)
+
+    let inhabited bounds m = Grade.inhabited_of vacuous bounds m
 
     let events m =
       List.sort_uniq String.compare

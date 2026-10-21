@@ -77,7 +77,8 @@ module Durations = struct
   let needs_op_bounds = false
   let duration_ends = Grade.Both_ends
   let duration_bounds _bounds _ = None
-  let inhabited _bounds _ = true
+  let vacuous _bounds _ = None
+  let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
   let events _ = []
 
   (** [of_interval ~interval ~from lit lo hi] is the set of the durations in the
