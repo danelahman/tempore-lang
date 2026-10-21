@@ -261,3 +261,114 @@ let rec show = function
   | Alt es -> "(" ^ String.concat " | " (List.map show es) ^ ")"
   | Rep (e, m, n) ->
       show e ^ "^[" ^ string_of_int m ^ ", " ^ string_of_int n ^ "]"
+
+(* {1 Run consistency}
+
+   An interval [[x, y]] of a lower bound [x] and an upper bound [y] is
+   consistent iff some run fits a word of each. A run is a sequence of
+   operations, each with a running time within its interval, and strict
+   waits; it is enumerated on a grid of [k] units per base unit, [k] above
+   the number of the letters of the two words, up to a horizon: the greatest
+   duration of the upper bound where it is bounded, and above the sum of the
+   constants of both expressions otherwise, with at most as many operations
+   as the two words have together. *)
+
+(* [constants e] is the sum of the finite ends of the letters of [e], each
+   repetition counted at its greatest count, and the number of operation
+   letters on the way. *)
+let rec constants ~running_time = function
+  | Eps | Empty -> 0
+  | Letter (Op names) ->
+      List.fold_left
+        (fun acc n ->
+          let iv : interval = running_time n in
+          max acc (match iv.hi with Some h -> h | None -> iv.lo))
+        0 names
+  | Letter (Stretch (_, iv)) -> (
+      match iv.hi with Some h -> max h iv.lo | None -> iv.lo)
+  | Seq es | Alt es ->
+      List.fold_left (fun acc e -> acc + constants ~running_time e) 0 es
+  | Rep (e, _, n) -> n * constants ~running_time e
+
+let operations skeleton =
+  List.length (List.filter (function Op _ -> true | _ -> false) skeleton)
+
+let names skeletons =
+  List.sort_uniq String.compare
+    (List.concat_map
+       (List.concat_map (function Op names -> names | Stretch _ -> []))
+       skeletons)
+
+(* [runs ~running_time ~k ~names ~operations ~horizon] is the runs of at most
+   [operations] operations of [names], of duration at most [horizon] units,
+   their waits merged, as a sequence. *)
+let runs ~running_time ~k ~names ~operations ~horizon =
+  let times name =
+    let iv : interval = running_time name in
+    let top = match iv.hi with Some h -> h * k | None -> horizon in
+    List.filter
+      (fun t ->
+        t > 0
+        && (t > iv.lo * k || not iv.lo_open)
+        && (t < top || not (iv.hi_open && iv.hi <> None)))
+      (List.init (top - (iv.lo * k) + 1) (fun i -> (iv.lo * k) + i))
+  in
+  let rec after_wait left ops =
+    Seq.cons []
+      (if ops = 0 then Seq.empty
+       else
+         Seq.flat_map
+           (fun name ->
+             Seq.flat_map
+               (fun t ->
+                 if t > left then Seq.empty
+                 else
+                   Seq.map
+                     (fun rest -> IOp (name, t) :: rest)
+                     (from (left - t) (ops - 1)))
+               (List.to_seq (times name)))
+           (List.to_seq names))
+  and from left ops =
+    Seq.flat_map
+      (fun w ->
+        Seq.map
+          (fun rest -> if w = 0 then rest else IWait w :: rest)
+          (after_wait (left - w) ops))
+      (Seq.init (left + 1) Fun.id)
+  in
+  from horizon operations
+
+(* [consistent ?dense ~running_time x y] is whether some run on the grid fits
+   a word of [x] and a word of [y]: over whole steps, the grid of the base
+   unit unless [dense]. *)
+let consistent ?(dense = true) ~running_time x y =
+  let xs = skeletons x and ys = skeletons y in
+  let longest ws = List.fold_left (fun a w -> max a (List.length w)) 0 ws in
+  let most ws = List.fold_left (fun a w -> max a (operations w)) 0 ws in
+  let k = if dense then longest xs + longest ys + 1 else 1 in
+  let bounded =
+    List.for_all
+      (List.for_all (function
+        | Stretch (_, { hi = None; _ }) -> false
+        | Stretch _ -> true
+        | Op names ->
+            List.for_all (fun n -> (running_time n : interval).hi <> None) names))
+      ys
+  in
+  let horizon =
+    if bounded then k * constants ~running_time y
+    else k * (constants ~running_time x + constants ~running_time y + 1)
+  in
+  let px = List.map (List.map (piece ~k)) xs
+  and py = List.map (List.map (piece ~k)) ys in
+  Seq.exists
+    (fun r -> List.exists (fits r) px && List.exists (fits r) py)
+    (runs ~running_time ~k
+       ~names:(names (xs @ ys))
+       ~operations:(most xs + most ys)
+       ~horizon)
+
+(* [admits ~k x r] is whether the run [r], its lengths in units of [1/k],
+   fits a word of [x]. *)
+let admits ~k x r =
+  List.exists (fits r) (List.map (List.map (piece ~k)) (skeletons x))

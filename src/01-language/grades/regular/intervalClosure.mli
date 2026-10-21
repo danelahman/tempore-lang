@@ -35,12 +35,31 @@ val world : (string * cut) list -> world
     with its set. *)
 type concrete = Name of string | Length of Ops.t * Rational.t
 
+type graph = {
+  final : bool array;
+  ops : (Ops.t * int) list array;
+  out : int list array;
+  dst : int array;
+  set : Ops.t array;
+  cut : cut array;
+}
+(** The automaton of the partial derivatives of an expression (Antimirov 1996),
+    by its letters. Node [0] is the expression and [final.(n)] whether node [n]
+    has the empty word without a stretch; [ops.(n)] is the operation transitions
+    of node [n], each with its set and target, and [out.(n)] the numbers of its
+    stretch transitions, the transition [e] going to [dst.(e)] with the set
+    [set.(e)] and the cut [cut.(e)] of the side of the expression. *)
+
 module Make
     (E : IntervalRegex.S)
     (_ : sig
       val whole : bool
       (** Whether the lengths are whole time steps. *)
     end) : sig
+  val graph : E.t -> graph
+  (** [graph e] is the automaton of the partial derivatives of [e], its counts
+      symbolic, memoised by expression. *)
+
   val leq : world -> E.t -> E.t -> bool
   (** [leq world x y] decides [x ≾ y] over [world]. *)
 

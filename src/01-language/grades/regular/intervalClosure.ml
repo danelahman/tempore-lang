@@ -35,6 +35,19 @@ let world classes =
 
 type concrete = Name of string | Length of Ops.t * Rational.t
 
+type graph = {
+  final : bool array;
+  ops : (Ops.t * int) list array;
+  out : int list array;
+  dst : int array;
+  set : Ops.t array;
+  cut : cut array;
+}
+(* Node [0] is the expression; [ops.(n)] are the operation transitions of
+   node [n], [out.(n)] the numbers of its stretch transitions, the stretch
+   transition [e] going to [dst.(e)] with the set [set.(e)] and the cut
+   [cut.(e)]. *)
+
 module Make
     (E : IntervalRegex.S)
     (Steps : sig
@@ -147,19 +160,6 @@ struct
             match Count.shift c 1 with
             | Some c' -> after (E.repeat a c') (linear a)
             | None -> []))
-
-  type graph = {
-    final : bool array;
-    ops : (Ops.t * int) list array;
-    out : int list array;
-    dst : int array;
-    set : Ops.t array;
-    cut : cut array;
-  }
-  (* Node [0] is the expression; [ops.(n)] are the operation transitions of
-     node [n], [out.(n)] the numbers of its stretch transitions, the
-     stretch transition [e] going to [dst.(e)] with the set
-     [set.(e)] and the cut [cut.(e)]. *)
 
   let graphs = Memo.Ints.create 64
 

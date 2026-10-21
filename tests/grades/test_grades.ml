@@ -2364,7 +2364,8 @@ let registered_laws =
                  (module G)
                  ~offered:false ~context running_times samples
              @ of_delay_laws (module G) running_times ()
-             @ of_bounds_laws (module G) running_times)
+             @ of_bounds_laws (module G) running_times
+             @ consistency_laws (module G) ~context running_times samples)
        GradeRegistry.grade_modules
 
 (* Bounded repetition in every registered grade: a brace literal with
@@ -2484,7 +2485,8 @@ let fractional_laws =
           ~context fractional_running_times samples
       @ declared_laws (module G) ~context fractional_running_times samples
       @ of_delay_laws (module G) fractional_running_times ()
-      @ of_bounds_laws (module G) fractional_running_times)
+      @ of_bounds_laws (module G) fractional_running_times
+      @ consistency_laws (module G) ~context fractional_running_times samples)
     [ rational_traces_lower; rational_traces_upper; rational_traces_interval ]
 
 (* The trace grades without running times: inclusion of the normal forms,

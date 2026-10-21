@@ -186,7 +186,11 @@ let expected_rejections =
     ("tests/regex_timed_rational_lower_reject.tpe", [ 16; 23; 33; 40 ]);
     ("tests/regex_timed_rational_upper_open_reject.tpe", [ 14; 20 ]);
     ("tests/regex_timed_rational_upper_reject.tpe", [ 17; 26; 37; 47; 56 ]);
+    ( "tests/regex_timed_rigid_interval_inconsistent_reject.tpe",
+      [ 24; 31; 39; 47 ] );
     ("tests/regex_timed_rigid_interval_reject.tpe", [ 27 ]);
+    ( "tests/regex_timed_rigid_rational_interval_inconsistent_reject.tpe",
+      [ 25; 32; 39 ] );
     ( "tests/regex_timed_rigid_rational_upper_reject.tpe",
       [ 24; 35; 43; 53; 63; 74 ] );
     ("tests/regex_timed_upper_open_reject.tpe", [ 14; 20 ]);
