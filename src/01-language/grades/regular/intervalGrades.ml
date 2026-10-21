@@ -300,11 +300,89 @@ module Make (D : DELAYS) (N : NAMES) = struct
 
     let hash (l, u) = Hashing.combine (Lower.hash l) (Upper.hash u)
 
+    (* {2 Run consistency} *)
+
+    (* [joint_world bounds names] is the world of a consistency check: the
+       [names] mentioned, and of the other declared operations the least
+       name of each pair of ends of running times, each with both ends. *)
+    let joint_world bounds names =
+      let ends n =
+        (running_time ~lower:true bounds n, running_time ~lower:false bounds n)
+      in
+      let same (l, h) (l', h') =
+        DelaySet.equal_extremum l l' && DelaySet.equal_extremum h h'
+      in
+      let others =
+        List.fold_left
+          (fun acc n ->
+            let e = ends n in
+            if List.mem n names || List.exists (fun (_, e') -> same e e') acc
+            then acc
+            else (n, e) :: acc)
+          []
+          (List.sort_uniq String.compare bounds.operations)
+      in
+      IntervalConsistency.world
+        (List.sort
+           (fun (n, _) (n', _) -> String.compare n n')
+           (List.map (fun n -> (n, ends n)) names @ others))
+
+    let witnesses_found = Hashtbl.create 64
+
+    (* [witness bounds (l, u)] is a run fitting a word of [l] and a word of
+       [u] at the running times of [bounds], if there is one
+       ({!IntervalConsistency}). *)
+    let witness bounds (l, u) =
+      let world =
+        joint_world bounds
+          (List.sort_uniq String.compare (I.Lower.names l @ I.Upper.names u))
+      in
+      let key = (IntervalConsistency.id world, I.Lower.id l, I.Upper.id u) in
+      match Hashtbl.find_opt witnesses_found key with
+      | Some w -> w
+      | None ->
+          let w =
+            IntervalConsistency.witness ~whole:D.whole world ~lower:(CL.graph l)
+              ~upper:(CU.graph u)
+          in
+          Hashtbl.add witnesses_found key w;
+          w
+
+    (* [too_long bounds (l, u)] is the reason no run meets both ends if the
+       words of [l] last longer than those of [u]: the least duration of [l],
+       its operations at the lower ends of their running times, above the
+       greatest of [u], at the upper ends. *)
+    let too_long bounds (l, u) =
+      match (Lower.min_weight bounds l, Upper.max_weight bounds u) with
+      | Some (I.Finite (a, at_a)), Some (I.Finite (b, at_b)) ->
+          let c = Rational.compare a b in
+          if c > 0 || (c = 0 && not (at_a && at_b)) then
+            Some
+              (Printf.sprintf
+                 "its lower end lasts %s %s and its upper end %s %s"
+                 (if at_a then "at least" else "more than")
+                 (Rational.show a)
+                 (if at_b then "at most" else "less than")
+                 (Rational.show b))
+          else None
+      | _ -> None
+
     (* [joint_vacuous bounds (l, u)] is the reason no run meets both ends [l]
        and [u], each of which has a word, at the running times of [bounds]
-       ({!Grade.no_common_run}). The condition is not decided: every such pair
-       is accepted. *)
-    let joint_vacuous _bounds (_l, _u) = None
+       ({!Grade.no_common_run}): none if they share their skeleton or one is
+       the top, the durations if they decide it, and otherwise the absence of
+       a witness. *)
+    let joint_vacuous bounds (l, u) =
+      if
+        Option.is_some (I.zip l u)
+        || I.Lower.equal l Lower.top || I.Upper.equal u Upper.top
+      then None
+      else
+        match too_long bounds (l, u) with
+        | Some reason -> Some (no_common_run (Some reason))
+        | None ->
+            if Option.is_some (witness bounds (l, u)) then None
+            else Some (no_common_run None)
 
     let vacuous bounds (l, u) =
       match Lower.vacuous bounds l with

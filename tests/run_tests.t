@@ -4254,6 +4254,28 @@ it names none:
   Typing error: This function's body has grade `{Sample^2}`, which does not match its annotated grade `{2.5}`
     Note: the effect inequality `{Sample^2} <= {2.5}` does not hold
   ======================================================================
+  regex_timed_rigid_interval_inconsistent_reject.tpe
+  ======================================================================
+  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 25, characters 6-24:
+  25 |   box [{!≥5}, {!≤2}] (Token "a") as a in
+             ^^^^^^^^^^^^^^
+  Typing error: The grade `[{!≥5}, {!≤2}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 5 and its upper end at most 2
+  
+  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 32, characters 6-21:
+  32 |   box [{!2}, {Write}] (Token "s") as s in
+             ^^^^^^^^^^^^^^^
+  Typing error: The grade `[{!≥2}, {Write}]` admits no run: no run meets both its lower and its upper end
+  
+  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 40, characters 6-44:
+  40 |   box [{!>1; Read; ≥0}, {!<2; Read; ≤5}] (Token "b") as b in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{!≥2; Read; ≥0}, {!≤1; Read; ≤5}]` admits no run: no run meets both its lower and its upper end
+  
+  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 47, characters 33-62:
+  47 | operation Other : unit ~> unit # [{Write}, {Read; Read; Read}]
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{Write}, {Read^3}]` admits no run: no run meets both its lower and its upper end
+  ======================================================================
   regex_timed_rigid_interval_reject.tpe
   ======================================================================
   File "regex_timed_rigid_interval_reject.tpe", lines 33-34, characters 2-5:
@@ -4281,6 +4303,23 @@ it names none:
                    ^^^^^^^^^^^^^^^
     grade `{Read}` accumulates here (operation `Read`)
     Note: the resource inequality `{!1; Read; Log; Read} <= {([1, 2]; Read)*}` does not hold
+  ======================================================================
+  regex_timed_rigid_rational_interval_inconsistent_reject.tpe
+  ======================================================================
+  File "regex_timed_rigid_rational_interval_inconsistent_reject.tpe", line 26, characters 6-33:
+  26 |   box [{(≥2 & Write)}, {Write}] (Token "w") as w in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{≥2 & Write}, {Write}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2 and its upper end less than 2
+  
+  File "regex_timed_rigid_rational_interval_inconsistent_reject.tpe", line 33, characters 6-22:
+  33 |   box [{!>2}, {!≤2}] (Token "a") as a in
+             ^^^^^^^^^^^^^^
+  Typing error: The grade `[{!>2}, {!≤2}]` admits no run: no run meets both its lower and its upper end: its lower end lasts more than 2 and its upper end at most 2
+  
+  File "regex_timed_rigid_rational_interval_inconsistent_reject.tpe", line 40, characters 6-62:
+  40 |   box [{!≥1/2; Read; Write}, {!≤1/2; Read; (≤3 & Read)}] (Token "r") as r in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{!≥0.5; Read; Write}, {!≤0.5; Read; (≤3 & Read)}]` admits no run: no run meets both its lower and its upper end
   ======================================================================
   regex_timed_rigid_rational_upper.tpe
   ======================================================================
