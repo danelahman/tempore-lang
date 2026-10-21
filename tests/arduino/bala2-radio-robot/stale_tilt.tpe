@@ -3,7 +3,7 @@
 
 let session_stale_tilt () =
   let calibrated = calibrate () in
-  hold ();
+  hold true;
   let tilt, _ = perform LatestTilt () in
   if wait_start () then (
     unbox calibrated as open_starting in

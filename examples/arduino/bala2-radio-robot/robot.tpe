@@ -27,11 +27,12 @@
    and stopped by the messages of the package bala2-radio, under the bounds
    of the profile m5stack-gray-radio, measured on the Gray with its radio
    running. It reports its phase to the controller, which shows it, and
-   beeps when it is ready for Start. On the board: make
-   arduino-bala2-radio-robot-upload, which pairs it with the controller by the
-   link file of bala2-radio and encrypts the link (see the README of the
-   Arduino backend); simulated on the host, with controller.cpp scripting
-   the controller: make arduino-bala2-radio-robot-simulate. *)
+   beeps when it is ready for Start, except after a wait for Start that ran
+   out. On the board: make arduino-bala2-radio-robot-upload, which pairs it
+   with the controller by the link file of bala2-radio and encrypts the link
+   (see the README of the Arduino backend); simulated on the host, with
+   controller.cpp scripting the controller: make
+   arduino-bala2-radio-robot-simulate. *)
 
 (* The exchange between the tasks, as in balance.tpe. The step publishes the
    tilt, in degrees, the rate of the gyroscope, in degrees per second, the
@@ -342,18 +343,19 @@ let calibrate () : calibrated
 
 (* The hold after a calibration: the robot is held upright for a second,
    reporting the phase Calibrating every 500 ms, and then shows "Waiting
-   for Start" and beeps once, a tone of 2 kHz for 80 ms, which Beep starts
-   and returns at once, so that the user hears that Start is accepted from
-   now on. *)
-let hold () : unit
-    # {ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt; Beep} =
+   for Start"; if announce holds, it beeps once, a tone of 2 kHz for 80 ms,
+   which Beep starts and returns at once, so that the user hears that Start
+   is accepted from now on. *)
+let hold (announce : bool) : unit
+    # {ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt;
+       (Beep | 0)} =
   report Calibrating;
   perform ShowTextAt (0, 100, 2, "Hold upright");
   delay 500;
   report Calibrating;
   delay 500;
   perform ShowTextAt (0, 100, 2, "Waiting for Start");
-  perform Beep (2000, 80)
+  if announce then perform Beep (2000, 80) else ()
 
 (* The number of consecutive iterations of the drive without a message, about
    2 s, after which the link is reported lost. *)
@@ -465,23 +467,26 @@ let rec drive (n : nat) (silent : nat) : unit
           drive m (min (silent + 1) silence_limit))
 
 (* Correctly accepted by the typechecker: a session calibrates the robot at
-   rest, holds it upright for a second, beeps and waits for Start,
-   reporting its phase at least every 572 ms. At Start it unboxes the
-   calibration, at least a second and at most about 204 s old, with no
-   Move since, and opens the start window; in it, it reads the published
-   tilt and unboxes the calibration; if the tilt lies within upright_limit
-   of the balance point it starts the balancing and drives the robot until
-   Stop, and else shows "Not upright". The next session calibrates anew.
-   Its grade is the protocol of the robot: calibration, the reading of the
-   tilt immediately before StartBalancing, moves and StopBalancing, in this
-   order. *)
-let rec session (n : nat) : unit
+   rest, holds it upright for a second and waits for Start, reporting its
+   phase at least every 572 ms; it beeps before the wait if announce holds,
+   that is, after the boot or after a session that received Start, and not
+   after a wait for Start that ran out, so that a robot left idle is
+   recalibrated silently. At Start it unboxes the calibration, at least a
+   second and at most about 204 s old, with no Move since, and opens the
+   start window; in it, it reads the published tilt and unboxes the
+   calibration; if the tilt lies within upright_limit of the balance point
+   it starts the balancing and drives the robot until Stop, and else shows
+   "Not upright". The next session calibrates anew, and announces its wait
+   if Start was received. Its grade is the protocol of the robot:
+   calibration, the reading of the tilt immediately before StartBalancing,
+   moves and StopBalancing, in this order. *)
+let rec session (n : nat) (announce : bool) : unit
     # {(StopBalancing; ShowTextAt;
         (ReportStatus; CheckAtRest; (Reading; !10)*; ReportStatus; ShowTextAt;
          !500; ShowTextAt)*;
         ReportStatus; CheckAtRest; (Reading; !10)*;
-        ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt; Beep;
-        (ReceiveMessage; ReportStatus; !400)^[1, 500];
+        ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt;
+        (Beep | 0); (ReceiveMessage; ReportStatus; !400)^[1, 500];
         (0
          | LatestTilt;
            (StartBalancing; ShowTextAt;
@@ -493,8 +498,9 @@ let rec session (n : nat) : unit
   | 0 -> ()
   | m + 1 ->
       let calibrated = calibrate () in
-      hold ();
-      (if wait_start () then (
+      hold announce;
+      let started = wait_start () in
+      (if started then (
          unbox calibrated as open_starting in
          let starting = open_starting () in
          let tilt, _ = perform LatestTilt () in
@@ -506,7 +512,7 @@ let rec session (n : nat) : unit
            perform ShowTextAt (0, 100, 2, "Stopped"))
          else perform ShowTextAt (0, 100, 2, "Not upright"))
        else ());
-      session m
+      session m started
 
 (* Waits until the step has read the unit, at most n polls 10 ms apart: the
    number of the last reading is positive only after the reading of start, which
@@ -528,7 +534,7 @@ let supervise () =
   perform ShowTextAt (0, 0, 2, "Remote robot");
   perform ShowTextAt (188, 230, 1, "Typechecked by Tempore");
   await_link 1000;
-  session 4000000000;
+  session 4000000000 true;
   perform StopBalancing ()
 
 (* Correctly rejected by the typechecker: a session that reads the tilt
@@ -544,7 +550,7 @@ let supervise () =
 (*
 let session_stale_tilt () =
   let calibrated = calibrate () in
-  hold ();
+  hold true;
   let tilt, _ = perform LatestTilt () in
   if wait_start () then (
     unbox calibrated as open_starting in
@@ -563,7 +569,7 @@ let session_stale_tilt () =
 
      Typing error: Variable `calibrated` is unboxed with grade
        `{ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt;
-       Beep; (ReceiveMessage; ReportStatus; !400)^[1, 500]; Move}`
+       Beep?; (ReceiveMessage; ReportStatus; !400)^[1, 500]; Move}`
        accumulated since it was bound, which is not below its box grade
        `{[1000, 600000] & ~Move}`
        ...
@@ -571,7 +577,7 @@ let session_stale_tilt () =
 (*
 let session_stopped () =
   let calibrated = calibrate () in
-  hold ();
+  hold true;
   if wait_start () then (
     perform Move (0.0, 0.0);
     unbox calibrated as open_starting in
