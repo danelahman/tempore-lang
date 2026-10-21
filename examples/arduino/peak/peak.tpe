@@ -91,7 +91,7 @@ let screen (peak : float) =
   perform ShowTextAt (0, 0, 2, "Peak tilt recorder");
   perform ShowText "Peak tilt";
   perform ShowNumber peak;
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore")
 
 (* Correctly accepted by the typechecker: an iteration of the recorder writes
    the flash at most once. It reads the record, boxed with no write of the

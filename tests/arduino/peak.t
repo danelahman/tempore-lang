@@ -81,21 +81,21 @@ drawn over it:
   [34.920 ms] Display at (0, 2): Peak tilt recorder
   [35.920 ms] Display: Peak tilt
   [36.920 ms] Display: 0.000
-  [39.680 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [40.938 ms] Display at (254, 0): Battery 87%
-  [1040.000 ms] Flash: record 5.639 degrees
-  [1071.000 ms] Display cleared
-  [1074.920 ms] Display at (0, 2): Peak tilt recorder
-  [1075.920 ms] Display: Peak tilt
-  [1076.920 ms] Display: 5.639
-  [1079.680 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [1080.938 ms] Display at (254, 0): Battery 87%
-  [2111.000 ms] Display cleared
-  [2114.920 ms] Display at (0, 2): Peak tilt recorder
-  [2115.920 ms] Display: Peak tilt
-  [2116.920 ms] Display: 5.639
-  [2119.680 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [2120.938 ms] Display at (254, 0): Battery 87%
+  [38.888 ms] Display at (188, 231): Typechecked by Tempore
+  [40.146 ms] Display at (254, 0): Battery 87%
+  [1039.000 ms] Flash: record 5.639 degrees
+  [1070.000 ms] Display cleared
+  [1073.920 ms] Display at (0, 2): Peak tilt recorder
+  [1074.920 ms] Display: Peak tilt
+  [1075.920 ms] Display: 5.639
+  [1077.888 ms] Display at (188, 231): Typechecked by Tempore
+  [1079.146 ms] Display at (254, 0): Battery 87%
+  [2109.000 ms] Display cleared
+  [2112.920 ms] Display at (0, 2): Peak tilt recorder
+  [2113.920 ms] Display: Peak tilt
+  [2114.920 ms] Display: 5.639
+  [2116.888 ms] Display at (188, 231): Typechecked by Tempore
+  [2118.146 ms] Display at (254, 0): Battery 87%
   [3000.000 ms] End of the simulation
   $ tempore --emit-arduino peak --device $app/peak.device.json --host-simulate 3 $app/peak.tpe | grep -c 'Release step'
   150

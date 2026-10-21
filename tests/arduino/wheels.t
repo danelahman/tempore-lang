@@ -220,30 +220,30 @@ runs every 10 ms:
   $ tempore --emit-arduino wheels --device $app/wheels.device.json --host-simulate 3 $app/wheels.tpe | grep '\] \(Display\|Operation SetMotors\|Operation ReadEncoders\)\|simulation'
   [31.245 ms] Display cleared
   [35.025 ms] Display at (0, 2): Wheel check
-  [37.785 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [38.365 ms] Operation SetMotors took 245 us
-  [139.333 ms] Operation ReadEncoders took 468 us
-  [139.578 ms] Operation SetMotors took 245 us
-  [440.158 ms] Operation SetMotors took 245 us
-  [541.126 ms] Operation ReadEncoders took 468 us
-  [541.371 ms] Operation SetMotors took 245 us
-  [542.371 ms] Display: Wheels turn
-  [543.371 ms] Display: 308.458
-  [544.371 ms] Display: 308.458
-  [844.951 ms] Operation SetMotors took 245 us
-  [865.169 ms] Operation ReadEncoders took 468 us
-  [885.387 ms] Operation ReadEncoders took 468 us
-  [905.605 ms] Operation ReadEncoders took 468 us
-  [925.823 ms] Operation ReadEncoders took 468 us
-  [946.041 ms] Operation ReadEncoders took 468 us
-  [946.286 ms] Operation SetMotors took 245 us
-  [947.286 ms] Display: Spin-up (ms)
-  [948.286 ms] Display: 60.000
-  [949.286 ms] Display: 60.000
-  [2981.000 ms] Display cleared
-  [2984.780 ms] Display at (0, 2): Wheel check
-  [2987.540 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [2988.120 ms] Operation SetMotors took 245 us
+  [36.993 ms] Display at (188, 231): Typechecked by Tempore
+  [37.573 ms] Operation SetMotors took 245 us
+  [138.541 ms] Operation ReadEncoders took 468 us
+  [138.786 ms] Operation SetMotors took 245 us
+  [439.366 ms] Operation SetMotors took 245 us
+  [540.334 ms] Operation ReadEncoders took 468 us
+  [540.579 ms] Operation SetMotors took 245 us
+  [541.579 ms] Display: Wheels turn
+  [542.579 ms] Display: 308.458
+  [543.579 ms] Display: 308.458
+  [844.159 ms] Operation SetMotors took 245 us
+  [864.377 ms] Operation ReadEncoders took 468 us
+  [884.595 ms] Operation ReadEncoders took 468 us
+  [904.813 ms] Operation ReadEncoders took 468 us
+  [925.031 ms] Operation ReadEncoders took 468 us
+  [945.249 ms] Operation ReadEncoders took 468 us
+  [945.494 ms] Operation SetMotors took 245 us
+  [946.494 ms] Display: Spin-up (ms)
+  [947.494 ms] Display: 60.000
+  [948.494 ms] Display: 60.000
+  [2980.000 ms] Display cleared
+  [2983.780 ms] Display at (0, 2): Wheel check
+  [2985.748 ms] Display at (188, 231): Typechecked by Tempore
+  [2986.328 ms] Operation SetMotors took 245 us
   [3000.000 ms] End of the simulation
   $ tempore --emit-arduino wheels --device $app/wheels.device.json --host-simulate 3 $app/wheels.tpe | grep -c 'Release watch'
   300
@@ -256,13 +256,13 @@ spin-up time:
   $ ./simulation 3000000 | grep '\] Display'
   [31.245 ms] Display cleared
   [35.025 ms] Display at (0, 2): Wheel check
-  [37.785 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [542.371 ms] Display: Right wheel fault
-  [543.371 ms] Display: 308.458
-  [544.371 ms] Display: 0.000
-  [947.286 ms] Display: Spin-up (ms)
-  [948.286 ms] Display: 60.000
-  [949.286 ms] Display: 0.000
-  [2981.000 ms] Display cleared
-  [2984.780 ms] Display at (0, 2): Wheel check
-  [2987.540 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
+  [36.993 ms] Display at (188, 231): Typechecked by Tempore
+  [541.579 ms] Display: Right wheel fault
+  [542.579 ms] Display: 308.458
+  [543.579 ms] Display: 0.000
+  [946.494 ms] Display: Spin-up (ms)
+  [947.494 ms] Display: 60.000
+  [948.494 ms] Display: 0.000
+  [2980.000 ms] Display cleared
+  [2983.780 ms] Display at (0, 2): Wheel check
+  [2985.748 ms] Display at (188, 231): Typechecked by Tempore

@@ -401,7 +401,7 @@ let remote () =
   let encrypted = perform LinkStart remote_channel in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Robot remote");
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore");
   perform ShowTextAt (0, 30, 2, "Stopped");
   perform ShowTextAt (130, 66, 2, "Robot tilt");
   perform ShowNumberAt (130, 92, 3, 1, 0.0);
@@ -482,7 +482,7 @@ let session_stale () =
   let latest = confirm 40 in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Robot remote");
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore");
   perform ShowTextAt (0, 30, 2, "Balancing");
   perform ShowTextAt (130, 66, 2, "Robot tilt");
   perform DrawButton (0, 188, 156, 40, "Start");

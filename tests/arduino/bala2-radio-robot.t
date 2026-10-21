@@ -71,32 +71,32 @@ library, are not shown:
   $ tempore --emit-arduino robot --device $app/robot.device.json --host-simulate 12 $app/robot.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\|ESP-NOW model\)\|Plant: \(tilt\|largest\)' | awk '/ESP-NOW: sent tag 5,/ { a = $7; sub(/,$/, "", a); if (a == last) next; last = a; print $1, $2, "ESP-NOW: status, phase " a; next } { print }'
   [31.245 ms] Display cleared
   [35.045 ms] Display at (0, 2): Remote robot
-  [37.805 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
+  [37.013 ms] Display at (188, 231): Typechecked by Tempore
   [88.245 ms] ESP-NOW: started on channel 1, address 24:0A:C4:00:00:01, peer 24:0A:C4:00:00:02, encrypted (CCMP)
-  [101.585 ms] Display at (0, 102): Calibrating
-  [101.685 ms] ESP-NOW: status, phase 2.000
-  [624.819 ms] Display at (0, 102): Hold upright
-  [1628.819 ms] Display at (0, 102): Waiting for Start
-  [1628.969 ms] Speaker: 2000 Hz for 80 ms
-  [1629.069 ms] ESP-NOW: status, phase 0.000
-  [2032.809 ms] Display at (0, 102): Balancing
-  [2032.909 ms] ESP-NOW: status, phase 1.000
-  [3535.809 ms] Display at (0, 102): Stopped
-  [3539.589 ms] Display at (0, 102): Calibrating
-  [3539.689 ms] ESP-NOW: status, phase 2.000
-  [4058.392 ms] ESP-NOW: status, phase 3.000
-  [4062.152 ms] Display at (0, 102): Hold still
-  [4565.932 ms] Display at (0, 102): Calibrating
-  [5086.019 ms] ESP-NOW: status, phase 2.000
-  [5089.819 ms] Display at (0, 102): Hold upright
-  [6093.819 ms] Display at (0, 102): Waiting for Start
-  [6093.969 ms] Speaker: 2000 Hz for 80 ms
-  [6094.069 ms] ESP-NOW: status, phase 0.000
-  [6897.909 ms] Display at (0, 102): Balancing
-  [6898.009 ms] ESP-NOW: status, phase 1.000
-  [9648.449 ms] Display at (0, 102): Link lost
-  [9648.599 ms] Speaker: 880 Hz for 200 ms
-  [10017.739 ms] Display at (0, 102): Balancing
+  [100.793 ms] Display at (0, 102): Calibrating
+  [100.893 ms] ESP-NOW: status, phase 2.000
+  [623.396 ms] Display at (0, 102): Hold upright
+  [1627.396 ms] Display at (0, 102): Waiting for Start
+  [1627.546 ms] Speaker: 2000 Hz for 80 ms
+  [1627.646 ms] ESP-NOW: status, phase 0.000
+  [2031.386 ms] Display at (0, 102): Balancing
+  [2031.486 ms] ESP-NOW: status, phase 1.000
+  [3534.386 ms] Display at (0, 102): Stopped
+  [3538.166 ms] Display at (0, 102): Calibrating
+  [3538.266 ms] ESP-NOW: status, phase 2.000
+  [4056.969 ms] ESP-NOW: status, phase 3.000
+  [4060.729 ms] Display at (0, 102): Hold still
+  [4564.509 ms] Display at (0, 102): Calibrating
+  [5083.312 ms] ESP-NOW: status, phase 2.000
+  [5087.112 ms] Display at (0, 102): Hold upright
+  [6091.112 ms] Display at (0, 102): Waiting for Start
+  [6091.262 ms] Speaker: 2000 Hz for 80 ms
+  [6091.362 ms] ESP-NOW: status, phase 0.000
+  [6895.202 ms] Display at (0, 102): Balancing
+  [6895.302 ms] ESP-NOW: status, phase 1.000
+  [9658.342 ms] Display at (0, 102): Link lost
+  [9658.492 ms] Speaker: 880 Hz for 200 ms
+  [10015.032 ms] Display at (0, 102): Balancing
   [12000.000 ms] End of the simulation
   [12000.000 ms] Plant: released at 6895.0 ms
 
@@ -110,12 +110,12 @@ not driven:
   $ cd _arduino/projects/robot
   $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_TILT=0.5 -pthread -I host -I src src/*.cpp host/*.cpp -o askew
   $ ./askew 3000000 | grep 'Display at (0, 102)\|motors were never'
-  [101.585 ms] Display at (0, 102): Calibrating
-  [624.819 ms] Display at (0, 102): Hold upright
-  [1628.819 ms] Display at (0, 102): Waiting for Start
-  [2032.849 ms] Display at (0, 102): Not upright
-  [2036.629 ms] Display at (0, 102): Calibrating
-  [2559.779 ms] Display at (0, 102): Hold still
+  [100.793 ms] Display at (0, 102): Calibrating
+  [623.396 ms] Display at (0, 102): Hold upright
+  [1627.396 ms] Display at (0, 102): Waiting for Start
+  [2031.426 ms] Display at (0, 102): Not upright
+  [2035.206 ms] Display at (0, 102): Calibrating
+  [2557.769 ms] Display at (0, 102): Hold still
   [3000.000 ms] Plant: the motors were never driven
 
 Held and turned steadily by 0.1 rad/s (5.7 degrees per second), the robot
@@ -125,10 +125,10 @@ the 2 degrees of rest_cosine over the samples:
 
   $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_HELD_RATE=0.1 -pthread -I host -I src src/*.cpp host/*.cpp -o turned
   $ ./turned 1900000 | grep 'Display at (0, 102)\|motors were never'
-  [101.585 ms] Display at (0, 102): Calibrating
-  [624.779 ms] Display at (0, 102): Hold still
-  [1128.559 ms] Display at (0, 102): Calibrating
-  [1651.122 ms] Display at (0, 102): Hold still
+  [100.793 ms] Display at (0, 102): Calibrating
+  [623.356 ms] Display at (0, 102): Hold still
+  [1127.136 ms] Display at (0, 102): Calibrating
+  [1649.779 ms] Display at (0, 102): Hold still
   [1900.000 ms] Plant: the motors were never driven
   $ cd ../../..
 

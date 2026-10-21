@@ -219,7 +219,7 @@ let turns (forward : float) (backward : float) =
 let check () =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Wheel check");
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore");
   let tilt = perform Latest () in
   (if magnitude tilt <= 20.0 then (
      let left, right = spin 300i in

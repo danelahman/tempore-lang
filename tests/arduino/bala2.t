@@ -135,16 +135,16 @@ they are:
   $ tempore --emit-arduino balance --device $app/balance.device.json --host-simulate 8 $app/balance.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
   [31.245 ms] Display cleared
   [35.105 ms] Display at (0, 2): Balancing robot
-  [37.865 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [38.865 ms] Display: Calibrating
-  [539.865 ms] Display: Hold upright
-  [1540.865 ms] Display: Balancing
-  [2441.865 ms] Display: a tilt below 2.5 degrees
-  [3442.865 ms] Display: a tilt below 2.5 degrees
-  [4443.865 ms] Display: a tilt below 2.5 degrees
-  [5444.865 ms] Display: a tilt below 2.5 degrees
-  [6445.865 ms] Display: a tilt below 2.5 degrees
-  [7446.865 ms] Display: a tilt below 2.5 degrees
+  [37.073 ms] Display at (188, 231): Typechecked by Tempore
+  [38.073 ms] Display: Calibrating
+  [539.073 ms] Display: Hold upright
+  [1540.073 ms] Display: Balancing
+  [2441.073 ms] Display: a tilt below 2.5 degrees
+  [3442.073 ms] Display: a tilt below 2.5 degrees
+  [4443.073 ms] Display: a tilt below 2.5 degrees
+  [5444.073 ms] Display: a tilt below 2.5 degrees
+  [6445.073 ms] Display: a tilt below 2.5 degrees
+  [7446.073 ms] Display: a tilt below 2.5 degrees
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1542.0 ms
   [8000.000 ms] Plant: tilt below 2.5 degrees, wheels within 0.2 m
@@ -158,16 +158,16 @@ step never drives the motors, and the robot falls when released at 2 s:
   $ build -DPLANT_TILT=1.3 && events 8000000
   [31.245 ms] Display cleared
   [35.105 ms] Display at (0, 2): Balancing robot
-  [37.865 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [38.865 ms] Display: Calibrating
-  [539.865 ms] Display: Hold upright
-  [1540.865 ms] Display: Balancing
-  [2441.865 ms] Display: 80.124
-  [3442.865 ms] Display: 80.212
-  [4443.865 ms] Display: 80.214
-  [5444.865 ms] Display: 80.214
-  [6445.865 ms] Display: 80.214
-  [7446.865 ms] Display: 80.214
+  [37.073 ms] Display at (188, 231): Typechecked by Tempore
+  [38.073 ms] Display: Calibrating
+  [539.073 ms] Display: Hold upright
+  [1540.073 ms] Display: Balancing
+  [2441.073 ms] Display: 80.124
+  [3442.073 ms] Display: 80.212
+  [4443.073 ms] Display: 80.214
+  [5444.073 ms] Display: 80.214
+  [6445.073 ms] Display: 80.214
+  [7446.073 ms] Display: 80.214
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 2000.0 ms
   [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.495 m
@@ -182,12 +182,12 @@ the robot falls:
   $ build -DBALANCE_SLOW_FROM_MS=4000 && events 8000000
   [31.245 ms] Display cleared
   [35.105 ms] Display at (0, 2): Balancing robot
-  [37.865 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [38.865 ms] Display: Calibrating
-  [539.865 ms] Display: Hold upright
-  [1540.865 ms] Display: Balancing
-  [2441.865 ms] Display: -0.044
-  [3442.865 ms] Display: 0.084
+  [37.073 ms] Display at (188, 231): Typechecked by Tempore
+  [38.073 ms] Display: Calibrating
+  [539.073 ms] Display: Hold upright
+  [1540.073 ms] Display: Balancing
+  [2441.073 ms] Display: -0.044
+  [3442.073 ms] Display: 0.084
   [4005.316 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
   [4005.316 ms] Safe state entered
   [4005.316 ms] Speaker: 1000 Hz then 500 Hz, 150 ms each
@@ -402,7 +402,7 @@ function:
     ShowText              3      1000     1000.0      1000
     ShowNumber            4      1000     1000.0      1000
     ClearDisplay          1     31000    31000.0     31000
-    ShowTextAt            2      2760     3310.0      3860
+    ShowTextAt            2      1968     2914.0      3860
     SetMotors          1200       245      245.0       245
     ReadEncoders       1200       468      468.0       468
     ResetEncoders         1       335      335.0       335

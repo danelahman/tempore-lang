@@ -196,7 +196,7 @@ shows FULL:
 
   $ build -DSTEPS_RECORD=10 && ./simulation 20000000 > full.log
   $ grep -e '^# Recordings' -e 'full' -e 'FULL' full.log | sed -e 's/^\[[0-9.]* ms\] //' -e 's/\*[0-9A-F]\{4\}$//'
-  Recorder: full, 9998 ms recorded
+  Recorder: full, 9997 ms recorded
   Display at (296, 134): FULL
   # Recordings: 857 records, the last recording 1, 10.0 of 10 s recorded, full
   $ cd ../../..

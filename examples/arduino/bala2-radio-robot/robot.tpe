@@ -526,7 +526,7 @@ let rec await_link (n : nat) : unit # {(Reading; !10)*; (Reading | 0)} =
 let supervise () =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Remote robot");
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore");
   await_link 1000;
   session 4000000000;
   perform StopBalancing ()

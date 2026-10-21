@@ -143,16 +143,16 @@ bounds, and prints the other events as they are:
   Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
   [31.245 ms] Display cleared
   [35.365 ms] Display at (0, 2): Balancing robot with regexes
-  [38.125 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
-  [39.125 ms] Display: Calibrating
-  [540.125 ms] Display: Hold upright
-  [1541.125 ms] Display: Balancing
-  [2442.125 ms] Display: a tilt below 2.5 degrees
-  [3443.125 ms] Display: a tilt below 2.5 degrees
-  [4444.125 ms] Display: a tilt below 2.5 degrees
-  [5445.125 ms] Display: a tilt below 2.5 degrees
-  [6446.125 ms] Display: a tilt below 2.5 degrees
-  [7447.125 ms] Display: a tilt below 2.5 degrees
+  [37.333 ms] Display at (188, 231): Typechecked by Tempore
+  [38.333 ms] Display: Calibrating
+  [539.333 ms] Display: Hold upright
+  [1540.333 ms] Display: Balancing
+  [2441.333 ms] Display: a tilt below 2.5 degrees
+  [3442.333 ms] Display: a tilt below 2.5 degrees
+  [4443.333 ms] Display: a tilt below 2.5 degrees
+  [5444.333 ms] Display: a tilt below 2.5 degrees
+  [6445.333 ms] Display: a tilt below 2.5 degrees
+  [7446.333 ms] Display: a tilt below 2.5 degrees
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1542.0 ms
   [8000.000 ms] Plant: tilt below 2.5 degrees, wheels within 0.2 m

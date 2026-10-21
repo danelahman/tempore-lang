@@ -281,7 +281,7 @@ let start () : state =
   perform ShowTextAt (130, 85, 2, "Roll");
   perform DrawButton (0, 194, 144, 24, "Set reference");
   perform DrawButton (148, 194, 172, 24, "Sensor 100->400Hz");
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore");
   perform ConfigureImu 100;
   (NoReference, 0, 100, false)
 

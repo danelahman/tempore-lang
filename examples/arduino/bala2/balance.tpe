@@ -244,7 +244,7 @@ let calibrate () =
   perform StopBalancing ();
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Balancing robot");
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (188, 230, 1, "Typechecked by Tempore");
   perform ShowText "Calibrating";
   let sum = rate_sum 50 0.0 in
   box [1000, ∞) (Calibration (sum /. 50.0))
