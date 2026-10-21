@@ -148,7 +148,7 @@ let expected_rejections =
     ("tests/list_constructor_reject.tpe", [ 3 ]);
     ("tests/malformed_type_application.tpe", [ 4 ]);
     ("tests/mode_switch_costs_reject.tpe", [ 13; 16; 23; 28; 35 ]);
-    ("tests/mode_times_reject.tpe", [ 18; 25; 29; 32 ]);
+    ("tests/mode_times_reject.tpe", [ 18; 25; 28 ]);
     ("tests/nat_reject_successor_pattern.tpe", [ 3; 5 ]);
     ("tests/noneternal_reject_after_delay.tpe", [ 11 ]);
     ("tests/noneternal_reject_alias.tpe", [ 9 ]);
@@ -228,6 +228,7 @@ let expected_rejections =
     ("tests/traces_rigid_upper_reject.tpe", [ 27 ]);
     ("tests/windowed_schedules_reject.tpe", [ 11; 16; 21; 29; 36 ]);
     ("tests/event_separation_reject.tpe", [ 18; 29; 40; 49; 58 ]);
+    ("tests/event_separation_reject_runs.tpe", [ 20; 27; 33 ]);
     ("tests/event_separation_reject_unknown.tpe", [ 11 ]);
   ]
 

@@ -1,0 +1,8 @@
+(* Run this test with the 'mode-times' grading monoid, e.g.
+
+     ./tempore --grades mode-times tests/literals_reject_mode_times_sum.tpe
+
+   Rejected: the times in the modes sum to the total time; at least 5 out of
+   the cold block and 5 in the heater exceed a total of at most 8. *)
+
+let claim () = box (Cold, Cold, (Out, [5, 9]), (Hot, [5, 9]), [0, 8]) 1

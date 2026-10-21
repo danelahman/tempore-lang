@@ -822,6 +822,70 @@ let literals =
       (Tuple [ Name "On"; Name "≠" ])
       "only an entry from `_` ends in `≠`";
     rejects "level" mode_times (Name "Low") "not names such as `Low`";
+    rejects "times in the modes above the total" mode_times
+      (Tuple
+         [
+           Name "Cold";
+           Name "Cold";
+           Tuple [ Name "Out"; Interval (Closed (Int 5), Closed (Int 9)) ];
+           Tuple [ Name "Hot"; Interval (Closed (Int 5), Closed (Int 9)) ];
+           Interval (Closed (Int 0), Closed (Int 8));
+         ])
+      "in the entry from `Cold` to `Cold`, the times in the modes sum to no \
+       time within the total time";
+    rejects "times in the modes below the total" mode_times
+      (Tuple
+         [
+           Name "Cold";
+           Name "Cold";
+           Tuple [ Name "Cold"; Interval (Closed (Int 0), Closed (Int 1)) ];
+           Tuple [ Name "_"; Int 0 ];
+           Interval (Closed (Int 5), Closed (Int 6));
+         ])
+      "the times in the modes sum to no time within the total time";
+    reads "times in the modes below the total, another mode unconstrained"
+      mode_times
+      (Tuple
+         [
+           Tuple
+             [
+               Name "Cold";
+               Name "Cold";
+               Tuple [ Name "Cold"; Interval (Closed (Int 0), Closed (Int 1)) ];
+               Tuple [ Name "_"; Int 0 ];
+               Interval (Closed (Int 5), Closed (Int 6));
+             ];
+           Tuple [ Name "Hot"; Name "Hot" ];
+         ])
+      "((Cold, Cold, (Cold, [0, 1]), (_, 0), [5, 6]), (Hot, Hot))";
+    reads "times in the modes summing within the total" mode_times
+      (Tuple
+         [
+           Name "Cold";
+           Name "Cold";
+           Tuple [ Name "Out"; Interval (Closed (Int 2), Closed (Int 5)) ];
+           Tuple [ Name "Hot"; Interval (Closed (Int 2), Closed (Int 5)) ];
+           Interval (Closed (Int 0), Closed (Int 8));
+         ])
+      "(Cold, Cold, (Hot, [2, 5]), (Out, [2, 5]), [0, 8])";
+    rejects "change of mode without time in its start mode" mode_times
+      (Tuple [ Name "Cold"; Name "Out"; Tuple [ Name "Cold"; Int 0 ] ])
+      "in the entry from `Cold` to `Out`, a change of mode spends a positive \
+       time in its start mode `Cold`";
+    rejects "change from a mode not named without time in it" mode_times
+      (Tuple [ Name "_"; Name "Out"; Tuple [ Name "_"; Int 0 ] ])
+      "a change of mode spends a positive time in its start mode `_`";
+    reads "change into a mode not named" mode_times
+      (Tuple [ Name "Cold"; Name "_"; Tuple [ Name "_"; Int 0 ] ])
+      "(Cold, _, (_, 0))";
+    rejects "modes not named bounded from a positive time" mode_times
+      (Tuple
+         [
+           Name "Cold";
+           Name "Cold";
+           Tuple [ Name "_"; Interval (Closed (Int 1), Closed (Int 2)) ];
+         ])
+      "the time in `_` has the lower end 0";
     reads "integer" time_lower (Int 3) "3";
     reads "top" time_lower Top "0";
     rejects "infinity" time_lower Inf "not `∞`";

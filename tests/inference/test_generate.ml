@@ -40,6 +40,7 @@ let malformed =
     "traces_reject_missing_within.tpe";
     "traces_reject_self_retry.tpe";
     "traces_reject_unknown_event.tpe";
+    "event_separation_reject_runs.tpe";
     "event_separation_reject_unknown.tpe";
     "regex_timed_compound_named_later_reject.tpe";
     "use_undefined_type.tpe";
@@ -59,6 +60,9 @@ let malformed =
     "literals_reject_mode_times.tpe";
     "literals_reject_mode_times_bound.tpe";
     "literals_reject_mode_times_operation.tpe";
+    "literals_reject_mode_times_start.tpe";
+    "literals_reject_mode_times_sum.tpe";
+    "literals_reject_mode_times_unnamed.tpe";
     "literals_reject_name.tpe";
     "literals_reject_negative.tpe";
     "literals_reject_peak.tpe";

@@ -87,8 +87,10 @@ module type SUMMARY = sig
   (** [duration s] is the interval of the durations of the computations of [s],
       where [s] determines one. *)
 
-  val inhabited : t -> bool
-  (** [inhabited s] is whether [s] summarises some computation. *)
+  val vacuous : Grade.bounds -> t -> string option
+  (** [vacuous bounds s] is the reason [s] summarises no computation under the
+      running times [bounds] ({!Grade.S.vacuous}), [None] if it summarises some.
+  *)
 
   val events : t -> string list
   (** [events s] is the operation names [s] mentions, in increasing order. *)
@@ -175,10 +177,10 @@ module Make (S : SUMMARY) : sig
   (** The {!SUMMARY.duration} of the evaluation. *)
 
   val vacuous : Grade.bounds -> t -> string option
-  (** {!Grade.no_trace} unless the evaluation is {!SUMMARY.inhabited}. *)
+  (** The {!SUMMARY.vacuous} of the evaluation. *)
 
   val inhabited : Grade.bounds -> t -> bool
-  (** The {!SUMMARY.inhabited} of the evaluation. *)
+  (** Whether {!vacuous} gives no reason. *)
 
   val events : t -> string list
   (** The names of the operations occurring in a term and those its fixed

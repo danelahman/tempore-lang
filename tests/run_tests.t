@@ -1243,6 +1243,23 @@ it names none:
     grade `{Beat}` accumulates here (operation `Beat`)
     Note: the resource inequality `{Beat} <= (2, Beat, [0, 1])` does not hold
   ======================================================================
+  event_separation_reject_runs.tpe
+  ======================================================================
+  File "event_separation_reject_runs.tpe", line 21, characters 11-67:
+  21 |     unit # ((1, Beat, [10, 10], [1, 1]), (1, Beep, [0, 0], [1, 1])) =
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `((1, Beat, [10, 10], [1, 1]), (1, Beep, [0, 0], [1, 1]))` admits no run: the entries of `Beat` and `Beep` admit no common total duration in [0, ∞)
+  
+  File "event_separation_reject_runs.tpe", line 27, characters 24-74:
+  27 | let counted () : unit # (([1, 2], Beat, [0, 0], [10, 10], [1, 1]), [4, 6]) =
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `(([1, 2], Beat, [0, 0], [10, 10], [1, 1]), [4, 6])` admits no run: the entry of `Beat` admits no total duration in [4, 6]
+  
+  File "event_separation_reject_runs.tpe", line 33, characters 22-42:
+  33 | let close () : unit # (2, Work, [0, 0.01]) =
+                             ^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `(2, Work, [0, 0.01])` admits no run: the entry of `Work` admits no total duration in [0, ∞)
+  ======================================================================
   event_separation_reject_unknown.tpe
   ======================================================================
   File "event_separation_reject_unknown.tpe", line 11, characters 21-36:
@@ -2191,6 +2208,27 @@ it names none:
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: In the `mode-times` grading monoid, an operation is written `{X}` of a single operation `X`, not `{Take; Return}`
   ======================================================================
+  literals_reject_mode_times_start.tpe
+  ======================================================================
+  File "literals_reject_mode_times_start.tpe", line 10, characters 21-43:
+  10 | let take () : unit # (Cold, Out, (Cold, 0)) = perform Take ()
+                            ^^^^^^^^^^^^^^^^^^^^^^
+  Syntax error: In the `mode-times` grading monoid, in the entry from `Cold` to `Out`, a change of mode spends a positive time in its start mode `Cold`
+  ======================================================================
+  literals_reject_mode_times_sum.tpe
+  ======================================================================
+  File "literals_reject_mode_times_sum.tpe", line 8, characters 19-69:
+  8 | let claim () = box (Cold, Cold, (Out, [5, 9]), (Hot, [5, 9]), [0, 8]) 1
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Syntax error: In the `mode-times` grading monoid, in the entry from `Cold` to `Cold`, the times in the modes sum to no time within the total time
+  ======================================================================
+  literals_reject_mode_times_unnamed.tpe
+  ======================================================================
+  File "literals_reject_mode_times_unnamed.tpe", line 8, characters 19-44:
+  8 | let claim () = box (Cold, Cold, (_, [1, 2])) 1
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Syntax error: In the `mode-times` grading monoid, in the entry from `Cold` to `Cold`, the time in `_` has the lower end 0: it bounds every mode not named, those not visited included
+  ======================================================================
   literals_reject_modes.tpe
   ======================================================================
   File "literals_reject_modes.tpe", line 7, characters 19-31:
@@ -2541,14 +2579,8 @@ it names none:
   Typing error: This function's body has grade `({Pipette}, Out, Out)`, which does not match its annotated grade `(Cold, Cold)`
     Note: the effect inequality `({Pipette}, Out, Out) <= (Cold, Cold)` does not hold
   
-  File "mode_times_reject.tpe", line 29, characters 12-61:
-  29 | let take () : unit # (Cold, Out, (Cold, 0)) = perform Take ()
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `({Take}, Cold, Out)`, which does not match its annotated grade `(Cold, Out, (Cold, 0))`
-    Note: the effect inequality `({Take}, Cold, Out) <= (Cold, Out, (Cold, 0))` does not hold
-  
-  File "mode_times_reject.tpe", lines 32-34, characters 12-19:
-  32 | let late () : unit # (Out, Cold, (Out, [0, 1])) =
+  File "mode_times_reject.tpe", lines 28-30, characters 12-19:
+  28 | let late () : unit # (Out, Cold, (Out, [0, 1])) =
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `5 · ({Return}, Out, Cold)`, which does not match its annotated grade `(Out, Cold, (Out, [0, 1]))`
     Note: the effect inequality `5 · ({Return}, Out, Cold) <= (Out, Cold, (Out, [0, 1]))` does not hold
