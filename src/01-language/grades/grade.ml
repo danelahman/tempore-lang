@@ -60,6 +60,25 @@ type bounds = {
   operations : string list;
 }
 
+let no_trace = "permits no trace over the declared operations"
+
+let no_common_run reason =
+  "admits no run: no run meets both its lower and its upper end"
+  ^ match reason with Some r -> ": " ^ r | None -> ""
+
+let durations_apart = function
+  | Some (lower, ((Closed _ | Open _) as upper)) ->
+      let lower = end_value lower and upper = end_value upper in
+      if Rational.compare lower upper > 0 then
+        Some
+          ("its lower end lasts at least " ^ Rational.show lower
+         ^ " and its upper end at most " ^ Rational.show upper)
+      else None
+  | _ -> None
+
+let unless_inhabited inhabited = if inhabited then None else Some no_trace
+let inhabited_of vacuous bounds rho = Option.is_none (vacuous bounds rho)
+
 type completeness = Delay.completeness = Complete | Partial
 type ends = Both_ends | Lower_end | Upper_end
 
@@ -97,6 +116,7 @@ module type S = sig
   val duration_bounds :
     bounds -> t -> (Rational.t bound * Rational.t bound) option
 
+  val vacuous : bounds -> t -> string option
   val inhabited : bounds -> t -> bool
   val events : t -> string list
   val of_lit : lit -> t

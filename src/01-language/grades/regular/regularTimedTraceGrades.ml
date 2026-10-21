@@ -66,6 +66,7 @@ module type DECISIONS = sig
   val min_weight : World.t -> t -> int option
   val max_weight : World.t -> t -> int option
   val inhabited : World.t -> t -> bool
+  val consistent : World.t -> World.t -> t -> t -> bool
 end
 
 (** Tables by a number and grades, by their representations. *)
@@ -95,12 +96,34 @@ struct
       Hashing.combine i (Hashing.combine (G.hash rho) (G.hash sigma))
   end)
 
+  (** Tables by two numbers and two grades. *)
+  module Joint = Memo.Make (struct
+    type t = int * int * G.t * G.t
+
+    let equal (i, j, rho, sigma) (i', j', rho', sigma') =
+      Int.equal i i' && Int.equal j j'
+      && G.compare rho rho' = 0
+      && G.compare sigma sigma' = 0
+
+    let hash (i, j, rho, sigma) =
+      Hashing.combine (Hashing.combine i j)
+        (Hashing.combine (G.hash rho) (G.hash sigma))
+  end)
+
   (** [tabulated f] is [f], its results tabulated by the number of the world and
       the grades compared in a table of its own. *)
   let tabulated f =
     let table = Two.create 64 in
     fun (world : World.t) rho rho' ->
       Two.find_or_add table (world.id, rho, rho') (fun () -> f world rho rho')
+
+  (** [tabulated_jointly f] is [f], its results tabulated by the numbers of the
+      two worlds and the grades decided in a table of its own. *)
+  let tabulated_jointly f =
+    let table = Joint.create 64 in
+    fun (world : World.t) (world' : World.t) rho rho' ->
+      Joint.find_or_add table (world.id, world'.id, rho, rho') (fun () ->
+          f world world' rho rho')
 end
 
 (** The decisions by the automata of traces of [L] and their closures, a verdict
@@ -114,16 +137,18 @@ module ByLetters (L : LANGUAGE) = struct
   module Coverage = TimedClosure.Coverage (L.State)
   module Weights = TimedClosure.Weights (L.State)
 
-  (** The products of the automata of traces with those of closures, whose
-      states are sets of states of the automata of traces. *)
-  module Closed =
-    Dfa.Product
-      (L.State)
-      (struct
-        type t = L.State.t list
+  (** Sets of states of the automata of traces, the states of the closures. *)
+  module States = struct
+    type t = L.State.t list
 
-        let compare = List.compare L.State.compare
-      end)
+    let compare = List.compare L.State.compare
+  end
+
+  module Closed = Dfa.Product (L.State) (States)
+  (** The products of the automata of traces with those of closures. *)
+
+  module Closures = Dfa.Product (States) (States)
+  (** The products of the automata of two closures. *)
 
   (** [letter_running_time running_times] is the running time of each letter of
       an operation, the [a]-th of [running_times] for the letter [a]. *)
@@ -183,6 +208,19 @@ module ByLetters (L : LANGUAGE) = struct
 
   let inhabited (world : World.t) rho =
     not (Traces.is_empty (letters world.names) (traces world rho))
+
+  (* The two worlds have the same names, and hence the same automata of
+     traces. *)
+  let consistent =
+    tabulated_jointly (fun (lo_world : World.t) (hi_world : World.t) rho rho' ->
+        let letters = letters lo_world.names in
+        Closures.intersect letters
+          (Allowance.closure
+             ~running_time:(letter_running_time hi_world.running_times)
+             ~letters (traces hi_world rho'))
+          (Coverage.closure
+             ~running_time:(letter_running_time lo_world.running_times)
+             (traces lo_world rho)))
 end
 
 (** The decisions by the graphs of the gap derivatives of the symbolic regular
@@ -265,6 +303,11 @@ module ByGaps = struct
   let min_weight = weight DelayTimedClosure.Graph.min_weight
   let max_weight = weight DelayTimedClosure.Graph.max_weight
   let inhabited world rho = DelayTimedClosure.Graph.inhabited (graph world rho)
+
+  let consistent =
+    tabulated_jointly (fun lo_world hi_world rho rho' ->
+        JointWalk.consistent ~lo:(operations lo_world) ~hi:(operations hi_world)
+          (graph lo_world rho) (graph hi_world rho'))
 end
 
 (** The grades over [L], decided by [D] over the least names of the classes of
@@ -351,6 +394,46 @@ module Over
                 Grades.memoise (classes running_time declared)))
 
       let world endpoint bounds rhos = worlds bounds endpoint rhos
+
+      (* The worlds of the joint decisions of a program, by the grades decided:
+         the least names of the classes of the names of equal pairs of running
+         times, at the lower and at the upper ends. The classes are those of
+         {!LANGUAGE.representatives} for the number of the pair of running
+         times of each name. *)
+      let joint_worlds =
+        Memo.last (fun bounds ->
+            let lo = running_time fst bounds and hi = running_time snd bounds in
+            let pair name = (lo name, hi name) in
+            let declared = declared pair bounds in
+            Grades.memoise (fun rhos ->
+                let letters =
+                  letters pair declared
+                    (List.sort_uniq String.compare
+                       (List.concat_map L.events rhos))
+                in
+                let compare_pair (c, d) (c', d') =
+                  match Int.compare c c' with 0 -> Int.compare d d' | k -> k
+                in
+                let pairs =
+                  List.sort_uniq compare_pair (List.map snd letters)
+                in
+                let number (name, pair) =
+                  ( name,
+                    Option.get
+                      (List.find_index (fun p -> compare_pair p pair = 0) pairs)
+                  )
+                in
+                let names =
+                  List.map fst
+                    (L.representatives rhos (List.map number letters))
+                in
+                ( World.make (names, List.map lo names),
+                  World.make (names, List.map hi names) )))
+
+      let consistent bounds lo hi =
+        let lo_world, hi_world = joint_worlds bounds [ lo; hi ] in
+        D.consistent lo_world hi_world lo hi
+
       let in_allowance = D.in_allowance
       let in_coverage = D.in_coverage
       let allowance = D.allowance

@@ -485,6 +485,47 @@ let of_bounds_laws (module G : Grade.S) bounds =
       within;
   ]
 
+(* [consistency_laws (module G) ~context bounds samples] checks that the
+   grades built from grades admitting a run under [bounds] admit one: the
+   unit, the top, the grades of the sample delays, the time shadows of their
+   ordered pairs, and the products and joins of the pairs of the first
+   [width] of [samples] that admit a run. *)
+let consistency_laws (type a) ?(width = 12) (module G : Grade.S with type t = a)
+    ~context bounds (samples : a list) =
+  let name law = G.name ^ ": " ^ law in
+  let ok = G.inhabited bounds in
+  let show2 (x, y) = G.show x ^ ", " ^ G.show y ^ " at " ^ context in
+  let delays = delays (module G.Delay) in
+  let ordered =
+    List.filter
+      (fun ((q, _), (r, _)) -> Rational.compare (value q) (value r) <= 0)
+      (pairs delays)
+  in
+  let consistent = pairs (first width (List.filter ok samples)) in
+  [
+    check (name "the unit admits a run") (ok G.one) (G.show G.one);
+    check (name "the top admits a run") (ok G.top) (G.show G.top);
+    all
+      (name "delays admit a run")
+      (fun (q, _) -> show_lit q)
+      (fun (_, d) -> ok (G.of_delay d))
+      delays;
+    all
+      (name "time shadows of ordered bounds admit a run")
+      (fun ((q, _), (r, _)) -> show_lit q ^ ", " ^ show_lit r)
+      (fun ((_, d), (_, e)) ->
+        ok (G.of_bounds (Grade.Closed d, Grade.Closed e)))
+      ordered;
+    all
+      (name "products admit a run")
+      show2
+      (fun (x, y) -> ok (G.mul x y))
+      consistent;
+    all (name "joins admit a run") show2
+      (fun (x, y) -> ok (G.join x y))
+      consistent;
+  ]
+
 (* [declared_laws (module G) ~context bounds samples] checks, on [samples]
    under [bounds], the properties the declarations of [G] assert: that the
    product commutes up to equality if [G.commutative]; that [is_top] decides

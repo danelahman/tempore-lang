@@ -16,7 +16,7 @@ module type SUMMARY = sig
   val compare_op : op -> op -> int
   val hash_op : op -> int
   val duration : t -> I.t option
-  val inhabited : t -> bool
+  val vacuous : Grade.bounds -> t -> string option
   val events : t -> string list
   val counterexample : t -> t -> t option
 end
@@ -148,7 +148,8 @@ module Make (S : SUMMARY) = struct
         (S.counterexample (evaluate bounds c) (evaluate bounds d))
 
   let duration_bounds bounds c = S.duration (evaluate bounds c)
-  let inhabited bounds c = S.inhabited (evaluate bounds c)
+  let vacuous bounds c = S.vacuous bounds (evaluate bounds c)
+  let inhabited bounds c = Grade.inhabited_of vacuous bounds c
 
   let events c =
     let rec go acc c =

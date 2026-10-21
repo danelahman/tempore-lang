@@ -1243,6 +1243,23 @@ it names none:
     grade `{Beat}` accumulates here (operation `Beat`)
     Note: the resource inequality `{Beat} <= (2, Beat, [0, 1])` does not hold
   ======================================================================
+  event_separation_reject_runs.tpe
+  ======================================================================
+  File "event_separation_reject_runs.tpe", line 21, characters 11-67:
+  21 |     unit # ((1, Beat, [10, 10], [1, 1]), (1, Beep, [0, 0], [1, 1])) =
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `((1, Beat, [10, 10], [1, 1]), (1, Beep, [0, 0], [1, 1]))` admits no run: the entries of `Beat` and `Beep` admit no common total duration in [0, ∞)
+  
+  File "event_separation_reject_runs.tpe", line 27, characters 24-74:
+  27 | let counted () : unit # (([1, 2], Beat, [0, 0], [10, 10], [1, 1]), [4, 6]) =
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `(([1, 2], Beat, [0, 0], [10, 10], [1, 1]), [4, 6])` admits no run: the entry of `Beat` admits no total duration in [4, 6]
+  
+  File "event_separation_reject_runs.tpe", line 33, characters 22-42:
+  33 | let close () : unit # (2, Work, [0, 0.01]) =
+                             ^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `(2, Work, [0, 0.01])` admits no run: the entry of `Work` admits no total duration in [0, ∞)
+  ======================================================================
   event_separation_reject_unknown.tpe
   ======================================================================
   File "event_separation_reject_unknown.tpe", line 11, characters 21-36:
@@ -2191,6 +2208,27 @@ it names none:
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: In the `mode-times` grading monoid, an operation is written `{X}` of a single operation `X`, not `{Take; Return}`
   ======================================================================
+  literals_reject_mode_times_start.tpe
+  ======================================================================
+  File "literals_reject_mode_times_start.tpe", line 10, characters 21-43:
+  10 | let take () : unit # (Cold, Out, (Cold, 0)) = perform Take ()
+                            ^^^^^^^^^^^^^^^^^^^^^^
+  Syntax error: In the `mode-times` grading monoid, in the entry from `Cold` to `Out`, a change of mode spends a positive time in its start mode `Cold`
+  ======================================================================
+  literals_reject_mode_times_sum.tpe
+  ======================================================================
+  File "literals_reject_mode_times_sum.tpe", line 8, characters 19-69:
+  8 | let claim () = box (Cold, Cold, (Out, [5, 9]), (Hot, [5, 9]), [0, 8]) 1
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Syntax error: In the `mode-times` grading monoid, in the entry from `Cold` to `Cold`, the times in the modes sum to no time within the total time
+  ======================================================================
+  literals_reject_mode_times_unnamed.tpe
+  ======================================================================
+  File "literals_reject_mode_times_unnamed.tpe", line 8, characters 19-44:
+  8 | let claim () = box (Cold, Cold, (_, [1, 2])) 1
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Syntax error: In the `mode-times` grading monoid, in the entry from `Cold` to `Cold`, the time in `_` has the lower end 0: it bounds every mode not named, those not visited included
+  ======================================================================
   literals_reject_modes.tpe
   ======================================================================
   File "literals_reject_modes.tpe", line 7, characters 19-31:
@@ -2541,14 +2579,8 @@ it names none:
   Typing error: This function's body has grade `({Pipette}, Out, Out)`, which does not match its annotated grade `(Cold, Cold)`
     Note: the effect inequality `({Pipette}, Out, Out) <= (Cold, Cold)` does not hold
   
-  File "mode_times_reject.tpe", line 29, characters 12-61:
-  29 | let take () : unit # (Cold, Out, (Cold, 0)) = perform Take ()
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `({Take}, Cold, Out)`, which does not match its annotated grade `(Cold, Out, (Cold, 0))`
-    Note: the effect inequality `({Take}, Cold, Out) <= (Cold, Out, (Cold, 0))` does not hold
-  
-  File "mode_times_reject.tpe", lines 32-34, characters 12-19:
-  32 | let late () : unit # (Out, Cold, (Out, [0, 1])) =
+  File "mode_times_reject.tpe", lines 28-30, characters 12-19:
+  28 | let late () : unit # (Out, Cold, (Out, [0, 1])) =
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `5 · ({Return}, Out, Cold)`, which does not match its annotated grade `(Out, Cold, (Out, [0, 1]))`
     Note: the effect inequality `5 · ({Return}, Out, Cold) <= (Out, Cold, (Out, [0, 1]))` does not hold
@@ -3348,6 +3380,18 @@ it names none:
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
   ======================================================================
+  rational_traces_intervals_no_common_run_reject.tpe
+  ======================================================================
+  File "rational_traces_intervals_no_common_run_reject.tpe", line 18, characters 6-36:
+  18 |   box [{3/4; Sample}, {1/2; Sample}] (Token "s") as s in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{0.75; Sample}, {0.5; Sample}]` admits no run: no run meets both its lower and its upper end
+  
+  File "rational_traces_intervals_no_common_run_reject.tpe", line 25, characters 32-54:
+  25 | operation Slow : unit ~> unit # [{5/2}, {Sample; 1/2}]
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{2.5}, {Sample; 0.5}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2.5 and its upper end at most 1.5
+  ======================================================================
   rational_traces_intervals_reject.tpe
   ======================================================================
   File "rational_traces_intervals_reject.tpe", lines 18-19, characters 2-3:
@@ -3805,6 +3849,18 @@ it names none:
   ]
   
   ======================================================================
+  regex_timed_interval_no_common_run_reject.tpe
+  ======================================================================
+  File "regex_timed_interval_no_common_run_reject.tpe", line 18, characters 6-25:
+  18 |   box [{Fetch}, {Store*}] (Token "f") as f in
+             ^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
+  
+  File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
+  24 | operation Slow : unit ~> unit # [{4; Fetch*}, {Store; 1}]
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
+  ======================================================================
   regex_timed_interval_reject.tpe
   ======================================================================
   File "regex_timed_interval_reject.tpe", lines 18-19, characters 2-5:
@@ -3946,6 +4002,18 @@ it names none:
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
+  ======================================================================
+  regex_timed_rational_interval_no_common_run_reject.tpe
+  ======================================================================
+  File "regex_timed_rational_interval_no_common_run_reject.tpe", line 18, characters 6-26:
+  18 |   box [{(2, 3)}, {[0, 2]}] (Token "w") as w in
+             ^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{(2, 3)}, {[0, 2]}]` admits no run: no run meets both its lower and its upper end
+  
+  File "regex_timed_rational_interval_no_common_run_reject.tpe", line 24, characters 32-54:
+  24 | operation Slow : unit ~> unit # [{5/2}, {Sample; 1/2}]
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{2.5}, {Sample; 0.5}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2.5 and its upper end at most 2
   ======================================================================
   regex_timed_rational_interval_open_reject.tpe
   ======================================================================
@@ -4186,6 +4254,28 @@ it names none:
   Typing error: This function's body has grade `{Sample^2}`, which does not match its annotated grade `{2.5}`
     Note: the effect inequality `{Sample^2} <= {2.5}` does not hold
   ======================================================================
+  regex_timed_rigid_interval_inconsistent_reject.tpe
+  ======================================================================
+  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 25, characters 6-24:
+  25 |   box [{!≥5}, {!≤2}] (Token "a") as a in
+             ^^^^^^^^^^^^^^
+  Typing error: The grade `[{!≥5}, {!≤2}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 5 and its upper end at most 2
+  
+  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 32, characters 6-21:
+  32 |   box [{!2}, {Write}] (Token "s") as s in
+             ^^^^^^^^^^^^^^^
+  Typing error: The grade `[{!≥2}, {Write}]` admits no run: no run meets both its lower and its upper end
+  
+  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 40, characters 6-44:
+  40 |   box [{!>1; Read; ≥0}, {!<2; Read; ≤5}] (Token "b") as b in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{!≥2; Read; ≥0}, {!≤1; Read; ≤5}]` admits no run: no run meets both its lower and its upper end
+  
+  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 47, characters 33-62:
+  47 | operation Other : unit ~> unit # [{Write}, {Read; Read; Read}]
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{Write}, {Read^3}]` admits no run: no run meets both its lower and its upper end
+  ======================================================================
   regex_timed_rigid_interval_reject.tpe
   ======================================================================
   File "regex_timed_rigid_interval_reject.tpe", lines 33-34, characters 2-5:
@@ -4213,6 +4303,23 @@ it names none:
                    ^^^^^^^^^^^^^^^
     grade `{Read}` accumulates here (operation `Read`)
     Note: the resource inequality `{!1; Read; Log; Read} <= {([1, 2]; Read)*}` does not hold
+  ======================================================================
+  regex_timed_rigid_rational_interval_inconsistent_reject.tpe
+  ======================================================================
+  File "regex_timed_rigid_rational_interval_inconsistent_reject.tpe", line 26, characters 6-33:
+  26 |   box [{(≥2 & Write)}, {Write}] (Token "w") as w in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{≥2 & Write}, {Write}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2 and its upper end less than 2
+  
+  File "regex_timed_rigid_rational_interval_inconsistent_reject.tpe", line 33, characters 6-22:
+  33 |   box [{!>2}, {!≤2}] (Token "a") as a in
+             ^^^^^^^^^^^^^^
+  Typing error: The grade `[{!>2}, {!≤2}]` admits no run: no run meets both its lower and its upper end: its lower end lasts more than 2 and its upper end at most 2
+  
+  File "regex_timed_rigid_rational_interval_inconsistent_reject.tpe", line 40, characters 6-62:
+  40 |   box [{!≥1/2; Read; Write}, {!≤1/2; Read; (≤3 & Read)}] (Token "r") as r in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{!≥0.5; Read; Write}, {!≤0.5; Read; (≤3 & Read)}]` admits no run: no run meets both its lower and its upper end
   ======================================================================
   regex_timed_rigid_rational_upper.tpe
   ======================================================================
@@ -5712,6 +5819,18 @@ it names none:
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{2}, {3}]` does not hold
   ======================================================================
+  traces_intervals_no_common_run_reject.tpe
+  ======================================================================
+  File "traces_intervals_no_common_run_reject.tpe", line 18, characters 6-35:
+  18 |   box [{Write}, {Read; Read; Read}] (Token "w") as w in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{Write}, {Read; Read; Read}]` admits no run: no run meets both its lower and its upper end
+  
+  File "traces_intervals_no_common_run_reject.tpe", line 24, characters 32-48:
+  24 | operation Slow : unit ~> unit # [{5}, {Read; 2}]
+                                       ^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{5}, {Read; 2}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 5 and its upper end at most 4
+  ======================================================================
   traces_normalise.tpe
   ======================================================================
   === Run 1 ===
@@ -6427,6 +6546,18 @@ have one implementation, excepted:
   ]
   
   ======================================================================
+  regex_timed_interval_no_common_run_reject.tpe (regex-timed-interval-letter-automata)
+  ======================================================================
+  File "regex_timed_interval_no_common_run_reject.tpe", line 18, characters 6-25:
+  18 |   box [{Fetch}, {Store*}] (Token "f") as f in
+             ^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
+  
+  File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
+  24 | operation Slow : unit ~> unit # [{4; Fetch*}, {Store; 1}]
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
+  ======================================================================
   regex_timed_interval_reject.tpe (regex-timed-interval-letter-automata)
   ======================================================================
   File "regex_timed_interval_reject.tpe", lines 18-19, characters 2-5:
@@ -6780,6 +6911,18 @@ their visible implementations, under their implementations by automata
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
+  ======================================================================
+  regex_timed_rational_interval_no_common_run_reject.tpe (regex-timed-interval-rational-automata)
+  ======================================================================
+  File "regex_timed_rational_interval_no_common_run_reject.tpe", line 18, characters 6-26:
+  18 |   box [{(2, 3)}, {[0, 2]}] (Token "w") as w in
+             ^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{(2, 3)}, {[0, 2]}]` admits no run: no run meets both its lower and its upper end
+  
+  File "regex_timed_rational_interval_no_common_run_reject.tpe", line 24, characters 32-54:
+  24 | operation Slow : unit ~> unit # [{5/2}, {Sample; 1/2}]
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{2.5}, {Sample; 0.5}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2.5 and its upper end at most 2
   ======================================================================
   regex_timed_rational_interval_open_reject.tpe (regex-timed-interval-rational-automata)
   ======================================================================
@@ -7725,6 +7868,30 @@ the rigid grades excepted:
     [{3}, {3}]
   ]
   
+  ======================================================================
+  regex_timed_interval_no_common_run_reject.tpe (regex-timed-interval-symbolic-by-letters)
+  ======================================================================
+  File "regex_timed_interval_no_common_run_reject.tpe", line 18, characters 6-25:
+  18 |   box [{Fetch}, {Store*}] (Token "f") as f in
+             ^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
+  
+  File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
+  24 | operation Slow : unit ~> unit # [{4; Fetch*}, {Store; 1}]
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
+  ======================================================================
+  regex_timed_interval_no_common_run_reject.tpe (regex-timed-interval-letter-derivatives)
+  ======================================================================
+  File "regex_timed_interval_no_common_run_reject.tpe", line 18, characters 6-25:
+  18 |   box [{Fetch}, {Store*}] (Token "f") as f in
+             ^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
+  
+  File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
+  24 | operation Slow : unit ~> unit # [{4; Fetch*}, {Store; 1}]
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
   ======================================================================
   regex_timed_interval_reject.tpe (regex-timed-interval-symbolic-by-letters)
   ======================================================================

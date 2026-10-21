@@ -18,6 +18,7 @@ module type WORLD = sig
   val min_weight : world -> grade -> Rational.t bound option
   val max_weight : world -> grade -> Rational.t bound option
   val inhabited : bounds -> grade -> bool
+  val consistent : bounds -> grade -> grade -> bool
   val literal_of_word : word -> lit
   val single : lit -> bool
   val number : lit -> Rational.t option
@@ -113,7 +114,8 @@ struct
     let needs_op_bounds = true
     let duration_ends = Grade.Both_ends
     let duration_bounds bounds rho = duration_bounds bounds rho rho
-    let inhabited = W.inhabited
+    let vacuous bounds rho = unless_inhabited (W.inhabited bounds rho)
+    let inhabited bounds rho = inhabited_of vacuous bounds rho
     let events = L.events
     let compare = L.compare
     let hash = L.hash
@@ -188,11 +190,45 @@ struct
 
     let hash (lo, hi) = Hashing.combine (L.hash lo) (L.hash hi)
 
+    (* [joint_vacuous bounds (lo, hi)] is the reason no run meets both ends
+       [lo] and [hi], each of which has a trace ({!Grade.no_common_run}). A
+       trace of a language covers and is permitted by itself, the empty trace
+       covers the unit and is permitted by every trace, and every trace is
+       permitted by the top. *)
+    let joint_vacuous bounds (lo, hi) =
+      if
+        L.compare lo hi = 0
+        || L.compare lo Lower.top = 0
+        || L.compare hi Upper.top = 0
+      then None
+      else
+        match durations_apart (duration_bounds bounds lo hi) with
+        | Some _ as reason -> Some (no_common_run reason)
+        | None when W.consistent bounds lo hi -> None
+        | None -> Some (no_common_run None)
+
+    let vacuous bounds (lo, hi) =
+      match Common.vacuous bounds lo with
+      | Some _ as reason -> reason
+      | None -> (
+          match Common.vacuous bounds hi with
+          | Some _ as reason -> reason
+          | None -> joint_vacuous bounds (lo, hi))
+
+    let inhabited bounds rho = inhabited_of vacuous bounds rho
+
+    (* The pair of a witness in one end with the other end of the lesser
+       grade, if some run meets both its ends, and the lesser grade
+       otherwise. *)
     let counterexample bounds (lo, hi) (lo', hi') =
-      match Lower.counterexample bounds lo lo' with
-      | Some e -> Some (e, hi)
-      | None ->
-          Option.map (fun e -> (lo, e)) (Upper.counterexample bounds hi hi')
+      let consistent e =
+        if Option.is_none (joint_vacuous bounds e) then e else (lo, hi)
+      in
+      Option.map consistent
+        (match Lower.counterexample bounds lo lo' with
+        | Some e -> Some (e, hi)
+        | None ->
+            Option.map (fun e -> (lo, e)) (Upper.counterexample bounds hi hi'))
 
     let unit_least = false
     let plus _ = None
@@ -200,9 +236,6 @@ struct
     let needs_op_bounds = true
     let duration_ends = Grade.Both_ends
     let duration_bounds bounds (lo, hi) = duration_bounds bounds lo hi
-
-    let inhabited bounds (lo, hi) =
-      W.inhabited bounds lo && W.inhabited bounds hi
 
     let events (lo, hi) =
       List.sort_uniq String.compare (Common.events lo @ Common.events hi)

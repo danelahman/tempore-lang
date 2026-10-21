@@ -390,6 +390,15 @@ let rejected name text fragment =
       in
       check ("event-separation: " ^ name) (from 0) reason
 
+let vacuous name text expected =
+  expect
+    ("event-separation: " ^ name)
+    Fun.id ~expected
+    (Option.value ~default:"none" (E.vacuous bounds (parse text)))
+
+let inhabited name text =
+  check ("event-separation: " ^ name) (E.inhabited bounds (parse text)) text
+
 let invariant = "(Beat, [0, 0], [0, 5], [0, 5])"
 let short = "(Beat, [0, 5])"
 
@@ -491,6 +500,42 @@ let examples =
     check "event-separation: a specification is inhabited"
       (E.inhabited bounds (parse "((Beat, [0, 5]), [10, 20])"))
       "";
+    vacuous "entries forcing different totals"
+      "((1, Beat, [10, 10], [1, 1]), (1, Beep, [0, 0], [1, 1]))"
+      "admits no run: the entries of `Beat` and `Beep` admit no common total \
+       duration in [0, ∞)";
+    vacuous "totals between those of the counts"
+      "(([1, 2], Beat, [0, 0], [10, 10], [1, 1]), [4, 6])"
+      "admits no run: the entry of `Beat` admits no total duration in [4, 6]";
+    vacuous "gaps below the running time" "(2, Work, [0, 0.01])"
+      "admits no run: the entry of `Work` admits no total duration in [0, ∞)";
+    vacuous "a tail below the running time" "(1, Work, [0, 1], [0, 0.5])"
+      "admits no run: the entry of `Work` admits no total duration in [0, ∞)";
+    vacuous "three entries without a common total"
+      "(([1, 2], Beat, [0, 0], [10, 10], [1, 1]), (1, Beep, [0, 5], [1, 1]), \
+       (1, Work, [4, 8], [1, 3]), [0, 20])"
+      "admits no run: its entries admit no common total duration in [0, 20]";
+    vacuous "totals beyond the greatest count"
+      "(([2, 3], Beat, [0, 0], [1, 2], [1, 1]), (5, 6])"
+      "admits no run: the entry of `Beat` admits no total duration in (5, 6]";
+    inhabited "a total at the greatest count"
+      "(([2, 3], Beat, [0, 0], [1, 2], [1, 1]), [5, 6])";
+    vacuous "a total between two counts of fixed gaps"
+      "(([2, 3], Beat, [0, 0], [2, 2], [1, 1]), [4, 4])"
+      "admits no run: the entry of `Beat` admits no total duration in [4, 4]";
+    inhabited "a large count of fixed gaps"
+      "(([1, 100000], Beat, [0, 0], [1, 1], [1, 1]), [99999, 99999])";
+    vacuous "beyond a large count of fixed gaps"
+      "(([1, 100000], Beat, [0, 0], [1, 1], [1, 1]), [100000.5, 100001])"
+      "admits no run: the entry of `Beat` admits no total duration in \
+       [100000.5, 100001]";
+    inhabited "an unbounded count reaching a total"
+      "(([1, ∞), Beat, [0, 0], [10, 10], [1, 1]), [101, 101])";
+    inhabited "a tail at the running time" "(1, Work, [0, 1], [1, 2])";
+    inhabited "entries meeting a common total"
+      "((1, Beat, [0, 3], [1, 1]), (1, Beep, [1, 3], [1, 1]), [3, 4])";
+    inhabited "names interleaved at once, over-approximated"
+      "((1, Beat, [0, 0], [1, 1]), (1, Beep, [0, 0], [1, 1]))";
     check "event-separation: an occurrence is atomic"
       (E.is_atomic "Beat" (parse "{Beat}")
       && not (E.is_atomic "Beat" (parse "{Beat; 1}")))

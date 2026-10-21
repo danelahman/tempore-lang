@@ -226,7 +226,7 @@ module Summary = struct
     | [] -> None
     | i :: is -> Some (List.fold_left I.hull i is)
 
-  let inhabited _ = true
+  let vacuous _ _ = None
   let events _ = []
   let counterexample _ _ = None
 end
@@ -429,11 +429,52 @@ let behaviour lit pairs =
             else (pair lit (p, q), ()))
           pairs))
 
-(* [bounds_of_lit lit (p, q) components] is the bounds of the entry from [p] to
-    [q] of the literal [lit] with the components [components]: pairs [(M, t)]
-    of a mode named or [unnamed] and an interval, and at most one interval of
-    the total time. *)
-let bounds_of_lit lit (p, q) components =
+(* [realisable lit context modes (p, q) b] checks that some trace from [p] to
+    [q] meets the bounds [b] of an entry of the literal [lit], the modes of the
+    specification being [modes]: the time in [unnamed] has the lower end [0],
+    as it bounds every mode not named, visited or not; a change of mode spends
+    a positive time in its start mode; and the sum of the times in the modes
+    meets the total time, the modes not named contributing [[0, 0]] if their
+    time is [[0, 0]] and [\[0, ∞)] otherwise. *)
+let realisable lit context modes (p, q) b =
+  let positive = (Grade.Open Rational.zero, Grade.Unbounded) in
+  (match b.others with
+  | Some i when not (I.meets i I.zero) ->
+      Grade.invalid_lit lit
+        "%sthe time in `%s` has the lower end 0: it bounds every mode not \
+         named, those not visited included"
+        context unnamed
+  | Some _ | None -> ());
+  let time m = Option.value (List.assoc_opt m b.named) ~default:I.unbounded in
+  let others = Option.value b.others ~default:I.unbounded in
+  let start =
+    if is_change (p, q) then
+      let i = if String.equal p unnamed then others else time p in
+      match I.inter i positive with
+      | Some i -> [ i ]
+      | None ->
+          Grade.invalid_lit lit
+            "%sa change of mode spends a positive time in its start mode `%s`"
+            context p
+    else []
+  in
+  let named =
+    List.map time
+      (List.filter (fun m -> not (is_change (p, q) && String.equal m p)) modes)
+  in
+  let rest = if I.is_zero others then I.zero else I.unbounded in
+  let sum = List.fold_left I.add rest (start @ named) in
+  match b.total with
+  | Some t when not (I.meets sum t) ->
+      Grade.invalid_lit lit
+        "%sthe times in the modes sum to no time within the total time" context
+  | Some _ | None -> ()
+
+(* [bounds_of_lit lit modes (p, q) components] is the bounds of the entry from
+    [p] to [q] of the literal [lit] with the components [components]: pairs
+    [(M, t)] of a mode named or [unnamed] and an interval, and at most one
+    interval of the total time; the modes of the specification are [modes]. *)
+let bounds_of_lit lit modes (p, q) components =
   let context = Printf.sprintf "in the entry from `%s` to `%s`, " p q in
   let read = Grade.component_of_lit lit ~context interval_of_lit in
   let named, totals =
@@ -485,17 +526,34 @@ let bounds_of_lit lit (p, q) components =
   | None -> ());
   if String.equal p stuck && (named <> [] || others <> None || total <> None)
   then Grade.invalid_lit lit "no time is spent in the mode `%s`" stuck
-  else { named; others; total }
+  else
+    let b = { named; others; total } in
+    realisable lit context modes (p, q) b;
+    b
 
-(* [spec_entry lit] is the entry [(From, To, bounds...)] of a specification the
-    literal [lit] denotes. *)
-let spec_entry = function
+(* [literal_modes lits] is the modes the entries [lits] of a specification
+    name, sorted. *)
+let literal_modes lits =
+  let bound = function Grade.Tuple [ Grade.Name m; _ ] -> [ m ] | _ -> [] in
+  List.sort_uniq String.compare
+    (List.filter
+       (fun p -> not (List.mem p [ stuck; unnamed; unnamed_other ]))
+       (List.concat_map
+          (function
+            | Grade.Tuple (Grade.Name p :: Grade.Name q :: components) ->
+                p :: q :: List.concat_map bound components
+            | _ -> [])
+          lits))
+
+(* [spec_entry modes lit] is the entry [(From, To, bounds...)] of a
+    specification of the modes [modes] the literal [lit] denotes. *)
+let spec_entry modes = function
   | Grade.Tuple (Grade.Name p :: Grade.Name q :: components) as lit ->
       if String.equal p stuck && not (String.equal q stuck) then
         Grade.invalid_lit lit "no trace leaves the mode `%s`" stuck
       else
         let key = pair lit (p, q) in
-        (key, bounds_of_lit lit key components)
+        (key, bounds_of_lit lit modes key components)
   | lit ->
       Grade.invalid_lit lit
         "entries of specifications are tuples `(From, To, ...)` of two modes \
@@ -550,13 +608,15 @@ let of_lit = function
   | Grade.Top -> Terms.top
   | (Grade.Int _ | Grade.Rat _ | Grade.Interval _) as lit ->
       Terms.delays (interval_of_lit lit)
-  | lit when is_spec_entry lit -> Terms.fixed (specification [ spec_entry lit ])
+  | lit when is_spec_entry lit ->
+      Terms.fixed (specification [ spec_entry (literal_modes [ lit ]) lit ])
   | Grade.Tuple (first :: _ as lits) as lit when is_spec_entry first ->
       Terms.fixed
         (specification
            (distinct lit
               (List.map
-                 (Grade.component_of_lit lit ~context:"" spec_entry)
+                 (Grade.component_of_lit lit ~context:""
+                    (spec_entry (literal_modes lits)))
                  lits)))
   | (Grade.Braces _ | Grade.Tuple (Grade.Braces _ :: _)) as lit ->
       let x, b = occurrence_of_lit lit in

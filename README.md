@@ -227,6 +227,18 @@ endpoint and a parenthesis excludes it, as in `[1, 4]`, `(1, 4)`, `[1, 4)`,
 - An empty interval, such as `(1, 1)`, `[1, 1)` or `[4, 1]`, is rejected.
 - Over whole time steps an open endpoint abbreviates a closed one: `(1, 4)` is
   `[2, 3]` and `(1, ∞)` is `[2, ∞)`.
+- A two-sided grade `[L, U]` of the interval grades over traces
+  (`traces-timed-interval`, `regex-timed-interval-symbolic` and their rigid and
+  rational variants) is rejected unless some run meets both ends at the running
+  times of the operations. For example, `[{Write}, {Read; Read}]` is rejected
+  with ``The grade `[…]` admits no run: no run meets both its lower and its
+  upper end``, followed by the least duration of the lower end and the greatest
+  of the upper end when durations decide it. Under the rigid grades some exact
+  word must lie in both ends, so a consistent grade may still have no
+  computation, as `[{≥2 & A}, {A}]` with `A within [1, 3]`.
+- A literal of `event-separation` or `mode-times` that describes no run is
+  rejected likewise (see [Event separation](#event-separation) and
+  `mode-times` under [Semidirect products](#semidirect-products)).
 
 Each monoid accepts the literals it understands; any other literal is a syntax
 error naming the monoids that accept it. The greatest grade is `⊤` (ASCII
@@ -1137,6 +1149,10 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
 
 - `mode-times`: the matrices of `mode-switch-costs` with the costs replaced by
   the time spent in each mode and the total time, each bounded by an interval.
+  A specification is rejected when it admits no run: when a change of mode
+  spends no time in its start mode, when `(_, [lo, hi])` has `lo > 0` (`_`
+  bounds also the modes not visited), or when the times in the modes cannot sum
+  to the total.
 
   A delay keeps the mode and its time is spent in it. An operation takes its
   running time `within [lo, hi]` in the mode it starts from, and its change of
@@ -1238,6 +1254,11 @@ sequencing joins the tail of one part and the lead of the next into a gap.
   unconstrained.
 - A brace literal `{Beat; Work | Beat}` of operations and delays, a number or
   an interval is a computation, without occurrences besides those it names.
+
+A grade is rejected when its entries admit no common total duration at the
+running times of their operations, as `((1, Beat, [10, 10], [1, 1]), (1, Beep,
+[0, 0], [1, 1]))`, whose entries give 11 and 1; the interleaving of the
+operations is not examined.
 
 For example, where `Beat` takes 0.1 to 0.5 and `Work` 1 to 3, the program
 

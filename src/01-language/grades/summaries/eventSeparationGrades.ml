@@ -173,30 +173,106 @@ module Summary = struct
   let compare_op () () = 0
   let hash_op () = 0
   let duration s = Some s.total
+  let delay_set ((lo, hi) : I.t) = DelaySet.between lo hi
 
-  (* The durations of the computations of an active case with [k] occurrences
-     lie in [lead + (k - 1) gaps + tail]: their hull over the count. *)
-  let active_durations a =
-    let gaps =
-      match a.gaps with
-      | None -> I.zero
-      | Some gaps -> (
-          let fewest = I.scale (a.count.least - 1) gaps in
-          match a.count.most with
-          | None -> I.from fewest
-          | Some most -> I.hull fewest (I.scale (most - 1) gaps))
+  (* [repeat g c] is the set [⋃ {k·g : k ∈ c}] of the sums of [k] durations of
+     the interval [g]: the sums of at least [c.least] of them, cut at the upper
+     end of [c.most·g]; a greater multiple of [g], [g] being convex, adds
+     nothing below that end outside [c.most·g]. *)
+  let repeat g (c : count) =
+    let from =
+      DelaySet.sum (delay_set (I.scale c.least g)) (DelaySet.star (delay_set g))
     in
-    I.add (I.add a.lead a.tail) gaps
+    match c.most with
+    | None -> from
+    | Some most -> DelaySet.inter from (delay_set (I.upto (I.scale most g)))
 
-  (* Some silent duration, or the durations of an active case, within the
-     total. *)
-  let entry_inhabited total e =
-    Option.fold ~none:false ~some:(I.meets total) e.silent
-    || Option.fold ~none:false
-         ~some:(fun a -> I.meets total (active_durations a))
-         e.active
+  (* The total durations of the computations of an entry whose name takes a
+     running time in [running_time]: the silent durations, and the sums
+     [lead + g₁ + ... + g_{k-1} + tail] over the counts [k], each gap and the
+     tail at least a running time. *)
+  let totals running_time e =
+    let after i = I.inter i (I.from running_time) in
+    let active a =
+      let gaps (c : count) =
+        match Option.map after a.gaps with
+        | None -> DelaySet.zero
+        | Some (Some gaps) -> repeat gaps c
+        | Some None -> if c.least = 0 then DelaySet.zero else DelaySet.empty
+      in
+      match after a.tail with
+      | None -> DelaySet.empty
+      | Some tail ->
+          DelaySet.sum
+            (delay_set (I.add a.lead tail))
+            (gaps
+               {
+                 least = a.count.least - 1;
+                 most = Option.map pred a.count.most;
+               })
+    in
+    DelaySet.union
+      (Option.fold ~none:DelaySet.empty ~some:delay_set e.silent)
+      (Option.fold ~none:DelaySet.empty ~some:active e.active)
 
-  let inhabited s = Indexed.for_all (entry_inhabited s.total) s.entries
+  (* The reason no run meets the summary: the totals of an entry, at the
+     running times of its name and those of the names not listed at any
+     running time, miss the total durations; or those of two entries, or of
+     all, have no common element within them. *)
+  let vacuous (bounds : Grade.bounds) s =
+    let total = delay_set s.total in
+    let entries =
+      List.map
+        (fun (name, e) ->
+          (name, DelaySet.inter total (totals (bounds.running_time name) e)))
+        (Indexed.named s.entries)
+      @ [
+          ( Indexed.fresh,
+            DelaySet.inter total (totals I.unbounded (Indexed.others s.entries))
+          );
+        ]
+    in
+    let rec pairs = function
+      | [] -> []
+      | x :: rest -> List.map (fun y -> (x, y)) rest @ pairs rest
+    in
+    let alone (name, d) =
+      if DelaySet.is_empty d then
+        Some
+          (Printf.sprintf
+             "admits no run: the entry of `%s` admits no total duration in %s"
+             name (I.show s.total))
+      else None
+    in
+    let together ((name, d), (name', d')) =
+      if DelaySet.intersects d d' then None
+      else
+        Some
+          (Printf.sprintf
+             "admits no run: the entries of `%s` and `%s` admit no common \
+              total duration in %s"
+             name name' (I.show s.total))
+    in
+    let all () =
+      if
+        DelaySet.is_empty
+          (List.fold_left
+             (fun acc (_, d) -> DelaySet.inter acc d)
+             total entries)
+      then
+        Some
+          (Printf.sprintf
+             "admits no run: its entries admit no common total duration in %s"
+             (I.show s.total))
+      else None
+    in
+    match List.find_map alone entries with
+    | Some _ as reason -> reason
+    | None -> (
+        match List.find_map together (pairs entries) with
+        | Some _ as reason -> reason
+        | None -> all ())
+
   let events s = List.map fst (Indexed.named s.entries)
 
   (* The entry [e] at the name [s] of the summary [c], the others kept. *)

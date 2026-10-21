@@ -41,7 +41,8 @@ module Constants = struct
   let needs_op_bounds = false
   let duration_ends = Grade.Both_ends
   let duration_bounds _bounds _ = None
-  let inhabited _bounds _rho = true
+  let vacuous _bounds _ = None
+  let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
 end
 
 let of_lit_with ~ticks ~top ~of_regex ~is_empty = function

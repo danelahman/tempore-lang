@@ -344,8 +344,8 @@ module Make (C : Constraint.S) = struct
     }
 
   (* A grade constant read from the source at [at] names declared operations
-     only, where its grades read running times, and denotes a trace of them. *)
-  let check_inhabited ~needs_op_bounds ~events ~inhabited ~show env c = function
+     only, where its grades read running times, and admits a run of them. *)
+  let check_inhabited ~needs_op_bounds ~events ~vacuous ~show env c = function
     | Some loc ->
         (if needs_op_bounds then
            match
@@ -359,10 +359,9 @@ module Make (C : Constraint.S) = struct
                   operations"
                  event
            | None -> ());
-        if not (inhabited (running_times env) c) then
-          Error.typing ~loc
-            "The grade `%s` permits no trace over the declared operations"
-            (show c)
+        Option.iter
+          (fun reason -> Error.typing ~loc "The grade `%s` %s" (show c) reason)
+          (vacuous (running_times env) c)
     | None -> ()
 
   (* The grade variables of an annotation are unknowns of the command it
@@ -370,7 +369,7 @@ module Make (C : Constraint.S) = struct
   let rec open_rho env = function
     | Ast.RhoConst (c, at) ->
         check_inhabited ~needs_op_bounds:GS.R.needs_op_bounds
-          ~events:GS.R.events ~inhabited:GS.R.inhabited ~show:GS.R.show env c at;
+          ~events:GS.R.events ~vacuous:GS.R.vacuous ~show:GS.R.show env c at;
         Rho.const c
     | Ast.RhoAdd (rho, rho') -> Rho.mul (open_rho env rho) (open_rho env rho')
     | Ast.RhoVar r -> Rho.var r
@@ -379,7 +378,7 @@ module Make (C : Constraint.S) = struct
   let rec open_eps env = function
     | Ast.EpsConst (c, at) ->
         check_inhabited ~needs_op_bounds:GS.E.needs_op_bounds
-          ~events:GS.E.events ~inhabited:GS.E.inhabited ~show:GS.E.show env c at;
+          ~events:GS.E.events ~vacuous:GS.E.vacuous ~show:GS.E.show env c at;
         Eps.const c
     | Ast.EpsAdd (eps, eps') -> Eps.mul (open_eps env eps) (open_eps env eps')
     | Ast.EpsVar e -> Eps.var e

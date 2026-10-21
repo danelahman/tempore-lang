@@ -1,0 +1,45 @@
+(* Run this test with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
+       tests/regex_timed_rigid_rational_interval_inconsistent_reject.tpe
+
+   Rejected under the 'regex-timed-rigid-interval-rational-symbolic' grading
+   monoid: some run of rational lengths must fit a word of the lower end and a
+   word of the upper end of an interval, open ends excluded; the first
+   definition is accepted, the others rejected. *)
+
+type token = Token of string
+
+operation Read : unit ~> nat # {Read} within [1, 1]
+operation Write : unit ~> unit # {Write} within [1, 2)
+
+(* A wait of more than one and less than two before a read. *)
+let between () =
+  box [{!>1; Read; ≥0}, {!<2; Read; ≤5}] (Token "b") as b in
+  delay 1.5;
+  let n = perform Read () in
+  unbox b as tok in
+  tok
+
+(* A write lasts less than two, so it fills no budget of two. *)
+let budget () =
+  box [{(≥2 & Write)}, {Write}] (Token "w") as w in
+  perform Write ();
+  unbox w as tok in
+  tok
+
+(* No run waits more than two and at most two. *)
+let waited () =
+  box [{!>2}, {!≤2}] (Token "a") as a in
+  delay 2;
+  unbox a as tok in
+  tok
+
+(* A write after a read lies in no budget for reads only. *)
+let restricted () =
+  box [{!≥1/2; Read; Write}, {!≤1/2; Read; (≤3 & Read)}] (Token "r") as r in
+  delay 0.5;
+  let n = perform Read () in
+  perform Write ();
+  unbox r as tok in
+  tok

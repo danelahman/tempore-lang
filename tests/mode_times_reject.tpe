@@ -24,10 +24,6 @@ let rounds () : unit # (Cold, Cold, (Out, [0, 30])) =
 (* Rejected: a pipetting gets stuck in the cold block. *)
 let cold_pipette () : unit # (Cold, Cold) = perform Pipette ()
 
-(* Rejected: the running time of taking is counted in the cold block, not
-   outside it. *)
-let take () : unit # (Cold, Out, (Cold, 0)) = perform Take ()
-
 (* Rejected: a delay before the return is spent outside the cold block. *)
 let late () : unit # (Out, Cold, (Out, [0, 1])) =
   delay 5;

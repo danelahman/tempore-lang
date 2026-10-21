@@ -1,0 +1,10 @@
+(* Run this test with the 'mode-times' grading monoid, e.g.
+
+     ./tempore --grades mode-times tests/literals_reject_mode_times_start.tpe
+
+   Rejected: a change of mode spends a positive time in its start mode, the
+   running time of the operation that makes it. *)
+
+operation Take : unit ~> unit # ({Take}, Cold, Out) within [1, 2]
+
+let take () : unit # (Cold, Out, (Cold, 0)) = perform Take ()

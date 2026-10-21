@@ -1,0 +1,47 @@
+(* Run this test with the 'regex-timed-rigid-interval-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-rigid-interval-symbolic \
+       tests/regex_timed_rigid_interval_inconsistent_reject.tpe
+
+   Rejected under the 'regex-timed-rigid-interval-symbolic' grading monoid:
+   some run of whole time steps must fit a word of the lower end and a word of
+   the upper end of an interval; the first definition is accepted, the others
+   rejected. *)
+
+type token = Token of string
+
+operation Read : unit ~> nat # {Read} within [1, 1]
+operation Write : unit ~> unit # {Write} within [2, 3]
+
+(* A write of two steps fills a budget of at least two. *)
+let written () =
+  box [{2}, {Write}] (Token "w") as w in
+  perform Write ();
+  unbox w as tok in
+  tok
+
+(* No run waits at least five steps and at most two. *)
+let waited () =
+  box [{!≥5}, {!≤2}] (Token "a") as a in
+  delay 3;
+  unbox a as tok in
+  tok
+
+(* A write runs in no strict wait. *)
+let strict () =
+  box [{!2}, {Write}] (Token "s") as s in
+  perform Write ();
+  unbox s as tok in
+  tok
+
+(* A wait of more than one step and less than two is no whole number of
+   steps. *)
+let between () =
+  box [{!>1; Read; ≥0}, {!<2; Read; ≤5}] (Token "b") as b in
+  delay 1;
+  let n = perform Read () in
+  unbox b as tok in
+  tok
+
+(* The same condition in the signature of an operation. *)
+operation Other : unit ~> unit # [{Write}, {Read; Read; Read}]

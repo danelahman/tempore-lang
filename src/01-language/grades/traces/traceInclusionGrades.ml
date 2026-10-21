@@ -34,7 +34,8 @@ module Make (D : Delay.S) (N : TimedTraceGrades.NAMES) = struct
     let needs_op_bounds = false
     let duration_ends = Grade.Both_ends
     let duration_bounds _bounds _ = None
-    let inhabited _bounds _ = true
+    let vacuous _bounds _ = None
+    let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
 
     (** The time shadow of exact bounds is their delay, and that of other bounds
         [⊤], which is above every delay between them. The operations declare no

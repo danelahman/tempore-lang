@@ -79,6 +79,14 @@
     and the time in a mode is not bounded below beyond the total time. An upper
     end of the time in a mode beyond that of the total time is lowered to it.
 
+    Each entry admits a trace: a change of mode spends a positive time in its
+    start mode, the running time of the operation that makes it; the bound
+    [(_, [lo, hi])] has [lo = 0], as it bounds every mode not named, a mode the
+    trace does not visit taking no time; and the sum of the times in the modes
+    meets the total time, the modes not named contributing [[0, 0]] if they are
+    bounded by [[0, 0]] and [\[0, ∞)] otherwise, and a mode the specification
+    names but the entry does not bound [\[0, ∞)].
+
     {2 Relation to the mode-switch costs}
 
     The grades are those of {!ModeSwitchCostGrades} with the costs replaced by
@@ -147,8 +155,8 @@ module Summary : sig
   (** [duration m] is the hull of the total times of the entries of [m] other
       than those into [Stuck], from every mode, or [None] if there are none. *)
 
-  val inhabited : t -> bool
-  (** Every matrix has a trace from every mode. *)
+  val vacuous : Grade.bounds -> t -> string option
+  (** No reason: every matrix has a trace from every mode. *)
 
   val events : t -> string list
   (** A matrix names no operation. *)

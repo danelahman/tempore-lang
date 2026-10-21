@@ -123,7 +123,16 @@ end
     running times read ({!TimedClosure.Weights}). The searches, the closures and
     the weights take the runs of ticks of the automata {!LANGUAGE.traces} of the
     derivatives in one step each ({!Dfa.type-automaton}); over {!Automata},
-    every tick is a transition. *)
+    every tick is a transition.
+
+    An interval admits a run iff some trace covers a trace of its lower end and
+    is permitted by a trace of its upper end ({!RegularTimedOrders.Make}),
+    decided over [tick] and the classes of the names of equal pairs of lower and
+    upper running times, by depth-first search of the product of the automata
+    {!TimedClosure.Coverage} of the lower end, at the lower running times, and
+    {!TimedClosure.Allowance} of the upper end, at the upper running times, for
+    a pair of final states ({!Dfa.Product.intersect}); over the gap graphs
+    ({!Symbolic}) by {!JointWalk.consistent}. *)
 module Make
     (L : LANGUAGE)
     (Variant : sig

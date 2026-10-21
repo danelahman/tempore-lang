@@ -1,0 +1,8 @@
+(* Run this test with the 'mode-times' grading monoid, e.g.
+
+     ./tempore --grades mode-times tests/literals_reject_mode_times_unnamed.tpe
+
+   Rejected: the bound `(_, [lo, hi])` applies to every mode not named, also
+   those a trace does not visit, which take no time, so `lo` is 0. *)
+
+let claim () = box (Cold, Cold, (_, [1, 2])) 1

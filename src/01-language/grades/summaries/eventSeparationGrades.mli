@@ -123,10 +123,27 @@
     [needs_op_bounds] holds: an atomic operation declares its running-time
     bounds, its grade being its occurrence [{X}]. [duration_bounds] is the
     interval of the total durations, [\[0, ∞)] where a specification bounds
-    none, and [of_bounds b] the delay of a duration in [b]. [inhabited] is
-    decided name by name: some silent duration, or the hull of the durations
-    [lead + (k - 1) gaps + tail] of the active computations over their counts
-    [k], meets the total durations.
+    none, and [of_bounds b] the delay of a duration in [b].
+
+    All entries describe one run and share its total duration. For a name [X] of
+    running times [within [lo, hi]], the total durations its entry admits are
+    the set [D_X] of the silent durations and of the sums
+    [a + g₁ + ... + g_{k-1} + b] of a lead [a], gaps [gᵢ] and a tail [b] in
+    their intervals and a count [k] in its interval, each gap and the tail at
+    least [lo]: an occurrence ends before the next one starts and before the
+    end. [D_X] is a {!DelaySet}, exact for unbounded counts. [vacuous] gives a
+    reason where the total durations of the grade and the sets [D_X] of the
+    names listed, and that of the names not listed at any running time, have no
+    common element: one of them alone, two of them, or all.
+
+    The check is exact on the shared total duration and on the running time of
+    each name, and over-approximates the interleaving of the names: the
+    occurrences of different names, sequential and of positive running times,
+    are not placed on one timeline, so that e.g.
+    [((1, X, [0, 0], [1, 1]), (1, Y, [0, 0], [1, 1]))], which starts both [X]
+    and [Y] at [0], is accepted. Deciding the interleaving exactly is a problem
+    of sequencing with release times and deadlines, NP-hard in general (M. R.
+    Garey and D. S. Johnson, "Computers and Intractability", 1979, problem SS1).
 
     {2 Counterexamples and witnesses}
 

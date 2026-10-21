@@ -1,0 +1,25 @@
+(* Run this test with the 'traces-timed-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-interval-rational \
+       tests/rational_traces_intervals_no_common_run_reject.tpe
+
+   Correctly rejected by the typechecker, under the
+   'traces-timed-interval-rational' grading monoid: no run meets both ends of
+   an interval whose lower end guarantees a delay of 3/4 before a sample and
+   whose upper end permits half of one, nor of one whose lower end lasts longer
+   than its upper end permits. *)
+
+type token = Token of string
+
+operation Sample : unit ~> nat # {Sample} within [1/2, 1]
+
+(* A delay of 3/4 before a sample guaranteed, half of one permitted. *)
+let early () =
+  box [{3/4; Sample}, {1/2; Sample}] (Token "s") as s in
+  delay 3/4;
+  let v = perform Sample () in
+  unbox s as tok in
+  tok
+
+(* At least 5/2 time units guaranteed, at most 3/2 permitted. *)
+operation Slow : unit ~> unit # [{5/2}, {Sample; 1/2}]

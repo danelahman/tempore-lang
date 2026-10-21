@@ -104,6 +104,7 @@ let expected_rejections =
     ("tests/rational_time_upper_reject.tpe", [ 8 ]);
     ("tests/rational_traces_intervals_default_open_reject.tpe", [ 15; 16 ]);
     ("tests/rational_traces_intervals_reject.tpe", [ 14 ]);
+    ("tests/rational_traces_intervals_no_common_run_reject.tpe", [ 17; 25 ]);
     ("tests/rational_traces_upper_open_reject.tpe", [ 13 ]);
     ("tests/rational_traces_upper_reject.tpe", [ 14 ]);
     ("tests/default_reject_cycle.tpe", [ 9 ]);
@@ -148,7 +149,7 @@ let expected_rejections =
     ("tests/list_constructor_reject.tpe", [ 3 ]);
     ("tests/malformed_type_application.tpe", [ 4 ]);
     ("tests/mode_switch_costs_reject.tpe", [ 13; 16; 23; 28; 35 ]);
-    ("tests/mode_times_reject.tpe", [ 18; 25; 29; 32 ]);
+    ("tests/mode_times_reject.tpe", [ 18; 25; 28 ]);
     ("tests/nat_reject_successor_pattern.tpe", [ 3; 5 ]);
     ("tests/noneternal_reject_after_delay.tpe", [ 11 ]);
     ("tests/noneternal_reject_alias.tpe", [ 9 ]);
@@ -178,15 +179,21 @@ let expected_rejections =
     ("tests/regex_timed_compound_named_later_reject.tpe", [ 10 ]);
     ("tests/regex_timed_interval_reject.tpe", [ 15; 22 ]);
     ("tests/regex_timed_interval_ticks_reject.tpe", [ 16; 24 ]);
+    ("tests/regex_timed_interval_no_common_run_reject.tpe", [ 17; 24 ]);
     ("tests/regex_timed_lower_reject.tpe", [ 16; 24; 31 ]);
     ("tests/regex_timed_lower_ticks_reject.tpe", [ 15 ]);
     ("tests/regex_timed_rational_interval_default_open_reject.tpe", [ 14; 15 ]);
     ("tests/regex_timed_rational_interval_open_reject.tpe", [ 12 ]);
     ("tests/regex_timed_rational_interval_reject.tpe", [ 15; 23 ]);
+    ("tests/regex_timed_rational_interval_no_common_run_reject.tpe", [ 17; 24 ]);
     ("tests/regex_timed_rational_lower_reject.tpe", [ 16; 23; 33; 40 ]);
     ("tests/regex_timed_rational_upper_open_reject.tpe", [ 14; 20 ]);
     ("tests/regex_timed_rational_upper_reject.tpe", [ 17; 26; 37; 47; 56 ]);
+    ( "tests/regex_timed_rigid_interval_inconsistent_reject.tpe",
+      [ 24; 31; 39; 47 ] );
     ("tests/regex_timed_rigid_interval_reject.tpe", [ 27 ]);
+    ( "tests/regex_timed_rigid_rational_interval_inconsistent_reject.tpe",
+      [ 25; 32; 39 ] );
     ( "tests/regex_timed_rigid_rational_upper_reject.tpe",
       [ 24; 35; 43; 53; 63; 74 ] );
     ("tests/regex_timed_upper_open_reject.tpe", [ 14; 20 ]);
@@ -212,6 +219,7 @@ let expected_rejections =
     ("tests/time_reject_within.tpe", [ 6 ]);
     ("tests/traces_intervals_default_bounds.tpe", [ 14 ]);
     ("tests/traces_intervals_default_open_reject.tpe", [ 14; 15 ]);
+    ("tests/traces_intervals_no_common_run_reject.tpe", [ 17; 24 ]);
     ("tests/traces_open_bounds_reject.tpe", [ 14; 20 ]);
     ("tests/traces_reject_allowance.tpe", [ 12 ]);
     ("tests/traces_reject_bounds.tpe", [ 8 ]);
@@ -228,6 +236,7 @@ let expected_rejections =
     ("tests/traces_rigid_upper_reject.tpe", [ 27 ]);
     ("tests/windowed_schedules_reject.tpe", [ 11; 16; 21; 29; 36 ]);
     ("tests/event_separation_reject.tpe", [ 18; 29; 40; 49; 58 ]);
+    ("tests/event_separation_reject_runs.tpe", [ 20; 27; 33 ]);
     ("tests/event_separation_reject_unknown.tpe", [ 11 ]);
   ]
 

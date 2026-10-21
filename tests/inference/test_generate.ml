@@ -40,6 +40,7 @@ let malformed =
     "traces_reject_missing_within.tpe";
     "traces_reject_self_retry.tpe";
     "traces_reject_unknown_event.tpe";
+    "event_separation_reject_runs.tpe";
     "event_separation_reject_unknown.tpe";
     "regex_timed_compound_named_later_reject.tpe";
     "use_undefined_type.tpe";
@@ -59,6 +60,9 @@ let malformed =
     "literals_reject_mode_times.tpe";
     "literals_reject_mode_times_bound.tpe";
     "literals_reject_mode_times_operation.tpe";
+    "literals_reject_mode_times_start.tpe";
+    "literals_reject_mode_times_sum.tpe";
+    "literals_reject_mode_times_unnamed.tpe";
     "literals_reject_name.tpe";
     "literals_reject_negative.tpe";
     "literals_reject_peak.tpe";
@@ -96,6 +100,12 @@ let malformed =
     "delay_reject_variable.tpe";
     "regular_reject_bounds.tpe";
     "regex_timed_interval_ticks_reject.tpe";
+    "regex_timed_interval_no_common_run_reject.tpe";
+    "regex_timed_rational_interval_no_common_run_reject.tpe";
+    "traces_intervals_no_common_run_reject.tpe";
+    "rational_traces_intervals_no_common_run_reject.tpe";
+    "regex_timed_rigid_interval_inconsistent_reject.tpe";
+    "regex_timed_rigid_rational_interval_inconsistent_reject.tpe";
     "regex_timed_lower_ticks_reject.tpe";
     "regex_timed_upper_ticks_reject.tpe";
     "rational_traces_intervals_reject_open.tpe";

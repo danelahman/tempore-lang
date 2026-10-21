@@ -131,13 +131,20 @@ val inhabited : world -> DelayAutomaton.t -> bool
     The decisions above, on languages given as graphs in gap form rather than as
     automata. *)
 
-type graph
+type graph = private {
+  gaps : (DelaySet.t * int) list array;
+      (** [gaps.(g)] is the transitions of the gap state [g]. *)
+  ops : (string * int) list array;
+      (** [ops.(o)] is the transitions of the operation state [o]. *)
+  final : bool array;  (** [final.(o)] is whether [o] is final. *)
+  live : bool;  (** whether the start is live *)
+}
 (** A language in gap form over the names of a comparison: gap states
     [0, …, g - 1], the start [0], each with transitions by sets of delays to
     operation states, and operation states [0, …, o - 1], each final or not,
     with transitions by names to gap states; several transitions of a state may
     read a common delay or name. It is restricted to its live states, from which
-    a final state is reachable. *)
+    a final state is reachable: the rows of the other states are empty. *)
 
 val graph :
   gaps:(DelaySet.t * int) list array ->

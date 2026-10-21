@@ -1,0 +1,24 @@
+(* Run this test with the 'traces-timed-interval' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-interval \
+       tests/traces_intervals_no_common_run_reject.tpe
+
+   Correctly rejected by the typechecker, under the 'traces-timed-interval'
+   grading monoid: no run meets both ends of an interval whose lower end
+   guarantees a write and whose upper end permits only reads, nor of one whose
+   lower end lasts longer than its upper end permits. *)
+
+type token = Token of string
+
+operation Write : unit ~> unit # {Write} within [1, 2]
+operation Read : unit ~> unit # {Read} within [1, 2]
+
+(* A write guaranteed, only reads permitted. *)
+let mismatched () =
+  box [{Write}, {Read; Read; Read}] (Token "w") as w in
+  perform Write ();
+  unbox w as tok in
+  tok
+
+(* At least 5 time units guaranteed, at most 4 permitted. *)
+operation Slow : unit ~> unit # [{5}, {Read; 2}]
