@@ -208,8 +208,15 @@ Under a device manifest, the definitions checked and compiled are those
 reached from the task functions and the `initial` functions of the manifest;
 the other definitions, such as handlers used only by `run` commands of the
 interpreter, may lie outside the fragment. Without a manifest, every
-top-level definition is checked and compiled, with its `run` commands under
+top-level definition is checked, and the `run` commands are compiled under
 `--host-runs`.
+
+The entry points are the task functions and the `initial` functions, or,
+without a manifest, the functions that the `run` commands call outside every
+handler, or every top-level function if there is no `run` command. Only the
+code reached from them is compiled, so that a function used only under a
+handler has no instance outside it, and the operations the program declares
+are those it performs outside every handler.
 
 ### The fragment
 
@@ -632,7 +639,10 @@ simulation of `steps` reads the accelerometer readings of a recording.
 ## Host simulation
 
 Under `--host-simulate` the tasks run against host models of the devices and
-of the physical world, in simulated time, and the log is printed.
+of the physical world, in simulated time, and the log is printed. The exit
+code is 3 if the tasks have halted, by a monitor or a run-time error, and 0
+otherwise; without `--device`, a run-time error of the `run` commands ends
+the program with exit code 3.
 
 ## Examples
 

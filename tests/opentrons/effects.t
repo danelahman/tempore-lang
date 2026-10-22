@@ -29,6 +29,13 @@ The handler examples.
   === Run 3 (unhandled operation) ===
   perform Set 42 (<continuation>)
   
+
+As the interpreter, the Python program ends with exit code 3 when a run fails:
+
+  $ ../../tempore ../../examples/handlers/lower_bound.tpe > /dev/null
+  [3]
+  $ python3 _opentrons/protocols/program.py > /dev/null
+  [3]
   $ parity time-lower-bound ../../examples/handlers/nested.tpe
   === Run 1 ===
   return 7

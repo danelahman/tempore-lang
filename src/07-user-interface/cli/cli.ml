@@ -911,6 +911,11 @@ let emit_protocol config ~filename ~binding_name ~operations ~compound commands
       List.iter (fun e -> prerr_endline ("Error: " ^ e)) errors;
       exit 1
 
+(* The exit code of an accepted program a run of which has failed: ended at
+   an operation call without a handler or a default implementation, at a
+   computation that does not reduce, or at a run-time error. *)
+let run_failure = 3
+
 let run_with (module G : Grades.Grade.S) config =
   let module Backend = CliInterpreter.Make (Grades.GradeSystem.Identity (G)) in
   let module Loader = Loader.Loader (Backend) in
@@ -922,11 +927,13 @@ let run_with (module G : Grades.Grade.S) config =
   in
   (* Runs the program from [state], each step chosen at random among those
      available, and prints each run as it ends, followed by its timeline under
-     [--timeline]. The timeline observes a step before the state it leaves is
+     [--timeline]; is whether a run has failed, [failed] being whether one
+     before [state] has. The timeline observes a step before the state it leaves is
      printed, so that it holds the end of the run printed. *)
-  let rec run (state : Backend.run_state) run_num timeline =
+  let rec run (state : Backend.run_state) run_num timeline failed =
+    let steps = Backend.steps state in
     let step =
-      match Backend.steps state with
+      match steps with
       | [] -> None
       | steps -> Some (List.nth steps (Random.int (List.length steps)))
     in
@@ -939,12 +946,14 @@ let run_with (module G : Grades.Grade.S) config =
             (Backend.observe state step))
         step
     in
-    let printed = Backend.view_run_state state ~run_num in
+    let ending = Backend.view_run_state state ~steps ~run_num in
+    let printed = ending <> CliBackend.Ongoing in
     if printed && config.timeline then print_timeline timeline run_num;
     let next_run_num = if printed then run_num + 1 else run_num in
-    Option.iter
-      (fun (step : Backend.step) ->
-        run (step.next_state ()) next_run_num timeline)
+    let failed = failed || ending = CliBackend.Failed in
+    Option.fold ~none:failed
+      ~some:(fun (step : Backend.step) ->
+        run (step.next_state ()) next_run_num timeline failed)
       step
   in
   try
@@ -1092,11 +1101,12 @@ let run_with (module G : Grades.Grade.S) config =
           ~operations:program.operations ~compound:program.compound_operations
           program.commands
     | None, _ ->
-        if not config.typecheck_only then run run_state 1 Timeline.empty
+        if (not config.typecheck_only) && run run_state 1 Timeline.empty false
+        then exit run_failure
   with
   | Error.Error d ->
       Diagnostic.print ~source d Format.err_formatter;
-      exit 1
+      exit (if d.kind = Diagnostic.Runtime then run_failure else 1)
   | Stack_overflow ->
       prerr_endline
         "Fatal error: the available stack was exhausted, e.g. by a grade too \

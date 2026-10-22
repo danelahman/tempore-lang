@@ -4,8 +4,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
   module PrettyPrint = Language.PrettyPrint
 
   (* A run is reported once its computation, decomposed with an empty
-     context, is a [return] or an operation call. *)
-  let view_run_state (run_state : run_state) ~run_num =
+     context, is a [return] or an operation call, or once it has no step. *)
+  let view_run_state (run_state : run_state) ~steps ~run_num : CliBackend.ending
+      =
     match run_state with
     | {
      current = Some { frames = []; subject = { it = Ast.Return _; _ } as comp };
@@ -19,7 +20,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
           (PrettyPrint.string_of_interpreter_state
              (module GS.R)
              environment.state);
-        true
+        Returned
     (* An operation call with a default implementation is reduced by it, and
        the run goes on. *)
     | {
@@ -32,6 +33,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
       when not (Ast.OpNameMap.mem op environment.op_defaults) ->
         Format.printf "=== Run %d (unhandled operation) ===@.%t@.@." run_num
           (PrettyPrint.print_computation (module GS.R) comp);
-        true
-    | _ -> false
+        Failed
+    | { current = Some focus; _ } when steps = [] ->
+        Format.printf "=== Run %d (stuck) ===@.%t@.@." run_num
+          (PrettyPrint.print_computation (module GS.R) (computation focus));
+        Failed
+    | _ -> Ongoing
 end

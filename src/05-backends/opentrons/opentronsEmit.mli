@@ -109,5 +109,6 @@ val plain_program :
     and an empty line, or for a run that ends at an unhandled operation call the
     header [=== Run n (unhandled operation) ===], the call with its continuation
     printed as [<continuation>] and an empty line. A run-time error is reported
-    on the standard error as the interpreter reports it, and ends the program
-    with exit code 1. Imported as a module, it executes nothing. *)
+    on the standard error as the interpreter reports it, and ends the program.
+    As for the command-line interpreter, the exit code is 3 if a run has failed
+    and 0 otherwise. Imported as a module, it executes nothing. *)

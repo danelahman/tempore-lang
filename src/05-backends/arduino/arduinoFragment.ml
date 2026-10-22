@@ -134,6 +134,7 @@ type program = {
   runs : computation list;
   datatypes : datatype list;
   operations : operation list;
+  entries : Ast.VariableSet.t;
   warnings : Utils.Diagnostic.t list;
 }
 
@@ -1595,6 +1596,51 @@ let root_variables names sources =
   in
   StringMap.fold (fun _ x -> Ast.VariableSet.add x) named Ast.VariableSet.empty
 
+(* The variables that [c] mentions outside the handled computation of every
+   [handle], the handlers and their cases included. *)
+let rec mentioned_computation (c : _ Ast.computation) acc =
+  match c.it with
+  | Ast.Handle (_, h) -> mentioned_expression h acc
+  | _ ->
+      Ast.fold_computation ~expression:mentioned_expression
+        ~computation:mentioned_computation ~abstraction:mentioned_abstraction c
+        acc
+
+and mentioned_expression (e : _ Ast.expression) acc =
+  match e.it with
+  | Ast.Var x -> Ast.VariableSet.add x acc
+  | _ ->
+      Ast.fold_expression ~expression:mentioned_expression
+        ~abstraction:mentioned_abstraction e acc
+
+and mentioned_abstraction (_, c) acc = mentioned_computation c acc
+
+(* The variables of the top-level definitions of [sources] that the [run]
+   commands of [sources] mention outside every handled computation, or of all
+   of them if [sources] has no [run] command. *)
+let run_entries sources =
+  let runs =
+    List.filter_map
+      (fun (cmd : _ Ast.command) ->
+        match cmd.it with Ast.TopDo c -> Some c | _ -> None)
+      sources
+  in
+  let defined =
+    List.fold_left
+      (fun acc (cmd : _ Ast.command) ->
+        match cmd.it with
+        | Ast.TopLet (x, _) -> Ast.VariableSet.add x acc
+        | _ -> acc)
+      Ast.VariableSet.empty sources
+  in
+  match runs with
+  | [] -> defined
+  | _ ->
+      Ast.VariableSet.inter defined
+        (List.fold_left
+           (fun acc c -> mentioned_computation c acc)
+           Ast.VariableSet.empty runs)
+
 (* The datatypes of [env] in the fragment, their constructors in the order of
    their labels. *)
 let datatypes env =
@@ -1642,6 +1688,10 @@ let check ?roots ~runs ~library sources =
     definitions = List.rev st.order;
     runs = List.rev runs_rev;
     datatypes = datatypes env;
+    entries =
+      (match roots with
+      | Some names -> root_variables names sources
+      | None -> run_entries sources);
     operations =
       List.map
         (fun (operation, (argument, result_ty)) ->

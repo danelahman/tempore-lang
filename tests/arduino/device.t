@@ -279,6 +279,11 @@ task at its next release; under warn the violations are logged.
   [10.000 ms] Task step stopped
   [60.000 ms] End of the simulation
 
+The simulation of a device whose tasks have halted ends with exit code 3:
+
+  $ emit slow --device toy/slow.device.json toy/toy.tpe --host-simulate 0.06 > /dev/null
+  [3]
+
 While halted, the reason is logged again every 5 s:
 
   $ emit slow --device toy/slow.device.json toy/toy.tpe --host-simulate 11 | grep 'Halted\|End of'
@@ -385,8 +390,10 @@ Under a manifest, the definitions checked and compiled are those reached
 from its task functions and initial functions: a handler used only by a
 run command is neither checked nor compiled. Once a task uses it, the
 instance of step in the handler calls the case of the handler in place of
-the operation, a call that is not one of the binding and is not monitored;
-without a manifest, every top-level definition is checked and compiled:
+the operation, a call that is not one of the binding and is not monitored,
+and step, used only under the handler, has no instance outside it; without
+a manifest, every top-level definition is checked, and those reached from
+the run commands are compiled:
 
   $ cat > handled.tpe <<'TPE'
   > let silent =
@@ -404,12 +411,23 @@ without a manifest, every top-level definition is checked and compiled:
   $ emit quiet --device quiet.json toy/toy.tpe handled.tpe | tail -1
   Wrote _arduino/projects/quiet/src/toy_bindings.cpp
   $ grep 'silent\|Show' _arduino/projects/quiet/src/tempore_program.cpp
-  static tempore_unit silent_Show_3(uint32_t);
-    static_cast<void>(tempore_op_Show(n_8));
-  static tempore_unit silent_Show_3(uint32_t) {
-    static_cast<void>(silent_Show_3(n_8));
+  static tempore_unit silent_Show_1(uint32_t);
+  static tempore_unit silent_Show_1(uint32_t) {
+    static_cast<void>(silent_Show_1(n_7));
   $ emit unmanifested toy/toy.tpe handled.tpe | tail -1
   Wrote _arduino/projects/unmanifested/tempore_program.cpp
+
+Its entry points are the functions the run commands call outside every
+handler, here quiet_step alone, and step, called only under silent, performs
+no external operation:
+
+  $ sed -n '/Entry points/,/^$/p' _arduino/projects/unmanifested/tempore_program.h
+  // Entry points.
+  uint32_t quiet_step_3(uint32_t);
+  
+  $ grep -c tempore_op _arduino/projects/unmanifested/tempore_program.h
+  0
+  [1]
 
 Operations whose names are spelt alike get distinct C++ names: a name of
 letters and digits with single underscores is kept, and any other name is
