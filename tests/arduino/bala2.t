@@ -16,13 +16,13 @@ implementations of the operations:
   return (2.8812, 0., 0., 0., 0.)
   State: [
     [0.6, 0.6],
-    { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) # [0, 2] },
+    { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) ! [0, 2] },
     [0.5, 0.5],
     [0.01, 0.01],
     [0.01, 0.01],
     [0.2, 0.2],
     [0.6, 0.6],
-    { resource_1 ↦ ((0., 0., 1.), (0., 0., 0.)) # [0, 2] },
+    { resource_1 ↦ ((0., 0., 1.), (0., 0., 0.)) ! [0, 2] },
     [0.5, 0.5],
     [0.01, 0.01],
     [0.01, 0.01],
@@ -84,7 +84,7 @@ supervisory iteration that may exceed the 200 ms of a move:
     Note: the resource inequality `[100.05, 112.5] <= [1000, ∞)` does not hold
   [1]
   File "bala2/redrawn.tpe", lines 4-10, characters 33-11:
-  4 | let drive_step_redrawn (n : nat) : unit # [0, 200) =
+  4 | let drive_step_redrawn (n : nat) : unit ! [0, 200) =
                                        ^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `[181.1, 223.1]`, which does not match its annotated grade `[0, 200)`
     Note: the effect inequality `[181.1, 223.1] <= [0, 200)` does not hold

@@ -20,5 +20,5 @@
    upper bound 1.5 times the greatest time measured with the radio, rounded
    up, and the lower bound the least on the CoreS3 with or without it. *)
 
-operation ReadTouch : unit ~> bool * nat * nat # [0, 1.45]
+operation ReadTouch : unit ~> bool * nat * nat ! [0, 1.45]
 default ReadTouch () = delay 3/10; (false, 0, 0)

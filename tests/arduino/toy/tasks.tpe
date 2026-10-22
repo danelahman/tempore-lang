@@ -2,7 +2,7 @@
    step whose effect is not below the period of 10 ms, a curried function and
    a function of a pair. *)
 
-operation Show : nat ~> unit # [0.1, 0.2]
+operation Show : nat ~> unit ! [0.1, 0.2]
 
 let slow n =
   delay 12;

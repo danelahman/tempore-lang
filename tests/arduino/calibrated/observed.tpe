@@ -9,6 +9,6 @@ let observed (bias : float) =
       let s, _ = continue k with (accel, (gx -. bias, gy, gz)) in
       (s, true)
 
-let step ((bias, tilt) : float * float) : (float * float) # [0, 20) =
+let step ((bias, tilt) : float * float) : (float * float) ! [0, 20) =
   let tilt, _ = handle filter tilt with observed bias in
   (bias, tilt)

@@ -42,36 +42,36 @@ type beads = string
 
 (* Mixing the beads into the samples and removing a liquid take one to two
    minutes each. *)
-operation AddBeads : beads ~> unit # [1, 2]
+operation AddBeads : beads ~> unit ! [1, 2]
 default AddBeads beads = delay 2
 
-operation RemoveLiquid : beads ~> unit # [1, 2]
+operation RemoveLiquid : beads ~> unit ! [1, 2]
 default RemoveLiquid beads = delay 1
 
 (* Moving the plate onto the magnetic block takes at most a minute; the beads
    then settle in at least three minutes. Moving it off takes at most a
    minute. *)
-operation MagnetOn : beads ~> [[3, ∞)]beads # [0, 1]
+operation MagnetOn : beads ~> [[3, ∞)]beads ! [0, 1]
 default MagnetOn beads = box [3, ∞) beads
 
-operation MagnetOff : beads ~> unit # [0, 1]
+operation MagnetOff : beads ~> unit ! [0, 1]
 default MagnetOff beads = ()
 
 (* An ethanol wash adds and removes the ethanol in one to two minutes. The
    last wash leaves the beads to air-dry: the elution buffer is added two to
    three minutes after it, once the ethanol has evaporated. *)
-operation Wash : beads ~> unit # [1, 2]
+operation Wash : beads ~> unit ! [1, 2]
 default Wash beads = delay 2
 
-operation FinalWash : beads ~> [[2, 3]]beads # [1, 2]
+operation FinalWash : beads ~> [[2, 3]]beads ! [1, 2]
 default FinalWash beads = delay 1; box [2, 3] beads
 
 (* Adding the elution buffer and transferring the eluate take one to two
    minutes each. *)
-operation EluteDNA : beads ~> unit # [1, 2]
+operation EluteDNA : beads ~> unit ! [1, 2]
 default EluteDNA beads = delay 1
 
-operation Transfer : beads ~> unit # [1, 2]
+operation Transfer : beads ~> unit ! [1, 2]
 default Transfer beads = delay 2
 
 (* Correctly accepted by the typechecker: the supernatant is removed after

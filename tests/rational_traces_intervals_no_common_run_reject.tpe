@@ -11,7 +11,7 @@
 
 type token = Token of string
 
-operation Sample : unit ~> nat # {Sample} within [1/2, 1]
+operation Sample : unit ~> nat ! {Sample} within [1/2, 1]
 
 (* A delay of 3/4 before a sample guaranteed, half of one permitted. *)
 let early () =
@@ -22,4 +22,4 @@ let early () =
   tok
 
 (* At least 5/2 time units guaranteed, at most 3/2 permitted. *)
-operation Slow : unit ~> unit # [{5/2}, {Sample; 1/2}]
+operation Slow : unit ~> unit ! [{5/2}, {Sample; 1/2}]

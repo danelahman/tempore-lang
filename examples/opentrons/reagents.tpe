@@ -43,27 +43,27 @@ noneternal type reagent = Reagent of string
 type column = nat
 
 (* Thawing a reagent takes five to ten minutes. *)
-operation Thaw : reagent ~> [[0, 30]]reagent # [5, 10]
+operation Thaw : reagent ~> [[0, 30]]reagent ! [5, 10]
 default Thaw (Reagent name) = delay 6; box [0, 30] (Reagent name)
 
 (* Dispensing a reagent or the DNA into a column takes one to two minutes. *)
-operation Dispense : reagent * column ~> unit # [1, 2]
+operation Dispense : reagent * column ~> unit ! [1, 2]
 default Dispense (r, column) = delay 2
 
-operation AddDNA : column ~> unit # [1, 2]
+operation AddDNA : column ~> unit ! [1, 2]
 default AddDNA column = delay 1
 
 (* The tagmentation holds a column at 55 °C for five minutes and cools it,
    in five to seven minutes. The protocol runs its tagmentation program off
    the deck and does not state it; the program is the example's own. *)
-operation Tagment : column ~> unit # [5, 7]
+operation Tagment : column ~> unit ! [5, 7]
 default Tagment column = delay 6
 
 (* Dispenses a thawed reagent into a column after the step on the column.
    The scheme of 'after' is polymorphic in the window of the reagent, which
    must contain the running time of the step:
 
-     ∀ α ε₀. (column → α # ε₀) → [∣ε₀∣]reagent → (column → unit # [1, 2] · ε₀) *)
+     ∀ α ε₀. (column → α ! ε₀) → [∣ε₀∣]reagent → (column → unit ! [1, 2] · ε₀) *)
 let after step thawed (column : column) =
   step column;
   unbox thawed as r in

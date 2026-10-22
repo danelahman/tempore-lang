@@ -7,7 +7,7 @@
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `!` admit none, a
+   admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {0}: the empty trace
@@ -46,36 +46,36 @@ type eluates = string
 
 (* Mixing the beads into the samples takes one to two minutes. The plate is
    moved onto and off the magnetic block in at most a minute. *)
-operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
+operation AddBeads : unit ~> unit ! {AddBeads} within [1, 2]
 default AddBeads () = delay 2
 
-operation MagnetOn : unit ~> unit # {MagnetOn} within (0, 1]
+operation MagnetOn : unit ~> unit ! {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1
 
-operation MagnetOff : unit ~> unit # {MagnetOff} within (0, 1]
+operation MagnetOff : unit ~> unit ! {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1
 
 (* Removing the supernatant from the beads, an ethanol wash of the beads,
    which adds and removes the ethanol, the elution of the DNA from the beads,
    which returns the eluates, and the transfer of the eluates each take one
    to two minutes; changing the tip at most one. *)
-operation RemoveLiquid : beads ~> unit # {RemoveLiquid} within [1, 2]
+operation RemoveLiquid : beads ~> unit ! {RemoveLiquid} within [1, 2]
 default RemoveLiquid beads = delay 2
 
-operation Wash : beads ~> unit # {Wash} within [1, 2]
+operation Wash : beads ~> unit ! {Wash} within [1, 2]
 default Wash beads = delay 1
 
-operation ChangeTip : unit ~> unit # {ChangeTip} within (0, 1]
+operation ChangeTip : unit ~> unit ! {ChangeTip} within (0, 1]
 default ChangeTip () = delay 1
 
-operation EluteDNA : beads ~> eluates # {EluteDNA} within [1, 2]
+operation EluteDNA : beads ~> eluates ! {EluteDNA} within [1, 2]
 default EluteDNA beads = delay 1; "eluates"
 
-operation Transfer : eluates ~> unit # {Transfer} within [1, 2]
+operation Transfer : eluates ~> unit ! {Transfer} within [1, 2]
 default Transfer eluates = delay 2
 
 (* Each of n ethanol washes is followed by a fresh tip and nothing else. *)
-let rec washes (beads : beads) (n : nat) : unit # {(Wash; ChangeTip)*} =
+let rec washes (beads : beads) (n : nat) : unit ! {(Wash; ChangeTip)*} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -98,22 +98,22 @@ let rec washes (beads : beads) (n : nat) : unit # {(Wash; ChangeTip)*} =
    magnet, and released to the transfer after two to five minutes of
    settling, waiting only. *)
 let cleanup (beads : beads) (n : nat)
-    : unit # [{≥0},
+    : unit ! [{≥0},
               {((≥0 & ~MagnetOff)
                 | MagnetOff;
                   (≥0 & ~(MagnetOn | RemoveLiquid | Wash | Transfer));
                   MagnetOn)*;
                (MagnetOff;
                 (≥0 & ~(MagnetOn | RemoveLiquid | Wash | Transfer)))?}] =
-  box {AddBeads; ![5, 10]; MagnetOn} beads as binding in
+  box {AddBeads; idle [5, 10]; MagnetOn} beads as binding in
   perform AddBeads ();
   delay 7;
   perform MagnetOn ();
   unbox binding as bound in
   delay 3;
   perform RemoveLiquid bound;
-  box [{(Wash; ChangeTip)^[1, ∞); Wash; !2; ChangeTip},
-       {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}] bound as washed in
+  box [{(Wash; ChangeTip)^[1, ∞); Wash; idle 2; ChangeTip},
+       {(Wash; ChangeTip)*; Wash; idle [2, 3]; ChangeTip}] bound as washed in
   perform Wash bound;
   perform ChangeTip ();
   washes bound n;
@@ -125,7 +125,7 @@ let cleanup (beads : beads) (n : nat)
   let eluates = perform EluteDNA dried in
   delay 2;
   perform MagnetOn ();
-  box {![2, 5]} eluates as settling in
+  box {idle [2, 5]} eluates as settling in
   delay 3;
   unbox settling as settled in
   perform Transfer settled
@@ -143,7 +143,7 @@ let cleanup (beads : beads) (n : nat)
 *)
 (*
 let rec washes_shared_tip (beads : beads) (n : nat)
-    : unit # {(Wash; ChangeTip)*} =
+    : unit ! {(Wash; ChangeTip)*} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -157,12 +157,12 @@ let rec washes_shared_tip (beads : beads) (n : nat)
    function does not: the transfer is excluded from the time after the move
    off the magnet:
 
-     Typing error: This function's body has grade `{MagnetOff; EluteDNA; !5;
+     Typing error: This function's body has grade `{MagnetOff; EluteDNA; idle 5;
        Transfer}`, which does not match its annotated grade ...
 *)
 (*
 let elute_off_magnet (beads : beads)
-    : unit # [{≥0},
+    : unit ! [{≥0},
               {((≥0 & ~MagnetOff)
                 | MagnetOff;
                   (≥0 & ~(MagnetOn | RemoveLiquid | Wash | Transfer));
@@ -172,7 +172,7 @@ let elute_off_magnet (beads : beads)
   perform MagnetOff ();
   let eluates = perform EluteDNA beads in
   delay 2;
-  box {![2, 5]} eluates as settling in
+  box {idle [2, 5]} eluates as settling in
   delay 3;
   unbox settling as settled in
   perform Transfer settled
@@ -181,20 +181,20 @@ let elute_off_magnet (beads : beads)
 (* Correctly rejected by the typechecker: the residual ethanol is removed
    within the air-dry, which leaves a minute of drying. Under
    'regex-timed-interval-symbolic', and with the budgets `2` and `[2, 3]` in
-   place of `!2` and `![2, 3]`, the function is accepted, the removal
-   counting towards the air-dry:
+   place of `idle 2` and `idle [2, 3]`, the function is accepted, the
+   removal counting towards the air-dry:
 
      Typing error: Variable `washed` is unboxed with grade `{Wash; ChangeTip;
-       (Wash; ChangeTip)*; Wash; RemoveLiquid; !1; ChangeTip}` accumulated
+       (Wash; ChangeTip)*; Wash; RemoveLiquid; idle 1; ChangeTip}` accumulated
        since it was bound, which is not below its box grade `[{(Wash;
-       ChangeTip)^[1, ∞); Wash; !≥2; ChangeTip}, {(Wash; ChangeTip)*; Wash;
-       !≤3; ChangeTip}]`
+       ChangeTip)^[1, ∞); Wash; idle ≥2; ChangeTip}, {(Wash; ChangeTip)*; Wash;
+       idle ≤3; ChangeTip}]`
        ...
 *)
 (*
 let cleanup_short_dry (beads : beads) (n : nat) =
-  box [{(Wash; ChangeTip)^[1, ∞); Wash; !2; ChangeTip},
-       {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}] beads as washed in
+  box [{(Wash; ChangeTip)^[1, ∞); Wash; idle 2; ChangeTip},
+       {(Wash; ChangeTip)*; Wash; idle [2, 3]; ChangeTip}] beads as washed in
   perform Wash beads;
   perform ChangeTip ();
   washes beads n;

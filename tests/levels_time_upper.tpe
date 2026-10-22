@@ -6,8 +6,8 @@
    (5, Low) expires after five ticks, and only works while nothing above Low
    has been touched since it was issued. *)
 
-operation Ping : unit ~> unit # (1, Low)
-operation Leak : string ~> unit # (1, High)
+operation Ping : unit ~> unit ! (1, Low)
+operation Leak : string ~> unit ! (1, High)
 
 default Ping () = delay 1
 default Leak s = delay 1

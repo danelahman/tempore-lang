@@ -5,14 +5,14 @@
    A recursive function whose recursive case takes a tick: its grade ε
    satisfies 1 · ε ≾ ε, whose least solution is ∞. *)
 
-operation Read : unit ~> unit # 1
+operation Read : unit ~> unit ! 1
 
-let rec wait (n : nat) : unit # 'e =
+let rec wait (n : nat) : unit ! 'e =
   match n with 0 -> () | m + 1 -> (delay 1; wait m)
 
 (* Correctly rejected by the typechecker: the grade of wait is ∞, which the
    annotation bounds by 1; wait 2 takes 2 ticks. *)
-let f () : unit # 1 = wait 2
+let f () : unit ! 1 = wait 2
 
 (* Correctly rejected by the typechecker: the grade of wait is ∞, which the
    clause for Read bounds by 1. *)

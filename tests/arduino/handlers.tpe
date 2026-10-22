@@ -4,9 +4,9 @@
    handle of its own, and handlers written at their handle or bound by
    let. *)
 
-operation Read : unit ~> nat # 0
-operation Scale : float ~> float # 0
-operation Log : nat ~> unit # 0
+operation Read : unit ~> nat ! 0
+operation Scale : float ~> float ! 0
+operation Log : nat ~> unit ! 0
 
 (* The result of Read replaced by a parameter. *)
 let constant (v : nat) =

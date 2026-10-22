@@ -40,18 +40,18 @@ type column = nat
 
 (* Adding the fixative to a column takes one to two minutes; the column is
    rinsed 12 to 20 minutes later. *)
-operation Fix : column ~> [[12, 20]]column # [1, 2]
+operation Fix : column ~> [[12, 20]]column ! [1, 2]
 default Fix column = delay 1; box [12, 20] column
 
 (* Rinsing a column takes one to two minutes. *)
-operation Rinse : column ~> unit # [1, 2]
+operation Rinse : column ~> unit ! [1, 2]
 default Rinse column = delay 2
 
 (* Rinses the column [fixed] and starts the next column while the column in
    [fixing] fixes. The pair of the boxed column and the column to rinse is
    passed to the recursive call at the moment the box is created, and the
    box is opened when its column is rinsed. *)
-let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit # [0, ∞) =
+let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
   perform Rinse fixed;
   match columns with
   | [] -> delay 14; unbox fixing as last in perform Rinse last
@@ -86,7 +86,7 @@ let fixation (columns : column list) =
        Note: the resource inequality `[7, 9] <= [12, 20]` does not hold
 *)
 (*
-let rec stagger_early (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit # [0, ∞) =
+let rec stagger_early (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
   perform Rinse fixed;
   match columns with
   | [] -> delay 14; unbox fixing as last in perform Rinse last

@@ -31,10 +31,10 @@
    with the margin of the packages, 1.5 times the greatest time, rounded up,
    each is bounded by 0.05 ms. *)
 
-operation Publish : float ~> unit # [0, 0.05]
+operation Publish : float ~> unit ! [0, 0.05]
 default Publish _ = delay 1/100
 
-operation Latest : unit ~> float # [0, 0.05]
+operation Latest : unit ~> float ! [0, 0.05]
 default Latest () = delay 1/100; 0.0
 
 (* The period, in seconds, and the weight of the gyroscope in the
@@ -45,7 +45,7 @@ let gyro_weight = 0.9
 (* Correctly accepted by the typechecker: the step reads the unit, filters
    the tilt about the x axis of the unit from the reading and publishes the
    tilt; it ends within 0.2 to 1.55 ms, below its period. *)
-let step (tilt : float) : float # [0, 20) =
+let step (tilt : float) : float ! [0, 20) =
   let imu = perform ReadImu () in
   let tilt = tilt_x gyro_weight period tilt imu in
   perform Publish tilt;
@@ -104,7 +104,7 @@ let show_stale () =
        Note: the effect inequality `[31.25, 62] <= [0, 20)` does not hold
 *)
 (*
-let step_shown (tilt : float) : float # [0, 20) =
+let step_shown (tilt : float) : float ! [0, 20) =
   let imu = perform ReadImu () in
   let tilt = tilt_x gyro_weight period tilt imu in
   perform ClearDisplay ();

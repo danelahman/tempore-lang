@@ -5,11 +5,11 @@
    calls a top-level function performing 'Store'. The default of 'Report'
    performs 'Warn', which has no default. *)
 
-operation Ask : nat ~> nat # 3
-operation Load : nat ~> nat # 2
-operation Store : nat ~> unit # 1
-operation Report : string ~> unit # 1
-operation Warn : string ~> unit # 1
+operation Ask : nat ~> nat ! 3
+operation Load : nat ~> nat ! 2
+operation Store : nat ~> unit ! 1
+operation Report : string ~> unit ! 1
+operation Warn : string ~> unit ! 1
 
 let store_both n = perform Store n; perform Store (n + 1)
 

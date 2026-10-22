@@ -18,19 +18,19 @@ implementations of the operations:
   === Run 1 ===
   return 2.94
   State: [
-    {!0.6},
-    {!0.01}
+    {idle 0.6},
+    {idle 0.01}
   ]
   
   === Run 2 ===
   return (0., 0.)
   State: [
-    {!0.35},
-    { resource_0 ↦ 0.1005 # {SetMotors; [100, 101]; ReadEncoders} },
-    {!0.2},
-    {!100.5},
-    {!0.5},
-    {!0.2}
+    {idle 0.35},
+    { resource_0 ↦ 0.1005 ! {SetMotors; [100, 101]; ReadEncoders} },
+    {idle 0.2},
+    {idle 100.5},
+    {idle 0.5},
+    {idle 0.2}
   ]
   
 
@@ -42,7 +42,7 @@ drive doubled between the samples of the profile:
   File "wheels/unordered.tpe", lines 9-11, characters 2-63:
   9 |   unbox window as seconds in
         ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `window` is unboxed with grade `{!100.5; SetMotors; ReadEncoders}` accumulated since it was bound, which is not below its box grade `{SetMotors; [100, 101]; ReadEncoders}`
+  Typing error: Variable `window` is unboxed with grade `{idle 100.5; SetMotors; ReadEncoders}` accumulated since it was bound, which is not below its box grade `{SetMotors; [100, 101]; ReadEncoders}`
     File "wheels/unordered.tpe", line 5, characters 54-60:
     5 |   box {SetMotors; [100, 101]; ReadEncoders} 0.1005 as window in
                                                               ^^^^^^
@@ -50,7 +50,7 @@ drive doubled between the samples of the profile:
     File "wheels/unordered.tpe", line 6, characters 2-13:
     6 |   delay 100.5;
           ^^^^^^^^^^^
-    grade `{!100.5}` accumulates here (delay)
+    grade `{idle 100.5}` accumulates here (delay)
     File "wheels/unordered.tpe", line 7, characters 2-34:
     7 |   perform SetMotors (drive, drive);
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -59,12 +59,12 @@ drive doubled between the samples of the profile:
     8 |   let left, right = perform ReadEncoders () in
                             ^^^^^^^^^^^^^^^^^^^^^^^
     grade `{ReadEncoders}` accumulates here (operation `ReadEncoders`)
-    Note: the resource inequality `{!100.5; SetMotors; ReadEncoders} <= {SetMotors; [100, 101]; ReadEncoders}` does not hold
+    Note: the resource inequality `{idle 100.5; SetMotors; ReadEncoders} <= {SetMotors; [100, 101]; ReadEncoders}` does not hold
   [1]
   File "wheels/shown.tpe", lines 11-13, characters 2-63:
   11 |   unbox window as seconds in
          ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `window` is unboxed with grade `{SetMotors; ShowNumber; !100.5; ReadEncoders}` accumulated since it was bound, which is not below its box grade `{SetMotors; [100, 101]; ReadEncoders}`
+  Typing error: Variable `window` is unboxed with grade `{SetMotors; ShowNumber; idle 100.5; ReadEncoders}` accumulated since it was bound, which is not below its box grade `{SetMotors; [100, 101]; ReadEncoders}`
     File "wheels/shown.tpe", line 6, characters 54-60:
     6 |   box {SetMotors; [100, 101]; ReadEncoders} 0.1005 as window in
                                                               ^^^^^^
@@ -80,20 +80,20 @@ drive doubled between the samples of the profile:
     File "wheels/shown.tpe", line 9, characters 2-13:
     9 |   delay 100.5;
           ^^^^^^^^^^^
-    grade `{!100.5}` accumulates here (delay)
+    grade `{idle 100.5}` accumulates here (delay)
     File "wheels/shown.tpe", line 10, characters 20-43:
     10 |   let left, right = perform ReadEncoders () in
                              ^^^^^^^^^^^^^^^^^^^^^^^
     grade `{ReadEncoders}` accumulates here (operation `ReadEncoders`)
-    Note: the resource inequality `{SetMotors; ShowNumber; !100.5; ReadEncoders} <= {SetMotors; [100, 101]; ReadEncoders}` does not hold
+    Note: the resource inequality `{SetMotors; ShowNumber; idle 100.5; ReadEncoders} <= {SetMotors; [100, 101]; ReadEncoders}` does not hold
   [1]
   File "wheels/ramped.tpe", lines 13-18, characters 2-59:
   13 |   unbox spaced as spacing in
          ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `spaced` is unboxed with grade `{SetMotors; !19.75; ReadEncoders; SetMotors; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders}` accumulated since it was bound, which is not below its box grade `{SetMotors; (![19, 21]; ReadEncoders)*}`
-    File "wheels/ramped.tpe", line 5, characters 54-60:
-    5 |   box {SetMotors; (![19, 21]; ReadEncoders)*} 0.02 as spaced in
-                                                              ^^^^^^
+  Typing error: Variable `spaced` is unboxed with grade `{SetMotors; idle 19.75; ReadEncoders; SetMotors; idle 19.75; ReadEncoders; idle 19.75; ReadEncoders; idle 19.75; ReadEncoders; idle 19.75; ReadEncoders}` accumulated since it was bound, which is not below its box grade `{SetMotors; (idle [19, 21]; ReadEncoders)*}`
+    File "wheels/ramped.tpe", line 5, characters 58-64:
+    5 |   box {SetMotors; (idle [19, 21]; ReadEncoders)*} 0.02 as spaced in
+                                                                  ^^^^^^
     `spaced` is bound here
     File "wheels/ramped.tpe", line 6, characters 2-34:
     6 |   perform SetMotors (drive, drive);
@@ -102,7 +102,7 @@ drive doubled between the samples of the profile:
     File "wheels/ramped.tpe", line 7, characters 15-24:
     7 |   let l1, r1 = sample () in
                        ^^^^^^^^^
-    grade `{!19.75; ReadEncoders}` accumulates here (this computation)
+    grade `{idle 19.75; ReadEncoders}` accumulates here (this computation)
     File "wheels/ramped.tpe", line 8, characters 2-52:
     8 |   perform SetMotors (drive +! drive, drive +! drive);
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -110,27 +110,27 @@ drive doubled between the samples of the profile:
     File "wheels/ramped.tpe", line 9, characters 15-24:
     9 |   let l2, r2 = sample () in
                        ^^^^^^^^^
-    grade `{!19.75; ReadEncoders}` accumulates here (this computation)
+    grade `{idle 19.75; ReadEncoders}` accumulates here (this computation)
     File "wheels/ramped.tpe", line 10, characters 15-24:
     10 |   let l3, r3 = sample () in
                         ^^^^^^^^^
-    grade `{!19.75; ReadEncoders}` accumulates here (this computation)
+    grade `{idle 19.75; ReadEncoders}` accumulates here (this computation)
     File "wheels/ramped.tpe", line 11, characters 15-24:
     11 |   let l4, r4 = sample () in
                         ^^^^^^^^^
-    grade `{!19.75; ReadEncoders}` accumulates here (this computation)
+    grade `{idle 19.75; ReadEncoders}` accumulates here (this computation)
     File "wheels/ramped.tpe", line 12, characters 15-24:
     12 |   let l5, r5 = sample () in
                         ^^^^^^^^^
-    grade `{!19.75; ReadEncoders}` accumulates here (this computation)
-    Note: the resource inequality `{SetMotors; !19.75; ReadEncoders; SetMotors; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders; !19.75; ReadEncoders} <= {SetMotors; (![19, 21]; ReadEncoders)*}` does not hold
+    grade `{idle 19.75; ReadEncoders}` accumulates here (this computation)
+    Note: the resource inequality `{SetMotors; idle 19.75; ReadEncoders; SetMotors; idle 19.75; ReadEncoders; idle 19.75; ReadEncoders; idle 19.75; ReadEncoders; idle 19.75; ReadEncoders} <= {SetMotors; (idle [19, 21]; ReadEncoders)*}` does not hold
   [1]
 
 A periodic task whose trace takes 10.2 to 10.8 ms is refused for a period of
 10 ms:
 
   $ cat > slow.tpe <<'EOF'
-  > let slow (tilt : float) : float # {ReadImu; 10} =
+  > let slow (tilt : float) : float ! {ReadImu; 10} =
   >   let _ = perform ReadImu () in
   >   delay 10;
   >   tilt
@@ -154,11 +154,11 @@ above: its function is refused for a periodic task, and accepted for a
 repeated free task iff that lower bound is positive:
 
   $ cat > star.tpe <<'EOF'
-  > let poll () : unit # {ReadImu; (ReadImu; 10)*} =
+  > let poll () : unit ! {ReadImu; (ReadImu; 10)*} =
   >   let _ = perform ReadImu () in
   >   ()
   > 
-  > let idle () : unit # {(ReadImu; 10)*} = ()
+  > let idle () : unit ! {(ReadImu; 10)*} = ()
   > EOF
   $ cat > star.device.json <<'EOF'
   > {

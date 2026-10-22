@@ -47,11 +47,11 @@
    default implementation lies within the bounds of both profiles with the
    radio; LinkStart runs once, at start-up. *)
 
-operation LinkStart : nat ~> bool # [0, 1500]
+operation LinkStart : nat ~> bool ! [0, 1500]
 default LinkStart _ = delay 88; true
 
-operation Send : nat * float * float ~> unit # [0, 1]
+operation Send : nat * float * float ~> unit ! [0, 1]
 default Send _ = delay 1/10
 
-operation ReceiveMessage : nat ~> bool * nat * float * float # [0, 1/10]
+operation ReceiveMessage : nat ~> bool * nat * float * float ! [0, 1/10]
 default ReceiveMessage _ = delay 1/100; (false, 0, 0.0, 0.0)

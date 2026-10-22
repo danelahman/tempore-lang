@@ -9,8 +9,8 @@
    compound 'Poll', a sample and a delay of 1/2, has the running-time bounds
    [1, 2), which fit a box of 2. *)
 
-operation Sample : unit ~> unit # {Sample} within [1/2, 3/2)
-operation Poll : unit ~> unit # {Sample; 1/2}
+operation Sample : unit ~> unit ! {Sample} within [1/2, 3/2)
+operation Poll : unit ~> unit ! {Sample; 1/2}
 
 let sample () =
   box {3/2} 1 as slot in

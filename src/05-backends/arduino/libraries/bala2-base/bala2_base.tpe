@@ -33,11 +33,11 @@
    time measured with or without it, rounded down: SetMotors [0.2, 0.75],
    ReadEncoders [0.4, 1.4] and ResetEncoders [0.3, 1.2]. *)
 
-operation SetMotors : int * int ~> unit # [0.2, 0.45]
+operation SetMotors : int * int ~> unit ! [0.2, 0.45]
 default SetMotors _ = delay 1/5
 
-operation ReadEncoders : unit ~> int * int # [0.45, 1]
+operation ReadEncoders : unit ~> int * int ! [0.45, 1]
 default ReadEncoders () = delay 1/2; (0i, 0i)
 
-operation ResetEncoders : unit ~> unit # [0.3, 0.6]
+operation ResetEncoders : unit ~> unit ! [0.3, 0.6]
 default ResetEncoders () = delay 7/20

@@ -9,9 +9,9 @@
    'within [1, 1]', that tick pays for it. A trace not listed by the greater
    grade is named as a counterexample. *)
 
-operation Heat : unit ~> unit # {Heat}
-operation Read : unit ~> nat # {Read}
-operation Send : nat ~> unit # {Send}
+operation Heat : unit ~> unit ! {Heat}
+operation Read : unit ~> nat ! {Read}
+operation Send : nat ~> unit ! {Send}
 
 let heated () =
   box 1 42 as r in
@@ -19,5 +19,5 @@ let heated () =
   unbox r as x in
   x
 
-let read_or_send (fresh : bool) : unit # {Read} =
+let read_or_send (fresh : bool) : unit ! {Read} =
   if fresh then (let x = perform Read () in ()) else perform Send 0

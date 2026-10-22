@@ -12,7 +12,7 @@
 
 (* A nurse's check-in with the patient takes between a quarter and half an
    hour; its default takes 3/8 of an hour. *)
-operation CheckIn : unit ~> unit # [0.25, 0.5]
+operation CheckIn : unit ~> unit ! [0.25, 0.5]
 
 default CheckIn () = delay 3/8
 

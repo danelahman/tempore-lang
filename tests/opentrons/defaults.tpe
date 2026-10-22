@@ -5,9 +5,9 @@
 
 type reading = Reading of nat
 
-operation Measure : nat ~> reading # 1
-operation Calibrate : unit ~> nat # 1
-operation Log : string ~> unit # 0
+operation Measure : nat ~> reading ! 1
+operation Calibrate : unit ~> nat ! 1
+operation Log : string ~> unit ! 0
 
 run perform Measure 3
 

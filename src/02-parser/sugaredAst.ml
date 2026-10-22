@@ -27,12 +27,12 @@ and ('rho, 'eps) plain_ty =
       (** [(ty1, ty2, ..., tyn) type_name] *)
   | TyParam of ty_param  (** ['a] *)
   | TyArrow of ('rho, 'eps) ty * ('rho, 'eps) plain_comp_ty
-      (** [ty1 -> ty2 # eps] *)
+      (** [ty1 -> ty2 ! eps] *)
   | TyTuple of ('rho, 'eps) ty list  (** [ty1 * ty2 * ... * tyn] *)
   | TyBox of 'rho * ('rho, 'eps) ty  (** [ [rho]ty ] *)
 
 and ('rho, 'eps) plain_comp_ty =
-  | CompTy of ('rho, 'eps) ty * 'eps  (** [ty # eps] *)
+  | CompTy of ('rho, 'eps) ty * 'eps  (** [ty ! eps] *)
 
 type variable = string
 type label = string
@@ -90,7 +90,7 @@ and ('rho, 'eps) plain_term =
       ('rho, 'eps) abstraction * (operation * ('rho, 'eps) abstraction) list
   | Continue of ('rho, 'eps) term * ('rho, 'eps) term
   | AnnotatedComp of ('rho, 'eps) term * ('rho, 'eps) ty * 'eps
-      (** [fun p : ty # eps -> t]: the body of a function annotated with its
+      (** [fun p : ty ! eps -> t]: the body of a function annotated with its
           computation type, result type and grade *)
   | Handle of ('rho, 'eps) term * ('rho, 'eps) term
 
@@ -144,7 +144,7 @@ and ('rho, 'eps) plain_command =
       * ('rho, 'eps) ty
       * 'eps
       * Grades.Grade.running_time option)
-      (** [operation Op : t1 ~> t2 # eps within [lo, hi]]; the running-time
+      (** [operation Op : t1 ~> t2 ! eps within [lo, hi]]; the running-time
           bounds are optional, read only by the grading monoids of timed
           operations *)
   | OpDefault of operation annotated * ('rho, 'eps) abstraction

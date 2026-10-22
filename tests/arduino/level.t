@@ -15,43 +15,43 @@ reference with the default implementations of the operations:
   === Run 1 ===
   return (NoReference, 0, 100, false)
   State: [
-    {!31},
-    {!3},
-    {!3},
-    {!3},
-    {!3},
-    {!3},
-    {!3},
-    {!3},
-    {!0.2},
+    {idle 31},
+    {idle 3},
+    {idle 3},
+    {idle 3},
+    {idle 3},
+    {idle 3},
+    {idle 3},
+    {idle 3},
+    {idle 0.2},
     { resource_0 ↦
         NoReference
-        # {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest)?}
+        ! {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest)?}
     },
-    {!0.6},
-    { resource_1 ↦ (0., 0., 1.) # {ReadTouch} },
-    {!0.3},
-    {!1},
-    {!3},
-    {!3},
-    {!3},
-    {!3},
-    {!3}
+    {idle 0.6},
+    { resource_1 ↦ (0., 0., 1.) ! {ReadTouch} },
+    {idle 0.3},
+    {idle 1},
+    {idle 3},
+    {idle 3},
+    {idle 3},
+    {idle 3},
+    {idle 3}
   ]
   
   === Run 2 ===
   return (Offsets (0., -0.))
   State: [
-    {!0.6},
-    {!10},
-    {!0.6},
-    {!10},
-    {!0.6},
-    {!10},
-    {!0.6},
-    { resource_0 ↦ Offsets (0., -0.) # {CheckAtRest; Beep} },
-    {!18},
-    {!0.15}
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6},
+    { resource_0 ↦ Offsets (0., -0.) ! {CheckAtRest; Beep} },
+    {idle 18},
+    {idle 0.15}
   ]
   
 

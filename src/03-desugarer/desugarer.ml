@@ -450,7 +450,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
             ) )
     (* A computation annotated with its type has no node of its own: it is the
        immediate application of a thunk annotated with the arrow type
-       [unit -> ty # eps], which the typechecker already knows how to check
+       [unit -> ty ! eps], which the typechecker already knows how to check
        and which the interpreter reduces in one step. *)
     | Sugared.AnnotatedComp (term, ty, eps) ->
         let comp = desugar_computation state term in
@@ -482,7 +482,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let comp = desugar_computation state' term in
     (pat', comp)
 
-  (* A recursive definition [let rec f p₁ … pₙ : ty # eps = t] has the effect
+  (* A recursive definition [let rec f p₁ … pₙ : ty ! eps = t] has the effect
      [eps] on its innermost arrow: the layer of [pₙ] is an ordinary function
      and the rest of the chain stays pure. *)
   and desugar_let_rec_def state ({ Sugared.it = f; _ }, { it = exp; at = loc })

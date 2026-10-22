@@ -7,7 +7,7 @@
    unannotated recursive definition places it below the effect of the
    recursive call. *)
 
-operation Read : unit ~> nat # {Read}
+operation Read : unit ~> nat ! {Read}
 
 (* Correctly rejected by the typechecker: without an annotation, the body of
    a recursive function has the unit effect, but a round reads before the

@@ -5,4 +5,4 @@
        | x -> x
        | Op u k -> continue k with (fun () -> let g = perform Op () in g ())
      run handle (let g = perform Op () in g ()) with h *)
-operation Op : unit ~> (unit -> unit # 0) # 0
+operation Op : unit ~> (unit -> unit ! 0) ! 0

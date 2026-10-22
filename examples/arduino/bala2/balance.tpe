@@ -48,22 +48,22 @@
 
 type calibration = Calibration of float
 
-operation Publish : float * float * float * float ~> unit # [0, 0.05]
+operation Publish : float * float * float * float ~> unit ! [0, 0.05]
 default Publish _ = delay 1/100
 
-operation Setpoints : unit ~> bool * float * float * float # [0, 0.05]
+operation Setpoints : unit ~> bool * float * float * float ! [0, 0.05]
 default Setpoints () = delay 1/100; (true, 0.0, 0.0, 0.0)
 
-operation LatestTilt : unit ~> float * float # [0, 0.05]
+operation LatestTilt : unit ~> float * float ! [0, 0.05]
 default LatestTilt () = delay 1/100; (0.0, 0.0)
 
-operation StartBalancing : calibration ~> unit # [0, 0.05]
+operation StartBalancing : calibration ~> unit ! [0, 0.05]
 default StartBalancing _ = delay 1/100
 
-operation StopBalancing : unit ~> unit # [0, 0.05]
+operation StopBalancing : unit ~> unit ! [0, 0.05]
 default StopBalancing () = delay 1/100
 
-operation Move : float * float ~> unit # [0, 0.05]
+operation Move : float * float ~> unit ! [0, 0.05]
 default Move _ = delay 1/100
 
 (* The control step. The state is the tilt, in degrees, filtered from the
@@ -147,7 +147,7 @@ let clamp (limit : float) (x : float) =
    follows the difference of the counts. Beyond the cutoff, or stopped, it
    stops the motors, clears the integral and holds the present heading. *)
 let step ((tilt, speed, integral, position, heading) : state) : state
-    # [0, 5) =
+    ! [0, 5) =
   let reading = perform ReadImu () in
   box [0, 2] reading as fresh in
   let left, right = perform ReadEncoders () in
@@ -207,7 +207,7 @@ let start () : state =
 *)
 (*
 let step_stale ((tilt, speed, integral, position, heading) : state) : state
-    # [0, 5) =
+    ! [0, 5) =
   let reading = perform ReadImu () in
   box [0, 2] reading as fresh in
   let left1, right1 = perform ReadEncoders () in
@@ -232,7 +232,7 @@ let step_stale ((tilt, speed, integral, position, heading) : state) : state
    balancing needs it unboxed, that is, at least a second after the
    calibration, in which the robot is to be held upright. *)
 
-let rec rate_sum (n : nat) (sum : float) : float # [0, ∞) =
+let rec rate_sum (n : nat) (sum : float) : float ! [0, ∞) =
   match n with
   | 0 -> sum
   | m + 1 ->
@@ -252,13 +252,13 @@ let calibrate () =
 (* Correctly accepted by the typechecker: an iteration of the drive moves with
    zero setpoints, shows the tilt every tenth iteration and waits 100 ms; it
    takes 100 to 112.6 ms, within the 200 ms after which a move expires. *)
-let drive_step (n : nat) : unit # [0, 200) =
+let drive_step (n : nat) : unit ! [0, 200) =
   let tilt, _ = perform LatestTilt () in
   perform Move (0.0, 0.0);
   (if n mod 10 = 0 then perform ShowNumber tilt else ());
   delay 100
 
-let rec drive (n : nat) : unit # [0, ∞) =
+let rec drive (n : nat) : unit ! [0, ∞) =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -309,7 +309,7 @@ let supervise_hasty () =
        hold
 *)
 (*
-let drive_step_redrawn (n : nat) : unit # [0, 200) =
+let drive_step_redrawn (n : nat) : unit ! [0, 200) =
   let tilt, _ = perform LatestTilt () in
   perform Move (0.0, 0.0);
   perform ClearDisplay ();

@@ -3,7 +3,7 @@
      ./tempore --grades time-upper-bound-rational \
        tests/rational_time_upper.tpe *)
 
-operation Beep : unit ~> unit # 0.125
+operation Beep : unit ~> unit ! 0.125
 
 default Beep () = delay 1/8
 

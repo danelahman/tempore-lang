@@ -15,7 +15,7 @@
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `!` admit none, a
+   admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {0}: the empty trace
@@ -55,36 +55,36 @@
    in its boxes, and once unboxed it is used at once, not after a wait. *)
 noneternal type calibration = Calibration of float
 
-operation Publish : float * float * float * float ~> unit # {Publish} within (0, 0.05]
+operation Publish : float * float * float * float ~> unit ! {Publish} within (0, 0.05]
 default Publish _ = delay 1/100
 
-operation Setpoints : unit ~> bool * float * float * float # {Setpoints} within (0, 0.2]
+operation Setpoints : unit ~> bool * float * float * float ! {Setpoints} within (0, 0.2]
 default Setpoints () = delay 1/100; (true, 0.0, 0.0, 0.0)
 
-operation LatestTilt : unit ~> float * float # {LatestTilt} within (0, 0.55]
+operation LatestTilt : unit ~> float * float ! {LatestTilt} within (0, 0.55]
 default LatestTilt () = delay 1/100; (0.0, 0.0)
 
-operation StartBalancing : calibration ~> unit # {StartBalancing} within (0, 0.05]
+operation StartBalancing : calibration ~> unit ! {StartBalancing} within (0, 0.05]
 default StartBalancing _ = delay 1/100
 
-operation StopBalancing : unit ~> unit # {StopBalancing} within (0, 0.05]
+operation StopBalancing : unit ~> unit ! {StopBalancing} within (0, 0.05]
 default StopBalancing () = delay 1/100
 
-operation Move : float * float ~> unit # {Move} within (0, 0.7]
+operation Move : float * float ~> unit ! {Move} within (0, 0.7]
 default Move _ = delay 1/100
 
 (* Reading () returns the last reading of the unit by the step, as read by
    ReadImu, and its number, counted from 1 at the first reading; bound in
    bindings.cpp. It took at most 0.039 ms, and 0.406 ms on a second robot
    (2026-10-19). *)
-operation Reading : unit ~> int * imu # {Reading} within (0, 0.65]
+operation Reading : unit ~> int * imu ! {Reading} within (0, 0.65]
 default Reading () = delay 1/100; (1i, ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0)))
 
 (* ReportStatus code sends the status of the robot to the controller: the code
    of its phase, by remote_phase_code of the package bala2-radio, and the tilt
    last published by the step; bound in bindings.cpp. It took 0.131 to 2.384 ms
    (2026-10-19), and 0.137 to 3.778 ms in a run at a period of 5 ms. *)
-operation ReportStatus : nat ~> unit # {ReportStatus} within (0, 5.7]
+operation ReportStatus : nat ~> unit ! {ReportStatus} within (0, 5.7]
 default ReportStatus _ = delay 1/10
 
 let report (p : phase) = perform ReportStatus (remote_phase_code p)
@@ -139,7 +139,7 @@ let clamp (limit : float) (x : float) =
    taken. While a turn is commanded, the heading held follows the difference
    of the counts; stopped, the step holds the present heading. *)
 let step ((tilt, speed, integral, position, heading) : state) : state
-    # {ReadImu; ReadEncoders; Setpoints; Publish; SetMotors} =
+    ! {ReadImu; ReadEncoders; Setpoints; Publish; SetMotors} =
   let reading = perform ReadImu () in
   box {(ReadEncoders | Setpoints)*} reading as fresh in
   let left, right = perform ReadEncoders () in
@@ -248,7 +248,7 @@ let added
       accel,
       near && near_one_g accel )
 
-let rec sampled (n : nat) (s : samples) : samples # {(Reading; !10)*} =
+let rec sampled (n : nat) (s : samples) : samples ! {(Reading; idle 10)*} =
   match n with
   | 0 -> s
   | m + 1 ->
@@ -258,7 +258,7 @@ let rec sampled (n : nat) (s : samples) : samples # {(Reading; !10)*} =
 
 (* The 50 samples, from none: the number 0 is that of no reading, before the
    first reading of the step, and is skipped. *)
-let sample () : samples # {(Reading; !10)*} =
+let sample () : samples ! {(Reading; idle 10)*} =
   let zero = (0.0, 0.0, 0.0) in
   sampled 50 (0i, 0, 0.0, zero, zero, zero, zero, true)
 
@@ -295,7 +295,7 @@ type calibrated =
 (* The measurement of the bias, only at rest: it reports the phase p, and
    CheckAtRest of the package m5-imu checks that the robot is still, and
    the readings are sampled at once after it. The verdict of the check is
-   boxed with {(Reading; !10)*}, so that it is used only after the samples
+   boxed with {(Reading; idle 10)*}, so that it is used only after the samples
    and waits alone, with no other operation, such as a StopBalancing or a
    Move, between the check and the samples; the box spans the 50 samples, which
    are judged in turn. If the robot is not at rest, the calibration reports
@@ -303,12 +303,12 @@ type calibrated =
    Unsettled; after n repetitions it ends with the last measurement.
    CheckAtRest takes 17.95 to 33 ms, and a measurement 517.95 to 571.2 ms. *)
 let rec measure (p : phase) (n : nat) : calibrated
-    # {(ReportStatus; CheckAtRest; (Reading; !10)*; ReportStatus; ShowTextAt;
-        !500; ShowTextAt)*;
-       ReportStatus; CheckAtRest; (Reading; !10)*} =
+    ! {(ReportStatus; CheckAtRest; (Reading; idle 10)*; ReportStatus;
+        ShowTextAt; idle 500; ShowTextAt)*;
+       ReportStatus; CheckAtRest; (Reading; idle 10)*} =
   report p;
   let rest = perform CheckAtRest () in
-  box {(Reading; !10)*} rest as checked in
+  box {(Reading; idle 10)*} rest as checked in
   let samples = sample () in
   unbox checked as checked_rest in
   let at_rest = checked_rest && still samples in
@@ -333,10 +333,10 @@ let rec measure (p : phase) (n : nat) : calibrated
         measure Unsettled m)
 
 let calibrate () : calibrated
-    # {StopBalancing; ShowTextAt;
-       (ReportStatus; CheckAtRest; (Reading; !10)*; ReportStatus; ShowTextAt;
-        !500; ShowTextAt)*;
-       ReportStatus; CheckAtRest; (Reading; !10)*} =
+    ! {StopBalancing; ShowTextAt;
+       (ReportStatus; CheckAtRest; (Reading; idle 10)*; ReportStatus;
+        ShowTextAt; idle 500; ShowTextAt)*;
+       ReportStatus; CheckAtRest; (Reading; idle 10)*} =
   perform StopBalancing ();
   perform ShowTextAt (0, 100, 2, "Calibrating");
   measure Calibrating 4000000000
@@ -347,7 +347,7 @@ let calibrate () : calibrated
    which Beep starts and returns at once, so that the user hears that Start
    is accepted from now on. *)
 let hold (announce : bool) : unit
-    # {ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt;
+    ! {ReportStatus; ShowTextAt; idle 500; ReportStatus; idle 500; ShowTextAt;
        (Beep | 0)} =
   report Calibrating;
   perform ShowTextAt (0, 100, 2, "Hold upright");
@@ -376,7 +376,7 @@ let upright_limit = 10.0
    after the wait. wait5, wait25 and wait125 repeat the poll up to 5, 25 and 125
    times, and wait_start up to 500 times, about 203 s, without a recursion,
    whose grade would be a star. *)
-let poll_start () : bool # {ReceiveMessage; ReportStatus; !400} =
+let poll_start () : bool ! {ReceiveMessage; ReportStatus; idle 400} =
   let latest = remote_receive () in
   report Ready;
   unbox latest as received in
@@ -384,28 +384,28 @@ let poll_start () : bool # {ReceiveMessage; ReportStatus; !400} =
   delay 400;
   match r with Got Start -> true | _ -> false
 
-let wait5 () : bool # {(ReceiveMessage; ReportStatus; !400)^[1, 5]} =
+let wait5 () : bool ! {(ReceiveMessage; ReportStatus; idle 400)^[1, 5]} =
   if poll_start () then true
   else if poll_start () then true
   else if poll_start () then true
   else if poll_start () then true
   else poll_start ()
 
-let wait25 () : bool # {(ReceiveMessage; ReportStatus; !400)^[1, 25]} =
+let wait25 () : bool ! {(ReceiveMessage; ReportStatus; idle 400)^[1, 25]} =
   if wait5 () then true
   else if wait5 () then true
   else if wait5 () then true
   else if wait5 () then true
   else wait5 ()
 
-let wait125 () : bool # {(ReceiveMessage; ReportStatus; !400)^[1, 125]} =
+let wait125 () : bool ! {(ReceiveMessage; ReportStatus; idle 400)^[1, 125]} =
   if wait25 () then true
   else if wait25 () then true
   else if wait25 () then true
   else if wait25 () then true
   else wait25 ()
 
-let wait_start () : bool # {(ReceiveMessage; ReportStatus; !400)^[1, 500]} =
+let wait_start () : bool ! {(ReceiveMessage; ReportStatus; idle 400)^[1, 500]} =
   if wait125 () then true
   else if wait125 () then true
   else if wait125 () then true
@@ -425,14 +425,14 @@ let wait_start () : bool # {(ReceiveMessage; ReportStatus; !400)^[1, 500]} =
    a display call, below the 200 ms after which a move expires. *)
 (* Shows "Balancing" again at the first message after the link was reported
    lost. *)
-let restored (silent : nat) : unit # {ShowTextAt | 0} =
+let restored (silent : nat) : unit ! {ShowTextAt | 0} =
   if silent >= silence_limit then perform ShowTextAt (0, 100, 2, "Balancing")
   else ()
 
 let rec drive (n : nat) (silent : nat) : unit
-    # {(ReceiveMessage; Move; (ShowTextAt; Beep | ShowTextAt | 0);
-        ReportStatus; !12.5)*;
-       (ReceiveMessage; StopBalancing; !12.5 | 0)} =
+    ! {(ReceiveMessage; Move; (ShowTextAt; Beep | ShowTextAt | 0);
+        ReportStatus; idle 12.5)*;
+       (ReceiveMessage; StopBalancing; idle 12.5 | 0)} =
   match n with
   | 0 -> ()
   | m + 1 -> (
@@ -481,18 +481,18 @@ let rec drive (n : nat) (silent : nat) : unit
    calibration, the reading of the tilt immediately before StartBalancing,
    moves and StopBalancing, in this order. *)
 let rec session (n : nat) (announce : bool) : unit
-    # {(StopBalancing; ShowTextAt;
-        (ReportStatus; CheckAtRest; (Reading; !10)*; ReportStatus; ShowTextAt;
-         !500; ShowTextAt)*;
-        ReportStatus; CheckAtRest; (Reading; !10)*;
-        ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt;
-        (Beep | 0); (ReceiveMessage; ReportStatus; !400)^[1, 500];
+    ! {(StopBalancing; ShowTextAt;
+        (ReportStatus; CheckAtRest; (Reading; idle 10)*; ReportStatus;
+         ShowTextAt; idle 500; ShowTextAt)*;
+        ReportStatus; CheckAtRest; (Reading; idle 10)*;
+        ReportStatus; ShowTextAt; idle 500; ReportStatus; idle 500; ShowTextAt;
+        (Beep | 0); (ReceiveMessage; ReportStatus; idle 400)^[1, 500];
         (0
          | LatestTilt;
            (StartBalancing; ShowTextAt;
             (ReceiveMessage; Move; (ShowTextAt; Beep | ShowTextAt | 0);
-             ReportStatus; !12.5)*;
-            (ReceiveMessage; StopBalancing; !12.5 | 0); ShowTextAt
+             ReportStatus; idle 12.5)*;
+            (ReceiveMessage; StopBalancing; idle 12.5 | 0); ShowTextAt
            | ShowTextAt)))*} =
   match n with
   | 0 -> ()
@@ -517,7 +517,7 @@ let rec session (n : nat) (announce : bool) : unit
 (* Waits until the step has read the unit, at most n polls 10 ms apart: the
    number of the last reading is positive only after the reading of start, which
    follows LinkStart, so that a ReportStatus after it follows LinkStart. *)
-let rec await_link (n : nat) : unit # {(Reading; !10)*; (Reading | 0)} =
+let rec await_link (n : nat) : unit ! {(Reading; idle 10)*; (Reading | 0)} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -568,8 +568,8 @@ let session_stale_tilt () =
    a Move after the calibration:
 
      Typing error: Variable `calibrated` is unboxed with grade
-       `{ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt;
-       Beep?; (ReceiveMessage; ReportStatus; !400)^[1, 500]; Move}`
+       `{ReportStatus; ShowTextAt; idle 500; ReportStatus; idle 500; ShowTextAt;
+       Beep?; (ReceiveMessage; ReportStatus; idle 400)^[1, 500]; Move}`
        accumulated since it was bound, which is not below its box grade
        `{[1000, 600000] & ~Move}`
        ...

@@ -12,16 +12,16 @@
      - Top ⊤: any times before, between and after the operations
      - Product: (a, G, b) · (a', G', b') = (a, G ∪ G' ∪ {b + a'}, b') *)
 
-operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
+operation AddBeads : unit ~> unit ! {AddBeads} within [1, 2]
 default AddBeads () = delay 2
 
-operation Mix : unit ~> unit # {Mix} within [1, 2]
+operation Mix : unit ~> unit ! {Mix} within [1, 2]
 default Mix () = delay 1
 
-operation FillWashPlate : unit ~> unit # {FillWashPlate} within [2, 3]
+operation FillWashPlate : unit ~> unit ! {FillWashPlate} within [2, 3]
 default FillWashPlate () = delay 3
 
-let rec incubate (n : nat) : unit # (Mix, [0, 0], [2, 5], [0, 5]) =
+let rec incubate (n : nat) : unit ! (Mix, [0, 0], [2, 5], [0, 5]) =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -39,7 +39,7 @@ let rec incubate (n : nat) : unit # (Mix, [0, 0], [2, 5], [0, 5]) =
        `(Mix, [1, 2], [2, 5], [0, 5])`
        ...
 *)
-let binding_late_wash () : unit # (Mix, [1, 2], [2, 5], [0, 5]) =
+let binding_late_wash () : unit ! (Mix, [1, 2], [2, 5], [0, 5]) =
   perform AddBeads ();
   perform Mix ();
   delay 2;

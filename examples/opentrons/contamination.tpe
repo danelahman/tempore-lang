@@ -57,37 +57,37 @@ noneternal type reagent = Reagent of string
 type column = nat
 
 (* Changing the tip takes at most a minute. *)
-operation ChangeTip : unit ~> unit # (1, Low)
+operation ChangeTip : unit ~> unit ! (1, Low)
 default ChangeTip () = delay 1
 
 (* Buffer, master mix and water are clean reagents, and dispensing one into a
    column takes at most a minute. The buffer goes to the preparation plate,
    the master mix and the water to the final plate. *)
-operation AddBuffer : tip * column ~> unit # (1, Low)
+operation AddBuffer : tip * column ~> unit ! (1, Low)
 default AddBuffer (t, column) = delay 1
 
-operation AddMix : tip * (reagent * column) ~> unit # (1, Low)
+operation AddMix : tip * (reagent * column) ~> unit ! (1, Low)
 default AddMix (t, (mix, column)) = delay 1
 
-operation AddWater : tip * column ~> unit # (1, Low)
+operation AddWater : tip * column ~> unit ! (1, Low)
 default AddWater (t, column) = delay 1
 
 (* The master mix takes at most five minutes to prepare, and must be
    dispensed within 30 minutes. *)
-operation PrepareMix : unit ~> [(30, High)]reagent # (5, Low)
+operation PrepareMix : unit ~> [(30, High)]reagent ! (5, Low)
 default PrepareMix () = delay 4; box (30, High) (Reagent "master mix")
 
 (* Adding the test article, diluting it from one column of the preparation
    plate into the next, and transferring a dilution from a column of the
    preparation plate into a column of the final plate touch the test
    article. *)
-operation AddArticle : tip * column ~> unit # (1, High)
+operation AddArticle : tip * column ~> unit ! (1, High)
 default AddArticle (t, column) = delay 1
 
-operation Dilute : tip * (column * column) ~> unit # (2, High)
+operation Dilute : tip * (column * column) ~> unit ! (2, High)
 default Dilute (t, columns) = delay 1
 
-operation AddDilution : tip * (column * column) ~> unit # (1, High)
+operation AddDilution : tip * (column * column) ~> unit ! (1, High)
 default AddDilution (t, columns) = delay 1
 
 let new_tip () =

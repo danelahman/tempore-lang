@@ -19,20 +19,20 @@ implementations of the operations:
   === Run 1 ===
   return (2.8812, 0., 0., 0., 0.)
   State: [
-    {!0.6},
-    { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) # {(ReadEncoders | Setpoints)*}
+    {idle 0.6},
+    { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) ! {(ReadEncoders | Setpoints)*}
     },
-    {!0.5},
-    {!0.01},
-    {!0.01},
-    {!0.2},
-    {!0.6},
-    { resource_1 ↦ ((0., 0., 1.), (0., 0., 0.)) # {(ReadEncoders | Setpoints)*}
+    {idle 0.5},
+    {idle 0.01},
+    {idle 0.01},
+    {idle 0.2},
+    {idle 0.6},
+    { resource_1 ↦ ((0., 0., 1.), (0., 0., 0.)) ! {(ReadEncoders | Setpoints)*}
     },
-    {!0.5},
-    {!0.01},
-    {!0.01},
-    {!0.2}
+    {idle 0.5},
+    {idle 0.01},
+    {idle 0.01},
+    {idle 0.2}
   ]
   
 
@@ -85,11 +85,11 @@ its readings:
     Note: the grade `[{ClearDisplay; ShowTextAt^2; ShowText}, {ClearDisplay; ShowTextAt^2; ShowText; (LatestTilt; ≤10)*}]` is below `{ClearDisplay; ShowTextAt^2; ShowText; (LatestTilt; 10)*}` but not below `{StopBalancing; ClearDisplay; ShowTextAt^2; ShowText; (LatestTilt; 10)*}`
   [1]
   File "bala2-regex/shown.tpe", lines 4-11, characters 47-36:
-  4 | let rec rate_sum_shown (n : nat) (sum : float) : float # {(LatestTilt; 10)*} =
+  4 | let rec rate_sum_shown (n : nat) (sum : float) : float ! {(LatestTilt; 10)*} =
                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{(LatestTilt; ShowNumber; !10; (LatestTilt; 10)*)?}`, which does not match its annotated grade `{(LatestTilt; 10)*}`
-    Note: the effect inequality `{(LatestTilt; ShowNumber; !10; (LatestTilt; 10)*)?} <= {(LatestTilt; 10)*}` does not hold
-    Note: the grade `[{(LatestTilt; ShowNumber; !≥10; (LatestTilt; ≥10)*)?}, {LatestTilt; ShowNumber; !≤10}]` is below `{(LatestTilt; ShowNumber; !10; (LatestTilt; 10)*)?}` but not below `{(LatestTilt; 10)*}`
+  Typing error: This function's body has grade `{(LatestTilt; ShowNumber; idle 10; (LatestTilt; 10)*)?}`, which does not match its annotated grade `{(LatestTilt; 10)*}`
+    Note: the effect inequality `{(LatestTilt; ShowNumber; idle 10; (LatestTilt; 10)*)?} <= {(LatestTilt; 10)*}` does not hold
+    Note: the grade `[{(LatestTilt; ShowNumber; idle ≥10; (LatestTilt; ≥10)*)?}, {LatestTilt; ShowNumber; idle ≤10}]` is below `{(LatestTilt; ShowNumber; idle 10; (LatestTilt; 10)*)?}` but not below `{(LatestTilt; 10)*}`
   [1]
 
 The PlatformIO project for the M5Stack Gray, its C++ sources checked without

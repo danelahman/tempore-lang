@@ -36,24 +36,24 @@
 (* Adding the beads in their binding buffer and mixing them into the lysates,
    and a mix of every lysate, take one to two minutes each. Filling the wash
    plate with ethanol takes two to three minutes. *)
-operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
+operation AddBeads : unit ~> unit ! {AddBeads} within [1, 2]
 default AddBeads () = delay 2
 
-operation Mix : unit ~> unit # {Mix} within [1, 2]
+operation Mix : unit ~> unit ! {Mix} within [1, 2]
 default Mix () = delay 1
 
-operation FillWashPlate : unit ~> unit # {FillWashPlate} within [2, 3]
+operation FillWashPlate : unit ~> unit ! {FillWashPlate} within [2, 3]
 default FillWashPlate () = delay 3
 
 (* Moving the plate onto and off the magnetic block takes at most a minute,
    and removing the liquid one to two minutes. *)
-operation MagnetOn : unit ~> unit # {MagnetOn} within (0, 1]
+operation MagnetOn : unit ~> unit ! {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1
 
-operation MagnetOff : unit ~> unit # {MagnetOff} within (0, 1]
+operation MagnetOff : unit ~> unit ! {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1
 
-operation RemoveLiquid : unit ~> unit # {RemoveLiquid} within [1, 2]
+operation RemoveLiquid : unit ~> unit ! {RemoveLiquid} within [1, 2]
 default RemoveLiquid () = delay 2
 
 (* Correctly accepted by the typechecker: n mixes, each followed by two
@@ -62,7 +62,7 @@ default RemoveLiquid () = delay 2
    to 4 here, and the end is at most 5 minutes after the start of the last.
    The invariant is closed under sequencing, so that it holds of any number
    of mixes. *)
-let rec incubate (n : nat) : unit # (Mix, [0, 0], [2, 5], [0, 5]) =
+let rec incubate (n : nat) : unit ! (Mix, [0, 0], [2, 5], [0, 5]) =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -74,7 +74,7 @@ let rec incubate (n : nat) : unit # (Mix, [0, 0], [2, 5], [0, 5]) =
    the lysates, and first mixed again one to two minutes later. The wash
    plate is filled in the first incubation, 3 to 5 minutes between two
    mixes, followed by three more mixes. *)
-let binding () : unit # (Mix, [1, 2], [2, 5], [0, 5]) =
+let binding () : unit ! (Mix, [1, 2], [2, 5], [0, 5]) =
   perform AddBeads ();
   perform Mix ();
   perform FillWashPlate ();
@@ -93,7 +93,7 @@ let binding () : unit # (Mix, [1, 2], [2, 5], [0, 5]) =
          <= (Mix, [1, 2], [2, 5], [0, 5])` does not hold
 *)
 (*
-let binding_late_wash () : unit # (Mix, [1, 2], [2, 5], [0, 5]) =
+let binding_late_wash () : unit ! (Mix, [1, 2], [2, 5], [0, 5]) =
   perform AddBeads ();
   perform Mix ();
   delay 2;

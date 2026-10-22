@@ -23,7 +23,7 @@ performed by their default implementations, and its attitude filter:
   return 0.98
   State: [
     [0.6, 0.6],
-    { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) # [0, 2] }
+    { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) ! [0, 2] }
   ]
   
   === Run 2 ===
@@ -53,7 +53,7 @@ interval grades and under the regular expressions of timed operations; a
 board for which the package gives none keeps those of the declarations:
 
   $ cat > bounds.tpe <<'EOF'
-  > let read () : imu # [0.55, 1.25] = perform ReadImu ()
+  > let read () : imu ! [0.55, 1.25] = perform ReadImu ()
   > EOF
   $ for b in m5stack-gray m5stack-gray-radio m5stack-cores3 m5stack-fire; do ../../tempore --grades time-interval-rational --package m5-imu --board $b --typecheck-only bounds.tpe > /dev/null 2>&1; echo "$b [$?]"; done
   m5stack-gray [0]
@@ -63,7 +63,7 @@ board for which the package gives none keeps those of the declarations:
   $ ../../tempore --grades time-interval-rational --package m5-imu --typecheck-only bounds.tpe 2>&1 | grep error
   Typing error: This function's body has grade `[0.2, 1.5]`, which does not match its annotated grade `[0.55, 1.25]`
   $ cat > bounds.tpe <<'EOF'
-  > let read () : imu # {[0, 1.3]} = perform ReadImu ()
+  > let read () : imu ! {[0, 1.3]} = perform ReadImu ()
   > EOF
   $ for b in m5stack-gray m5stack-cores3; do ../../tempore --grades regex-timed-interval-rational-symbolic --package m5-imu --board $b --typecheck-only bounds.tpe 2>&1 | grep error; done
   Typing error: This function's body has grade `[{ReadImu}, {ReadImu}]`, which does not match its annotated grade `[{[0, 1.3]}, {[0, 1.3]}]`
@@ -437,10 +437,10 @@ refused:
   >   match setpoints with Setpoints (speed, turn) -> speed +. turn
   > EOF
   $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only latest.tpe 2>&1 | grep error; done
-  Typing error: Variable `latest` is unboxed with grade `{Send; !≤150}` accumulated since it was bound, which is not below its box grade `{<150 & ~ReceiveMessage}`
+  Typing error: Variable `latest` is unboxed with grade `{Send; idle ≤150}` accumulated since it was bound, which is not below its box grade `{<150 & ~ReceiveMessage}`
   Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage}` accumulated since it was bound, which is not below its box grade `{<150 & ~ReceiveMessage}`
   Typing error: Variable `setpoints` is used with grade `{Send}` accumulated since it was bound, but its type `setpoints` is not eternal
-  Typing error: Variable `latest` is unboxed with grade `{Send; !150}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~ReceiveMessage}`
+  Typing error: Variable `latest` is unboxed with grade `{Send; idle 150}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~ReceiveMessage}`
   Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~ReceiveMessage}`
   Typing error: Variable `setpoints` is used with grade `{Send}` accumulated since it was bound, but its type `setpoints` is not eternal
 
@@ -467,9 +467,9 @@ while no further ReceiveMessage has come:
   >   remote_balancing s
   > EOF
   $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only status.tpe 2>&1 | grep error; done
-  Typing error: Variable `latest` is unboxed with grade `{!≤200}` accumulated since it was bound, which is not below its box grade `{<200 & ~ReceiveMessage}`
+  Typing error: Variable `latest` is unboxed with grade `{idle ≤200}` accumulated since it was bound, which is not below its box grade `{<200 & ~ReceiveMessage}`
   Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage}` accumulated since it was bound, which is not below its box grade `{<200 & ~ReceiveMessage}`
-  Typing error: Variable `latest` is unboxed with grade `{!200}` accumulated since it was bound, which is not below its box grade `{[0, 200) & ~ReceiveMessage}`
+  Typing error: Variable `latest` is unboxed with grade `{idle 200}` accumulated since it was bound, which is not below its box grade `{[0, 200) & ~ReceiveMessage}`
   Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage}` accumulated since it was bound, which is not below its box grade `{[0, 200) & ~ReceiveMessage}`
 
 Under the rigid grades, read_imu_boxed of the package m5-imu reads the unit

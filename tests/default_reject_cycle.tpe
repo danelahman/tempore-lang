@@ -2,8 +2,8 @@
    'Ping' again. The first default is accepted, since 'Pong' has no default
    yet; the cycle is reported at the default that closes it. *)
 
-operation Ping : nat ~> nat # 1
-operation Pong : nat ~> nat # 1
+operation Ping : nat ~> nat ! 1
+operation Pong : nat ~> nat ! 1
 
 default Ping x = perform Pong x
 default Pong x = perform Ping x

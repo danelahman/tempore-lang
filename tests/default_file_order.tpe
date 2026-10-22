@@ -4,8 +4,8 @@
    the call of 'Heat', the second at the call of 'Cool' that the default of
    'Heat' performs, and the third completes. *)
 
-operation Heat : unit ~> unit # 1
-operation Cool : unit ~> unit # 1
+operation Heat : unit ~> unit ! 1
+operation Cool : unit ~> unit ! 1
 
 run perform Heat ()
 

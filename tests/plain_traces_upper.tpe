@@ -7,12 +7,12 @@
    operations declare no running-time bounds, the traces of the branches of a
    conditional are joined, and adjacent delays are merged. *)
 
-operation Read : unit ~> nat # {Read}
-operation Send : nat ~> unit # {Send}
+operation Read : unit ~> nat ! {Read}
+operation Send : nat ~> unit ! {Send}
 
 (* A reading sent at once or after two delays of one tick, which make the
    trace listed with a delay of two. *)
-let relay (urgent : bool) : unit # {Read; Send | Read; 2; Send} =
+let relay (urgent : bool) : unit ! {Read; Send | Read; 2; Send} =
   let x = perform Read () in
   if urgent then perform Send x else (delay 1; delay 1; perform Send x)
 

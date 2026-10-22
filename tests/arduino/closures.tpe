@@ -5,10 +5,10 @@
    and a closure created outside a handle and applied inside it, whose
    operation the handler handles. *)
 
-operation A : unit ~> nat # {A} within [1, 2]
-operation B : unit ~> unit # {B} within [1, 2]
-operation C : unit ~> unit # {C} within [1, 2]
-operation Read : unit ~> nat # {Read} within [1, 2]
+operation A : unit ~> nat ! {A} within [1, 2]
+operation B : unit ~> unit ! {B} within [1, 2]
+operation C : unit ~> unit ! {C} within [1, 2]
+operation Read : unit ~> nat ! {Read} within [1, 2]
 
 (* The results of A, B and C, and the number read, each operation taking one
    unit of time. *)
@@ -28,7 +28,7 @@ let stage (x : nat) : staged =
   box {B} (fun () -> box {C} x as inner in inner) as outer in
   outer
 
-let staged_read () : nat # {A; B; C} =
+let staged_read () : nat ! {A; B; C} =
   let x = perform A () in
   let outer = stage x in
   perform B ();

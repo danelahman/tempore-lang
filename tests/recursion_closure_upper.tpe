@@ -5,18 +5,18 @@
    The grade of a recursive function is the least one its invariant admits:
    ∞ where the recursive case takes a tick, the unit where it takes none. *)
 
-operation Read : unit ~> unit # 1
+operation Read : unit ~> unit ! 1
 
-let rec wait (n : nat) : unit # 'e =
+let rec wait (n : nat) : unit ! 'e =
   match n with 0 -> () | m + 1 -> (delay 1; wait m)
 
-let f () : unit # top = wait 2
+let f () : unit ! top = wait 2
 
 (* A recursion that takes no time, inside the clause for Read. *)
 let h = handler
   | x -> x
   | Read p k ->
-      let rec w (n : nat) : unit # 'e =
+      let rec w (n : nat) : unit ! 'e =
         match n with 0 -> () | m + 1 -> (w m; w m) in
       w 2; continue k with ()
 

@@ -46,6 +46,15 @@
 
   let reserved = StringMap.of_seq (List.to_seq keywords)
 
+  (** The keywords of brace literals, each with its token, ordinary names
+      outside them. *)
+  let brace_keywords = [ ("idle", IDLE) ]
+
+  (** [name s] is the token of the lowercase name [s] outside brace
+      literals. *)
+  let name s =
+    match StringMap.find_opt s reserved with Some t -> t | None -> LNAME s
+
   let escaped_characters = [
     ("\"", "\"");
     ("\\", "\\");
@@ -86,7 +95,7 @@ let utf8char = ( ['\xC2'-'\xDF'] utf8cont
                | ['\xE0'-'\xEF'] utf8cont utf8cont
                | ['\xF0'-'\xF4'] utf8cont utf8cont utf8cont )
 
-let prefixop = ['~' '?' '!']                  operatorchar*
+let prefixop = ['~' '?']                      operatorchar*
 let infixop0 = ['=' '<' '>' '|' '&' '$']      operatorchar*
 let infixop1 = ['@' '^']                      operatorchar*
 let infixop2 = ['+' '-']                      operatorchar*
@@ -103,11 +112,7 @@ rule token = parse
   | float               { FLOAT (Lexing.lexeme lexbuf) }
   | '"'                 { STRING (string (Buffer.create 16) lexbuf) }
   | "mod!"              { INFIXOP3 "mod!" }
-  | lname               { let s = Lexing.lexeme lexbuf in
-                            match StringMap.find_opt s reserved with
-                              | Some t -> t
-                              | None -> LNAME s
-                        }
+  | lname               { name (Lexing.lexeme lexbuf) }
   | uname               { UNAME (Lexing.lexeme lexbuf) }
   | '\'' lname          { let str = Lexing.lexeme lexbuf in
                           PARAM (String.sub str 1 (String.length str - 1)) }
@@ -129,7 +134,7 @@ rule token = parse
   | ';'                 { SEMI }
   | "->"                { ARROW }
   | "~>"                { SIGARROW }
-  | '#'                 { HASH }
+  | '!'                 { BANG }
   | '='                 { EQUAL }
   | '*'                 { STAR }
   | '+'                 { PLUS }
@@ -150,9 +155,10 @@ rule token = parse
                             "Unexpected character `%s`" (Lexing.lexeme lexbuf) }
 
 (* Inside a brace literal each of the regular-expression operators [*], [^],
-   [|], [&], [~], [!] and [?] and each of the signs [≤] ([<=]), [≥] ([>=]),
-   [<] and [>] is a token of its own, so that, e.g., [A*|~B^2] and [!<=3]
-   need no spaces; any other input is lexed as outside. *)
+   [|], [&], [~] and [?] and each of the signs [≤] ([<=]), [≥] ([>=]), [<]
+   and [>] is a token of its own, so that, e.g., [A*|~B^2] and [idle<=3] need
+   no spaces, and [idle] is a keyword; any other input is lexed as
+   outside. *)
 and brace_token = parse
   | '\n'                { Lexing.new_line lexbuf; brace_token lexbuf }
   | [' ' '\r' '\t']     { brace_token lexbuf }
@@ -162,12 +168,15 @@ and brace_token = parse
   | '|'                 { BAR }
   | '&'                 { AMPER }
   | '~'                 { PREFIXOP "~" }
-  | '!'                 { BANG }
   | '?'                 { QUESTION }
   | "<=" | "≤"          { LEQ }
   | ">=" | "≥"          { GEQ }
   | '<'                 { LT }
   | '>'                 { GT }
+  | lname               { let s = Lexing.lexeme lexbuf in
+                          match List.assoc_opt s brace_keywords with
+                          | Some t -> t
+                          | None -> name s }
   | ""                  { token lexbuf }
 
 (* A comment nested [n] deep, after which lexing resumes with [continue]. *)

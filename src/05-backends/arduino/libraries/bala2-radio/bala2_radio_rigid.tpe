@@ -17,23 +17,23 @@
    with its tag, so that grades tell the messages apart. Their bounds are
    those of Send, provisional. *)
 
-operation SendStart : unit ~> unit # {SendStart} within (0, 1]
+operation SendStart : unit ~> unit ! {SendStart} within (0, 1]
 default SendStart _ = delay 1/10
 
-operation SendDrive : float * float ~> unit # {SendDrive} within (0, 1]
+operation SendDrive : float * float ~> unit ! {SendDrive} within (0, 1]
 default SendDrive _ = delay 1/10
 
-operation SendStop : unit ~> unit # {SendStop} within (0, 1]
+operation SendStop : unit ~> unit ! {SendStop} within (0, 1]
 default SendStop _ = delay 1/10
 
 (* SendStatus (code, tilt) queues the status of the robot to the peer: the
    code of its phase, by remote_phase_code, and its tilt; with the
    provisional bounds of Send. *)
 
-operation SendStatus : nat * float ~> unit # {SendStatus} within (0, 1]
+operation SendStatus : nat * float ~> unit ! {SendStatus} within (0, 1]
 default SendStatus _ = delay 1/10
 
-operation SendBeat : unit ~> unit # {SendBeat} within (0, 1]
+operation SendBeat : unit ~> unit ! {SendBeat} within (0, 1]
 default SendBeat _ = delay 1/10
 
 (* A message received and its setpoints, to be used within 150 ms and

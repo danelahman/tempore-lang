@@ -5,5 +5,5 @@
    running time. ReadTouch, its bounds and its default implementation are those
    of m5_touch.tpe. *)
 
-operation ReadTouch : unit ~> bool * nat * nat # {ReadTouch} within (0, 1.45]
+operation ReadTouch : unit ~> bool * nat * nat ! {ReadTouch} within (0, 1.45]
 default ReadTouch () = delay 3/10; (false, 0, 0)

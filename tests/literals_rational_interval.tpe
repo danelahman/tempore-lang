@@ -16,7 +16,7 @@ let open_below () = box (1/2, 3/2] "b" as r in delay 3/2; unbox r as y in y
 let open_above () = box [0, 1/2) "a" as r in delay 1/4; unbox r as y in y
 let open_late () =
   box (1/3, ∞) "l" as r in delay 1/3; delay 1/100; unbox r as y in y
-let within_open () : unit # (1/4, 1) = delay 1/2
+let within_open () : unit ! (1/4, 1) = delay 1/2
 
 run open_ended ()
 run closed ()

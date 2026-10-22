@@ -12,15 +12,15 @@
 type token = Token of string
 
 (* Each operation counts itself once. *)
-operation Login : string ~> token # (Login, 1)
+operation Login : string ~> token ! (Login, 1)
 default Login user = Token user
 
-operation Request : token * string ~> string # (Request, 1)
+operation Request : token * string ~> string ! (Request, 1)
 default Request (t, q) = "response"
 
 (* Correctly accepted by the typechecker: a session of one login and three
    requests, however long it waits between them. *)
-let session () : unit # ((Login, 1), (Request, 3)) =
+let session () : unit ! ((Login, 1), (Request, 3)) =
   let t = perform Login "alice" in
   let _ = perform Request (t, "a") in
   delay 10;
@@ -30,7 +30,7 @@ let session () : unit # ((Login, 1), (Request, 3)) =
 
 (* Correctly accepted by the typechecker: a branch takes the greater count of
    its arms, so up to three attempts at logging in count three. *)
-let login_with_retries user : bool # (Login, 3) =
+let login_with_retries user : bool ! (Login, 3) =
   let Token a = perform Login user in
   if a = user then true
   else
@@ -60,7 +60,7 @@ let two_requests () =
          hold
 *)
 (*
-let greedy_session () : unit # ((Login, 1), (Request, 3)) =
+let greedy_session () : unit ! ((Login, 1), (Request, 3)) =
   let t = perform Login "alice" in
   let _ = perform Request (t, "a") in
   let _ = perform Request (t, "b") in

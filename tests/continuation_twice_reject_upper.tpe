@@ -3,7 +3,7 @@
      ./tempore --grades time-upper-bound \
        tests/continuation_twice_reject_upper.tpe *)
 
-operation Op : unit ~> unit # 1
+operation Op : unit ~> unit ! 1
 
 (* Correctly rejected by the typechecker: the second resumption unboxes k, a
    box of grade 1, after the first has run for the effect ε of k, and ∣ε∣ <= 1

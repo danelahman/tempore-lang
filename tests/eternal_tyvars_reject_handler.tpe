@@ -3,7 +3,7 @@
      ./tempore --grades time-upper-bound \
        tests/eternal_tyvars_reject_handler.tpe *)
 
-operation Op : unit ~> unit # 1
+operation Op : unit ~> unit ! 1
 
 (* An operation case is typed under the lock of the top grade, so x must be
    eternal: h gets a scheme qualified by Et(α) for the type α of x. *)

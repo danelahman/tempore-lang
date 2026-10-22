@@ -13,10 +13,10 @@ Error: The member `A` of the member `esp32-devkit` of the member `bounds` of a p
 Error: The member `A` of the member `esp32-devkit` of the member `bounds` of a package descriptor is a number, not an array `[lo, hi]`
 Error: The member `A` of the member `esp32-devkit` of the member `bounds` of a package descriptor is given twice
 Error: The member `bounds` of a package descriptor is an array, not an object
-time-interval-rational: A # [0.5, 0.75]; B # [0, 1]
-time-lower-bound-rational: A # 0.5
-regex-timed-interval-rational-symbolic: A # [{A}, {A}] within [0.5, 0.75]
-counts-upper-bound: A # (A, 1)
+time-interval-rational: A ! [0.5, 0.75]; B ! [0, 1]
+time-lower-bound-rational: A ! 0.5
+regex-timed-interval-rational-symbolic: A ! [{A}, {A}] within [0.5, 0.75]
+counts-upper-bound: A ! (A, 1)
 time-interval-rational: Error: The source source.tpe declares no operation C, whose running-time bounds are given
 time-interval: Error: In the `time-interval` grading monoid, the running-time bound 0.5 is not a delay: delays are whole numbers of time steps
 p and q share: B

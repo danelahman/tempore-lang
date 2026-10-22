@@ -2,16 +2,16 @@
    free task blinks a light five times, 50 ms apart. Time is in milliseconds,
    under the grades time-interval-rational. *)
 
-operation Show : nat ~> unit # [0.1, 0.2]
-operation Blink : nat ~> unit # [0.2, 0.5]
+operation Show : nat ~> unit ! [0.1, 0.2]
+operation Blink : nat ~> unit ! [0.2, 0.5]
 
 let start () = 0
 
-let step (n : nat) : nat # [0, 10) =
+let step (n : nat) : nat ! [0, 10) =
   perform Show n;
   n + 1
 
-let rec blink n : unit # [0, inf) =
+let rec blink n : unit ! [0, inf) =
   match n with
   | 0 -> ()
   | m + 1 ->

@@ -255,9 +255,9 @@ The bounds of a compound operation are those its grade implies, read over the
 bounds of the operations it names, compound ones included.
 
   $ cat > compound.tpe <<'TPE'
-  > operation A : unit ~> unit # {A} within [1, 2]
-  > operation B : unit ~> unit # {A; A}
-  > operation C : unit ~> unit # {B; A}
+  > operation A : unit ~> unit ! {A} within [1, 2]
+  > operation B : unit ~> unit ! {A; A}
+  > operation C : unit ~> unit ! {B; A}
   > run return ()
   > TPE
   $ ../../tempore --grades traces-timed-upper-bound --emit-opentrons compound.py compound.tpe &&

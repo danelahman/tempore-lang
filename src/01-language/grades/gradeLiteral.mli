@@ -40,8 +40,8 @@ type regex =
   | Inter of regex * regex  (** Intersection, [r & s] *)
   | Compl of regex  (** Complement, [~r] *)
   | Strict of regex
-      (** A strict delay, [!r], [r] the wildcard [_] or an expression of delays
-          only ({!delays_only}): [!3], [![2, 3]], [!_] *)
+      (** A strict delay, [idle r], [r] the wildcard [_] or an expression of
+          delays only ({!delays_only}): [idle 3], [idle [2, 3]], [idle _] *)
 
 val delays_only : regex -> bool
 (** [delays_only r] is whether [r] is built from delays and intervals of delays
@@ -75,9 +75,9 @@ val show_regex : regex -> string
 (** [show_regex r] prints [r] as the contents of a brace literal, with the
     parentheses the precedences require: union [|], intersection [&],
     concatenation [;], complement [~] and repetition [*] and [^], by increasing
-    precedence, a strict delay [!r] as an atom, parenthesised under a bounded
-    repetition. The three binary operators are printed as associative, and a
-    fraction under a repetition is parenthesised. *)
+    precedence, a strict delay [idle r] as an atom, parenthesised under a
+    bounded repetition. The three binary operators are printed as associative,
+    and a fraction under a repetition is parenthesised. *)
 
 (** Grade literals as they appear in source. *)
 type lit =
@@ -138,7 +138,7 @@ val distinct_entries :
 *)
 
 val strict_unsupported : regex -> 'a
-(** [strict_unsupported r] rejects the strict delay [r], [!d], under a grade
+(** [strict_unsupported r] rejects the strict delay [r], [idle d], under a grade
     other than the rigid grades of timed operations.
 
     @raise Invalid_literal on the brace literal of [r]. *)

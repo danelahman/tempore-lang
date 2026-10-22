@@ -13,10 +13,10 @@
 type plate = string
 type reagent = string
 
-operation Detect : plate * reagent ~> [[60, ∞)]plate # [1, 3]
+operation Detect : plate * reagent ~> [[60, ∞)]plate ! [1, 3]
 default Detect (plate, antibody) = delay 2; box [60, ∞) plate
 
-operation Wash : plate ~> plate # [2, 4]
+operation Wash : plate ~> plate ! [2, 4]
 default Wash plate = delay 3; plate
 
 (* Correctly rejected by the typechecker: the plate incubates with the

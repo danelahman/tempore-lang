@@ -10,8 +10,8 @@
 
 type token = Token of string
 
-operation Read : unit ~> nat # {Read} within [1, 2]
-operation Log : unit ~> unit # {Log} within [1, 3]
+operation Read : unit ~> nat ! {Read} within [1, 2]
+operation Log : unit ~> unit ! {Log} within [1, 3]
 
 (* Reads, each within two steps of the last, at least one step apart. *)
 let sampled () =

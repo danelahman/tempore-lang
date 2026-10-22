@@ -11,16 +11,16 @@
      - Product: (T, E) · (T', E') = (T + T', E ∪ (T + E')) *)
 
 (* Sensing takes a tick, and happens at its start. *)
-operation Sense : unit ~> nat # (1, (Sense, {0}))
+operation Sense : unit ~> nat ! (1, (Sense, {0}))
 default Sense () = delay 1; 21
 
 (* A transmission takes a tick, and happens at its start. *)
-operation Send : nat ~> unit # (1, (Send, {0}))
+operation Send : nat ~> unit ! (1, (Send, {0}))
 default Send x = delay 1
 
 (* Correctly accepted by the typechecker: a frame of ten ticks that senses at
    its start and transmits in the node's slot, ticks 4 and 5 of the frame. *)
-let frame () : unit # (10, (Send, {4 | 5}), (Sense, {0})) =
+let frame () : unit ! (10, (Send, {4 | 5}), (Sense, {0})) =
   let x = perform Sense () in
   delay 3;
   perform Send (2 * x);
@@ -28,7 +28,7 @@ let frame () : unit # (10, (Send, {4 | 5}), (Sense, {0})) =
 
 (* Correctly accepted by the typechecker: three frames, whose operations all
    happen at ticks 0, 4 and 5 of every ten, '_' standing for any operation. *)
-let frames () : unit # (30, (_, {(0 | 4 | 5); 10*})) =
+let frames () : unit ! (30, (_, {(0 | 4 | 5); 10*})) =
   frame ();
   frame ();
   frame ()
@@ -37,7 +37,7 @@ let frames () : unit # (30, (_, {(0 | 4 | 5); 10*})) =
    ticks, so the frame after it senses at tick 0 or 10 and transmits at ticks
    4 and 5 or at ticks 14 and 15. *)
 let maybe_twice b :
-    unit # ({10 | 20}, (Send, {4 | 5 | 14 | 15}), (Sense, {0 | 10})) =
+    unit ! ({10 | 20}, (Send, {4 | 5 | 14 | 15}), (Sense, {0 | 10})) =
   if b then frame () else ();
   frame ()
 
@@ -62,7 +62,7 @@ let fresh () =
          (10, (Send, {4 | 5}), (Sense, {0}))` does not hold
 *)
 (*
-let late_frame () : unit # (10, (Send, {4 | 5}), (Sense, {0})) =
+let late_frame () : unit ! (10, (Send, {4 | 5}), (Sense, {0})) =
   let x = perform Sense () in
   let y = perform Sense () in
   delay 4;

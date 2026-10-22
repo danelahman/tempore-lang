@@ -13,7 +13,7 @@ module Grammar = Parser.Grammar.Make (GS)
 let program =
   {|type shape = Circle of nat | Square of nat
 
-operation Observe : shape ~> unit # 1
+operation Observe : shape ~> unit ! 1
 
 let area (s : shape) =
   match s with

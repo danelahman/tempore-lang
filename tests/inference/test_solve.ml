@@ -877,7 +877,7 @@ let small_programs ~lit ~read =
       (* Annotations *)
       "let id_bool (x : bool) = x";
       "let id_unit = (fun x -> x : unit -> unit)";
-      Printf.sprintf "let compose_g f g x = f ((g : unit -> unit # %s) x)"
+      Printf.sprintf "let compose_g f g x = f ((g : unit -> unit ! %s) x)"
         (lit 0);
     ]
   in
@@ -920,8 +920,8 @@ let check_small_programs grades =
   let traces = String.starts_with ~prefix:"traces" grades in
   let lit n = if traces then Printf.sprintf "{%d}" n else string_of_int n in
   let read =
-    if traces then "operation Read : unit ~> reading # {Read} within [1, 1]"
-    else "operation Read : unit ~> reading # 1"
+    if traces then "operation Read : unit ~> reading ! {Read} within [1, 1]"
+    else "operation Read : unit ~> reading ! 1"
   in
   let verdicts = P.definitions (small_programs ~lit ~read) in
   if verbose then

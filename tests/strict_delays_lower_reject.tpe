@@ -10,13 +10,13 @@
 
 type token = Token of string
 
-operation Open : unit ~> unit # {Open} within [1, 1]
-operation Close : unit ~> unit # {Close} within [1, 1]
-operation Stir : unit ~> unit # {Stir} within [3, 4]
+operation Open : unit ~> unit ! {Open} within [1, 1]
+operation Close : unit ~> unit ! {Close} within [1, 1]
+operation Stir : unit ~> unit ! {Stir} within [3, 4]
 
 (* A wait of five covers the demanded settling. *)
 let settled () =
-  box {Open; !5; Close} (Token "w") as w in
+  box {Open; idle 5; Close} (Token "w") as w in
   perform Open ();
   delay 5;
   perform Close ();
@@ -25,7 +25,7 @@ let settled () =
 
 (* Two stirs take at least six, but are no wait. *)
 let stirred () =
-  box {Open; !5; Close} (Token "w") as w in
+  box {Open; idle 5; Close} (Token "w") as w in
   perform Open ();
   perform Stir ();
   perform Stir ();

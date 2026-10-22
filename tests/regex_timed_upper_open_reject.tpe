@@ -8,8 +8,8 @@
    up to three ticks, more than the two the box allows, and a default of three
    ticks exceeds [1, 3). *)
 
-operation Tx : unit ~> unit # {Tx} within (1, 4)
-operation Beep : unit ~> unit # {Beep} within [1, 3)
+operation Tx : unit ~> unit ! {Tx} within (1, 4)
+operation Beep : unit ~> unit ! {Beep} within [1, 3)
 
 let telemetry () =
   box {2} 1 as slot in

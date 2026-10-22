@@ -3,8 +3,8 @@
      ./tempore --grades time-upper-bound \
        tests/continuation_nested_twice_reject_upper.tpe *)
 
-operation Op1 : unit ~> unit # 1
-operation Op2 : unit ~> unit # 1
+operation Op1 : unit ~> unit ! 1
+operation Op2 : unit ~> unit ! 1
 
 (* Correctly rejected by the typechecker: the inner case resumes k' twice, so
    its grade overruns the one tick Op2 allows on top of the inner

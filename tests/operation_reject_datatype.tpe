@@ -2,4 +2,4 @@
    a function type through the definition of `callback`. *)
 type callback = Callback of (nat -> nat)
 
-operation Op : callback list ~> unit # 1
+operation Op : callback list ~> unit ! 1

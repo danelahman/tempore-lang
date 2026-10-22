@@ -5,11 +5,11 @@
    m5_imu.tpe, and the types and the attitude filter are defined in
    m5_imu_filter.tpe. *)
 
-operation ReadImu : unit ~> imu # (ReadImu, 1)
+operation ReadImu : unit ~> imu ! (ReadImu, 1)
 default ReadImu () = ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
 
-operation ConfigureImu : nat ~> unit # (ConfigureImu, 1)
+operation ConfigureImu : nat ~> unit ! (ConfigureImu, 1)
 default ConfigureImu _ = ()
 
-operation CheckAtRest : unit ~> bool # (CheckAtRest, 1)
+operation CheckAtRest : unit ~> bool ! (CheckAtRest, 1)
 default CheckAtRest () = true

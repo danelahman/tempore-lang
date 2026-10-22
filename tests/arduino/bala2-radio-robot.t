@@ -24,13 +24,13 @@ StopBalancing:
   [1]
   Typing error: Variable `starting` is unboxed with the unit grade `{0}` accumulated since it was bound, which is not below its box grade `{LatestTilt; ([0, 1) & ~(Move | ReceiveMessage))}`
   [1]
-  Typing error: Variable `calibrated` is unboxed with grade `{ReportStatus; ShowTextAt; !500; ReportStatus; !500; ShowTextAt; Beep?; (ReceiveMessage; ReportStatus; !400)^[1, 500]; Move}` accumulated since it was bound, which is not below its box grade `{[1000, 600000] & ~Move}`
+  Typing error: Variable `calibrated` is unboxed with grade `{ReportStatus; ShowTextAt; idle 500; ReportStatus; idle 500; ShowTextAt; Beep?; (ReceiveMessage; ReportStatus; idle 400)^[1, 500]; Move}` accumulated since it was bound, which is not below its box grade `{[1000, 600000] & ~Move}`
   [1]
   Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage; StopBalancing?}` accumulated since it was bound, which is not below its box grade `{[0, 150) & ~ReceiveMessage}`
   [1]
-  Typing error: Variable `starting` is unboxed with grade `{(ReceiveMessage; ReportStatus; !400)^[1, 500]}` accumulated since it was bound, which is not below its box grade `{LatestTilt; ([0, 1) & ~(Move | ReceiveMessage))}`
+  Typing error: Variable `starting` is unboxed with grade `{(ReceiveMessage; ReportStatus; idle 400)^[1, 500]}` accumulated since it was bound, which is not below its box grade `{LatestTilt; ([0, 1) & ~(Move | ReceiveMessage))}`
   [1]
-  Typing error: Variable `checked` is unboxed with grade `{StopBalancing; (Reading; !10)*}` accumulated since it was bound, which is not below its box grade `{(Reading; !10)*}`
+  Typing error: Variable `checked` is unboxed with grade `{StopBalancing; (Reading; idle 10)*}` accumulated since it was bound, which is not below its box grade `{(Reading; idle 10)*}`
 
 The PlatformIO project for the M5Stack Gray with its radio running (profile
 m5stack-gray-radio), its C++ sources checked without exceptions and run-time

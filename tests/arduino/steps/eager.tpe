@@ -5,7 +5,7 @@ let step_eager c =
   if added = 0 then poll (pause c) else poll (count c added)
 
 let rec listen_eager (n : nat) (c : counter) : counter
-    # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
+    ! ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
   match n with
   | 0 -> c
   | m + 1 ->

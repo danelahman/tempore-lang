@@ -8,11 +8,11 @@
    than one time unit, its upper running-time bound being positive. *)
 
 (* A tap takes between a quarter and a half of a time unit. *)
-operation Tap : unit ~> unit # {Tap} within [1/4, 1/2]
+operation Tap : unit ~> unit ! {Tap} within [1/4, 1/2]
 default Tap () = delay 1/4
 
 (* Two taps fit in one time unit, each at its upper bound of 1/2. *)
-let two_taps () : unit # {1} =
+let two_taps () : unit ! {1} =
   perform Tap ();
   perform Tap ()
 

@@ -7,7 +7,7 @@
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `!` admit none, a
+   admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {0}: the empty trace
@@ -18,13 +18,13 @@ type sample = Sample of nat
 
 (* A reading of the inertial unit, a reading of the clock and a redraw of the
    screen, in milliseconds. *)
-operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
+operation ReadImu : unit ~> nat ! {ReadImu} within [0.2, 1.5]
 default ReadImu () = delay 0.6; 3
 
-operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
+operation ReadClock : unit ~> nat ! {ReadClock} within (0, 0.05]
 default ReadClock () = delay 0.02; 1200
 
-operation Redraw : unit ~> unit # {Redraw} within [0.05, 33]
+operation Redraw : unit ~> unit ! {Redraw} within [0.05, 33]
 default Redraw () = delay 21.5
 
 (* Correctly accepted by the typechecker: the first reading is boxed and
@@ -52,13 +52,13 @@ let window () =
    short of the three the lower bound demands:
 
      Typing error: Variable `w` is unboxed with grade
-       `{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}` accumulated
-       since it was bound, which is not below its box grade
+       `{idle 1.75; ReadImu; ReadClock; idle 2.25; ReadImu; ReadClock}`
+       accumulated since it was bound, which is not below its box grade
        `[{(≥0; ReadImu; ReadClock)^3; ≥0},
          {(≤2.5; ReadImu; ReadClock)*}]`
        ...
        Note: the resource inequality
-         `{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock} <= [{(≥0; ReadImu; ReadClock)^3; ≥0}, {(≤2.5; ReadImu; ReadClock)*}]`
+         `{idle 1.75; ReadImu; ReadClock; idle 2.25; ReadImu; ReadClock} <= [{(≥0; ReadImu; ReadClock)^3; ≥0}, {(≤2.5; ReadImu; ReadClock)*}]`
          does not hold
 *)
 (*
@@ -83,14 +83,14 @@ let window_short () =
    the upper bound paying for the redraw:
 
      Typing error: Variable `w` is unboxed with grade
-       `{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu;
-       ReadClock}` accumulated since it was bound, which is not below its
-       box grade
+       `{idle 1.75; ReadImu; ReadClock; idle 2.25; ReadImu; ReadClock; Redraw;
+       ReadImu; ReadClock}` accumulated since it was bound, which is not below
+       its box grade
        `[{(≥0; ReadImu; ReadClock)^3; ≥0},
          {(≤2.5; ReadImu; ReadClock)*}]`
        ...
        Note: the resource inequality
-         `{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock} <= [{(≥0; ReadImu; ReadClock)^3; ≥0}, {(≤2.5; ReadImu; ReadClock)*}]`
+         `{idle 1.75; ReadImu; ReadClock; idle 2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock} <= [{(≥0; ReadImu; ReadClock)^3; ≥0}, {(≤2.5; ReadImu; ReadClock)*}]`
          does not hold
 *)
 (*

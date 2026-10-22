@@ -5,7 +5,7 @@
    The body of a recursive function sees its surrounding context behind a
    lock of the top grade, and the function itself under any locks. *)
 
-operation Ask : unit ~> nat # 0
+operation Ask : unit ~> nat ! 0
 
 (* Correctly accepted by the typechecker: the local 'go' captures 'k', a nat,
    whose type is eternal. *)

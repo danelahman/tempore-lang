@@ -1,7 +1,7 @@
 (* A sum of the rates that shows the readings left on the display, after
    balance_regex.tpe. *)
 
-let rec rate_sum_shown (n : nat) (sum : float) : float # {(LatestTilt; 10)*} =
+let rec rate_sum_shown (n : nat) (sum : float) : float ! {(LatestTilt; 10)*} =
   match n with
   | 0 -> sum
   | m + 1 ->

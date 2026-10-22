@@ -6,9 +6,9 @@
    Accepted: the wildcard of the grade of the compound operation Two ranges
    over every operation of the program, Later declared after it included. *)
 
-operation Fetch : unit ~> unit # {Fetch} within [2, 4]
-operation Two : unit ~> unit # {Fetch; _}
-operation Later : unit ~> unit # {Later} within [1, 2]
+operation Fetch : unit ~> unit ! {Fetch} within [2, 4]
+operation Two : unit ~> unit ! {Fetch; _}
+operation Later : unit ~> unit ! {Later} within [1, 2]
 default Fetch () = delay 3
 
 let f () = perform Two ()

@@ -10,6 +10,9 @@
 (* The keywords of the lexer, and [return], a keyword of the core language the
    interpreter prints. *)
 let keywords = "return" :: List.map fst Parser.Lexer.keywords
+
+(* The keywords of brace literals, ordinary names outside them. *)
+let brace_keywords = List.map fst Parser.Lexer.brace_keywords
 let is_lower c = c >= 'a' && c <= 'z'
 let is_upper c = c >= 'A' && c <= 'Z'
 let is_digit c = c >= '0' && c <= '9'
@@ -141,7 +144,10 @@ let tokens s =
         incr i
       done;
       let tok = String.sub s start (!i - start) in
-      if List.mem tok keywords then begin
+      if
+        List.mem tok keywords
+        || (!brace_depth > 0 && List.mem tok brace_keywords)
+      then begin
         emit start !i (Some "syn-kw");
         (match tok with
         | "operation" | "perform" -> after_op_kw := true

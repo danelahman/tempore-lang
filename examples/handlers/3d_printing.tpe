@@ -19,9 +19,9 @@ type complete = Complete of uvCured
 
 (* Printing takes seven ticks, and the print it returns has to cool for five
    before it may be touched. *)
-operation PrintResinModel : model ~> [5]fresh # 7
+operation PrintResinModel : model ~> [5]fresh ! 7
 (* Curing a cooled print takes five ticks. *)
-operation UvCure : cooled ~> uvCured # 5
+operation UvCure : cooled ~> uvCured ! 5
 
 (* Correctly accepted by the typechecker: each clause delays more than the
    grade of the operation it handles and then continues, so each clause grade

@@ -6,6 +6,6 @@
    Rejected: a specification of event separation lists one interval, the
    gaps, or three, the lead, the gaps and the tail. *)
 
-operation Beat : unit ~> unit # {Beat} within [0.1, 0.5]
+operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]
 
-let beat () : unit # (Beat, [0, 1], [0, 5]) = perform Beat ()
+let beat () : unit ! (Beat, [0, 1], [0, 5]) = perform Beat ()

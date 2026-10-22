@@ -445,7 +445,7 @@ let of_delay_laws (module G : Grade.S) bounds ?monotone () =
 
 (* [strict_delays name] is whether the grade named [name] is one of the rigid
    grades of timed operations, whose grade of [delay d] is the strict delay
-   [!d], a wait, below the budget [d] of the time shadow. *)
+   [idle d], a wait, below the budget [d] of the time shadow. *)
 let strict_delays name =
   List.exists
     (fun prefix -> String.starts_with ~prefix name)

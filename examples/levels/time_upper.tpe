@@ -13,15 +13,15 @@ type token = Token of string
 
 (* Logging in takes at most a tick and issues a session token that expires
    after five. *)
-operation Login : string ~> [(5, Low)] token # (1, Low)
+operation Login : string ~> [(5, Low)] token ! (1, Low)
 default Login user = delay 1; box (5, Low) (Token user)
 
 (* Querying the public database takes at most two ticks. *)
-operation Query : token * string ~> string # (2, Low)
+operation Query : token * string ~> string ! (2, Low)
 default Query (t, q) = delay 1; "rows"
 
 (* Reading the payroll takes at most a tick and touches secret data. *)
-operation ReadPayroll : unit ~> string # (1, High)
+operation ReadPayroll : unit ~> string ! (1, High)
 default ReadPayroll () = delay 1; "salaries"
 
 (* Correctly accepted by the typechecker: a query and three ticks of thinking

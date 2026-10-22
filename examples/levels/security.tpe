@@ -12,15 +12,15 @@
 type channel = Channel of string
 
 (* Reading the public feed touches nothing secret. *)
-operation ReadPublic : unit ~> string # Low
+operation ReadPublic : unit ~> string ! Low
 default ReadPublic () = "weather: sunny"
 
 (* Reading the vault touches a secret. *)
-operation ReadSecret : unit ~> string # High
+operation ReadSecret : unit ~> string ! High
 default ReadSecret () = "launch code: 0000"
 
 (* Posting a message on a channel touches nothing secret by itself. *)
-operation Post : channel * string ~> string # Low
+operation Post : channel * string ~> string ! Low
 default Post (c, msg) = msg
 
 (* A public channel, usable while nothing secret has been touched. *)

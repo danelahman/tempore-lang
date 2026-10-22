@@ -189,14 +189,14 @@ tests show those runs in detail.
   return 11
   State: [
     5,
-    { resource_0 ↦ 11 # 3 },
+    { resource_0 ↦ 11 ! 3 },
     3
   ]
   
   === Run 8 ===
   return 42
   State: [
-    { resource_0 ↦ 42 # 3 },
+    { resource_0 ↦ 42 ! 3 },
     5
   ]
   
@@ -205,7 +205,7 @@ tests show those runs in detail.
   State: [
     2,
     10,
-    { resource_0 ↦ (43, 99, "test") # 3 },
+    { resource_0 ↦ (43, 99, "test") ! 3 },
     3
   ]
   
@@ -243,7 +243,7 @@ tests show those runs in detail.
   === Run 6 ===
   return 2
   State: [
-    { resource_1 ↦ <fun> # 1 }
+    { resource_1 ↦ <fun> ! 1 }
   ]
   
   === Run 7 ===
@@ -262,17 +262,17 @@ tests show those runs in detail.
   === Run 1 ===
   return 55
   State: [
-    { resource_0 ↦ 25 # 3,
-      resource_1 ↦ 16 # 3,
-      resource_2 ↦ 9 # 3,
-      resource_3 ↦ 4 # 3,
-      resource_4 ↦ 1 # 3,
-      resource_5 ↦ <fun> # 10,
-      resource_6 ↦ <fun> # 10,
-      resource_7 ↦ <fun> # 10,
-      resource_8 ↦ <fun> # 10,
-      resource_9 ↦ <fun> # 10,
-      resource_10 ↦ <fun> # 10
+    { resource_0 ↦ 25 ! 3,
+      resource_1 ↦ 16 ! 3,
+      resource_2 ↦ 9 ! 3,
+      resource_3 ↦ 4 ! 3,
+      resource_4 ↦ 1 ! 3,
+      resource_5 ↦ <fun> ! 10,
+      resource_6 ↦ <fun> ! 10,
+      resource_7 ↦ <fun> ! 10,
+      resource_8 ↦ <fun> ! 10,
+      resource_9 ↦ <fun> ! 10,
+      resource_10 ↦ <fun> ! 10
     },
     12
   ]
@@ -311,7 +311,7 @@ tests show those runs in detail.
   === Run 2 ===
   return (Token "bob")
   State: [
-    { resource_0 ↦ Token "bob" # (Request, 2) }
+    { resource_0 ↦ Token "bob" ! (Request, 2) }
   ]
   
   ======================================================================
@@ -321,13 +321,13 @@ tests show those runs in detail.
   return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
-    { resource_1 ↦ <fun> # 7 },
+    { resource_1 ↦ <fun> ! 7 },
     9,
-    { resource_2 ↦ Fresh (Model "Sword") # 5, resource_4 ↦ <fun> # 7 },
+    { resource_2 ↦ Fresh (Model "Sword") ! 5, resource_4 ↦ <fun> ! 7 },
     9,
-    { resource_5 ↦ Fresh (Model "Hammer") # 5, resource_7 ↦ <fun> # 5 },
+    { resource_5 ↦ Fresh (Model "Hammer") ! 5, resource_7 ↦ <fun> ! 5 },
     6,
-    { resource_9 ↦ <fun> # 5 },
+    { resource_9 ↦ <fun> ! 5 },
     6
   ]
   
@@ -337,14 +337,14 @@ tests show those runs in detail.
   === Run 1 ===
   return 48
   State: [
-    { resource_1 ↦ <fun> # 71 },
+    { resource_1 ↦ <fun> ! 71 },
     80
   ]
   
   === Run 2 ===
   return 23
   State: [
-    { resource_1 ↦ <fun> # 71 },
+    { resource_1 ↦ <fun> ! 71 },
     74
   ]
   
@@ -361,7 +361,7 @@ tests show those runs in detail.
   === Run 1 ===
   return 7
   State: [
-    { resource_1 ↦ <fun> # 2, resource_3 ↦ <fun> # 3 },
+    { resource_1 ↦ <fun> ! 2, resource_3 ↦ <fun> ! 3 },
     4
   ]
   
@@ -373,7 +373,7 @@ tests show those runs in detail.
                     ^^^^^^^^^^^
   Typing error: For every grade `ε_Op2` the continuation `k'` may have, the case for `Op2` must have a grade matching `3 · ε_Op2`, but its grade `4` does not
     File "../examples/handlers/nested_reject.tpe", line 13, characters 0-32:
-    13 | operation Op2 : unit ~> unit # 3
+    13 | operation Op2 : unit ~> unit ! 3
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op2` is declared here
     File "../examples/handlers/nested_reject.tpe", line 29, characters 19-21:
@@ -387,26 +387,26 @@ tests show those runs in detail.
   === Run 1 ===
   return 45
   State: [
-    { resource_1 ↦ <fun> # 71 },
+    { resource_1 ↦ <fun> ! 71 },
     10
   ]
   
   === Run 2 ===
   return 0
   State: [
-    { resource_1 ↦ <fun> # 71 }
+    { resource_1 ↦ <fun> ! 71 }
   ]
   
   === Run 3 ===
   return 46
   State: [
-    { resource_1 ↦ <fun> # 71 }
+    { resource_1 ↦ <fun> ! 71 }
   ]
   
   === Run 4 ===
   return 42
   State: [
-    { resource_1 ↦ <fun> # 71 },
+    { resource_1 ↦ <fun> ! 71 },
     10
   ]
   
@@ -416,9 +416,9 @@ tests show those runs in detail.
   === Run 1 ===
   return ()
   State: [
-    { resource_1 ↦ <fun> # (0, 0.5] },
+    { resource_1 ↦ <fun> ! (0, 0.5] },
     [0.1, 0.1],
-    { resource_2 ↦ Sample 42 # [5, 10) },
+    { resource_2 ↦ Sample 42 ! [5, 10) },
     [7, 7],
     [0.5, 0.5],
     [1.5, 1.5]
@@ -447,7 +447,7 @@ tests show those runs in detail.
   === Run 2 ===
   return ()
   State: [
-    { resource_0 ↦ "draft" # (Low, (Board, Low)) }
+    { resource_0 ↦ "draft" ! (Low, (Board, Low)) }
   ]
   
   ======================================================================
@@ -456,13 +456,13 @@ tests show those runs in detail.
   === Run 1 ===
   return "weather: sunny"
   State: [
-    { resource_0 ↦ Channel "public" # Low }
+    { resource_0 ↦ Channel "public" ! Low }
   ]
   
   === Run 2 ===
   return "launch code: 0000"
   State: [
-    { resource_0 ↦ Channel "classified" # High }
+    { resource_0 ↦ Channel "classified" ! High }
   ]
   
   ======================================================================
@@ -482,209 +482,209 @@ tests show those runs in detail.
   return (Completed 5, 
           (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Observed 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Retried (Host "db-2"))::(Observed 0)::(Observed 0)::(Observed 0)::[])
   State: [
-    { resource_0 ↦ probe_with_two_retries # (0, High) },
+    { resource_0 ↦ probe_with_two_retries ! (0, High) },
     (8, Low),
-    { resource_2 ↦ <fun> # (0, Low) },
+    { resource_2 ↦ <fun> ! (0, Low) },
     (1, Low),
-    { resource_3 ↦ Release (Artefact ("api", 7)) # (8, Low),
-      resource_5 ↦ <fun> # (0, Low)
+    { resource_3 ↦ Release (Artefact ("api", 7)) ! (8, Low),
+      resource_5 ↦ <fun> ! (0, Low)
     },
     (12, Low),
-    { resource_7 ↦ <fun> # (0, Low), resource_9 ↦ <fun> # (4, Low) },
+    { resource_7 ↦ <fun> ! (0, Low), resource_9 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_11 ↦ <fun> # (0, Low), resource_13 ↦ <fun> # (1, Low) },
+    { resource_11 ↦ <fun> ! (0, Low), resource_13 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_14 ↦ Release (Artefact ("api", 7)) # (10, Low) },
+    { resource_14 ↦ Release (Artefact ("api", 7)) ! (10, Low) },
     (12, Low),
-    { resource_16 ↦ <fun> # (0, Low), resource_18 ↦ <fun> # (4, Low) },
+    { resource_16 ↦ <fun> ! (0, Low), resource_18 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_20 ↦ <fun> # (0, Low), resource_22 ↦ <fun> # (1, Low) },
+    { resource_20 ↦ <fun> ! (0, Low), resource_22 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_24 ↦ <fun> # (4, Low) },
+    { resource_24 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_26 ↦ <fun> # (0, Low), resource_28 ↦ <fun> # (1, Low) },
+    { resource_26 ↦ <fun> ! (0, Low), resource_28 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_29 ↦ Release (Artefact ("api", 7)) # (10, Low) },
+    { resource_29 ↦ Release (Artefact ("api", 7)) ! (10, Low) },
     (12, Low),
-    { resource_31 ↦ <fun> # (0, Low), resource_33 ↦ <fun> # (4, Low) },
+    { resource_31 ↦ <fun> ! (0, Low), resource_33 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_35 ↦ <fun> # (0, Low), resource_37 ↦ <fun> # (1, Low) },
+    { resource_35 ↦ <fun> ! (0, Low), resource_37 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_39 ↦ <fun> # (4, Low) },
+    { resource_39 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_41 ↦ <fun> # (0, Low), resource_43 ↦ <fun> # (1, Low) },
+    { resource_41 ↦ <fun> ! (0, Low), resource_43 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_45 ↦ <fun> # (0, Low) },
+    { resource_45 ↦ <fun> ! (0, Low) },
     (3, Low),
-    { resource_47 ↦ <fun> # (1, Low) },
+    { resource_47 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_48 ↦ Release (Artefact ("api", 7)) # (10, Low) },
+    { resource_48 ↦ Release (Artefact ("api", 7)) ! (10, Low) },
     (12, Low),
-    { resource_50 ↦ <fun> # (0, Low) },
+    { resource_50 ↦ <fun> ! (0, Low) },
     (12, Low),
-    { resource_52 ↦ <fun> # (0, Low) },
+    { resource_52 ↦ <fun> ! (0, Low) },
     (12, Low),
-    { resource_54 ↦ <fun> # (0, Low) }
+    { resource_54 ↦ <fun> ! (0, Low) }
   ]
   
   === Run 4 ===
   return (HostFailed (Host "db-2", 5), 
           (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Observed 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Reverted (Host "db-2"))::(Reverted (Host "db-1"))::(Reverted (Host "web-3"))::(Reverted (Host "web-2"))::(Reverted (Host "web-1"))::[])
   State: [
-    { resource_0 ↦ probe_without_retries # (0, High) },
+    { resource_0 ↦ probe_without_retries ! (0, High) },
     (8, Low),
-    { resource_2 ↦ <fun> # (0, Low) },
+    { resource_2 ↦ <fun> ! (0, Low) },
     (1, Low),
-    { resource_3 ↦ Release (Artefact ("api", 7)) # (8, Low),
-      resource_5 ↦ <fun> # (0, Low)
+    { resource_3 ↦ Release (Artefact ("api", 7)) ! (8, Low),
+      resource_5 ↦ <fun> ! (0, Low)
     },
     (12, Low),
-    { resource_7 ↦ <fun> # (0, Low), resource_9 ↦ <fun> # (4, Low) },
+    { resource_7 ↦ <fun> ! (0, Low), resource_9 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_11 ↦ <fun> # (0, Low) },
+    { resource_11 ↦ <fun> ! (0, Low) },
     (1, Low),
-    { resource_12 ↦ Release (Artefact ("api", 7)) # (10, Low) },
+    { resource_12 ↦ Release (Artefact ("api", 7)) ! (10, Low) },
     (12, Low),
-    { resource_14 ↦ <fun> # (0, Low), resource_16 ↦ <fun> # (4, Low) },
+    { resource_14 ↦ <fun> ! (0, Low), resource_16 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_18 ↦ <fun> # (0, Low) },
+    { resource_18 ↦ <fun> ! (0, Low) },
     (1, Low),
-    { resource_20 ↦ <fun> # (4, Low) },
+    { resource_20 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_22 ↦ <fun> # (0, Low) },
+    { resource_22 ↦ <fun> ! (0, Low) },
     (1, Low),
-    { resource_23 ↦ Release (Artefact ("api", 7)) # (10, Low) },
+    { resource_23 ↦ Release (Artefact ("api", 7)) ! (10, Low) },
     (12, Low),
-    { resource_25 ↦ <fun> # (0, Low), resource_27 ↦ <fun> # (4, Low) },
+    { resource_25 ↦ <fun> ! (0, Low), resource_27 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_29 ↦ <fun> # (0, Low) },
+    { resource_29 ↦ <fun> ! (0, Low) },
     (1, Low),
-    { resource_31 ↦ <fun> # (4, Low) },
+    { resource_31 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_33 ↦ <fun> # (0, Low) },
+    { resource_33 ↦ <fun> ! (0, Low) },
     (1, Low),
     (3, Low),
-    { resource_35 ↦ <fun> # (0, Low) },
+    { resource_35 ↦ <fun> ! (0, Low) },
     (3, Low),
-    { resource_37 ↦ <fun> # (0, Low) },
+    { resource_37 ↦ <fun> ! (0, Low) },
     (3, Low),
-    { resource_39 ↦ <fun> # (0, Low) },
+    { resource_39 ↦ <fun> ! (0, Low) },
     (3, Low),
-    { resource_41 ↦ <fun> # (0, Low) },
+    { resource_41 ↦ <fun> ! (0, Low) },
     (3, Low),
-    { resource_43 ↦ <fun> # (0, Low) }
+    { resource_43 ↦ <fun> ! (0, Low) }
   ]
   
   === Run 5 ===
   return (ErrorsObserved (1, 1), 
           (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "cache-1"))::(Observed 1)::(Reverted (Host "cache-1"))::[])
   State: [
-    { resource_0 ↦ probe_with_two_retries # (0, High) },
+    { resource_0 ↦ probe_with_two_retries ! (0, High) },
     (8, Low),
-    { resource_2 ↦ <fun> # (0, Low) },
+    { resource_2 ↦ <fun> ! (0, Low) },
     (1, Low),
-    { resource_3 ↦ Release (Artefact ("api", 7)) # (8, Low),
-      resource_5 ↦ <fun> # (0, Low)
+    { resource_3 ↦ Release (Artefact ("api", 7)) ! (8, Low),
+      resource_5 ↦ <fun> ! (0, Low)
     },
     (12, Low),
-    { resource_7 ↦ <fun> # (0, Low), resource_9 ↦ <fun> # (4, Low) },
+    { resource_7 ↦ <fun> ! (0, Low), resource_9 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_11 ↦ <fun> # (0, Low), resource_13 ↦ <fun> # (1, Low) },
+    { resource_11 ↦ <fun> ! (0, Low), resource_13 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_14 ↦ Release (Artefact ("api", 7)) # (10, Low) },
+    { resource_14 ↦ Release (Artefact ("api", 7)) ! (10, Low) },
     (12, Low),
-    { resource_16 ↦ <fun> # (0, Low) },
+    { resource_16 ↦ <fun> ! (0, Low) },
     (3, Low),
-    { resource_18 ↦ <fun> # (0, Low) }
+    { resource_18 ↦ <fun> ! (0, Low) }
   ]
   
   === Run 6 ===
   return (Completed 2, 
           (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "db-3"))::(Retried (Host "db-3"))::(Retried (Host "db-3"))::(Reverted (Host "db-3"))::(Reverted (Host "web-1"))::(HotfixFetched 8)::(Built 8)::(Approved 8)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "db-3"))::(Observed 0)::(Observed 0)::(Observed 0)::[])
   State: [
-    { resource_0 ↦ probe_with_two_retries # (0, High) },
+    { resource_0 ↦ probe_with_two_retries ! (0, High) },
     (8, Low),
-    { resource_2 ↦ <fun> # (0, Low) },
+    { resource_2 ↦ <fun> ! (0, Low) },
     (1, Low),
-    { resource_3 ↦ Release (Artefact ("api", 7)) # (8, Low),
-      resource_5 ↦ <fun> # (0, Low)
+    { resource_3 ↦ Release (Artefact ("api", 7)) ! (8, Low),
+      resource_5 ↦ <fun> ! (0, Low)
     },
     (12, Low),
-    { resource_7 ↦ <fun> # (0, Low), resource_9 ↦ <fun> # (4, Low) },
+    { resource_7 ↦ <fun> ! (0, Low), resource_9 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_11 ↦ <fun> # (0, Low), resource_13 ↦ <fun> # (1, Low) },
+    { resource_11 ↦ <fun> ! (0, Low), resource_13 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_14 ↦ Release (Artefact ("api", 7)) # (10, Low) },
+    { resource_14 ↦ Release (Artefact ("api", 7)) ! (10, Low) },
     (12, Low),
-    { resource_16 ↦ <fun> # (0, Low), resource_18 ↦ <fun> # (4, Low) },
+    { resource_16 ↦ <fun> ! (0, Low), resource_18 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_20 ↦ <fun> # (0, Low), resource_22 ↦ <fun> # (1, Low) },
+    { resource_20 ↦ <fun> ! (0, Low), resource_22 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_24 ↦ <fun> # (0, Low) },
+    { resource_24 ↦ <fun> ! (0, Low) },
     (3, Low),
-    { resource_26 ↦ <fun> # (1, Low) },
+    { resource_26 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_28 ↦ <fun> # (0, Low) },
+    { resource_28 ↦ <fun> ! (0, Low) },
     (3, Low),
-    { resource_30 ↦ <fun> # (1, Low) },
+    { resource_30 ↦ <fun> ! (1, Low) },
     (1, Low),
     (3, Low),
-    { resource_32 ↦ <fun> # (0, Low) },
+    { resource_32 ↦ <fun> ! (0, Low) },
     (3, Low),
-    { resource_34 ↦ <fun> # (0, Low) },
+    { resource_34 ↦ <fun> ! (0, Low) },
     (3, Low),
-    { resource_36 ↦ <fun> # (0, Low),
-      resource_37 ↦ probe_with_two_retries # (0, High)
+    { resource_36 ↦ <fun> ! (0, Low),
+      resource_37 ↦ probe_with_two_retries ! (0, High)
     },
     (8, Low),
-    { resource_39 ↦ <fun> # (0, Low) },
+    { resource_39 ↦ <fun> ! (0, Low) },
     (1, Low),
-    { resource_40 ↦ Release (Artefact ("hotfix", 8)) # (8, Low),
-      resource_42 ↦ <fun> # (0, Low)
+    { resource_40 ↦ Release (Artefact ("hotfix", 8)) ! (8, Low),
+      resource_42 ↦ <fun> ! (0, Low)
     },
     (12, Low),
-    { resource_44 ↦ <fun> # (0, Low), resource_46 ↦ <fun> # (4, Low) },
+    { resource_44 ↦ <fun> ! (0, Low), resource_46 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_48 ↦ <fun> # (0, Low), resource_50 ↦ <fun> # (1, Low) },
+    { resource_48 ↦ <fun> ! (0, Low), resource_50 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_51 ↦ Release (Artefact ("hotfix", 8)) # (10, Low) },
+    { resource_51 ↦ Release (Artefact ("hotfix", 8)) ! (10, Low) },
     (12, Low),
-    { resource_53 ↦ <fun> # (0, Low), resource_55 ↦ <fun> # (4, Low) },
+    { resource_53 ↦ <fun> ! (0, Low), resource_55 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_57 ↦ <fun> # (0, Low), resource_59 ↦ <fun> # (1, Low) },
+    { resource_57 ↦ <fun> ! (0, Low), resource_59 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_60 ↦ Release (Artefact ("hotfix", 8)) # (10, Low) },
+    { resource_60 ↦ Release (Artefact ("hotfix", 8)) ! (10, Low) },
     (12, Low),
-    { resource_62 ↦ <fun> # (0, Low) },
+    { resource_62 ↦ <fun> ! (0, Low) },
     (12, Low),
-    { resource_64 ↦ <fun> # (0, Low) },
+    { resource_64 ↦ <fun> ! (0, Low) },
     (12, Low),
-    { resource_66 ↦ <fun> # (0, Low) }
+    { resource_66 ↦ <fun> ! (0, Low) }
   ]
   
   === Run 7 ===
   return (HostFailed (Host "db-3", 2))
   State: [
-    { resource_0 ↦ probe_with_two_retries # (0, High) },
+    { resource_0 ↦ probe_with_two_retries ! (0, High) },
     (8, Low),
     (1, Low),
-    { resource_1 ↦ Release (Artefact ("api", 7)) # (8, Low) },
+    { resource_1 ↦ Release (Artefact ("api", 7)) ! (8, Low) },
     (12, Low),
-    { resource_3 ↦ <fun> # (4, Low) },
+    { resource_3 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_5 ↦ <fun> # (1, Low) },
+    { resource_5 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_6 ↦ Release (Artefact ("api", 7)) # (10, Low) },
+    { resource_6 ↦ Release (Artefact ("api", 7)) ! (10, Low) },
     (12, Low),
-    { resource_8 ↦ <fun> # (4, Low) },
+    { resource_8 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_10 ↦ <fun> # (1, Low) },
+    { resource_10 ↦ <fun> ! (1, Low) },
     (1, Low),
     (3, Low),
-    { resource_12 ↦ <fun> # (1, Low) },
+    { resource_12 ↦ <fun> ! (1, Low) },
     (1, Low),
     (3, Low),
-    { resource_14 ↦ <fun> # (1, Low) },
+    { resource_14 ↦ <fun> ! (1, Low) },
     (1, Low),
     (3, Low),
     (3, Low)
@@ -693,41 +693,41 @@ tests show those runs in detail.
   === Run 8 ===
   return (Completed 5, "release notes")
   State: [
-    { resource_0 ↦ "release notes" # (17, Low),
-      resource_1 ↦ probe_with_two_retries # (0, High)
+    { resource_0 ↦ "release notes" ! (17, Low),
+      resource_1 ↦ probe_with_two_retries ! (0, High)
     },
     (8, Low),
     (1, Low),
-    { resource_2 ↦ Release (Artefact ("api", 7)) # (8, Low) },
+    { resource_2 ↦ Release (Artefact ("api", 7)) ! (8, Low) },
     (12, Low),
-    { resource_4 ↦ <fun> # (4, Low) },
+    { resource_4 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_6 ↦ <fun> # (1, Low) },
+    { resource_6 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_7 ↦ Release (Artefact ("api", 7)) # (10, Low) },
+    { resource_7 ↦ Release (Artefact ("api", 7)) ! (10, Low) },
     (12, Low),
-    { resource_9 ↦ <fun> # (4, Low) },
+    { resource_9 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_11 ↦ <fun> # (1, Low) },
+    { resource_11 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_13 ↦ <fun> # (4, Low) },
+    { resource_13 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_15 ↦ <fun> # (1, Low) },
+    { resource_15 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_16 ↦ Release (Artefact ("api", 7)) # (10, Low) },
+    { resource_16 ↦ Release (Artefact ("api", 7)) ! (10, Low) },
     (12, Low),
-    { resource_18 ↦ <fun> # (4, Low) },
+    { resource_18 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_20 ↦ <fun> # (1, Low) },
+    { resource_20 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_22 ↦ <fun> # (4, Low) },
+    { resource_22 ↦ <fun> ! (4, Low) },
     (4, Low),
-    { resource_24 ↦ <fun> # (1, Low) },
+    { resource_24 ↦ <fun> ! (1, Low) },
     (1, Low),
     (3, Low),
-    { resource_26 ↦ <fun> # (1, Low) },
+    { resource_26 ↦ <fun> ! (1, Low) },
     (1, Low),
-    { resource_27 ↦ Release (Artefact ("api", 7)) # (10, Low) },
+    { resource_27 ↦ Release (Artefact ("api", 7)) ! (10, Low) },
     (12, Low),
     (12, Low),
     (12, Low)
@@ -740,7 +740,7 @@ tests show those runs in detail.
   return (Report "quarterly figures")
   State: [
     (3, Low),
-    { resource_0 ↦ Report "quarterly figures" # (3, Low) },
+    { resource_0 ↦ Report "quarterly figures" ! (3, Low) },
     (4, Low),
     (1, Low)
   ]
@@ -749,7 +749,7 @@ tests show those runs in detail.
   return (Report "quarterly figures")
   State: [
     (3, Low),
-    { resource_0 ↦ Report "quarterly figures" # (3, Low) },
+    { resource_0 ↦ Report "quarterly figures" ! (3, Low) },
     (3, Low),
     (2, Low),
     (1, Low)
@@ -762,7 +762,7 @@ tests show those runs in detail.
   return "rows"
   State: [
     (1, Low),
-    { resource_0 ↦ Token "alice" # (5, Low) },
+    { resource_0 ↦ Token "alice" ! (5, Low) },
     (3, Low),
     (1, Low)
   ]
@@ -770,7 +770,7 @@ tests show those runs in detail.
   === Run 2 ===
   return "rows"
   State: [
-    { resource_0 ↦ Token "bob" # (∞, Low) },
+    { resource_0 ↦ Token "bob" ! (∞, Low) },
     (100, Low),
     (1, Low)
   ]
@@ -783,16 +783,16 @@ tests show those runs in detail.
   State: [
     [2, 2],
     [5, 5],
-    { resource_0 ↦ "beads" # [3, ∞) },
+    { resource_0 ↦ "beads" ! [3, ∞) },
     [4, 4],
     [1, 1],
     [2, 2],
     [1, 1],
-    { resource_1 ↦ "beads" # [2, 3] },
+    { resource_1 ↦ "beads" ! [2, 3] },
     [2, 2],
     [1, 1],
     [2, 2],
-    { resource_2 ↦ "beads" # [3, ∞) },
+    { resource_2 ↦ "beads" ! [3, ∞) },
     [3, 3],
     [2, 2]
   ]
@@ -842,7 +842,7 @@ tests show those runs in detail.
   ../examples/opentrons/binding_reject.tpe
   ======================================================================
   File "../examples/opentrons/binding_reject.tpe", lines 42-47, characters 25-12:
-  42 | let binding_late_wash () : unit # (Mix, [1, 2], [2, 5], [0, 5]) =
+  42 | let binding_late_wash () : unit ! (Mix, [1, 2], [2, 5], [0, 5]) =
                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{AddBeads; Mix; 2; FillWashPlate} · (Mix, [0, 0], [2, 5], [0, 5])`, which does not match its annotated grade `(Mix, [1, 2], [2, 5], [0, 5])`
     Note: the effect inequality `{AddBeads; Mix; 2; FillWashPlate} · (Mix, [0, 0], [2, 5], [0, 5]) <= (Mix, [1, 2], [2, 5], [0, 5])` does not hold
@@ -852,34 +852,34 @@ tests show those runs in detail.
   === Run 1 ===
   return "beads"
   State: [
-    { resource_1 ↦ <fun> # {AddBeads; [5, 10]; MagnetOn} },
-    {!2},
-    {!7},
-    {!1},
-    { resource_2 ↦ "beads" # {[3, 5]} },
-    {!4},
-    {!1},
-    { resource_3 ↦ "beads" # {(AddEthanol; 1; RemoveEthanol)^2; [2, 3]},
-      resource_5 ↦ <fun> # {AddEthanol; 1; RemoveEthanol}
+    { resource_1 ↦ <fun> ! {AddBeads; [5, 10]; MagnetOn} },
+    {idle 2},
+    {idle 7},
+    {idle 1},
+    { resource_2 ↦ "beads" ! {[3, 5]} },
+    {idle 4},
+    {idle 1},
+    { resource_3 ↦ "beads" ! {(AddEthanol; 1; RemoveEthanol)^2; [2, 3]},
+      resource_5 ↦ <fun> ! {AddEthanol; 1; RemoveEthanol}
     },
-    {!1},
-    {!1},
-    {!2},
-    { resource_7 ↦ <fun> # {AddEthanol; 1; RemoveEthanol} },
-    {!1},
-    {!1},
-    {!2},
-    {!3},
+    {idle 1},
+    {idle 1},
+    {idle 2},
+    { resource_7 ↦ <fun> ! {AddEthanol; 1; RemoveEthanol} },
+    {idle 1},
+    {idle 1},
+    {idle 2},
+    {idle 3},
     { resource_9 ↦
         <fun>
-        # {MagnetOff; AddBuffer; [2, 5]; MagnetOn; [3, 5]; Transfer}
+        ! {MagnetOff; AddBuffer; [2, 5]; MagnetOn; [3, 5]; Transfer}
     },
-    {!1},
-    {!1},
-    {!3},
-    {!1},
-    {!4},
-    {!2}
+    {idle 1},
+    {idle 1},
+    {idle 3},
+    {idle 1},
+    {idle 4},
+    {idle 2}
   ]
   
   ======================================================================
@@ -888,7 +888,7 @@ tests show those runs in detail.
   File "../examples/opentrons/cleanup_reject.tpe", line 40, characters 6-24:
   40 |       continue k with ()
              ^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed with grade `{RemoveEthanol; !1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; 1; RemoveEthanol}`
+  Typing error: Variable `k` is unboxed with grade `{RemoveEthanol; idle 1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; 1; RemoveEthanol}`
     File "../examples/opentrons/cleanup_reject.tpe", line 36, characters 19-20:
     36 |   | EthanolWash () k ->
                             ^
@@ -900,12 +900,12 @@ tests show those runs in detail.
     File "../examples/opentrons/cleanup_reject.tpe", line 38, characters 6-13:
     38 |       delay 1;
                ^^^^^^^
-    grade `{!1}` accumulates here (delay)
+    grade `{idle 1}` accumulates here (delay)
     File "../examples/opentrons/cleanup_reject.tpe", line 39, characters 6-27:
     39 |       perform AddEthanol ();
                ^^^^^^^^^^^^^^^^^^^^^
     grade `{AddEthanol}` accumulates here (operation `AddEthanol`)
-    Note: the resource inequality `{RemoveEthanol; !1; AddEthanol} <= {AddEthanol; 1; RemoveEthanol}` does not hold
+    Note: the resource inequality `{RemoveEthanol; idle 1; AddEthanol} <= {AddEthanol; 1; RemoveEthanol}` does not hold
   ======================================================================
   ../examples/opentrons/contamination.tpe
   ======================================================================
@@ -913,37 +913,37 @@ tests show those runs in detail.
   return ()
   State: [
     (4, Low),
-    { resource_0 ↦ Reagent "master mix" # (30, High) },
+    { resource_0 ↦ Reagent "master mix" ! (30, High) },
     (1, Low),
-    { resource_1 ↦ Tip # (∞, Low) },
-    (1, Low),
-    (1, Low),
-    (1, Low),
-    { resource_2 ↦ Tip # (∞, Low) },
-    (1, Low),
-    (1, Low),
-    { resource_3 ↦ Tip # (∞, Low) },
-    (1, Low),
-    (1, Low),
-    { resource_4 ↦ Tip # (∞, Low) },
-    (1, Low),
-    (1, Low),
-    { resource_5 ↦ Tip # (∞, Low) },
+    { resource_1 ↦ Tip ! (∞, Low) },
     (1, Low),
     (1, Low),
     (1, Low),
+    { resource_2 ↦ Tip ! (∞, Low) },
     (1, Low),
     (1, Low),
-    { resource_6 ↦ Tip # (∞, Low) },
+    { resource_3 ↦ Tip ! (∞, Low) },
     (1, Low),
     (1, Low),
-    { resource_7 ↦ Tip # (∞, Low) },
+    { resource_4 ↦ Tip ! (∞, Low) },
     (1, Low),
     (1, Low),
-    { resource_8 ↦ Tip # (∞, Low) },
+    { resource_5 ↦ Tip ! (∞, Low) },
     (1, Low),
     (1, Low),
-    { resource_9 ↦ Tip # (∞, Low) },
+    (1, Low),
+    (1, Low),
+    (1, Low),
+    { resource_6 ↦ Tip ! (∞, Low) },
+    (1, Low),
+    (1, Low),
+    { resource_7 ↦ Tip ! (∞, Low) },
+    (1, Low),
+    (1, Low),
+    { resource_8 ↦ Tip ! (∞, Low) },
+    (1, Low),
+    (1, Low),
+    { resource_9 ↦ Tip ! (∞, Low) },
     (1, Low)
   ]
   
@@ -979,16 +979,16 @@ tests show those runs in detail.
   State: [
     [2, 2],
     [1, 1],
-    { resource_0 ↦ Reagent "detection antibody" # [0, 20] },
+    { resource_0 ↦ Reagent "detection antibody" ! [0, 20] },
     [3, 3],
     [3, 3],
     [3, 3],
     [2, 2],
-    { resource_1 ↦ "plate" # [60, ∞) },
+    { resource_1 ↦ "plate" ! [60, ∞) },
     [65, 65],
     [3, 3],
     [1, 1],
-    { resource_2 ↦ Developed "plate" # [15, 20] },
+    { resource_2 ↦ Developed "plate" ! [15, 20] },
     [17, 17],
     [2, 2]
   ]
@@ -1045,11 +1045,11 @@ tests show those runs in detail.
          ^^^^^
   Typing error: The effect inequality `(Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) <= (Cold, Cold, (Out, [0, 30]))` does not hold
     File "../examples/opentrons/enzyme_reject.tpe", lines 28-33, characters 0-25:
-    28 | let round (plate : nat) : unit # (Cold, Cold, (Out, [0, 7])) =
+    28 | let round (plate : nat) : unit ! (Cold, Cold, (Out, [0, 7])) =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `round` is defined here
     File "../examples/opentrons/enzyme_reject.tpe", lines 44-49, characters 19-9:
-    44 | let set_up_five () : unit # (Cold, Cold, (Out, [0, 30])) =
+    44 | let set_up_five () : unit ! (Cold, Cold, (Out, [0, 30])) =
                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
   ======================================================================
@@ -1058,35 +1058,35 @@ tests show those runs in detail.
   === Run 1 ===
   return ()
   State: [
-    {!1.5},
-    { resource_0 ↦ "beads" # {[5, 10]}, resource_1 ↦ "samples" # {[0, 40]} },
-    {!7.5},
-    {!0.5},
-    { resource_2 ↦ "beads" # {[3, 5]} },
-    {!4},
-    {!1.5},
-    { resource_3 ↦ "beads" # {AddEthanol; ![0.5, 1.5]} },
-    {!0.75},
-    {!1},
-    {!1.5},
-    { resource_4 ↦ "beads" # {AddEthanol; ![0.5, 1.5]; RemoveEthanol} },
-    {!0.75},
-    {!0.75},
-    {!1.5},
-    {!0.75},
-    { resource_5 ↦ "beads" # {[3, 5]; MagnetOff} },
-    {!3.5},
-    {!0.5},
-    {!1.5},
-    { resource_6 ↦ "beads" # {[2, 5]; MagnetOn; [2, 5]} },
-    {!3},
-    {!0.5},
-    {!2.5},
-    { resource_7 ↦ <fun> # {Transfer} },
-    {!1.5},
-    { resource_8 ↦ "beads" # {[2, 5]} },
-    {!3.5},
-    {!1.5}
+    {idle 1.5},
+    { resource_0 ↦ "beads" ! {[5, 10]}, resource_1 ↦ "samples" ! {[0, 40]} },
+    {idle 7.5},
+    {idle 0.5},
+    { resource_2 ↦ "beads" ! {[3, 5]} },
+    {idle 4},
+    {idle 1.5},
+    { resource_3 ↦ "beads" ! {AddEthanol; idle [0.5, 1.5]} },
+    {idle 0.75},
+    {idle 1},
+    {idle 1.5},
+    { resource_4 ↦ "beads" ! {AddEthanol; idle [0.5, 1.5]; RemoveEthanol} },
+    {idle 0.75},
+    {idle 0.75},
+    {idle 1.5},
+    {idle 0.75},
+    { resource_5 ↦ "beads" ! {[3, 5]; MagnetOff} },
+    {idle 3.5},
+    {idle 0.5},
+    {idle 1.5},
+    { resource_6 ↦ "beads" ! {[2, 5]; MagnetOn; [2, 5]} },
+    {idle 3},
+    {idle 0.5},
+    {idle 2.5},
+    { resource_7 ↦ <fun> ! {Transfer} },
+    {idle 1.5},
+    { resource_8 ↦ "beads" ! {[2, 5]} },
+    {idle 3.5},
+    {idle 1.5}
   ]
   
   ======================================================================
@@ -1095,7 +1095,7 @@ tests show those runs in detail.
   File "../examples/opentrons/purification_reject.tpe", lines 132-138, characters 2-30:
   132 |   unbox warm as warm_samples in
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `warm` is unboxed with grade `{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
+  Typing error: Variable `warm` is unboxed with grade `{idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
     File "../examples/opentrons/purification_reject.tpe", line 127, characters 25-29:
     127 |   box [0, 40] samples as warm in
                                    ^^^^
@@ -1103,28 +1103,28 @@ tests show those runs in detail.
     File "../examples/opentrons/purification_reject.tpe", lines 129-130, characters 4-75:
     129 |     collect
               ^^^^^^^
-    grade `{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}` accumulates here (this computation)
-    Note: the resource inequality `{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5} <= {[0, 40]}` does not hold
+    grade `{idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulates here (this computation)
+    Note: the resource inequality `{idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5} <= {[0, 40]}` does not hold
   
   File "../examples/opentrons/purification_reject.tpe", line 151, characters 34-44:
   151 |   let collected = collect (elute (final_wash (clear (separate binding)))) in
                                           ^^^^^^^^^^
-  Typing error: The resource inequality `{AddEthanol; ![0.5, 1.5]; RemoveEthanol} <= {AddEthanol; ![0.5, 1.5]}` does not hold
+  Typing error: The resource inequality `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol} <= {AddEthanol; idle [0.5, 1.5]}` does not hold
     File "../examples/opentrons/purification_reject.tpe", lines 76-82, characters 0-31:
-    76 | let final_wash (rinsing : [{AddEthanol; ![1/2, 3/2]; RemoveEthanol}]beads) =
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    76 | let final_wash (rinsing : [{AddEthanol; idle [1/2, 3/2]; RemoveEthanol}]beads) =
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `final_wash` is defined here
     File "../examples/opentrons/purification_reject.tpe", line 151, characters 46-51:
     151 |   let collected = collect (elute (final_wash (clear (separate binding)))) in
                                                         ^^^^^
     the inequality goes through the type of `clear` here
   
-  File "../examples/opentrons/purification_reject.tpe", lines 171-173, characters 2-52:
+  File "../examples/opentrons/purification_reject.tpe", lines 171-173, characters 2-56:
   171 |   unbox soaking as beads in
           ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `soaking` is unboxed with grade `{AddEthanol; MagnetOff; !0.5}` accumulated since it was bound, which is not below its box grade `{AddEthanol; ![0.5, 1.5]}`
+  Typing error: Variable `soaking` is unboxed with grade `{AddEthanol; MagnetOff; idle 0.5}` accumulated since it was bound, which is not below its box grade `{AddEthanol; idle [0.5, 1.5]}`
     File "../examples/opentrons/purification_reject.tpe", line 167, characters 21-28:
-    167 | let wash_off_magnet (soaking : [{AddEthanol; ![1/2, 3/2]}]beads) =
+    167 | let wash_off_magnet (soaking : [{AddEthanol; idle [1/2, 3/2]}]beads) =
                                ^^^^^^^
     `soaking` is bound here
     File "../examples/opentrons/purification_reject.tpe", line 168, characters 2-23:
@@ -1138,8 +1138,8 @@ tests show those runs in detail.
     File "../examples/opentrons/purification_reject.tpe", line 170, characters 2-11:
     170 |   delay 1/2;
             ^^^^^^^^^
-    grade `{!0.5}` accumulates here (delay)
-    Note: the resource inequality `{AddEthanol; MagnetOff; !0.5} <= {AddEthanol; ![0.5, 1.5]}` does not hold
+    grade `{idle 0.5}` accumulates here (delay)
+    Note: the resource inequality `{AddEthanol; MagnetOff; idle 0.5} <= {AddEthanol; idle [0.5, 1.5]}` does not hold
   ======================================================================
   ../examples/opentrons/reagents.tpe
   ======================================================================
@@ -1147,12 +1147,12 @@ tests show those runs in detail.
   return ()
   State: [
     [6, 6],
-    { resource_0 ↦ Reagent "amplicon tagment mix" # [0, 30] },
+    { resource_0 ↦ Reagent "amplicon tagment mix" ! [0, 30] },
     [2, 2],
     [1, 1],
     [2, 2],
     [6, 6],
-    { resource_1 ↦ Reagent "neutralize tagment buffer" # [0, 30] },
+    { resource_1 ↦ Reagent "neutralize tagment buffer" ! [0, 30] },
     [6, 6],
     [2, 2]
   ]
@@ -1172,18 +1172,18 @@ tests show those runs in detail.
   return ()
   State: [
     [1, 1],
-    { resource_0 ↦ 1 # [12, 20] },
+    { resource_0 ↦ 1 ! [12, 20] },
     [14, 14],
     [1, 1],
-    { resource_1 ↦ 2 # [12, 20] },
+    { resource_1 ↦ 2 ! [12, 20] },
     [2, 2],
     [13, 13],
     [1, 1],
-    { resource_2 ↦ 3 # [12, 20] },
+    { resource_2 ↦ 3 ! [12, 20] },
     [2, 2],
     [13, 13],
     [1, 1],
-    { resource_3 ↦ 4 # [12, 20] },
+    { resource_3 ↦ 4 ! [12, 20] },
     [2, 2],
     [14, 14],
     [2, 2]
@@ -1197,7 +1197,7 @@ tests show those runs in detail.
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `fixing` is unboxed with grade `[7, 9]` accumulated since it was bound, which is not below its box grade `[12, 20]`
     File "../examples/opentrons/staggered_reject.tpe", line 30, characters 42-48:
-    30 | let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit # [0, ∞) =
+    30 | let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
                                                    ^^^^^^
     `fixing` is bound here
     File "../examples/opentrons/staggered_reject.tpe", line 31, characters 2-21:
@@ -1219,13 +1219,13 @@ tests show those runs in detail.
   === Run 1 ===
   return (0, 0)
   State: [
-    { resource_1 ↦ <fun> # [1, 2] },
+    { resource_1 ↦ <fun> ! [1, 2] },
     [2, 2],
-    { resource_2 ↦ Plate "plate 1" # [0, 30], resource_4 ↦ <fun> # [1, 2] },
+    { resource_2 ↦ Plate "plate 1" ! [0, 30], resource_4 ↦ <fun> ! [1, 2] },
     [2, 2],
-    { resource_5 ↦ Plate "plate 2" # [0, 30], resource_7 ↦ <fun> # [1, 2] },
+    { resource_5 ↦ Plate "plate 2" ! [0, 30], resource_7 ↦ <fun> ! [1, 2] },
     [1, 1],
-    { resource_9 ↦ <fun> # [1, 2] },
+    { resource_9 ↦ <fun> ! [1, 2] },
     [1, 1]
   ]
   
@@ -1255,35 +1255,35 @@ tests show those runs in detail.
   === Run 1 ===
   return ()
   State: [
-    { resource_0 ↦ "beads" # {AddBeads; ![5, 10]; MagnetOn} },
-    {!2},
-    {!7},
-    {!1},
-    {!3},
-    {!2},
+    { resource_0 ↦ "beads" ! {AddBeads; idle [5, 10]; MagnetOn} },
+    {idle 2},
+    {idle 7},
+    {idle 1},
+    {idle 3},
+    {idle 2},
     { resource_1 ↦
         "beads"
-        # [{(Wash; ChangeTip)^[1, ∞); Wash; !≥2; ChangeTip}, {(Wash; ChangeTip)*; Wash; !≤3; ChangeTip}]
+        ! [{(Wash; ChangeTip)^[1, ∞); Wash; idle ≥2; ChangeTip}, {(Wash; ChangeTip)*; Wash; idle ≤3; ChangeTip}]
     },
-    {!1},
-    {!1},
-    {!1},
-    {!3},
-    {!1},
-    {!1},
-    {!1},
-    {!2},
-    {!1},
-    { resource_2 ↦ "eluates" # {![2, 5]} },
-    {!3},
-    {!2}
+    {idle 1},
+    {idle 1},
+    {idle 1},
+    {idle 3},
+    {idle 1},
+    {idle 1},
+    {idle 1},
+    {idle 2},
+    {idle 1},
+    { resource_2 ↦ "eluates" ! {idle [2, 5]} },
+    {idle 3},
+    {idle 2}
   ]
   
   ======================================================================
   ../examples/opentrons/washes_reject.tpe
   ======================================================================
   File "../examples/opentrons/washes_reject.tpe", lines 33-38, characters 4-31:
-  33 |     : unit # {(Wash; ChangeTip)*} =
+  33 |     : unit ! {(Wash; ChangeTip)*} =
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{(Wash; (Wash; ChangeTip)*)?}`, which does not match its annotated grade `{(Wash; ChangeTip)*}`
     Note: the effect inequality `{(Wash; (Wash; ChangeTip)*)?} <= {(Wash; ChangeTip)*}` does not hold
@@ -1294,7 +1294,7 @@ tests show those runs in detail.
   === Run 1 ===
   return "settled"
   State: [
-    { resource_0 ↦ "settled" # {3; _*} },
+    { resource_0 ↦ "settled" ! {3; _*} },
     {4}
   ]
   
@@ -1304,7 +1304,7 @@ tests show those runs in detail.
   === Run 1 ===
   return "settled"
   State: [
-    { resource_0 ↦ "settled" # {(1, ∞) & ~1*} },
+    { resource_0 ↦ "settled" ! {(1, ∞) & ~1*} },
     {0.5},
     {1.25}
   ]
@@ -1338,7 +1338,7 @@ tests show those runs in detail.
   === Run 1 ===
   return (Part "gear")
   State: [
-    { resource_0 ↦ Part "gear" # {Coat; 4} },
+    { resource_0 ↦ Part "gear" ! {Coat; 4} },
     {1},
     {4},
     {2}
@@ -1350,7 +1350,7 @@ tests show those runs in detail.
   === Run 1 ===
   return (Checkpoint 5, 2)
   State: [
-    { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
+    { resource_0 ↦ Checkpoint 5 ! {Login; (Fetch | Store)*; Logout} },
     {3},
     {1},
     {1},
@@ -1372,7 +1372,7 @@ tests show those runs in detail.
   === Run 3 ===
   return 3
   State: [
-    { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
+    { resource_1 ↦ <fun> ! {Login; (Fetch | Store)*; Logout} },
     {3},
     {1},
     {1},
@@ -1397,7 +1397,7 @@ tests show those runs in detail.
   === Run 1 ===
   return (Reading 0)
   State: [
-    { resource_0 ↦ Reading 0 # {2; Send; 6} },
+    { resource_0 ↦ Reading 0 ! {2; Send; 6} },
     {2},
     {2},
     {5}
@@ -1409,7 +1409,7 @@ tests show those runs in detail.
   === Run 1 ===
   return (Reading 0)
   State: [
-    { resource_0 ↦ Reading 0 # {[0, 1.5]; Send; 5.5} },
+    { resource_0 ↦ Reading 0 ! {[0, 1.5]; Send; 5.5} },
     {0.8},
     {1.5},
     {5}
@@ -1421,20 +1421,20 @@ tests show those runs in detail.
   === Run 1 ===
   return (Sample 3)
   State: [
-    {!0.6},
+    {idle 0.6},
     { resource_0 ↦
         3
-        # [{(≥0; ReadImu; ReadClock)^3; ≥0}, {(≤2.5; ReadImu; ReadClock)*}]
+        ! [{(≥0; ReadImu; ReadClock)^3; ≥0}, {(≤2.5; ReadImu; ReadClock)*}]
     },
-    {!1.75},
-    {!0.6},
-    {!0.02},
-    {!2.25},
-    {!0.6},
-    {!0.02},
-    {!1.5},
-    {!0.6},
-    {!0.02}
+    {idle 1.75},
+    {idle 0.6},
+    {idle 0.02},
+    {idle 2.25},
+    {idle 0.6},
+    {idle 0.02},
+    {idle 1.5},
+    {idle 0.6},
+    {idle 0.02}
   ]
   
   ======================================================================
@@ -1443,11 +1443,11 @@ tests show those runs in detail.
   === Run 1 ===
   return (4, Stamp 1200)
   State: [
-    { resource_0 ↦ 4 # {Beep; ReadClock; ≤750} },
-    {!≤0.1},
-    {!≤0.02},
-    {!≤312.5},
-    {!≤0.6}
+    { resource_0 ↦ 4 ! {Beep; ReadClock; ≤750} },
+    {idle ≤0.1},
+    {idle ≤0.02},
+    {idle ≤312.5},
+    {idle ≤0.6}
   ]
   
   ======================================================================
@@ -1502,7 +1502,7 @@ tests show those runs in detail.
   return ()
   State: [
     1,
-    { resource_0 ↦ 21 # [3, 5] },
+    { resource_0 ↦ 21 ! [3, 5] },
     4,
     1
   ]
@@ -1515,9 +1515,9 @@ tests show those runs in detail.
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
     8,
-    { resource_0 ↦ Fresh (Model "Sword") # 5 },
+    { resource_0 ↦ Fresh (Model "Sword") ! 5 },
     8,
-    { resource_1 ↦ Fresh (Model "Hammer") # 5 },
+    { resource_1 ↦ Fresh (Model "Hammer") ! 5 },
     6,
     6
   ]
@@ -1527,9 +1527,9 @@ tests show those runs in detail.
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
     8,
-    { resource_0 ↦ Fresh (Model "Sword") # 5 },
+    { resource_0 ↦ Fresh (Model "Sword") ! 5 },
     8,
-    { resource_1 ↦ Fresh (Model "Hammer") # 5 },
+    { resource_1 ↦ Fresh (Model "Hammer") ! 5 },
     6,
     6
   ]
@@ -1539,9 +1539,9 @@ tests show those runs in detail.
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
     8,
-    { resource_0 ↦ Fresh (Model "Sword") # 5 },
+    { resource_0 ↦ Fresh (Model "Sword") ! 5 },
     8,
-    { resource_1 ↦ Fresh (Model "Hammer") # 5 },
+    { resource_1 ↦ Fresh (Model "Hammer") ! 5 },
     6,
     6
   ]
@@ -1551,9 +1551,9 @@ tests show those runs in detail.
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
     8,
-    { resource_0 ↦ Fresh (Model "Sword") # 5 },
+    { resource_0 ↦ Fresh (Model "Sword") ! 5 },
     8,
-    { resource_1 ↦ Fresh (Model "Hammer") # 5 },
+    { resource_1 ↦ Fresh (Model "Hammer") ! 5 },
     6,
     6
   ]
@@ -1564,7 +1564,7 @@ tests show those runs in detail.
   === Run 1 ===
   return 2
   State: [
-    { resource_0 ↦ 1 # [1, 4] },
+    { resource_0 ↦ 1 ! [1, 4] },
     [1, 1],
     [2, 2]
   ]
@@ -1572,7 +1572,7 @@ tests show those runs in detail.
   === Run 2 ===
   return 1
   State: [
-    { resource_0 ↦ 1 # [1, 4] },
+    { resource_0 ↦ 1 ! [1, 4] },
     [1, 1],
     [2, 2]
   ]
@@ -1580,7 +1580,7 @@ tests show those runs in detail.
   === Run 3 ===
   return 4
   State: [
-    { resource_0 ↦ 1 # [1, 4] },
+    { resource_0 ↦ 1 ! [1, 4] },
     [1, 1],
     [2, 2]
   ]
@@ -1588,7 +1588,7 @@ tests show those runs in detail.
   === Run 4 ===
   return 8
   State: [
-    { resource_0 ↦ 1 # [1, 4] },
+    { resource_0 ↦ 1 ! [1, 4] },
     [1, 1],
     [2, 2]
   ]
@@ -1596,7 +1596,7 @@ tests show those runs in detail.
   === Run 5 ===
   return 15
   State: [
-    { resource_0 ↦ 7 # [2, 5], resource_1 ↦ 1 # [1, 4] },
+    { resource_0 ↦ 7 ! [2, 5], resource_1 ↦ 1 ! [1, 4] },
     [1, 1],
     [2, 2]
   ]
@@ -1604,7 +1604,7 @@ tests show those runs in detail.
   === Run 6 ===
   return 1
   State: [
-    { resource_0 ↦ 1 # [1, 4] },
+    { resource_0 ↦ 1 ! [1, 4] },
     [4, 4]
   ]
   
@@ -1614,7 +1614,7 @@ tests show those runs in detail.
   === Run 1 ===
   return 500
   State: [
-    { resource_0 ↦ 500 # [4, 6] },
+    { resource_0 ↦ 500 ! [4, 6] },
     [4.25, 4.25],
     [0.375, 0.375]
   ]
@@ -1622,7 +1622,7 @@ tests show those runs in detail.
   === Run 2 ===
   return 25
   State: [
-    { resource_0 ↦ 25 # (4, 6] },
+    { resource_0 ↦ 25 ! (4, 6] },
     [4.5, 4.5],
     [0.375, 0.375]
   ]
@@ -1630,7 +1630,7 @@ tests show those runs in detail.
   === Run 3 ===
   return 72
   State: [
-    { resource_0 ↦ 72 # [1, 1] },
+    { resource_0 ↦ 72 ! [1, 1] },
     [1/3, 1/3],
     [1/3, 1/3],
     [1/3, 1/3]
@@ -1642,7 +1642,7 @@ tests show those runs in detail.
   === Run 1 ===
   return 1
   State: [
-    { resource_0 ↦ 1 # 3 },
+    { resource_0 ↦ 1 ! 3 },
     1,
     2
   ]
@@ -1650,7 +1650,7 @@ tests show those runs in detail.
   === Run 2 ===
   return 1
   State: [
-    { resource_0 ↦ 1 # 3 },
+    { resource_0 ↦ 1 ! 3 },
     2
   ]
   
@@ -1660,7 +1660,7 @@ tests show those runs in detail.
   === Run 1 ===
   return "closed"
   State: [
-    { resource_0 ↦ "closed" # {3 | 4} },
+    { resource_0 ↦ "closed" ! {3 | 4} },
     {3}
   ]
   
@@ -1670,7 +1670,7 @@ tests show those runs in detail.
   === Run 1 ===
   return "ready"
   State: [
-    { resource_0 ↦ "ready" # {1.5 | 2.5} },
+    { resource_0 ↦ "ready" ! {1.5 | 2.5} },
     {1.5}
   ]
   
@@ -1681,16 +1681,16 @@ tests show those runs in detail.
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
   State: [
     [{1}, {1}],
-    { resource_0 ↦ Epoxy # [{8}, {11}],
-      resource_2 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
+    { resource_0 ↦ Epoxy ! [{8}, {11}],
+      resource_2 ↦ <fun> ! [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
     },
     [{1}, {1}],
     [{4}, {4}],
-    { resource_3 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
+    { resource_3 ↦ Extruded (Heated (Model "Sword")) ! [{2}, {2}] },
     [{2}, {2}],
     { resource_4 ↦
         Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        # [{2}, {8}]
+        ! [{2}, {8}]
     },
     [{2}, {2}],
     [{1}, {1}]
@@ -1699,14 +1699,14 @@ tests show those runs in detail.
   === Run 2 ===
   return ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword")))))
   State: [
-    { resource_1 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}] },
+    { resource_1 ↦ <fun> ! [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}] },
     [{1}, {1}],
     [{4}, {4}],
-    { resource_2 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
+    { resource_2 ↦ Extruded (Heated (Model "Sword")) ! [{2}, {2}] },
     [{2}, {2}],
     { resource_3 ↦
         Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        # [{2}, {8}]
+        ! [{2}, {8}]
     },
     [{4}, {4}]
   ]
@@ -1728,16 +1728,16 @@ tests show those runs in detail.
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
   State: [
     [{1}, {1}],
-    { resource_0 ↦ Epoxy # [{8}, {11}],
-      resource_2 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
+    { resource_0 ↦ Epoxy ! [{8}, {11}],
+      resource_2 ↦ <fun> ! [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
     },
     [{1}, {1}],
     [{4}, {4}],
-    { resource_3 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
+    { resource_3 ↦ Extruded (Heated (Model "Sword")) ! [{2}, {2}] },
     [{2}, {2}],
     { resource_4 ↦
         Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        # [{2}, {8}]
+        ! [{2}, {8}]
     },
     [{2}, {2}],
     [{1}, {1}]
@@ -1761,12 +1761,12 @@ tests show those runs in detail.
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
   State: [
     {1},
-    { resource_0 ↦ Epoxy # {8}, resource_2 ↦ <fun> # {Heat; Extrude; Cool} },
+    { resource_0 ↦ Epoxy ! {8}, resource_2 ↦ <fun> ! {Heat; Extrude; Cool} },
     {1},
     {4},
-    { resource_3 ↦ Extruded (Heated (Model "Sword")) # {2} },
+    { resource_3 ↦ Extruded (Heated (Model "Sword")) ! {2} },
     {2},
-    { resource_4 ↦ Printed (Cooled (Extruded (Heated (Model "Sword")))) # {2} },
+    { resource_4 ↦ Printed (Cooled (Extruded (Heated (Model "Sword")))) ! {2} },
     {2},
     {1}
   ]
@@ -1777,8 +1777,8 @@ tests show those runs in detail.
   === Run 1 ===
   return (Receipt "telemetry")
   State: [
-    { resource_0 ↦ Receipt "telemetry" # {7},
-      resource_2 ↦ <fun> # {Tx | Tx; Tx}
+    { resource_0 ↦ Receipt "telemetry" ! {7},
+      resource_2 ↦ <fun> ! {Tx | Tx; Tx}
     },
     {2},
     {2}

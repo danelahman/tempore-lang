@@ -2,8 +2,8 @@
 
      ./tempore --grades time-upper-bound tests/continuation_nested_fixed.tpe *)
 
-operation Op1 : unit ~> unit # 1
-operation Op2 : unit ~> unit # 1
+operation Op1 : unit ~> unit ! 1
+operation Op2 : unit ~> unit ! 1
 
 (* Correctly accepted by the typechecker: the inner case returns a function
    graded by the continuation k', whose grade may be any; the only solution

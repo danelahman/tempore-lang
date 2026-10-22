@@ -9,9 +9,9 @@
    of delays, complements over all traces and repetitions of fractional
    delays. *)
 
-operation Sample : unit ~> nat # {Sample}
-operation Send : nat ~> unit # {Send}
-operation Reset : unit ~> unit # {Reset}
+operation Sample : unit ~> nat ! {Sample}
+operation Send : nat ~> unit ! {Send}
+operation Reset : unit ~> unit ! {Reset}
 
 (* A reading sent within less than one time unit. *)
 let prompt () =
@@ -40,7 +40,7 @@ let halves () =
   u
 
 (* Samples each followed by a delay of at most half a time unit. *)
-let poll () : nat # {(Sample; (0, 1/2])*} =
+let poll () : nat ! {(Sample; (0, 1/2])*} =
   let v = perform Sample () in
   delay 1/4;
   v

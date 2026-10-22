@@ -148,7 +148,7 @@ let show_regex r =
             add "~";
             go 3 r)
     | Strict r ->
-        add "!";
+        add "idle ";
         go 4 r
     | Star r ->
         wrap ctx 4 (fun () ->
@@ -160,8 +160,8 @@ let show_regex r =
             add "^";
             add (Count.show c))
   (* The operand of a repetition, itself a repetition unparenthesised and a
-     strict delay parenthesised under a bounded repetition, which [!] does not
-     enter. *)
+     strict delay parenthesised under a bounded repetition, which [idle] does
+     not enter. *)
   and operand ?(bounded = false) r =
     match r with
     | Star _ | Repeat _ -> go 4 r

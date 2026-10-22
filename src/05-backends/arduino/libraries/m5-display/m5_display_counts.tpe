@@ -4,39 +4,39 @@
    once, and running times are not bounded. The operations are those of
    m5_display.tpe; their default implementations show nothing. *)
 
-operation ShowText : string ~> unit # (ShowText, 1)
+operation ShowText : string ~> unit ! (ShowText, 1)
 default ShowText _ = ()
 
-operation ShowNumber : float ~> unit # (ShowNumber, 1)
+operation ShowNumber : float ~> unit ! (ShowNumber, 1)
 default ShowNumber _ = ()
 
-operation ClearDisplay : unit ~> unit # (ClearDisplay, 1)
+operation ClearDisplay : unit ~> unit ! (ClearDisplay, 1)
 default ClearDisplay () = ()
 
-operation ShowTextAt : nat * nat * nat * string ~> unit # (ShowTextAt, 1)
+operation ShowTextAt : nat * nat * nat * string ~> unit ! (ShowTextAt, 1)
 default ShowTextAt _ = ()
 
 operation ShowNumberAt : nat * nat * nat * nat * float ~> unit
-    # (ShowNumberAt, 1)
+    ! (ShowNumberAt, 1)
 default ShowNumberAt _ = ()
 
-operation ShowTimeAt : nat * nat * nat * string * nat ~> unit # (ShowTimeAt, 1)
+operation ShowTimeAt : nat * nat * nat * string * nat ~> unit ! (ShowTimeAt, 1)
 default ShowTimeAt _ = ()
 
 operation ShowColourTextAt : nat * nat * nat * nat * nat * string ~> unit
-    # (ShowColourTextAt, 1)
+    ! (ShowColourTextAt, 1)
 default ShowColourTextAt _ = ()
 
 operation ShowColourNumberAt
     : nat * nat * nat * nat * nat * nat * float ~> unit
-    # (ShowColourNumberAt, 1)
+    ! (ShowColourNumberAt, 1)
 default ShowColourNumberAt _ = ()
 
-operation DrawButton : nat * nat * nat * nat * string ~> unit # (DrawButton, 1)
+operation DrawButton : nat * nat * nat * nat * string ~> unit ! (DrawButton, 1)
 default DrawButton _ = ()
 
-operation DrawBar : nat * nat * nat * nat * nat * nat ~> unit # (DrawBar, 1)
+operation DrawBar : nat * nat * nat * nat * nat * nat ~> unit ! (DrawBar, 1)
 default DrawBar _ = ()
 
-operation DrawLevel : nat * nat * nat * int * int * nat ~> unit # (DrawLevel, 1)
+operation DrawLevel : nat * nat * nat * int * int * nat ~> unit ! (DrawLevel, 1)
 default DrawLevel _ = ()

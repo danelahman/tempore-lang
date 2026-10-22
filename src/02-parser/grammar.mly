@@ -221,7 +221,7 @@
 %nonassoc ARROW IN
 %nonassoc below_BAR
 %nonassoc BAR
-%nonassoc HASH
+%nonassoc BANG
 %right SEMI
 %nonassoc ELSE
 %nonassoc below_AS
@@ -257,7 +257,7 @@ plain_command:
     { TyDef (Language.Ast.Derived, defs) }
   | NONETERNAL TYPE defs = separated_nonempty_list(AND, ty_def)
     { TyDef (Language.Ast.Noneternal, defs) }
-  | OPERATION op = mark_position(UNAME) COLON ty1 = ty SIGARROW ty2 = ty HASH eps = eps_grade
+  | OPERATION op = mark_position(UNAME) COLON ty1 = ty SIGARROW ty2 = ty BANG eps = eps_grade
     bounds = option(op_bounds)
     { OpSig (op, ty1, ty2, eps, bounds) }
   | DEFAULT op = mark_position(UNAME) p = simple_pattern EQUAL t = term
@@ -442,7 +442,7 @@ parameters(SEP, TY):
     { let ps, t = ps in (p :: ps, t) }
   | COLON ty = TY SEP t = term
     { ([], {it= Annotated (t, ty); at= location $loc}) }
-  | COLON ty = TY HASH eps = eps_grade SEP t = term
+  | COLON ty = TY BANG eps = eps_grade SEP t = term
     { ([], {it= AnnotatedComp (t, ty, eps); at= location $loc}) }
 
 (* A function of any number of parameters, and of one at least. *)
@@ -658,11 +658,11 @@ defined_ty:
 
 (* Types, by decreasing precedence: application of a type constructor
    [α list], the box [[ρ]α], products [α * β], n-ary and non-associative, and
-   arrows [α -> β # ε], right-associative, an effect [# ε] belonging to the
+   arrows [α -> β ! ε], right-associative, an effect [! ε] belonging to the
    innermost arrow. *)
 ty: mark_position(plain_ty) { $1 }
 plain_ty:
-  | t1 = prod_ty ARROW t2 = ty HASH eps = eps_grade
+  | t1 = prod_ty ARROW t2 = ty BANG eps = eps_grade
     { TyArrow (t1, CompTy (t2, eps)) }
   | t1 = prod_ty ARROW t2 = ty
     { let at = location $loc in
@@ -829,9 +829,10 @@ minus_infinity:
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] and repetition
    [*], bounded repetition [r^n], [r^[m, n]] or [r^[m, ∞)] and the optional
-   [r?], which is [(r | 0)], the strict delay [!] binding as the complement
-   but applying to the operand of a repetition [*]; [!r^c] is the strict
-   delay of the delays of [r^c], and [(!r)^c] a repetition of strict delays.
+   [r?], which is [(r | 0)], the strict delay [idle] binding as the
+   complement but applying to the operand of a repetition [*]; [idle r^c] is
+   the strict delay of the delays of [r^c], and [(idle r)^c] a repetition of
+   strict delays.
    Braces group as parentheses do. An atom is an operation name, a delay,
    the wildcard [_], an interval of delays [[a, b]], [(a, b)], [[a, b)],
    [(a, b]], [[a, ∞)] or [(a, ∞)], or a one-sided interval of delays [≤d],
@@ -857,15 +858,16 @@ regex_unary:
       else
         Error.syntax ~loc:(location $loc(op))
           "Unknown operator `%s` in a brace literal" op }
-  | BANG r = regex_unary
-    { (* [!] binds to the operand of a repetition: [!_*] is [(!_)*]. *)
+  | IDLE r = regex_unary
+    { (* [idle] binds to the operand of a repetition: [idle _*] is
+         [(idle _)*]. *)
       let rec strict = function
         | Grade.Star r -> Grade.Star (strict r)
         | Grade.Compl s as r when Grade.delays_only s -> Grade.Strict r
         | r when r = Grade.Any || Grade.delays_only r -> Grade.Strict r
         | r ->
             Error.syntax ~loc:(location $loc(r))
-              "A strict wait `!` applies to a length or an interval of \
+              "A strict wait `idle` applies to a length or an interval of \
                lengths, not to `%s`" (Grade.show_regex r)
       in
       strict r }

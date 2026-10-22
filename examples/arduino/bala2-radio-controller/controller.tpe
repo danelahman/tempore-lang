@@ -15,7 +15,7 @@
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `!` admit none, a
+   admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {0}: the empty trace
@@ -75,7 +75,7 @@ let press (x : nat) (y : nat) =
    reads only the latest packet, polls at least twice; and Stop, sent 20
    times, for 250 ms, within which the balancing robot reads at least five
    messages. *)
-let start_five () : unit # {(SendStart; !25/2)^5} =
+let start_five () : unit ! {(SendStart; idle 25/2)^5} =
   perform SendStart ();
   delay 25/2;
   perform SendStart ();
@@ -87,19 +87,19 @@ let start_five () : unit # {(SendStart; !25/2)^5} =
   perform SendStart ();
   delay 25/2
 
-let start_twenty () : unit # {(SendStart; !25/2)^20} =
+let start_twenty () : unit ! {(SendStart; idle 25/2)^20} =
   start_five ();
   start_five ();
   start_five ();
   start_five ()
 
-let starting () : unit # {(SendStart; !25/2)^80} =
+let starting () : unit ! {(SendStart; idle 25/2)^80} =
   start_twenty ();
   start_twenty ();
   start_twenty ();
   start_twenty ()
 
-let stop_five () : unit # {(SendStop; !25/2)^5} =
+let stop_five () : unit ! {(SendStop; idle 25/2)^5} =
   perform SendStop ();
   delay 25/2;
   perform SendStop ();
@@ -111,7 +111,7 @@ let stop_five () : unit # {(SendStop; !25/2)^5} =
   perform SendStop ();
   delay 25/2
 
-let stopping () : unit # {(SendStop; !25/2)^20} =
+let stopping () : unit ! {(SendStop; idle 25/2)^20} =
   stop_five ();
   stop_five ();
   stop_five ();
@@ -124,7 +124,7 @@ let stopping () : unit # {(SendStop; !25/2)^20} =
 type neutral = [{≥0 & ~SendStop}](float * float)
 
 (* Reads the neutral tilt. *)
-let record_neutral () : neutral # {ReadImu} =
+let record_neutral () : neutral ! {ReadImu} =
   let accel, _ = perform ReadImu () in
   box {≥0 & ~SendStop} (tilt_x_of_accel accel, tilt_y_of_accel accel)
 
@@ -133,8 +133,8 @@ let record_neutral () : neutral # {ReadImu} =
    returns the last status received, in its box, for the first iteration of
    the balancing phase. *)
 let rec confirm (n : nat) : latest_status
-    # {SendStart; !25/2; ReceiveMessage;
-       (SendStart; !25/2; ReceiveMessage)*} =
+    ! {SendStart; idle 25/2; ReceiveMessage;
+       (SendStart; idle 25/2; ReceiveMessage)*} =
   perform SendStart ();
   delay 25/2;
   let latest = remote_status () in
@@ -237,8 +237,8 @@ let show_guide (g : guide) =
    guidance shown. *)
 let rec idle (n : nat) (dim : bool) (shown : guide) (heard : guide)
     (age : nat) : bool * guide
-    # {(ReadTouch; SendBeat; ReceiveMessage;
-        (DrawLevel | ShowColourTextAt | 0); !21/2)*;
+    ! {(ReadTouch; SendBeat; ReceiveMessage;
+        (DrawLevel | ShowColourTextAt | 0); idle 21/2)*;
        (ReadTouch | 0)} =
   match n with
   | 0 -> (false, shown)
@@ -299,9 +299,9 @@ type view = bool * float * bool * guide
 let rec balancing (n : nat)
     ((link_shown, shown_tilt, bubble_next, guide_shown) : view)
     (zero : neutral) (latest : latest_status) : view
-    # {(ReadImu; ReadTouch; (SendDrive | SendBeat);
+    ! {(ReadImu; ReadTouch; (SendDrive | SendBeat);
         (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | 0);
-        !21/2; ReceiveMessage)*;
+        idle 21/2; ReceiveMessage)*;
        (ReadImu; ReadTouch | 0)} =
   match n with
   | 0 -> (link_shown, shown_tilt, bubble_next, guide_shown)
@@ -361,18 +361,18 @@ let rec balancing (n : nat)
    ms pass, with a redraw of the guidance. *)
 let rec session (n : nat)
     ((link_shown, shown_tilt, bubble_next, guide_shown) : view) : unit
-    # {((ReadTouch; SendBeat; ReceiveMessage;
-         (DrawLevel | ShowColourTextAt | 0); !21/2)*;
+    ! {((ReadTouch; SendBeat; ReceiveMessage;
+         (DrawLevel | ShowColourTextAt | 0); idle 21/2)*;
         (ReadTouch | 0);
-        Beep; ReadImu; (SendStart; !25/2)^80; SendStart; !25/2;
+        Beep; ReadImu; (SendStart; idle 25/2)^80; SendStart; idle 25/2;
         ReceiveMessage;
-        (SendStart; !25/2; ReceiveMessage)*;
+        (SendStart; idle 25/2; ReceiveMessage)*;
         (ReadImu; ReadTouch; (SendDrive | SendBeat);
          (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | 0);
-         !21/2; ReceiveMessage)*;
-        (ReadImu; ReadTouch | 0); Beep; (SendStop; !25/2)^20; ShowTextAt)*;
+         idle 21/2; ReceiveMessage)*;
+        (ReadImu; ReadTouch | 0); Beep; (SendStop; idle 25/2)^20; ShowTextAt)*;
        ((ReadTouch; SendBeat; ReceiveMessage;
-         (DrawLevel | ShowColourTextAt | 0); !21/2)*;
+         (DrawLevel | ShowColourTextAt | 0); idle 21/2)*;
         (ReadTouch | 0)
        | 0)} =
   match n with
@@ -445,8 +445,8 @@ let balancing_redrawn (zero : neutral) (latest : latest_status)
    otherwise:
 
      Typing error: Variable `zero` is unboxed with grade `{(SendStart;
-       !12.5)^80; …; (SendStop; !12.5)^20; (SendStart; !12.5)^80; …}`
-       accumulated since it was bound, which is not below its box grade
+       idle 12.5)^80; …; (SendStop; idle 12.5)^20; (SendStart; idle 12.5)^80;
+       …}` accumulated since it was bound, which is not below its box grade
        `{≥0 & ~SendStop}`
        ...
 *)

@@ -4,12 +4,12 @@
        tests/literals_reject_strict_operation.tpe
 
    Rejected under the 'regex-timed-rigid-upper-bound-rational-symbolic' grading
-   monoid: a strict delay `!` applies to a delay, a set of delays or `_`, not
-   to an operation. *)
+   monoid: a strict delay `idle` applies to a delay, a set of delays or `_`,
+   not to an operation. *)
 
-operation Read : unit ~> nat # {Read} within [1, 1]
+operation Read : unit ~> nat ! {Read} within [1, 1]
 
-let read () : nat # {!Read; 3} =
+let read () : nat ! {idle Read; 3} =
   let a = perform Read () in
   delay 3;
   a

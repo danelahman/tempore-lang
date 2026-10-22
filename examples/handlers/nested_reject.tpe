@@ -9,8 +9,8 @@
      - Top 0: no time needed; the unit is the top
      - Product: addition *)
 
-operation Op1 : unit ~> unit # 2
-operation Op2 : unit ~> unit # 3
+operation Op1 : unit ~> unit ! 2
+operation Op2 : unit ~> unit ! 3
 
 (* Correctly rejected by the typechecker: 'examples/handlers/nested.tpe' with
    one mistake, the inner case never resuming 'k'', so its grade is the 4

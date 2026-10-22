@@ -16,19 +16,19 @@ type reading = Reading of nat
 (* The operations of a sensor station: a sample has a running time between
    half a second and one and a half, a transmission between one second and two
    and a half, and a calibration between four seconds and five and a half. *)
-operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
+operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
 default Sample () = delay 4/5; 7
 
-operation Send : nat ~> unit # {Send} within [1, 5/2]
+operation Send : nat ~> unit ! {Send} within [1, 5/2]
 default Send x = delay 1.5
 
-operation Calibrate : unit ~> unit # {Calibrate} within [4, 11/2]
+operation Calibrate : unit ~> unit ! {Calibrate} within [4, 11/2]
 default Calibrate () = delay 5
 
 (* A blink of the status light has a running time of at least a quarter of a
    second and less than half a second: its running-time bounds are open
    above. *)
-operation Blink : unit ~> unit # {Blink} within [1/4, 1/2)
+operation Blink : unit ~> unit ! {Blink} within [1/4, 1/2)
 default Blink () = delay 3/8
 
 (* Correctly accepted by the typechecker: five and a half seconds pay for a
@@ -64,9 +64,9 @@ let paced () =
 (* Correctly accepted by the typechecker: a delay of less than half a second,
    however close to a half it comes, and a sample of at most one and a half
    take less than two seconds. *)
-let settle () : unit # {[0, 1/2)} = delay 0.4
+let settle () : unit ! {[0, 1/2)} = delay 0.4
 
-let sample_and_settle () : nat # {2} =
+let sample_and_settle () : nat ! {2} =
   let x = perform Sample () in
   settle ();
   x
@@ -155,7 +155,7 @@ let calibrate_first () =
          below `{1.9}`
 *)
 (*
-let sample_and_settle_early () : nat # {1.9} =
+let sample_and_settle_early () : nat ! {1.9} =
   let x = perform Sample () in
   settle ();
   x

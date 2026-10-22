@@ -2,7 +2,7 @@
 
 let profile_ramped (drive : int) : float * float =
   perform ResetEncoders ();
-  box {SetMotors; (![19, 21]; ReadEncoders)*} 0.02 as spaced in
+  box {SetMotors; (idle [19, 21]; ReadEncoders)*} 0.02 as spaced in
   perform SetMotors (drive, drive);
   let l1, r1 = sample () in
   perform SetMotors (drive +! drive, drive +! drive);

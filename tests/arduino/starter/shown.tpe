@@ -1,8 +1,8 @@
 (* A rejected variant of examples/arduino/starter/starter.tpe. *)
 
 let fire_shown (gun : at_gun) (m : float) (w : float) : outcome
-    # {Beep; ReadClock; ShowColourTextAt; [0, 810]} =
-  box {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*} elapsed
+    ! {Beep; ReadClock; ShowColourTextAt; [0, 810]} =
+  box {Beep; ReadClock; (idle [0, 2.5]; ReadImu; ReadClock)*} elapsed
     as window in
   perform Beep (2500, 300);
   let fired = perform ReadClock () in

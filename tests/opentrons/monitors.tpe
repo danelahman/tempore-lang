@@ -2,11 +2,11 @@
    'traces-timed-interval-rational' grading monoid, for the monitors of their
    binding functions; 'Wait' also has a default implementation. *)
 
-operation CC : nat ~> nat # [{CC}, {CC}] within [2, 4]
-operation OO : nat ~> nat # [{OO}, {OO}] within (2, 4)
-operation CO : nat ~> nat # [{CO}, {CO}] within [2, 4)
-operation OC : nat ~> nat # [{OC}, {OC}] within (2, 4]
-operation Wait : nat ~> nat # [{Wait}, {Wait}] within [1/2, 3/2]
+operation CC : nat ~> nat ! [{CC}, {CC}] within [2, 4]
+operation OO : nat ~> nat ! [{OO}, {OO}] within (2, 4)
+operation CO : nat ~> nat ! [{CO}, {CO}] within [2, 4)
+operation OC : nat ~> nat ! [{OC}, {OC}] within (2, 4]
+operation Wait : nat ~> nat ! [{Wait}, {Wait}] within [1/2, 3/2]
 
 default Wait n = delay 1; n + 1
 

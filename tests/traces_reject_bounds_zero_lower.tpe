@@ -7,4 +7,4 @@
    grading monoid: an operation's running time must be positive, its lower
    running-time bound above 0 or open at 0. *)
 
-operation Heat : unit ~> unit # {Heat} within [0, 2]
+operation Heat : unit ~> unit ! {Heat} within [0, 2]

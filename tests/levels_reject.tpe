@@ -5,7 +5,7 @@
    Rejected: a value boxed at Low cannot be claimed once Send has raised the
    level to High. *)
 
-operation Send : string ~> unit # High
+operation Send : string ~> unit ! High
 
 default Send s = ()
 

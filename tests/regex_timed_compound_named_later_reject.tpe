@@ -6,6 +6,6 @@
    Rejected: the grade of the compound operation Two names Later, which is
    declared after it. *)
 
-operation Fetch : unit ~> unit # {Fetch} within [2, 4]
-operation Two : unit ~> unit # {Fetch; Later}
-operation Later : unit ~> unit # {Later} within [1, 2]
+operation Fetch : unit ~> unit ! {Fetch} within [2, 4]
+operation Two : unit ~> unit ! {Fetch; Later}
+operation Later : unit ~> unit ! {Later} within [1, 2]

@@ -5,17 +5,17 @@
    A recursive definition annotated with an effect has that effect at every
    call, including the recursive calls in its own body. *)
 
-operation Ask : unit ~> nat # 0
+operation Ask : unit ~> nat ! 0
 
 default Ask () = 1
 
-operation Pause : unit ~> nat # top
+operation Pause : unit ~> nat ! top
 
 default Pause () = 1
 
 (* Correctly accepted by the typechecker: each round takes a step before the
    recursive call, and only the top grade ∞ bounds every number of rounds. *)
-let rec wait n : unit # top =
+let rec wait n : unit ! top =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -24,7 +24,7 @@ let rec wait n : unit # top =
 
 (* Correctly accepted by the typechecker: rounds that take no time have the
    invariant effect 0. *)
-let rec ask_all n : nat # 0 =
+let rec ask_all n : nat ! 0 =
   match n with
   | 0 -> 0
   | m + 1 ->
@@ -34,7 +34,7 @@ let rec ask_all n : nat # 0 =
 
 (* Correctly accepted by the typechecker: the function is used after a delay
    in its own body, with more parameters than one. *)
-let rec countdown k n : nat # top =
+let rec countdown k n : nat ! top =
   match n with
   | 0 -> k
   | m + 1 ->
@@ -44,7 +44,7 @@ let rec countdown k n : nat # top =
 (* Correctly accepted by the typechecker: the function is used in the case
    for 'Pause' within its own body, whose continuation may be resumed after
    any time. *)
-let rec pause_nested n : nat # top =
+let rec pause_nested n : nat ! top =
   match n with
   | 0 -> 0
   | m + 1 ->

@@ -2,8 +2,8 @@
 
      ./tempore tests/op_case_context_continuation.tpe *)
 
-operation Op1 : unit ~> unit # 0
-operation Op2 : unit ~> unit # 0
+operation Op1 : unit ~> unit ! 0
+operation Op2 : unit ~> unit ! 0
 
 (* Correctly accepted by the typechecker: the inner case is typed under the
    lock of the top grade, which under 'time-lower-bound', whose top is the

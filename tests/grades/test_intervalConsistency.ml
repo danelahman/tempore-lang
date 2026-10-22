@@ -75,9 +75,9 @@ let chosen =
   List.concat
     [
       (* F7: no run waits at least 5 and at most 2. *)
-      all "[{!≥5}, {!≤2}]" []
+      all "[{idle ≥5}, {idle ≤2}]" []
         (because "its lower end lasts at least 5 and its upper end at most 2");
-      all "[{!≥2}, {!≤2}]" [] None;
+      all "[{idle ≥2}, {idle ≤2}]" [] None;
       (* A run performing A for 2, although A may run for 1. *)
       all "[{(≥2 & A)}, {A}]" a13 None;
       all "[{(≥2 & A)}, {A}]"
@@ -89,7 +89,7 @@ let chosen =
       (* A budget of the lower end pays for the operation of the upper end,
          a strict wait does not. *)
       all "[{2}, {Write}]" wr None;
-      all "[{!2}, {Write}]" wr (Some common);
+      all "[{idle 2}, {Write}]" wr (Some common);
       all "[{Write}, {Read; Read; Read}]" wr (Some common);
       all "[{Write; ≥0}, {≤5}]" wr None;
       all "[{Write}, {Read; ≤2}]" wr (Some common);
@@ -103,8 +103,8 @@ let chosen =
       all "[{C; A}, {(≤5 & ~C); A}]" ac (Some common);
       all "[{(≥0 & C); A}, {(≤5 & ~C); A}]" ac None;
       (* Matched operations meet the stretches of both ends. *)
-      all "[{!≥1; A; ≥0}, {!≤1; A; ≤5}]" ac None;
-      all "[{!≥2; A; ≥0}, {!≤1; A; ≤5}]" ac (Some common);
+      all "[{idle ≥1; A; ≥0}, {idle ≤1; A; ≤5}]" ac None;
+      all "[{idle ≥2; A; ≥0}, {idle ≤1; A; ≤5}]" ac (Some common);
       all "[{A; B}, {B; A}]" ac (Some common);
       all "[{A; ≥0; B}, {≤3; B}]" ac None;
       (* Stars and repetitions. *)
@@ -114,17 +114,20 @@ let chosen =
         [ regex; regex_rational ];
       List.map
         (fun m ->
-          verdict m ac "[{(!≥3; A); (!≥3; A)*}, {(!≤2; A)*}]" (Some common))
+          verdict m ac "[{(idle ≥3; A); (idle ≥3; A)*}, {(idle ≤2; A)*}]"
+            (Some common))
         [ regex; regex_rational ];
       List.map
-        (fun m -> verdict m ac "[{(!≥3; A)*}, {(!≤2; A)*}]" None)
+        (fun m -> verdict m ac "[{(idle ≥3; A)*}, {(idle ≤2; A)*}]" None)
         [ regex; regex_rational ];
       List.map
-        (fun m -> verdict m ac "[{(!≥3; A); (!≥3; A)*}, {(!≤2; A | ≤5)*}]" None)
+        (fun m ->
+          verdict m ac "[{(idle ≥3; A); (idle ≥3; A)*}, {(idle ≤2; A | ≤5)*}]"
+            None)
         [ regex; regex_rational ];
-      all "[{(!≥2; A)^3}, {(!≤2; A)^[2, 3]}]" ac None;
-      all "[{(!≥3; A)^2}, {(!≤2; A)^[2, 3]}]" ac (Some common);
-      all "[{(!≥1; A)^[2, 3]}, {(!≤1; A)^3}]" ac None;
+      all "[{(idle ≥2; A)^3}, {(idle ≤2; A)^[2, 3]}]" ac None;
+      all "[{(idle ≥3; A)^2}, {(idle ≤2; A)^[2, 3]}]" ac (Some common);
+      all "[{(idle ≥1; A)^[2, 3]}, {(idle ≤1; A)^3}]" ac None;
       all "[{A^4}, {(A | B)^[1, 3]; ≤1}]" ac None;
       all "[{A^4}, {(A | B)^[1, 2]; ≤1}]" ac
         (because "its lower end lasts at least 4 and its upper end at most 3");
@@ -134,7 +137,7 @@ let chosen =
         (fun m ->
           verdict m
             [ ("ReadImu", closed 1 1) ]
-            "[{≥100}, {(!≤10.5; ReadImu)^10}]" None)
+            "[{≥100}, {(idle ≤10.5; ReadImu)^10}]" None)
         [ regex_rational; traces_rational ];
       List.map
         (fun m ->
@@ -159,23 +162,28 @@ let open_ends =
     [ ("A", (Grade.Closed (Rat.of_int 1), Grade.Open (Rat.of_int 2))) ]
   in
   [
-    verdict regex_rational [] "[{!>2}, {!≤2}]"
+    verdict regex_rational [] "[{idle >2}, {idle ≤2}]"
       (because "its lower end lasts more than 2 and its upper end at most 2");
-    verdict regex_rational [] "[{!≥2}, {!<2}]"
+    verdict regex_rational [] "[{idle ≥2}, {idle <2}]"
       (because "its lower end lasts at least 2 and its upper end less than 2");
-    verdict regex_rational a "[{!>1; A; ≥0}, {!<2; A; ≤5}]" None;
-    verdict regex a "[{!>1; A; ≥0}, {!<2; A; ≤5}]" (Some common);
-    verdict regex_rational a "[{!>1; A}, {!<2; A}]" None;
-    verdict traces_rational a "[{!>1; A}, {!<2; A}]" None;
-    verdict regex a "[{!>1; A}, {!<2; A}]"
+    verdict regex_rational a "[{idle >1; A; ≥0}, {idle <2; A; ≤5}]" None;
+    verdict regex a "[{idle >1; A; ≥0}, {idle <2; A; ≤5}]" (Some common);
+    verdict regex_rational a "[{idle >1; A}, {idle <2; A}]" None;
+    verdict traces_rational a "[{idle >1; A}, {idle <2; A}]" None;
+    verdict regex a "[{idle >1; A}, {idle <2; A}]"
       (because "its lower end lasts at least 3 and its upper end at most 2");
-    verdict regex_rational a "[{!≥1/2; A; !>1/2}, {!≤1/2; A; !<1}]" None;
-    verdict regex_rational a "[{!≥1/2; A; !≥1}, {!≤1/2; A; !<1; ≤1}]" None;
-    verdict regex_rational a "[{!≥1/2; A; !≥1; B}, {!≤1/2; A; !<1; B}]"
+    verdict regex_rational a
+      "[{idle ≥1/2; A; idle >1/2}, {idle ≤1/2; A; idle <1}]" None;
+    verdict regex_rational a
+      "[{idle ≥1/2; A; idle ≥1}, {idle ≤1/2; A; idle <1; ≤1}]" None;
+    verdict regex_rational a
+      "[{idle ≥1/2; A; idle ≥1; B}, {idle ≤1/2; A; idle <1; B}]"
       (because
          "its lower end lasts at least 3.5 and its upper end less than 3.5");
-    verdict regex_rational a "[{!≥1/2; A; !≥1; B}, {!≤1/2; A; !<1; ≤2}]" None;
-    verdict regex_rational a "[{!≥1/2; A; !≥1; B}, {!≤1/2; A; !<1; (≤2 & A)}]"
+    verdict regex_rational a
+      "[{idle ≥1/2; A; idle ≥1; B}, {idle ≤1/2; A; idle <1; ≤2}]" None;
+    verdict regex_rational a
+      "[{idle ≥1/2; A; idle ≥1; B}, {idle ≤1/2; A; idle <1; (≤2 & A)}]"
       (Some common);
     verdict regex_rational a_open "[{(≥2 & A)}, {A}]"
       (because "its lower end lasts at least 2 and its upper end less than 2");
@@ -330,7 +338,8 @@ let show_run run =
   String.concat "; "
     (List.map
        (function
-         | C.Op (n, t) -> n ^ "@" ^ Rat.show t | C.Wait t -> "!" ^ Rat.show t)
+         | C.Op (n, t) -> n ^ "@" ^ Rat.show t
+         | C.Wait t -> "idle " ^ Rat.show t)
        run)
 
 (* [cross_check ~whole ~size ~traces n] compares the verdicts on [n] random
@@ -427,7 +436,7 @@ let counterexamples =
   let module P = Reader (M) in
   let b = bounds [ ("A", closed 1 2) ] in
   let show = function None -> "none" | Some e -> M.show e in
-  let fallback = P.parse "[{A | !≥5}, {A}]" in
+  let fallback = P.parse "[{A | idle ≥5}, {A}]" in
   [
     expect
       (M.name
@@ -439,10 +448,10 @@ let counterexamples =
       (M.inhabited b fallback) "";
     expect
       (M.name ^ ": a counterexample admitting a run")
-      Fun.id ~expected:"[{!≥5}, {≤5}]"
+      Fun.id ~expected:"[{idle ≥5}, {≤5}]"
       (show
          (M.counterexample b
-            (P.parse "[{A | !≥5}, {≤5}]")
+            (P.parse "[{A | idle ≥5}, {≤5}]")
             (P.parse "[{A}, {≤5}]")));
   ]
 

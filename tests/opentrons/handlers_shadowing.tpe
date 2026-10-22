@@ -3,7 +3,7 @@
    Inc contains the binder of the continuation of the outer call, and each
    resumption returns the value it is given. *)
 
-operation Inc : nat ~> nat # 0
+operation Inc : nat ~> nat ! 0
 
 let increment =
   handler

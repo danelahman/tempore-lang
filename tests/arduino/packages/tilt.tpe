@@ -6,7 +6,7 @@
 
 let start () = (0.0, 0)
 
-let step ((angle, n) : float * nat) : (float * nat) # [0, 50) =
+let step ((angle, n) : float * nat) : (float * nat) ! [0, 50) =
   let reading = perform ReadImu () in
   box [0, 2] reading as fresh in
   unbox fresh as r in

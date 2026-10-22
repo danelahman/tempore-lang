@@ -40,19 +40,19 @@
 noneternal type plate = Plate of string
 
 (* Dispensing the stop solution takes one to two minutes. *)
-operation AddStop : plate ~> [[0, 30]]plate # [1, 2]
+operation AddStop : plate ~> [[0, 30]]plate ! [1, 2]
 default AddStop (Plate name) = delay 2; box [0, 30] (Plate name)
 
 (* The operations of a plate reader with an injector for the stop solution:
    stopping a plate takes one to two minutes, and reading it one to two. *)
-operation Stop : plate ~> [[0, 30]]plate # [1, 2]
+operation Stop : plate ~> [[0, 30]]plate ! [1, 2]
 default Stop (Plate name) = delay 1; box [0, 30] (Plate name)
 
-operation Read : plate ~> nat # [1, 2]
+operation Read : plate ~> nat ! [1, 2]
 default Read plate = delay 1; 0
 
 (* Noting a simulated reading in the run log takes at most a minute. *)
-operation Note : plate ~> unit # [0, 1]
+operation Note : plate ~> unit ! [0, 1]
 default Note plate = ()
 
 (* Simulates the reader: the stop solution is dispensed by the pipette, whose

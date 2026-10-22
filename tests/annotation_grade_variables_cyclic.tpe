@@ -10,25 +10,25 @@
 (* Correctly accepted by the typechecker: the grade of the body of wait is one
    tick followed by the grade of the recursive call, bounded by the same 'e;
    the top is a closed instance of 'e. *)
-let rec wait (n : nat) : unit # 'e =
+let rec wait (n : nat) : unit ! 'e =
   match n with 0 -> () | m + 1 -> (delay 1; wait m)
 
 (* Correctly accepted by the typechecker: the top bounds the grade of wait. *)
-let wait_top (n : nat) : unit # top = wait n
+let wait_top (n : nat) : unit ! top = wait n
 
 (* Correctly accepted by the typechecker: count takes no time, and the unit is
    a closed instance of 'e. *)
-let rec count (n : nat) : nat # 'e =
+let rec count (n : nat) : nat ! 'e =
   match n with 0 -> 0 | m + 1 -> count m + 1
 
-let c () : nat # 0 = count 5
+let c () : nat ! 0 = count 5
 
 (* The body of f has the grade of g followed by 10 ticks, which the annotation
    bounds by the same 'e. *)
-let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
+let f (g : unit -> unit ! 'e) : unit ! 'e = g (); delay 10
 
 (* Correctly accepted by the typechecker: the top bounds the grade of f. *)
-let k () : unit # top = f (fun () -> ())
+let k () : unit ! top = f (fun () -> ())
 
 run wait 3
 run wait_top 2

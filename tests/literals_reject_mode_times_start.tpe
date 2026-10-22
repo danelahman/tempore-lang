@@ -5,6 +5,6 @@
    Rejected: a change of mode spends a positive time in its start mode, the
    running time of the operation that makes it. *)
 
-operation Take : unit ~> unit # ({Take}, Cold, Out) within [1, 2]
+operation Take : unit ~> unit ! ({Take}, Cold, Out) within [1, 2]
 
-let take () : unit # (Cold, Out, (Cold, 0)) = perform Take ()
+let take () : unit ! (Cold, Out, (Cold, 0)) = perform Take ()

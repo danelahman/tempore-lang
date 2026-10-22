@@ -4,7 +4,7 @@
 
 (* Correctly rejected by the typechecker: the annotation 3 demands that every
    call takes at least 3, but the base case takes 0. *)
-let rec wait n : unit # 3 =
+let rec wait n : unit ! 3 =
   match n with
   | 0 -> ()
   | m + 1 ->

@@ -13,18 +13,18 @@ type badge = Badge of string
 
 (* The operations declare no running-time bounds: a trace records the
    operations and the delays between them, and a delay pays for no operation. *)
-operation Scan : unit ~> badge # {Scan}
-operation Unlock : unit ~> unit # {Unlock}
-operation Lock : unit ~> unit # {Lock}
-operation Alarm : unit ~> unit # {Alarm}
+operation Scan : unit ~> badge ! {Scan}
+operation Unlock : unit ~> unit ! {Unlock}
+operation Lock : unit ~> unit ! {Lock}
+operation Alarm : unit ~> unit ! {Alarm}
 
 (* A visit, a compound operation: a known badge opens the door for three
    ticks, an unknown one raises the alarm. *)
-operation Visit : unit ~> badge # {Scan; Unlock; 3; Lock | Scan; Alarm}
+operation Visit : unit ~> badge ! {Scan; Unlock; 3; Lock | Scan; Alarm}
 
 (* Correctly accepted by the typechecker: the traces of the two branches are
    joined into the set of both. *)
-let visit (known : bool) : badge # {Scan; Unlock; 3; Lock | Scan; Alarm} =
+let visit (known : bool) : badge ! {Scan; Unlock; 3; Lock | Scan; Alarm} =
   let b = perform Scan () in
   if known then (
     perform Unlock ();
@@ -37,7 +37,7 @@ let visit (known : bool) : badge # {Scan; Unlock; 3; Lock | Scan; Alarm} =
 
 (* Correctly accepted by the typechecker: the door is held open by two delays,
    merged into the one the grade lists. *)
-let visit_in_steps () : badge # {Scan; Unlock; 3; Lock} =
+let visit_in_steps () : badge ! {Scan; Unlock; 3; Lock} =
   let b = perform Scan () in
   perform Unlock ();
   delay 1;
@@ -78,7 +78,7 @@ run box {1; 2 | 4} "closed" as s in delay 3; unbox s as msg in msg
          `{Scan; Unlock; 2; Lock} <= {Scan; Unlock; 3; Lock}` does not hold
 *)
 (*
-let visit_brief () : badge # {Scan; Unlock; 3; Lock} =
+let visit_brief () : badge ! {Scan; Unlock; 3; Lock} =
   let b = perform Scan () in
   perform Unlock ();
   delay 2;

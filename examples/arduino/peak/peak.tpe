@@ -29,20 +29,20 @@
 (* The exchange between the tasks, through bindings.cpp: the step publishes
    the tilt, in degrees, and the recorder reads the tilt last published. *)
 
-operation Publish : float ~> unit # (Publish, 1)
+operation Publish : float ~> unit ! (Publish, 1)
 default Publish _ = ()
 
-operation Latest : unit ~> float # (Latest, 1)
+operation Latest : unit ~> float ! (Latest, 1)
 default Latest () = 0.0
 
 (* The record in the flash memory, through bindings.cpp: LoadPeak reads it,
    and StorePeak writes it, which erases a sector of the flash from time to
    time; a sector endures a limited number of erasures. *)
 
-operation LoadPeak : unit ~> float # (LoadPeak, 1)
+operation LoadPeak : unit ~> float ! (LoadPeak, 1)
 default LoadPeak () = 0.0
 
-operation StorePeak : float ~> unit # (StorePeak, 1)
+operation StorePeak : float ~> unit ! (StorePeak, 1)
 default StorePeak _ = ()
 
 (* The period, in seconds, and the weight of the gyroscope in the
@@ -53,7 +53,7 @@ let gyro_weight = 0.9
 (* Correctly accepted by the typechecker: the step reads the unit once,
    filters the tilt and publishes it once; it performs no other operation,
    and in particular does not write the flash. *)
-let step (tilt : float) : float # ((ReadImu, 1), (Publish, 1)) =
+let step (tilt : float) : float ! ((ReadImu, 1), (Publish, 1)) =
   let imu = perform ReadImu () in
   let tilt = tilt_x gyro_weight period tilt imu in
   perform Publish tilt;
@@ -74,7 +74,7 @@ let start () : float =
          ((Publish, 1), (ReadImu, 1))` does not hold
 *)
 (*
-let step_stored (tilt : float) : float # ((ReadImu, 1), (Publish, 1)) =
+let step_stored (tilt : float) : float ! ((ReadImu, 1), (Publish, 1)) =
   let imu = perform ReadImu () in
   let tilt = tilt_x gyro_weight period tilt imu in
   perform Publish tilt;
@@ -99,7 +99,7 @@ let screen (peak : float) =
    and shows the tilt if it exceeds the record by more than half a degree,
    and otherwise shows the record, unboxed on the path without a write; it
    then waits one second. *)
-let record () : unit # ((StorePeak, 1), (_, ∞)) =
+let record () : unit ! ((StorePeak, 1), (_, ∞)) =
   let stored = perform LoadPeak () in
   box ((StorePeak, 0), (_, ∞)) stored as copy in
   let tilt = magnitude (perform Latest ()) in

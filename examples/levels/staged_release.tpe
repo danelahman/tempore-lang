@@ -45,26 +45,26 @@ type event =
   | HotfixFetched of nat
 
 (* Building takes at least six ticks. *)
-operation Build : string * nat ~> artefact # (6, Low)
+operation Build : string * nat ~> artefact ! (6, Low)
 default Build (source, version) = delay 8; Artefact (source, version)
 
 (* Approving takes one tick. The approved release may be used after eight
    further ticks during which nothing above Low is touched. *)
-operation Approve : artefact ~> [(8, Low)] release # (1, Low)
+operation Approve : artefact ~> [(8, Low)] release ! (1, Low)
 default Approve artefact = delay 1; box (8, Low) (Release artefact)
 
 (* Installing takes at least three ticks, and reverting at least two. *)
-operation Install : host * release ~> unit # (3, Low)
+operation Install : host * release ~> unit ! (3, Low)
 default Install (host, approved) = delay 4
 
-operation Revert : host ~> unit # (2, Low)
+operation Revert : host ~> unit ! (2, Low)
 default Revert host = delay 3
 
 (* A probe of a host running a release, at a given attempt, takes one tick.
    The host 'db-2' is degraded at its first attempt; the host 'db-3' is
    degraded at every attempt unless its release is built from the hotfix
    source. *)
-operation Probe : host * release * nat ~> health # (1, Low)
+operation Probe : host * release * nat ~> health ! (1, Low)
 default Probe (host, Release (Artefact (source, _)), attempt) =
   delay 1;
   if host = Host "db-2" && attempt = 0 then Degraded
@@ -73,22 +73,22 @@ default Probe (host, Release (Artefact (source, _)), attempt) =
 
 (* Observing a list of hosts takes at least ten ticks and returns the number
    of hosts reporting errors; the host 'cache-1' reports errors. *)
-operation Observe : host list ~> nat # (10, Low)
+operation Observe : host list ~> nat ! (10, Low)
 default Observe hosts =
   delay 12;
   length (filter (fun host -> host = Host "cache-1") hosts)
 
 (* Deploying a host takes at least four ticks. The operation has no default
    implementation and is implemented by a handler. *)
-operation Deploy : host * release ~> health # (4, Low)
+operation Deploy : host * release ~> health ! (4, Low)
 
 (* Recording an event takes no time. *)
-operation Record : event ~> unit # (0, Low)
+operation Record : event ~> unit ! (0, Low)
 default Record event = ()
 
 (* Fetching a hotfix from an external source takes at least two ticks and
    touches the level High. *)
-operation FetchHotfix : string ~> string # (2, High)
+operation FetchHotfix : string ~> string ! (2, High)
 default FetchHotfix source = delay 3; "hotfix"
 
 (* Correctly accepted by the typechecker: a division of a list into a first
@@ -122,7 +122,7 @@ let revert_hosts (hosts : host list) =
    grade is 0, since a stage may contain no hosts; the level component is Low
    for every number of hosts. *)
 let rec deploy_stage (approved : release) (hosts : host list)
-    (deployed : host list) : stage_result # (0, Low) =
+    (deployed : host list) : stage_result ! (0, Low) =
   match hosts with
   | [] -> StageDeployed deployed
   | host :: rest ->
@@ -136,7 +136,7 @@ let rec deploy_stage (approved : release) (hosts : host list)
    performs at least one observation, so the grade (10, Low) holds of both
    the base case and the recursive case. *)
 let rec observe_hosts (hosts : host list) (additional_rounds : nat)
-    : nat # (10, Low) =
+    : nat ! (10, Low) =
   let error_count = perform Observe hosts in
   perform Record (Observed error_count);
   if error_count > 0 then error_count
@@ -152,7 +152,7 @@ let rec observe_hosts (hosts : host list) (additional_rounds : nat)
    every deployed host. Every call observes at least once, so the grade is
    (10, Low). *)
 let rec deploy_stages (stages : host stages) (deployed_hosts : host list)
-    (approval : [(10, Low)] release) : release_result # (10, Low) =
+    (approval : [(10, Low)] release) : release_result ! (10, Low) =
   match stages with
   | Empty ->
       let error_count = observe_hosts deployed_hosts 2 in
@@ -175,7 +175,7 @@ let rec deploy_stages (stages : host stages) (deployed_hosts : host list)
 (* Correctly accepted by the typechecker: a probing policy that returns the
    result of the first probe. *)
 let probe_without_retries (host : host) (approved : release)
-    : health # (1, Low) =
+    : health ! (1, Low) =
   perform Probe (host, approved, 0)
 
 (* Correctly accepted by the typechecker: a probing policy that repeats a
@@ -186,7 +186,7 @@ let probe_without_retries (host : host) (approved : release)
    whose types are eternal. Every call performs at least one probe, so the
    grade is (1, Low). *)
 let rec probe_with_retries (retries : nat) (attempt : nat) (host : host)
-    (approved : release) : health # (1, Low) =
+    (approved : release) : health ! (1, Low) =
   handle perform Probe (host, approved, attempt)
   with
     (handler
@@ -217,7 +217,7 @@ let probe_with_two_retries (host : host) (approved : release) =
    accepted. The installation and the probe account for the four ticks of
    'Deploy' before 'k' is resumed. *)
 let handle_deployments
-    (policy : [(3, High)] (host -> release -> health # 'e)) =
+    (policy : [(3, High)] (host -> release -> health ! 'e)) =
   handler
   | result -> result
   | Deploy (host, approved) k ->
@@ -240,9 +240,9 @@ let record_events =
    returned by 'Approve' is accepted where 'deploy_stages' expects a box
    '[(10, Low)]'. The time component 17 is the sum of the building, the
    approval and one round of observation. *)
-let release_version (policy : [(3, High)] (host -> release -> health # 'e))
+let release_version (policy : [(3, High)] (host -> release -> health ! 'e))
     (source : string) (version : nat) (hosts : host list)
-    : release_result # (17, Low) =
+    : release_result ! (17, Low) =
   handle
     let artefact = perform Build (source, version) in
     perform Record (Built version);
@@ -258,7 +258,7 @@ let release_version (policy : [(3, High)] (host -> release -> health # 'e))
    fetch touches High, so the level component is High for every number of
    hotfixes, including 0. *)
 let rec release_with_hotfixes (hotfixes : nat) (source : string)
-    (version : nat) (hosts : host list) : release_result # (17, High) =
+    (version : nat) (hosts : host list) : release_result ! (17, High) =
   match release_version (box ⊤ probe_with_two_retries) source version hosts with
   | HostFailed (host, reverted) ->
       (match hotfixes with
@@ -293,7 +293,7 @@ let publish_after_release (source : string) (version : nat)
 (*
 let rec deploy_stages_before_observation (stages : host stages)
     (deployed_hosts : host list) (approval : [(10, Low)] release)
-    : release_result # (0, Low) =
+    : release_result ! (0, Low) =
   match stages with
   | Empty -> Completed (length deployed_hosts)
   | Stage (hosts, rest) ->
@@ -316,7 +316,7 @@ let rec deploy_stages_before_observation (stages : host stages)
 *)
 (*
 let rec observe_hosts_zero_or_more_times (hosts : host list) (rounds : nat)
-    : nat # (10, Low) =
+    : nat ! (10, Low) =
   match rounds with
   | 0 -> 0
   | remaining + 1 ->
@@ -334,7 +334,7 @@ let rec observe_hosts_zero_or_more_times (hosts : host list) (rounds : nat)
 *)
 (*
 let rec probe_with_retries_and_hotfixes (retries : nat) (attempt : nat)
-    (host : host) (approved : release) : health # (1, Low) =
+    (host : host) (approved : release) : health ! (1, Low) =
   match perform Probe (host, approved, attempt) with
   | Healthy -> Healthy
   | Degraded ->

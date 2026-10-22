@@ -5,7 +5,7 @@
 (* A single-use token, fixed to be non-eternal whatever its structure. *)
 noneternal type token = Token
 
-operation Op : unit ~> token # 0
+operation Op : unit ~> token ! 0
 
 (* Correctly accepted by the typechecker: the case is typed under the lock of
    the top grade, which under 'time-lower-bound', whose top is the unit 0,

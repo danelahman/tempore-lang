@@ -3,4 +3,4 @@
    in that definition only. *)
 type 'b wrapper = Wrap of 'b
 
-operation Send : 'b ~> unit # 1
+operation Send : 'b ~> unit ! 1

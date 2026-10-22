@@ -7,10 +7,10 @@
 
 (* The body of loop has the grade of two recursive calls followed by one
    tick, which the annotation bounds by the same 'e. *)
-let rec loop (n : nat) : unit # 'e =
+let rec loop (n : nat) : unit ! 'e =
   match n with 0 -> () | m + 1 -> (loop m; loop m; delay 1)
 
-operation Op : unit ~> unit # 3
+operation Op : unit ~> unit ! 3
 
 (* Correctly rejected by the typechecker: the default requires a grade ε₀
    with 1 · ε₀ · ε₀ below both ε₀ and 3, and none of the grades tried is;

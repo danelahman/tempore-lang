@@ -48,11 +48,11 @@ type angle = Angle of nat
    is complete, and before 10 milliseconds, while it is current. Logging takes
    3.5 to 4 milliseconds, a computation 6 to 8, computing an angle at most 1,
    and setting the angle more than 1 and less than 2. *)
-operation Scan     :    unit ~> [[5, 10)]reading # (0, 1/2]
-operation Log      :    unit ~>             unit # [7/2, 4]
-operation Compute  :    unit ~>             unit # [6, 8]
-operation AngleOf  : reading ~>            angle # (0, 1]
-operation SetAngle :   angle ~>             unit # (1, 2)
+operation Scan     :    unit ~> [[5, 10)]reading ! (0, 1/2]
+operation Log      :    unit ~>             unit ! [7/2, 4]
+operation Compute  :    unit ~>             unit ! [6, 8]
+operation AngleOf  : reading ~>            angle ! (0, 1]
+operation SetAngle :   angle ~>             unit ! (1, 2)
 
 (* 'default Op x = ...' gives the implementation that a run executes at the top
    level when the particular operation is not handled by an effect handler; in

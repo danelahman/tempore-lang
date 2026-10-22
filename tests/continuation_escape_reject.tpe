@@ -2,7 +2,7 @@
 
      ./tempore --grades time-upper-bound tests/continuation_escape_reject.tpe *)
 
-operation Op : unit ~> unit # 1
+operation Op : unit ~> unit ! 1
 
 (* Correctly rejected by the typechecker: g is bound outside the case, which is
    typed under the lock of the top grade ∞, and a function is never eternal.

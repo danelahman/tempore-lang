@@ -92,7 +92,7 @@ time, are compiled under those grades:
 A handler whose case resumes its continuation twice, so that the first
 resumption is not in tail position:
   $ cat > twice.tpe <<'TPE'
-  > operation Ping : unit ~> nat # 0
+  > operation Ping : unit ~> nat ! 0
   > let twice =
   >   handler
   >   | x -> x
@@ -107,7 +107,7 @@ resumption is not in tail position:
 
 A handler whose case does not resume its continuation:
   $ cat > never.tpe <<'TPE'
-  > operation Ping : unit ~> nat # 0
+  > operation Ping : unit ~> nat ! 0
   > let abort =
   >   handler
   >   | x -> x
@@ -122,7 +122,7 @@ A handler whose case does not resume its continuation:
 
 A handler whose case computes after the resumption:
   $ cat > after.tpe <<'TPE'
-  > operation Ping : unit ~> nat # 0
+  > operation Ping : unit ~> nat ! 0
   > let after =
   >   handler
   >   | x -> x
@@ -137,7 +137,7 @@ A handler whose case computes after the resumption:
 
 A handler whose case resumes its continuation in one branch only:
   $ cat > branch.tpe <<'TPE'
-  > operation Ping : nat ~> nat # 0
+  > operation Ping : nat ~> nat ! 0
   > let branch =
   >   handler
   >   | x -> x
@@ -152,7 +152,7 @@ A handler whose case resumes its continuation in one branch only:
 
 A handler whose case resumes its continuation inside a handle:
   $ cat > inner.tpe <<'TPE'
-  > operation Ping : unit ~> nat # 0
+  > operation Ping : unit ~> nat ! 0
   > let inner =
   >   handler
   >   | x -> x
@@ -167,7 +167,7 @@ A handler whose case resumes its continuation inside a handle:
 
 A handler whose case passes its continuation to a function:
   $ cat > passed.tpe <<'TPE'
-  > operation Ping : unit ~> nat # 0
+  > operation Ping : unit ~> nat ! 0
   > let passed =
   >   handler
   >   | x -> x
@@ -182,7 +182,7 @@ A handler whose case passes its continuation to a function:
 
 A handler whose case stores its continuation in a tuple:
   $ cat > stored.tpe <<'TPE'
-  > operation Ping : unit ~> nat # 0
+  > operation Ping : unit ~> nat ! 0
   > let stored =
   >   handler
   >   | x -> x
@@ -197,7 +197,7 @@ A handler whose case stores its continuation in a tuple:
 
 A handler that is a parameter, not known at compilation:
   $ cat > handler_parameter.tpe <<'TPE'
-  > operation Ping : unit ~> nat # 0
+  > operation Ping : unit ~> nat ! 0
   > let with_handler h = handle perform Ping () with h
   > TPE
   $ reject handler_parameter.tpe
@@ -209,7 +209,7 @@ A handler that is a parameter, not known at compilation:
 
 A handler chosen at run time:
   $ cat > chosen.tpe <<'TPE'
-  > operation Ping : unit ~> nat # 0
+  > operation Ping : unit ~> nat ! 0
   > let one = handler | x -> x | Ping () k -> continue k with 1
   > let two = handler | x -> x | Ping () k -> continue k with 2
   > let chosen b = handle perform Ping () with (if b then one else two)
@@ -223,7 +223,7 @@ A handler chosen at run time:
 
 A handler stored in a tuple:
   $ cat > data.tpe <<'TPE'
-  > operation Ping : unit ~> nat # 0
+  > operation Ping : unit ~> nat ! 0
   > let one = handler | x -> x | Ping () k -> continue k with 1
   > let pair () = (one, 1)
   > TPE
@@ -236,9 +236,9 @@ A handler stored in a tuple:
 
 A recursive call inside a handle, which is not in tail position:
   $ cat > recursive_handle.tpe <<'TPE'
-  > operation Ping : unit ~> nat # 0
+  > operation Ping : unit ~> nat ! 0
   > let one = handler | x -> x | Ping () k -> continue k with 1
-  > let rec loop (n : nat) : nat # 0 =
+  > let rec loop (n : nat) : nat ! 0 =
   >   match n with 0 -> 0 | m + 1 -> handle loop m with one
   > TPE
   $ reject recursive_handle.tpe
@@ -342,7 +342,7 @@ The primitive `to_string`:
 
 An operation whose result is a string:
   $ cat > string_result.tpe <<'TPE'
-  > operation Name : unit ~> string # 1
+  > operation Name : unit ~> string ! 1
   > let same () = let a = perform Name () in let b = perform Name () in a = b
   > TPE
   $ reject string_result.tpe

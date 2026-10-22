@@ -12,7 +12,7 @@
 let first (n : string) = n + 1
 
 run
-  let slow () : nat # 5 = delay 3; 1 in
+  let slow () : nat ! 5 = delay 3; 1 in
   slow ()
 
 let second n = first n + "two"

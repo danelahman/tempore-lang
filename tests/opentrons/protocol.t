@@ -469,11 +469,11 @@ The rejected variants of the examples.
   $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/washes_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: This function's body has grade `{(Wash; (Wash; ChangeTip)*)?}`, which does not match its annotated grade `{(Wash; ChangeTip)*}`
   $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/cleanup_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `k` is unboxed with grade `{RemoveEthanol; !1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; 1; RemoveEthanol}`
+  Typing error: Variable `k` is unboxed with grade `{RemoveEthanol; idle 1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; 1; RemoveEthanol}`
   $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/purification_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `warm` is unboxed with grade `{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
-  Typing error: The resource inequality `{AddEthanol; ![0.5, 1.5]; RemoveEthanol} <= {AddEthanol; ![0.5, 1.5]}` does not hold
-  Typing error: Variable `soaking` is unboxed with grade `{AddEthanol; MagnetOff; !0.5}` accumulated since it was bound, which is not below its box grade `{AddEthanol; ![0.5, 1.5]}`
+  Typing error: Variable `warm` is unboxed with grade `{idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
+  Typing error: The resource inequality `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol} <= {AddEthanol; idle [0.5, 1.5]}` does not hold
+  Typing error: Variable `soaking` is unboxed with grade `{AddEthanol; MagnetOff; idle 0.5}` accumulated since it was bound, which is not below its box grade `{AddEthanol; idle [0.5, 1.5]}`
   $ ../../tempore --grades time-upper-bound-levels --typecheck-only $examples/contamination_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `article_tip` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(∞, Low)`
   $ for name in reagents staggered beads stopread; do

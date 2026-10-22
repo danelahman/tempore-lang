@@ -34,10 +34,10 @@
 
 (* The exchange between the tasks, through bindings.cpp, as in tilt.tpe. *)
 
-operation Publish : float ~> unit # [0, 0.05]
+operation Publish : float ~> unit ! [0, 0.05]
 default Publish _ = delay 1/100
 
-operation Latest : unit ~> float # [0, 0.05]
+operation Latest : unit ~> float ! [0, 0.05]
 default Latest () = delay 1/100; 0.0
 
 (* The period, in seconds, and the weight of the gyroscope in the
@@ -92,7 +92,7 @@ let filter (tilt : float) =
 (* Correctly accepted by the typechecker: the step filters the tilt from a
    reading corrected by the bias of its state, the bias and the tilt; it
    ends within 0.2 to 1.55 ms, below its period. *)
-let step ((bias, tilt) : float * float) : (float * float) # [0, 20) =
+let step ((bias, tilt) : float * float) : (float * float) ! [0, 20) =
   let tilt = handle filter tilt with calibrated bias in
   (bias, tilt)
 
@@ -115,13 +115,13 @@ let observed (bias : float) =
       let s, _ = continue k with (accel, (gx -. bias, gy, gz)) in
       (s, true)
 
-let step ((bias, tilt) : float * float) : (float * float) # [0, 20) =
+let step ((bias, tilt) : float * float) : (float * float) ! [0, 20) =
   let tilt, _ = handle filter tilt with observed bias in
   (bias, tilt)
 *)
 
 (* The sum of 'n' rates about the x axis added to 'sum', read 2 ms apart. *)
-let rec rates (n : nat) (sum : float) : float # [0, ∞) =
+let rec rates (n : nat) (sum : float) : float ! [0, ∞) =
   match n with
   | 0 -> sum
   | m + 1 ->

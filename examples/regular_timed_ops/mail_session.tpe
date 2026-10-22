@@ -29,29 +29,29 @@ let select_subject (number : nat) : string =
 (* The operations of a session: a login has a running time of two to three
    ticks, a fetch of one to two, and a store and a logout of one each. A
    message is seen if its number is even. *)
-operation Login : string ~> unit # {Login} within [2, 3]
+operation Login : string ~> unit ! {Login} within [2, 3]
 default Login user = delay 3
 
-operation Fetch : nat ~> message # {Fetch} within [1, 2]
+operation Fetch : nat ~> message ! {Fetch} within [1, 2]
 default Fetch number =
   delay 1;
   Message (number, select_subject number, even number)
 
-operation Store : nat * flag ~> unit # {Store} within 1
+operation Store : nat * flag ~> unit ! {Store} within 1
 default Store (number, flag) = delay 1
 
-operation Logout : unit ~> unit # {Logout} within 1
+operation Logout : unit ~> unit ! {Logout} within 1
 default Logout () = delay 1
 
 (* A whole session: a login, fetches and stores in any order, and a logout.
    The operation has no default implementation and is implemented by a
    handler. *)
-operation Session : nat ~> nat # {Login; (Fetch | Store)*; Logout}
+operation Session : nat ~> nat ! {Login; (Fetch | Store)*; Logout}
 
 (* Correctly accepted by the typechecker: fetching 'count' messages from the
    number 'first' on. Assuming that the recursive call has the grade
    {Fetch*}, the body has the grade {0 | Fetch; Fetch*}, below {Fetch*}. *)
-let rec fetch_messages (first : nat) (count : nat) : message list # {Fetch*} =
+let rec fetch_messages (first : nat) (count : nat) : message list ! {Fetch*} =
   match count with
   | 0 -> []
   | remaining + 1 ->
@@ -61,7 +61,7 @@ let rec fetch_messages (first : nat) (count : nat) : message list # {Fetch*} =
 
 (* Correctly accepted by the typechecker: flagging the unseen messages of a
    list as seen, with one store for each. *)
-let rec flag_unseen_messages (messages : message list) : unit # {Store*} =
+let rec flag_unseen_messages (messages : message list) : unit ! {Store*} =
   match messages with
   | [] -> ()
   | Message (number, _, seen) :: rest ->
@@ -74,7 +74,7 @@ let rec flag_unseen_messages (messages : message list) : unit # {Store*} =
    followed by at most one store. The result of the recursive call is bound
    before the addition, which is not eternal. *)
 let rec synchronise_messages (first : nat) (count : nat)
-    : nat # {(Fetch; Store)*} =
+    : nat ! {(Fetch; Store)*} =
   match count with
   | 0 -> 0
   | remaining + 1 ->
@@ -89,7 +89,7 @@ let rec synchronise_messages (first : nat) (count : nat)
    was created. The grade {(Fetch; Store)*} of the loop is below
    {(Fetch | Store)*}. *)
 let synchronise_mailbox (user : string) (count : nat)
-    : checkpoint * nat # {Login; (Fetch | Store)*; Logout} =
+    : checkpoint * nat ! {Login; (Fetch | Store)*; Logout} =
   box {Login; (Fetch | Store)*; Logout} (Checkpoint (count + 1)) as checkpoint in
   perform Login user;
   let flagged = synchronise_messages 1 count in
@@ -100,7 +100,7 @@ let synchronise_mailbox (user : string) (count : nat)
 (* Correctly accepted by the typechecker: a session that reads one message
    within six ticks, which pay for a login, a fetch and a logout at their
    upper running-time bounds, three, two and one. *)
-let read_first_message (user : string) : message # {6} =
+let read_first_message (user : string) : message ! {6} =
   perform Login user;
   let message = perform Fetch 1 in
   perform Logout ();
@@ -110,7 +110,7 @@ let read_first_message (user : string) : message # {6} =
    bound admits every trace with fewer operations, and so does not require a
    login. *)
 let synchronise_without_login (count : nat)
-    : nat # {Login; (Fetch | Store)*; Logout} =
+    : nat ! {Login; (Fetch | Store)*; Logout} =
   let flagged = synchronise_messages 1 count in
   perform Logout ();
   flagged
@@ -144,7 +144,7 @@ let fetch_then_flag =
 *)
 (*
 let fetch_after_logout (user : string) (count : nat)
-    : message list # {Login; (Fetch | Store)*; Logout} =
+    : message list ! {Login; (Fetch | Store)*; Logout} =
   perform Login user;
   perform Logout ();
   fetch_messages 1 count
@@ -164,7 +164,7 @@ let fetch_after_logout (user : string) (count : nat)
 *)
 (*
 let fetch_before_login (user : string) (count : nat)
-    : message list # {Login; (Fetch | Store)*; Logout} =
+    : message list ! {Login; (Fetch | Store)*; Logout} =
   let messages = fetch_messages 1 count in
   perform Login user;
   perform Logout ();
@@ -184,7 +184,7 @@ let fetch_before_login (user : string) (count : nat)
 *)
 (*
 let rec synchronise_messages_in_order (first : nat) (count : nat)
-    : nat # {Fetch*; Store*} =
+    : nat ! {Fetch*; Store*} =
   match count with
   | 0 -> 0
   | remaining + 1 ->
@@ -203,7 +203,7 @@ let rec synchronise_messages_in_order (first : nat) (count : nat)
          Fetch; Fetch; Fetch; Fetch}` is below `{Fetch*}` but not below `{20}`
 *)
 (*
-let fetch_messages_within_budget (count : nat) : message list # {20} =
+let fetch_messages_within_budget (count : nat) : message list ! {20} =
   fetch_messages 1 count
 *)
 
@@ -243,7 +243,7 @@ let commit_after_second_session (user : string) (count : nat) =
          hold
 *)
 (*
-let read_first_message_within (user : string) : message # {5} =
+let read_first_message_within (user : string) : message ! {5} =
   perform Login user;
   let message = perform Fetch 1 in
   perform Logout ();

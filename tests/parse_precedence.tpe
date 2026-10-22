@@ -5,8 +5,8 @@
 type choice = Neither | Number of nat
 type token = Token
 
-operation Op : choice ~> nat # 0
-operation Other : token ~> nat # 0
+operation Op : choice ~> nat ! 0
+operation Other : token ~> nat ! 0
 
 let h =
   handler

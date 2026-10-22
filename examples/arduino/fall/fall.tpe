@@ -13,7 +13,7 @@
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `!` admit none, a
+   admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {0}: the empty trace
@@ -54,7 +54,7 @@ let white = 0xffffff
 let blue = 0x00a0ff
 
 (* The magnitude of the acceleration, in g. *)
-let load () : float # {ReadImu} =
+let load () : float ! {ReadImu} =
   let (ax, ay, az), _ = perform ReadImu () in
   sqrt ((ax *. ax) +. (ay *. ay) +. (az *. az))
 
@@ -67,14 +67,14 @@ let load () : float # {ReadImu} =
    annotated with the interval of its duration. *)
 
 (* A reading after a wait of 10 ms, and whether the free fall continues. *)
-let low (falling : bool) : bool # {!10; ReadImu} =
+let low (falling : bool) : bool ! {idle 10; ReadImu} =
   delay 10;
   let a = load () in
   falling && a < free_fall
 
 (* Ten readings 10 ms apart: whether the free fall lasts throughout, 102 to
    115 ms. *)
-let confirm () : bool # {(!10; ReadImu)^10} =
+let confirm () : bool ! {(idle 10; ReadImu)^10} =
   let falling = true in
   let falling = low falling in
   let falling = low falling in
@@ -90,7 +90,7 @@ let confirm () : bool # {(!10; ReadImu)^10} =
 
 (* A reading 10 ms after the last unless an impact was found: the greatest
    magnitude so far. *)
-let strike (peak : float) : float # {0 | !10; ReadImu} =
+let strike (peak : float) : float ! {0 | idle 10; ReadImu} =
   if peak > impact then peak
   else (
     delay 10;
@@ -98,7 +98,7 @@ let strike (peak : float) : float # {0 | !10; ReadImu} =
     if a > peak then a else peak)
 
 (* Up to ten readings 10 ms apart, until an impact: at most 115 ms. *)
-let strikes (peak : float) : float # {(0 | !10; ReadImu)^10} =
+let strikes (peak : float) : float ! {(0 | idle 10; ReadImu)^10} =
   let peak = strike peak in
   let peak = strike peak in
   let peak = strike peak in
@@ -113,7 +113,7 @@ let strikes (peak : float) : float # {(0 | !10; ReadImu)^10} =
 
 (* Up to eighty readings 10 ms apart, until an impact: at most 920 ms. The
    grade bounds the duration only. *)
-let search () : float # {[0, 920]} =
+let search () : float ! {[0, 920]} =
   let peak = 0.0 in
   let peak = strikes peak in
   let peak = strikes peak in
@@ -127,13 +127,13 @@ let search () : float # {[0, 920]} =
 
 (* A poll of the screen, and whether it was touched during the polls so
    far. *)
-let poll (tapped : bool) : bool # {ReadTouch; !50} =
+let poll (tapped : bool) : bool ! {ReadTouch; idle 50} =
   let touched, _, _ = perform ReadTouch () in
   delay 50;
   tapped || touched
 
 (* Twenty polls 50 ms apart: 1000 to 1029 ms. *)
-let polls (tapped : bool) : bool # {(ReadTouch; !50)^20} =
+let polls (tapped : bool) : bool ! {(ReadTouch; idle 50)^20} =
   let tapped = poll tapped in
   let tapped = poll tapped in
   let tapped = poll tapped in
@@ -166,7 +166,7 @@ let frame () =
 
 (* A second of the countdown: the seconds left, large, a bar of their
    length, and twenty polls: 1000.05 to 1095 ms. *)
-let second (left : nat) : bool # {ShowNumberAt; DrawBar; [1000, 1029]} =
+let second (left : nat) : bool ! {ShowNumberAt; DrawBar; [1000, 1029]} =
   perform ShowNumberAt (0, 100, 4, 0, float_of_nat left);
   perform DrawBar (0, 172, 320, 16, 32 * left, orange);
   polls false
@@ -188,8 +188,8 @@ let cancel () =
    polls of a tap, its tone, the message and a wait of 2 s, and nothing
    else. *)
 let rec alarm (n : nat) (seconds : nat) : unit
-    # {((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
-       (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)} =
+    ! {((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
+       (0 | (ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -271,7 +271,7 @@ let respond (fall : fall) =
    most a second: a fall is reported only if the search, of at most 920 ms,
    finds an impact. The result is the number of falls, counted or not. *)
 let suspect (falls : nat) (first : float) : nat =
-  box [{100}, {(![9.5, 10.5]; ReadImu)^10}] first as onset in
+  box [{100}, {(idle [9.5, 10.5]; ReadImu)^10}] first as onset in
   let falling = confirm () in
   if falling then (
     unbox onset as least in
@@ -305,7 +305,7 @@ let bar (a : float) = nat_of_float (a *. 320.0 /. 3.0)
    redrawn every tenth reading and the time since the last event, counted
    in readings, every hundredth: at 10 ms a reading, it falls short of the
    time by the running times of the operations, about a tenth. *)
-let rec monitor (n : nat) (falls : nat) (since : nat) : unit # {≥0} =
+let rec monitor (n : nat) (falls : nat) (since : nat) : unit ! {≥0} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -333,7 +333,7 @@ let watch () =
 (* Correctly rejected by the typechecker: the response waits twenty seconds
    and raises the alarm without the prompt and the tone that ask for a tap:
 
-     Typing error: Variable `event` is unboxed with grade `{!20000}`
+     Typing error: Variable `event` is unboxed with grade `{idle 20000}`
        accumulated since it was bound, which is not below its box grade
        `{ShowColourTextAt^2; Beep; [10000, 30000]}`
        ...
@@ -352,13 +352,13 @@ let respond_silent (fall : fall) =
    reconfiguration, of at most 0.4 ms, beside the wait of 10 ms:
 
      Typing error: Variable `onset` is unboxed with grade `{ConfigureImu;
-       (!10; ReadImu)^10}` accumulated since it was bound, which is not below
-       its box grade `[{≥100}, {(!≤10.5; ReadImu)^10}]`
+       (idle 10; ReadImu)^10}` accumulated since it was bound, which is not
+       below its box grade `[{≥100}, {(idle ≤10.5; ReadImu)^10}]`
        ...
 *)
 (*
 let suspect_rated (first : float) =
-  box [{100}, {(![9.5, 10.5]; ReadImu)^10}] first as onset in
+  box [{100}, {(idle [9.5, 10.5]; ReadImu)^10}] first as onset in
   perform ConfigureImu 400;
   let falling = confirm () in
   if falling then (unbox onset as least in least) else first
@@ -367,17 +367,17 @@ let suspect_rated (first : float) =
 (* Correctly rejected by the typechecker: the alarm sounds its tone only on
    the even seconds:
 
-     Typing error: This function's body has grade `{((ReadTouch; !50)^20;
-       (Beep; ShowColourTextAt^2; !2000 | ShowColourTextAt; ShowTimeAt; Beep?;
-       …))?}`, which does not match its annotated grade
-       `{((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
-       ((ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)?}`
+     Typing error: This function's body has grade `{((ReadTouch; idle 50)^20;
+       (Beep; ShowColourTextAt^2; idle 2000 | ShowColourTextAt; ShowTimeAt;
+       Beep?; …))?}`, which does not match its annotated grade
+       `{((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
+       ((ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)?}`
        ...
 *)
 (*
 let rec alarm_even (n : nat) (seconds : nat) : unit
-    # {((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
-       (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)} =
+    ! {((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
+       (0 | (ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)} =
   match n with
   | 0 -> ()
   | m + 1 ->

@@ -10,22 +10,22 @@
      - Top ⊤: any times between any two modes, and into Stuck
      - Product: the matrix product, the times in each mode added *)
 
-operation TakeOut : unit ~> unit # ({TakeOut}, Cold, Out) within (0, 1]
+operation TakeOut : unit ~> unit ! ({TakeOut}, Cold, Out) within (0, 1]
 default TakeOut () = delay 1
 
-operation ReturnToCold : unit ~> unit # ({ReturnToCold}, Out, Cold) within (0, 1]
+operation ReturnToCold : unit ~> unit ! ({ReturnToCold}, Out, Cold) within (0, 1]
 default ReturnToCold () = delay 1
 
-operation LoadPlate : nat ~> unit # ({LoadPlate}, Out, Out) within (0, 1]
+operation LoadPlate : nat ~> unit ! ({LoadPlate}, Out, Out) within (0, 1]
 default LoadPlate _ = delay 1
 
-operation Dispense : nat ~> unit # ({Dispense}, Out, Out) within [3, 4]
+operation Dispense : nat ~> unit ! ({Dispense}, Out, Out) within [3, 4]
 default Dispense _ = delay 4
 
-operation UnloadPlate : nat ~> unit # ({UnloadPlate}, Out, Out) within (0, 1]
+operation UnloadPlate : nat ~> unit ! ({UnloadPlate}, Out, Out) within (0, 1]
 default UnloadPlate _ = delay 1
 
-let round (plate : nat) : unit # (Cold, Cold, (Out, [0, 7])) =
+let round (plate : nat) : unit ! (Cold, Cold, (Out, [0, 7])) =
   perform TakeOut ();
   perform LoadPlate plate;
   perform Dispense plate;
@@ -41,7 +41,7 @@ let round (plate : nat) : unit # (Cold, Cold, (Out, [0, 7])) =
        (Cold, Cold, (Out, [0, 30]))` does not hold
        ...
 *)
-let set_up_five () : unit # (Cold, Cold, (Out, [0, 30])) =
+let set_up_five () : unit ! (Cold, Cold, (Out, [0, 30])) =
   round 1;
   round 2;
   round 3;

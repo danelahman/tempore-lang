@@ -70,7 +70,7 @@ it names none:
     4 | run (&&) (true, false)
             ^^^^
     the function has type `bool → bool → bool`
-    Note: while matching `bool → bool → bool` against `bool × bool → γ # ε₀`
+    Note: while matching `bool → bool → bool` against `bool × bool → γ ! ε₀`
   ======================================================================
   annotation_grade_variables.tpe
   ======================================================================
@@ -84,7 +84,7 @@ it names none:
   === Run 2 ===
   return 5
   State: [
-    { resource_0 ↦ <fun> # 2 },
+    { resource_0 ↦ <fun> ! 2 },
     2
   ]
   
@@ -124,64 +124,64 @@ it names none:
   annotation_grade_variables_cyclic_reject.tpe
   ======================================================================
   File "annotation_grade_variables_cyclic_reject.tpe", line 15, characters 22-23:
-  15 | let h () : unit # 5 = f (fun () -> ())
+  15 | let h () : unit ! 5 = f (fun () -> ())
                              ^
   Typing error: The effect inequality `∞ <= 5` does not hold
     File "annotation_grade_variables_cyclic_reject.tpe", line 11, characters 0-58:
-    11 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
+    11 | let f (g : unit -> unit ! 'e) : unit ! 'e = g (); delay 10
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `f` is defined here
     File "annotation_grade_variables_cyclic_reject.tpe", line 15, characters 9-38:
-    15 | let h () : unit # 5 = f (fun () -> ())
+    15 | let h () : unit ! 5 = f (fun () -> ())
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
   
   File "annotation_grade_variables_cyclic_reject.tpe", line 25, characters 24-28:
-  25 | let bad () : unit # 3 = loop 20
+  25 | let bad () : unit ! 3 = loop 20
                                ^^^^
   Typing error: The effect inequality `∞ <= 3` does not hold
     File "annotation_grade_variables_cyclic_reject.tpe", lines 19-20, characters 0-51:
-    19 | let rec loop (n : nat) : unit # 'e =
+    19 | let rec loop (n : nat) : unit ! 'e =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `loop` is defined here
     File "annotation_grade_variables_cyclic_reject.tpe", line 25, characters 11-31:
-    25 | let bad () : unit # 3 = loop 20
+    25 | let bad () : unit ! 3 = loop 20
                     ^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
   ======================================================================
   annotation_grade_variables_interval_reject.tpe
   ======================================================================
   File "annotation_grade_variables_interval_reject.tpe", line 25, characters 27-28:
-  25 | let h () : unit # [0, 5] = f (fun () -> ())
+  25 | let h () : unit ! [0, 5] = f (fun () -> ())
                                   ^
   Typing error: The effect inequality `[0, ∞) <= [0, 5]` does not hold
     File "annotation_grade_variables_interval_reject.tpe", line 14, characters 0-58:
-    14 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
+    14 | let f (g : unit -> unit ! 'e) : unit ! 'e = g (); delay 10
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `f` is defined here
     File "annotation_grade_variables_interval_reject.tpe", line 25, characters 9-43:
-    25 | let h () : unit # [0, 5] = f (fun () -> ())
+    25 | let h () : unit ! [0, 5] = f (fun () -> ())
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
   ======================================================================
   annotation_grade_variables_reject.tpe
   ======================================================================
   File "annotation_grade_variables_reject.tpe", line 12, characters 37-69:
-  12 |   ((slow : (unit -> nat # 'e) list), (fast : (unit -> nat # 'e) list))
+  12 |   ((slow : (unit -> nat ! 'e) list), (fast : (unit -> nat ! 'e) list))
                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This expression has type `(unit → nat # 1) list` but is annotated with `(unit → nat # 2) list`
+  Typing error: This expression has type `(unit → nat ! 1) list` but is annotated with `(unit → nat ! 2) list`
     File "annotation_grade_variables_reject.tpe", line 12, characters 3-35:
-    12 |   ((slow : (unit -> nat # 'e) list), (fast : (unit -> nat # 'e) list))
+    12 |   ((slow : (unit -> nat ! 'e) list), (fast : (unit -> nat ! 'e) list))
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
     Note: the effect inequality `2 <= 1` does not hold
   
   File "annotation_grade_variables_reject.tpe", line 18, characters 27-70:
-  18 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> nat # 'e)
+  18 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> nat ! 'e)
                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `2`, which does not match its annotated grade `1`
     File "annotation_grade_variables_reject.tpe", line 18, characters 18-26:
-    18 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> nat # 'e)
+    18 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> nat ! 'e)
                            ^^^^^^^^
     the inequality goes through the type of `run_fast` here
     Note: the effect inequality `2 <= 1` does not hold
@@ -251,7 +251,7 @@ it names none:
   annotation_type_variables_reject_operation.tpe
   ======================================================================
   File "annotation_type_variables_reject_operation.tpe", line 6, characters 17-19:
-  6 | operation Send : 'b ~> unit # 1
+  6 | operation Send : 'b ~> unit ! 1
                        ^^
   Syntax error: Unknown name `b`
   ======================================================================
@@ -285,7 +285,7 @@ it names none:
   comp_type_annotation_reject.tpe
   ======================================================================
   File "comp_type_annotation_reject.tpe", line 3, characters 9-31:
-  3 | let f () : nat # 5 = delay 3; 1
+  3 | let f () : nat ! 5 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
     Note: the effect inequality `3 >= 5` does not hold
@@ -302,7 +302,7 @@ it names none:
   comp_type_annotation_upper_reject.tpe
   ======================================================================
   File "comp_type_annotation_upper_reject.tpe", line 8, characters 9-31:
-  8 | let f () : nat # 2 = delay 3; 1
+  8 | let f () : nat ! 2 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `2`
     Note: the effect inequality `3 <= 2` does not hold
@@ -324,7 +324,7 @@ it names none:
   File "comparison_reject_function.tpe", line 5, characters 7-8:
   5 | run (f = f)
              ^
-  Typing error: Type `α → β # ε₀` is not eternal, as required by the type of `(=)`
+  Typing error: Type `α → β ! ε₀` is not eternal, as required by the type of `(=)`
     File "stdlib.tpe", line 1, characters 0-37:
     1 | let ( = ) x y = __compare_eq__ (x, y)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -352,7 +352,7 @@ it names none:
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `abort` is defined here
     File "continuation_discard_abort_reject_lower.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit # 1
+    5 | operation Op : unit ~> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "continuation_discard_abort_reject_lower.tpe", line 9, characters 39-40:
@@ -368,7 +368,7 @@ it names none:
                                   ^^^^^^^^^^^^^^^^^^^^^
   Typing error: For every grade `ε_Op` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε_Op`, but its grade `5` does not
     File "continuation_discard_delay_reject_lower.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit # 1
+    5 | operation Op : unit ~> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "continuation_discard_delay_reject_lower.tpe", line 11, characters 33-34:
@@ -384,7 +384,7 @@ it names none:
                                   ^^^^^^^^^^^
   Typing error: For every grade `ε_Op` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε_Op`, but its grade `0` does not
     File "continuation_discard_reject_lower.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit # 1
+    5 | operation Op : unit ~> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "continuation_discard_reject_lower.tpe", line 10, characters 32-33:
@@ -398,7 +398,7 @@ it names none:
   === Run 1 ===
   return 5
   State: [
-    { resource_1 ↦ <fun> # 1 }
+    { resource_1 ↦ <fun> ! 1 }
   ]
   
   ======================================================================
@@ -407,9 +407,9 @@ it names none:
   File "continuation_escape_reject.tpe", line 11, characters 39-40:
   11 | let h g = handler | x -> x | Op p k -> g k; delay 1; continue k with ()
                                               ^
-  Typing error: Variable `g` has type `[1](unit → α # ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op`: the case runs with a grade the handler does not fix
+  Typing error: Variable `g` has type `[1](unit → α ! ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op`: the case runs with a grade the handler does not fix
     File "continuation_escape_reject.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit # 1
+    5 | operation Op : unit ~> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "continuation_escape_reject.tpe", line 11, characters 6-7:
@@ -429,7 +429,7 @@ it names none:
                             cont_var ()) in
                    f ())
   State: [
-    { resource_1 ↦ <fun> # 1 }
+    { resource_1 ↦ <fun> ! 1 }
   ]
   
   ======================================================================
@@ -440,7 +440,7 @@ it names none:
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: For every grade `ε_Op2` the continuation `k'` may have, the case for `Op2` must have a grade matching `3 · ε_Op2`, but its grade `3` does not
     File "continuation_nested_discard_reject_lower.tpe", line 6, characters 0-32:
-    6 | operation Op2 : unit ~> unit # 3
+    6 | operation Op2 : unit ~> unit ! 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op2` is declared here
     File "continuation_nested_discard_reject_lower.tpe", line 21, characters 19-21:
@@ -454,9 +454,9 @@ it names none:
   File "continuation_nested_escape_reject.tpe", line 24, characters 23-24:
   24 |          | Op2 q k' -> g k'; delay 1; continue k' with ())
                               ^
-  Typing error: Variable `g` has type `[1](unit → α # ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op1`: the case runs with a grade the handler does not fix
+  Typing error: Variable `g` has type `[1](unit → α ! ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op1`: the case runs with a grade the handler does not fix
     File "continuation_nested_escape_reject.tpe", line 6, characters 0-32:
-    6 | operation Op1 : unit ~> unit # 1
+    6 | operation Op1 : unit ~> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op1` is declared here
     File "continuation_nested_escape_reject.tpe", line 14, characters 6-7:
@@ -480,7 +480,7 @@ it names none:
                             cont_var ()) in
                    f ())
   State: [
-    { resource_1 ↦ <fun> # 1, resource_3 ↦ <fun> # 1 }
+    { resource_1 ↦ <fun> ! 1, resource_3 ↦ <fun> ! 1 }
   ]
   
   ======================================================================
@@ -505,7 +505,7 @@ it names none:
   === Run 1 ===
   return 3
   State: [
-    { resource_1 ↦ <fun> # 1 },
+    { resource_1 ↦ <fun> ! 1 },
     1
   ]
   
@@ -515,7 +515,7 @@ it names none:
   === Run 1 ===
   return 3
   State: [
-    { resource_1 ↦ <fun> # 0 }
+    { resource_1 ↦ <fun> ! 0 }
   ]
   
   ======================================================================
@@ -544,29 +544,29 @@ it names none:
   === Run 2 ===
   return ()
   State: [
-    { resource_1 ↦ <fun> # (Send, 1),
-      resource_3 ↦ <fun> # (Send, 1),
-      resource_5 ↦ <fun> # (Send, 1)
+    { resource_1 ↦ <fun> ! (Send, 1),
+      resource_3 ↦ <fun> ! (Send, 1),
+      resource_5 ↦ <fun> ! (Send, 1)
     }
   ]
   
   === Run 3 ===
   return 7
   State: [
-    { resource_0 ↦ 7 # (Send, 2) }
+    { resource_0 ↦ 7 ! (Send, 2) }
   ]
   
   ======================================================================
   counts_upper_reject.tpe
   ======================================================================
   File "counts_upper_reject.tpe", lines 11-15, characters 12-16:
-  11 | let four () : unit # (Send, 3) =
+  11 | let four () : unit ! (Send, 3) =
                    ^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Send, 4)`, which does not match its annotated grade `(Send, 3)`
     Note: the effect inequality `(Send, 4) <= (Send, 3)` does not hold
   
   File "counts_upper_reject.tpe", lines 18-20, characters 16-16:
-  18 | let unlisted () : unit # (Send, 3) =
+  18 | let unlisted () : unit ! (Send, 3) =
                        ^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `((Auth, 1), (Send, 1))`, which does not match its annotated grade `(Send, 3)`
     Note: the effect inequality `((Auth, 1), (Send, 1)) <= (Send, 3)` does not hold
@@ -620,7 +620,7 @@ it names none:
   === Run 2 ===
   return ()
   State: [
-    { resource_1 ↦ <fun> # 1 },
+    { resource_1 ↦ <fun> ! 1 },
     1
   ]
   
@@ -647,7 +647,7 @@ it names none:
   === Run 1 ===
   return 7
   State: [
-    { resource_1 ↦ <fun> # 3 },
+    { resource_1 ↦ <fun> ! 3 },
     3,
     1,
     1
@@ -668,7 +668,7 @@ it names none:
       ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Get` has grade `2`, which does not match the declared grade `3` of `Get`
     File "default_reject_bounds.tpe", line 5, characters 0-32:
-    5 | operation Get : unit ~> unit # 3
+    5 | operation Get : unit ~> unit ! 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Get` is declared here
     Note: the effect inequality `2 >= 3` does not hold
@@ -680,7 +680,7 @@ it names none:
                        ^^^^
   Typing error: The effect inequality `∞ <= 3` does not hold
     File "default_reject_closure.tpe", lines 11-12, characters 0-51:
-    11 | let rec loop (n : nat) : unit # 'e =
+    11 | let rec loop (n : nat) : unit ! 'e =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `loop` is defined here
     File "default_reject_closure.tpe", line 19, characters 0-23:
@@ -746,7 +746,7 @@ it names none:
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Get` returns `string` but `Get` returns `nat`
     File "default_reject_type.tpe", line 5, characters 0-31:
-    5 | operation Get : unit ~> nat # 3
+    5 | operation Get : unit ~> nat ! 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Get` is declared here
   ======================================================================
@@ -757,11 +757,11 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The conditions of this default implementation could not be established: `ε₀ <= 3` and `1 · ε₀ · ε₀ <= ε₀`
     File "default_reject_unestablished.tpe", line 13, characters 0-31:
-    13 | operation Op : unit ~> unit # 3
+    13 | operation Op : unit ~> unit ! 3
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "default_reject_unestablished.tpe", lines 10-11, characters 0-59:
-    10 | let rec loop (n : nat) : unit # 'e =
+    10 | let rec loop (n : nat) : unit ! 'e =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `loop` is defined here
     File "default_reject_unestablished.tpe", line 18, characters 16-20:
@@ -840,7 +840,7 @@ it names none:
     9 |   let f = id (fun n -> n + 1) in
                   ^^^^^^^^^^^^^^^^^^^
     `nat` was inferred here
-    Note: while matching `nat → nat` against `string → α # ε₀`
+    Note: while matching `nat → nat` against `string → α ! ε₀`
   ======================================================================
   error_earliest_failure.tpe
   ======================================================================
@@ -861,7 +861,7 @@ it names none:
           ^^^^^^^^^^^^^^^^
   Typing error: The case for `Op` returns `string` but the return clause returns `nat`
     File "error_handler_case.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit # 1
+    5 | operation Op : unit ~> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "error_handler_case.tpe", line 8, characters 9-10:
@@ -928,10 +928,10 @@ it names none:
     12 | let first (n : string) = n + 1
                                     ^
     the function has type `nat → nat → nat`
-    Note: while matching `nat → nat → nat` against `string → α # ε₀`
+    Note: while matching `nat → nat → nat` against `string → α ! ε₀`
   
   File "errors_multiple.tpe", line 15, characters 14-36:
-  15 |   let slow () : nat # 5 = delay 3; 1 in
+  15 |   let slow () : nat ! 5 = delay 3; 1 in
                      ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
     Note: the effect inequality `3 >= 5` does not hold
@@ -944,7 +944,7 @@ it names none:
     18 | let second n = first n + "two"
                         ^^^^^^^^^
     the function has type `nat → nat`
-    Note: while matching `nat → nat` against `string → α # ε₀`
+    Note: while matching `nat → nat` against `string → α ! ε₀`
   ======================================================================
   eternal_lower.tpe
   ======================================================================
@@ -1030,7 +1030,7 @@ it names none:
   === Run 7 ===
   return 6
   State: [
-    { resource_1 ↦ <fun> # 1 }
+    { resource_1 ↦ <fun> ! 1 }
   ]
   
   ======================================================================
@@ -1039,7 +1039,7 @@ it names none:
   File "eternal_tyvars_reject_function.tpe", line 10, characters 4-8:
   10 | run keep (fun () -> ())
            ^^^^
-  Typing error: `unit → unit # ε₀` is not eternal, but `keep` needs the type of `x` to be eternal
+  Typing error: `unit → unit ! ε₀` is not eternal, but `keep` needs the type of `x` to be eternal
     File "eternal_tyvars_reject_function.tpe", line 6, characters 0-23:
     6 | let keep x = delay 1; x
         ^^^^^^^^^^^^^^^^^^^^^^^
@@ -1063,13 +1063,13 @@ it names none:
   File "eternal_tyvars_reject_handler.tpe", line 13, characters 48-49:
   13 | run handle (perform Op (); (fun () -> ())) with h (fun () -> ())
                                                        ^
-  Typing error: `unit → unit # ε₀` is not eternal, but `h` needs the type of `x` to be eternal
+  Typing error: `unit → unit ! ε₀` is not eternal, but `h` needs the type of `x` to be eternal
     File "eternal_tyvars_reject_handler.tpe", line 10, characters 0-70:
     10 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `h` is defined here
     File "eternal_tyvars_reject_handler.tpe", line 6, characters 0-31:
-    6 | operation Op : unit ~> unit # 1
+    6 | operation Op : unit ~> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "eternal_tyvars_reject_handler.tpe", line 10, characters 6-7:
@@ -1095,7 +1095,7 @@ it names none:
   File "eternal_tyvars_reject_higher_order.tpe", line 10, characters 4-9:
   10 | run after (fun () -> delay 2) (fun () -> ())
            ^^^^^
-  Typing error: `unit → unit # ε₀` is not eternal, but `after` needs the type of `x` to be eternal
+  Typing error: `unit → unit ! ε₀` is not eternal, but `after` needs the type of `x` to be eternal
     File "eternal_tyvars_reject_higher_order.tpe", line 6, characters 0-23:
     6 | let after g x = g (); x
         ^^^^^^^^^^^^^^^^^^^^^^^
@@ -1171,14 +1171,14 @@ it names none:
   === Run 4 ===
   return 7
   State: [
-    { resource_0 ↦ 7 # [1, 3] },
+    { resource_0 ↦ 7 ! [1, 3] },
     2
   ]
   
   === Run 5 ===
   return 7
   State: [
-    { resource_0 ↦ 7 # (2, Beat, [0, 1]) },
+    { resource_0 ↦ 7 ! (2, Beat, [0, 1]) },
     0.2,
     0.2
   ]
@@ -1187,21 +1187,21 @@ it names none:
   event_separation_reject.tpe
   ======================================================================
   File "event_separation_reject.tpe", lines 18-25, characters 15-12:
-  18 | let rec slow n : unit # (Beat, [0, 0], [0, 5], [0, 5]) =
+  18 | let rec slow n : unit ! (Beat, [0, 0], [0, 5], [0, 5]) =
                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `0 ⊔ {Beat; Work; Work} · (Beat, [0, 0], [0, 5], [0, 5])`, which does not match its annotated grade `(Beat, [0, 0], [0, 5], [0, 5])`
     Note: the effect inequality `0 ⊔ {Beat; Work; Work} · (Beat, [0, 0], [0, 5], [0, 5]) <= (Beat, [0, 0], [0, 5], [0, 5])` does not hold
     Note: the grade `⟨Beat: active ([0, 0], [0, 6.5], [0, 6.5]); Work: silent [0, 0], active ([2, ∞), [0.1, 0.5], [0, ∞), [0, ∞)); _: silent [0, ∞), active ([2.1, ∞), [0, ∞), [0, ∞))⟩` is below `0 ⊔ {Beat; Work; Work} · (Beat, [0, 0], [0, 5], [0, 5])` but not below `(Beat, [0, 0], [0, 5], [0, 5])`
   
   File "event_separation_reject.tpe", lines 29-35, characters 16-13:
-  29 | let rec beeps n : unit # (Beep, [2, ∞)) =
+  29 | let rec beeps n : unit ! (Beep, [2, ∞)) =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `0 ⊔ {Beep; 1} · (Beep, [2, ∞))`, which does not match its annotated grade `(Beep, [2, ∞))`
     Note: the effect inequality `0 ⊔ {Beep; 1} · (Beep, [2, ∞)) <= (Beep, [2, ∞))` does not hold
     Note: the grade `⟨Beep: active ([0, 0], [1.1, ∞), [0, ∞)); _: silent [0, ∞), active ([1.1, ∞), [0, ∞), [0, ∞))⟩` is below `0 ⊔ {Beep; 1} · (Beep, [2, ∞))` but not below `(Beep, [2, ∞))`
   
   File "event_separation_reject.tpe", lines 40-46, characters 16-13:
-  40 | let rec short n : unit # (Beat, [0, 5]) =
+  40 | let rec short n : unit ! (Beat, [0, 5]) =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `0 ⊔ {Beat; Work} · (Beat, [0, 5])`, which does not match its annotated grade `(Beat, [0, 5])`
     Note: the effect inequality `0 ⊔ {Beat; Work} · (Beat, [0, 5]) <= (Beat, [0, 5])` does not hold
@@ -1246,24 +1246,24 @@ it names none:
   event_separation_reject_runs.tpe
   ======================================================================
   File "event_separation_reject_runs.tpe", line 21, characters 11-67:
-  21 |     unit # ((1, Beat, [10, 10], [1, 1]), (1, Beep, [0, 0], [1, 1])) =
+  21 |     unit ! ((1, Beat, [10, 10], [1, 1]), (1, Beep, [0, 0], [1, 1])) =
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `((1, Beat, [10, 10], [1, 1]), (1, Beep, [0, 0], [1, 1]))` admits no run: the entries of `Beat` and `Beep` admit no common total duration in [0, ∞)
   
   File "event_separation_reject_runs.tpe", line 27, characters 24-74:
-  27 | let counted () : unit # (([1, 2], Beat, [0, 0], [10, 10], [1, 1]), [4, 6]) =
+  27 | let counted () : unit ! (([1, 2], Beat, [0, 0], [10, 10], [1, 1]), [4, 6]) =
                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `(([1, 2], Beat, [0, 0], [10, 10], [1, 1]), [4, 6])` admits no run: the entry of `Beat` admits no total duration in [4, 6]
   
   File "event_separation_reject_runs.tpe", line 33, characters 22-42:
-  33 | let close () : unit # (2, Work, [0, 0.01]) =
+  33 | let close () : unit ! (2, Work, [0, 0.01]) =
                              ^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `(2, Work, [0, 0.01])` admits no run: the entry of `Work` admits no total duration in [0, ∞)
   ======================================================================
   event_separation_reject_unknown.tpe
   ======================================================================
   File "event_separation_reject_unknown.tpe", line 11, characters 21-36:
-  11 | let beat () : unit # (Bleat, [0, 5]) = perform Beat ()
+  11 | let beat () : unit ! (Bleat, [0, 5]) = perform Beat ()
                             ^^^^^^^^^^^^^^^
   Typing error: Unknown event `Bleat`; the events of a grade must be declared operations
   ======================================================================
@@ -1284,7 +1284,7 @@ it names none:
   === Run 4 ===
   return 0
   State: [
-    { resource_1 ↦ <fun> # 1 },
+    { resource_1 ↦ <fun> ! 1 },
     1
   ]
   
@@ -1469,26 +1469,26 @@ it names none:
   === Run 3 ===
   return ()
   State: [
-    { resource_1 ↦ <fun> # (Low, (Board, Low)) }
+    { resource_1 ↦ <fun> ! (Low, (Board, Low)) }
   ]
   
   === Run 4 ===
   return 7
   State: [
-    { resource_0 ↦ 7 # (High, (Board, Low)) }
+    { resource_0 ↦ 7 ! (High, (Board, Low)) }
   ]
   
   ======================================================================
   flow_levels_reject.tpe
   ======================================================================
   File "flow_levels_reject.tpe", lines 12-14, characters 18-16:
-  12 | let post_after () : unit # (High, (Board, Low)) =
+  12 | let post_after () : unit ! (High, (Board, Low)) =
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(High, (Board, High))`, which does not match its annotated grade `(High, (Board, Low))`
     Note: the effect inequality `(High, (Board, High)) <= (High, (Board, Low))` does not hold
   
   File "flow_levels_reject.tpe", lines 17-19, characters 16-15:
-  17 | let unlisted () : unit # (Low, (Board, Low)) =
+  17 | let unlisted () : unit ! (Low, (Board, Low)) =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Low, (Audit, Low), (Board, Low))`, which does not match its annotated grade `(Low, (Board, Low))`
     Note: the effect inequality `(Low, (Audit, Low), (Board, Low)) <= (Low, (Board, Low))` does not hold
@@ -1632,7 +1632,7 @@ it names none:
   File "less_than_function.tpe", line 1, characters 17-18:
   1 | run (fun x -> x) < (fun x -> 2 * x)
                        ^
-  Typing error: Type `α → β # ε₀` is not eternal, as required by the type of `(<)`
+  Typing error: Type `α → β ! ε₀` is not eternal, as required by the type of `(<)`
     File "stdlib.tpe", line 2, characters 0-37:
     2 | let ( < ) x y = __compare_lt__ (x, y)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1643,19 +1643,19 @@ it names none:
   === Run 1 ===
   return ("public", "report")
   State: [
-    { resource_0 ↦ "public" # Low }
+    { resource_0 ↦ "public" ! Low }
   ]
   
   === Run 2 ===
   return "secret"
   State: [
-    { resource_0 ↦ "secret" # High }
+    { resource_0 ↦ "secret" ! High }
   ]
   
   === Run 3 ===
   return "public"
   State: [
-    { resource_0 ↦ "public" # Low }
+    { resource_0 ↦ "public" ! Low }
   ]
   
   ======================================================================
@@ -1687,14 +1687,14 @@ it names none:
   === Run 1 ===
   return "report"
   State: [
-    { resource_0 ↦ "report" # (3, Low) },
+    { resource_0 ↦ "report" ! (3, Low) },
     (3, Low)
   ]
   
   === Run 2 ===
   return ("report", "figures")
   State: [
-    { resource_0 ↦ "report" # (3, Low) },
+    { resource_0 ↦ "report" ! (3, Low) },
     (2, Low),
     (1, Low)
   ]
@@ -1702,7 +1702,7 @@ it names none:
   === Run 3 ===
   return "report"
   State: [
-    { resource_0 ↦ "report" # (3, High) },
+    { resource_0 ↦ "report" ! (3, High) },
     (1, Low),
     (2, Low)
   ]
@@ -1710,7 +1710,7 @@ it names none:
   === Run 4 ===
   return "report"
   State: [
-    { resource_0 ↦ "report" # (0, High) },
+    { resource_0 ↦ "report" ! (0, High) },
     (1, Low)
   ]
   
@@ -1754,7 +1754,7 @@ it names none:
   === Run 1 ===
   return "token"
   State: [
-    { resource_0 ↦ "token" # (5, Low) },
+    { resource_0 ↦ "token" ! (5, Low) },
     (1, Low),
     (1, Low),
     (2, Low)
@@ -1763,14 +1763,14 @@ it names none:
   === Run 2 ===
   return "token"
   State: [
-    { resource_0 ↦ "token" # (5, High) },
+    { resource_0 ↦ "token" ! (5, High) },
     (1, Low)
   ]
   
   === Run 3 ===
   return "token"
   State: [
-    { resource_0 ↦ "token" # (∞, Low) },
+    { resource_0 ↦ "token" ! (∞, Low) },
     (100, Low)
   ]
   
@@ -1891,49 +1891,49 @@ it names none:
   === Run 1 ===
   return "o"
   State: [
-    { resource_0 ↦ "o" # [1/3, ∞) },
+    { resource_0 ↦ "o" ! [1/3, ∞) },
     [1/3, 1/3]
   ]
   
   === Run 2 ===
   return "c"
   State: [
-    { resource_0 ↦ "c" # [0.25, 2] },
+    { resource_0 ↦ "c" ! [0.25, 2] },
     [1.75, 1.75]
   ]
   
   === Run 3 ===
   return "q"
   State: [
-    { resource_0 ↦ "q" # [0.5, 4/3] },
+    { resource_0 ↦ "q" ! [0.5, 4/3] },
     [2/3, 2/3]
   ]
   
   === Run 4 ===
   return "p"
   State: [
-    { resource_0 ↦ "p" # (0, 1) },
+    { resource_0 ↦ "p" ! (0, 1) },
     [0.999, 0.999]
   ]
   
   === Run 5 ===
   return "b"
   State: [
-    { resource_0 ↦ "b" # (0.5, 1.5] },
+    { resource_0 ↦ "b" ! (0.5, 1.5] },
     [1.5, 1.5]
   ]
   
   === Run 6 ===
   return "a"
   State: [
-    { resource_0 ↦ "a" # [0, 0.5) },
+    { resource_0 ↦ "a" ! [0, 0.5) },
     [0.25, 0.25]
   ]
   
   === Run 7 ===
   return "l"
   State: [
-    { resource_0 ↦ "l" # (1/3, ∞) },
+    { resource_0 ↦ "l" ! (1/3, ∞) },
     [1/3, 1/3],
     [0.01, 0.01]
   ]
@@ -1950,28 +1950,28 @@ it names none:
   === Run 1 ===
   return "q"
   State: [
-    { resource_0 ↦ "q" # 1.5 },
+    { resource_0 ↦ "q" ! 1.5 },
     1.5
   ]
   
   === Run 2 ===
   return "d"
   State: [
-    { resource_0 ↦ "d" # 1.5 },
+    { resource_0 ↦ "d" ! 1.5 },
     1.5
   ]
   
   === Run 3 ===
   return "e"
   State: [
-    { resource_0 ↦ "e" # 0.125 },
+    { resource_0 ↦ "e" ! 0.125 },
     0.125
   ]
   
   === Run 4 ===
   return "w"
   State: [
-    { resource_0 ↦ "w" # 2 },
+    { resource_0 ↦ "w" ! 2 },
     2
   ]
   
@@ -1988,97 +1988,97 @@ it names none:
   === Run 1 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Send | Read*} }
+    { resource_0 ↦ 1 ! {Send | Read*} }
   ]
   
   === Run 2 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read*} }
+    { resource_0 ↦ 1 ! {Read*} }
   ]
   
   === Run 3 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read*} }
+    { resource_0 ↦ 1 ! {Read*} }
   ]
   
   === Run 4 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {_} }
+    { resource_0 ↦ 1 ! {_} }
   ]
   
   === Run 5 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 3; (Send | Write)*} }
+    { resource_0 ↦ 1 ! {Read; 3; (Send | Write)*} }
   ]
   
   === Run 6 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {(Send; 2)*} }
+    { resource_0 ↦ 1 ! {(Send; 2)*} }
   ]
   
   === Run 7 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {(_ & ~Revoke)*} }
+    { resource_0 ↦ 1 ! {(_ & ~Revoke)*} }
   ]
   
   === Run 8 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Open; (Read | Write)*; Close} }
+    { resource_0 ↦ 1 ! {Open; (Read | Write)*; Close} }
   ]
   
   === Run 9 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {3 | 2*} }
+    { resource_0 ↦ 1 ! {3 | 2*} }
   ]
   
   === Run 10 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {3} }
+    { resource_0 ↦ 1 ! {3} }
   ]
   
   === Run 11 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {0} }
+    { resource_0 ↦ 1 ! {0} }
   ]
   
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 1; (0 | 1)^2; Send} }
+    { resource_0 ↦ 1 ! {Read; 1; (0 | 1)^2; Send} }
   ]
   
   === Run 13 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 2; (0 | 1); Send} }
+    { resource_0 ↦ 1 ! {Read; 2; (0 | 1); Send} }
   ]
   
   === Run 14 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 2; 1*} }
+    { resource_0 ↦ 1 ! {Read; 2; 1*} }
   ]
   
   === Run 15 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {2; (0 | 1; (0 | 1))} }
+    { resource_0 ↦ 1 ! {2; (0 | 1; (0 | 1))} }
   ]
   
   === Run 16 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # ⊤ }
+    { resource_0 ↦ 1 ! ⊤ }
   ]
   
   ======================================================================
@@ -2113,7 +2113,7 @@ it names none:
   literals_reject_event_separation.tpe
   ======================================================================
   File "literals_reject_event_separation.tpe", line 11, characters 21-43:
-  11 | let beat () : unit # (Beat, [0, 1], [0, 5]) = perform Beat ()
+  11 | let beat () : unit ! (Beat, [0, 1], [0, 5]) = perform Beat ()
                             ^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: In the `event-separation` grading monoid, an entry `(X, ...)` lists one interval, the gaps, or three, the lead, the gaps and the tail
   ======================================================================
@@ -2204,14 +2204,14 @@ it names none:
   literals_reject_mode_times_operation.tpe
   ======================================================================
   File "literals_reject_mode_times_operation.tpe", line 7, characters 33-61:
-  7 | operation Round : unit ~> unit # ({Take; Return}, Cold, Cold) within [2, 3]
+  7 | operation Round : unit ~> unit ! ({Take; Return}, Cold, Cold) within [2, 3]
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: In the `mode-times` grading monoid, an operation is written `{X}` of a single operation `X`, not `{Take; Return}`
   ======================================================================
   literals_reject_mode_times_start.tpe
   ======================================================================
   File "literals_reject_mode_times_start.tpe", line 10, characters 21-43:
-  10 | let take () : unit # (Cold, Out, (Cold, 0)) = perform Take ()
+  10 | let take () : unit ! (Cold, Out, (Cold, 0)) = perform Take ()
                             ^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: In the `mode-times` grading monoid, in the entry from `Cold` to `Out`, a change of mode spends a positive time in its start mode `Cold`
   ======================================================================
@@ -2280,17 +2280,17 @@ it names none:
   ======================================================================
   literals_reject_strict_grade.tpe
   ======================================================================
-  File "literals_reject_strict_grade.tpe", line 11, characters 20-30:
-  11 | let read () : nat # {Read; !3} =
-                           ^^^^^^^^^^
-  Syntax error: In the `regex-timed-upper-bound-rational-symbolic` grading monoid, strict delays `!3` are read by the rigid grades of timed operations only, `regex-timed-rigid-…` and `traces-timed-rigid-…`; did you mean to use one of the `traces-timed-rigid-lower-bound`, `traces-timed-rigid-upper-bound`, `traces-timed-rigid-interval`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic` or `regex-timed-rigid-interval-rational-symbolic` grading monoids?
+  File "literals_reject_strict_grade.tpe", line 11, characters 20-34:
+  11 | let read () : nat ! {Read; idle 3} =
+                           ^^^^^^^^^^^^^^
+  Syntax error: In the `regex-timed-upper-bound-rational-symbolic` grading monoid, strict delays `idle 3` are read by the rigid grades of timed operations only, `regex-timed-rigid-…` and `traces-timed-rigid-…`; did you mean to use one of the `traces-timed-rigid-lower-bound`, `traces-timed-rigid-upper-bound`, `traces-timed-rigid-interval`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic` or `regex-timed-rigid-interval-rational-symbolic` grading monoids?
   ======================================================================
   literals_reject_strict_operation.tpe
   ======================================================================
-  File "literals_reject_strict_operation.tpe", line 12, characters 22-26:
-  12 | let read () : nat # {!Read; 3} =
-                             ^^^^
-  Syntax error: A strict wait `!` applies to a length or an interval of lengths, not to `Read`
+  File "literals_reject_strict_operation.tpe", line 12, characters 26-30:
+  12 | let read () : nat ! {idle Read; 3} =
+                                 ^^^^
+  Syntax error: A strict wait `idle` applies to a length or an interval of lengths, not to `Read`
   ======================================================================
   literals_reject_unknown.tpe
   ======================================================================
@@ -2316,14 +2316,14 @@ it names none:
   literals_reject_within_empty.tpe
   ======================================================================
   File "literals_reject_within_empty.tpe", line 9, characters 46-52:
-  9 | operation Send : unit ~> unit # {Send} within [2, 2)
+  9 | operation Send : unit ~> unit ! {Send} within [2, 2)
                                                     ^^^^^^
   Syntax error: Interval endpoints must satisfy n < m at an open endpoint
   ======================================================================
   literals_reject_within_no_step.tpe
   ======================================================================
   File "literals_reject_within_no_step.tpe", line 9, characters 46-52:
-  9 | operation Send : unit ~> unit # {Send} within (1, 2)
+  9 | operation Send : unit ~> unit ! {Send} within (1, 2)
                                                     ^^^^^^
   Syntax error: In the `traces-timed-upper-bound` grading monoid, the interval `(1, 2)` contains no whole number of time steps
   ======================================================================
@@ -2332,21 +2332,21 @@ it names none:
   === Run 1 ===
   return "open-ended"
   State: [
-    { resource_0 ↦ "open-ended" # [3, ∞) },
+    { resource_0 ↦ "open-ended" ! [3, ∞) },
     [100, 100]
   ]
   
   === Run 2 ===
   return "open-ended"
   State: [
-    { resource_0 ↦ "open-ended" # [3, ∞) },
+    { resource_0 ↦ "open-ended" ! [3, ∞) },
     [3, 3]
   ]
   
   === Run 3 ===
   return "any time"
   State: [
-    { resource_0 ↦ "any time" # [0, ∞) },
+    { resource_0 ↦ "any time" ! [0, ∞) },
     [5, 5]
   ]
   
@@ -2359,49 +2359,49 @@ it names none:
   === Run 5 ===
   return (3::[])
   State: [
-    { resource_0 ↦ 3::4::[] # [1, 2] },
+    { resource_0 ↦ 3::4::[] ! [1, 2] },
     [1, 1]
   ]
   
   === Run 6 ===
   return 5
   State: [
-    { resource_0 ↦ 5 # [1, ∞) },
+    { resource_0 ↦ 5 ! [1, ∞) },
     [2, 2]
   ]
   
   === Run 7 ===
   return "open"
   State: [
-    { resource_0 ↦ "open" # [2, 4] },
+    { resource_0 ↦ "open" ! [2, 4] },
     [4, 4]
   ]
   
   === Run 8 ===
   return "half"
   State: [
-    { resource_0 ↦ "half" # [2, 4] },
+    { resource_0 ↦ "half" ! [2, 4] },
     [2, 2]
   ]
   
   === Run 9 ===
   return "below"
   State: [
-    { resource_0 ↦ "below" # [3, 5] },
+    { resource_0 ↦ "below" ! [3, 5] },
     [5, 5]
   ]
   
   === Run 10 ===
   return "late"
   State: [
-    { resource_0 ↦ "late" # [3, ∞) },
+    { resource_0 ↦ "late" ! [3, ∞) },
     [3, 3]
   ]
   
   === Run 11 ===
   return 6
   State: [
-    { resource_0 ↦ 6 # [1, 2] },
+    { resource_0 ↦ 6 ! [1, 2] },
     [1, 1]
   ]
   
@@ -2411,19 +2411,19 @@ it names none:
   === Run 1 ===
   return "now"
   State: [
-    { resource_0 ↦ "now" # 0 }
+    { resource_0 ↦ "now" ! 0 }
   ]
   
   === Run 2 ===
   return "now"
   State: [
-    { resource_0 ↦ "now" # 0 }
+    { resource_0 ↦ "now" ! 0 }
   ]
   
   === Run 3 ===
   return "boxed"
   State: [
-    { resource_0 ↦ "boxed" # 0 }
+    { resource_0 ↦ "boxed" ! 0 }
   ]
   
   ======================================================================
@@ -2432,21 +2432,21 @@ it names none:
   === Run 1 ===
   return "forever"
   State: [
-    { resource_0 ↦ "forever" # ∞ },
+    { resource_0 ↦ "forever" ! ∞ },
     100
   ]
   
   === Run 2 ===
   return "forever"
   State: [
-    { resource_0 ↦ "forever" # ∞ },
+    { resource_0 ↦ "forever" ! ∞ },
     100
   ]
   
   === Run 3 ===
   return "forever"
   State: [
-    { resource_0 ↦ "forever" # ∞ },
+    { resource_0 ↦ "forever" ! ∞ },
     100
   ]
   
@@ -2462,7 +2462,7 @@ it names none:
   === Run 1 ===
   return "any run"
   State: [
-    { resource_0 ↦ "any run" # [{0}, ∞) },
+    { resource_0 ↦ "any run" ! [{0}, ∞) },
     [{1}, {1}],
     [{3}, {3}]
   ]
@@ -2470,7 +2470,7 @@ it names none:
   === Run 2 ===
   return "after a send"
   State: [
-    { resource_0 ↦ "after a send" # [{Send}, ∞) },
+    { resource_0 ↦ "after a send" ! [{Send}, ∞) },
     [{1}, {1}],
     [{1}, {1}]
   ]
@@ -2478,7 +2478,7 @@ it names none:
   === Run 3 ===
   return "a send or a wait"
   State: [
-    { resource_0 ↦ "a send or a wait" # [{1}, {Send; 1 | 3}] },
+    { resource_0 ↦ "a send or a wait" ! [{1}, {Send; 1 | 3}] },
     [{1}, {1}],
     [{1}, {1}]
   ]
@@ -2501,19 +2501,19 @@ it names none:
   mode_switch_costs_reject.tpe
   ======================================================================
   File "mode_switch_costs_reject.tpe", line 13, characters 14-52:
-  13 | let tx_off () : unit # (Off, Off, 2) = perform Tx ()
+  13 | let tx_off () : unit ! (Off, Off, 2) = perform Tx ()
                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(On, On, 2)`, which does not match its annotated grade `(Off, Off, 2)`
     Note: the effect inequality `(On, On, 2) <= (Off, Off, 2)` does not hold
   
   File "mode_switch_costs_reject.tpe", lines 16-20, characters 11-16:
-  16 | let two () : unit # (Off, Off, 4) =
+  16 | let two () : unit ! (Off, Off, 4) =
                   ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Off, Off, 6)`, which does not match its annotated grade `(Off, Off, 4)`
     Note: the effect inequality `(Off, Off, 6) <= (Off, Off, 4)` does not hold
   
   File "mode_switch_costs_reject.tpe", lines 23-24, characters 17-46:
-  23 | let idle_or_tx b : unit # ((On, On, 2), (Off, Off, 1)) =
+  23 | let idle_or_tx b : unit ! ((On, On, 2), (Off, Off, 1)) =
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `((On, On, 2), (_, _, 1), (_, Stuck, 0))`, which does not match its annotated grade `((Off, Off, 1), (On, On, 2))`
     Note: the effect inequality `((On, On, 2), (_, _, 1), (_, Stuck, 0)) <= ((Off, Off, 1), (On, On, 2))` does not hold
@@ -2533,7 +2533,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `On` has grade `0`, which does not match the declared grade `(Off, On, 1)` of `On`
     File "mode_switch_costs_reject.tpe", line 7, characters 0-42:
-    7 | operation On : unit ~> unit # (Off, On, 1)
+    7 | operation On : unit ~> unit ! (Off, On, 1)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `On` is declared here
     Note: the effect inequality `0 <= (Off, On, 1)` does not hold
@@ -2565,22 +2565,22 @@ it names none:
          ^^^^^
   Typing error: The effect inequality `(Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) · (Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) · (Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) · (Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) <= (Cold, Cold, (Out, [0, 30]))` does not hold
     File "mode_times_reject.tpe", lines 11-15, characters 0-19:
-    11 | let round () : unit # (Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) =
+    11 | let round () : unit ! (Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `round` is defined here
     File "mode_times_reject.tpe", lines 18-22, characters 14-10:
-    18 | let rounds () : unit # (Cold, Cold, (Out, [0, 30])) =
+    18 | let rounds () : unit ! (Cold, Cold, (Out, [0, 30])) =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
   
   File "mode_times_reject.tpe", line 25, characters 20-62:
-  25 | let cold_pipette () : unit # (Cold, Cold) = perform Pipette ()
+  25 | let cold_pipette () : unit ! (Cold, Cold) = perform Pipette ()
                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `({Pipette}, Out, Out)`, which does not match its annotated grade `(Cold, Cold)`
     Note: the effect inequality `({Pipette}, Out, Out) <= (Cold, Cold)` does not hold
   
   File "mode_times_reject.tpe", lines 28-30, characters 12-19:
-  28 | let late () : unit # (Out, Cold, (Out, [0, 1])) =
+  28 | let late () : unit ! (Out, Cold, (Out, [0, 1])) =
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `5 · ({Return}, Out, Cold)`, which does not match its annotated grade `(Out, Cold, (Out, [0, 1]))`
     Note: the effect inequality `5 · ({Return}, Out, Cold) <= (Out, Cold, (Out, [0, 1]))` does not hold
@@ -2833,7 +2833,7 @@ it names none:
     File "occurs_check_related_pattern.tpe", line 10, characters 2-3:
     10 |   k (x, f)
            ^
-    the function has type `β × (γ list → δ # ε₀) → ζ # ε₀`
+    the function has type `β × (γ list → δ ! ε₀) → ζ ! ε₀`
     File "occurs_check_related_pattern.tpe", line 9, characters 32-38:
     9 |   let k = fun p -> match p with (b, g) -> g [b] in
                                         ^^^^^^
@@ -2842,14 +2842,14 @@ it names none:
     8 |   let u = f x in
                   ^^^
     `α` was inferred here
-    Note: while matching `β × (γ list → δ # ε₀) → ζ # ε₀` against `(η → θ # ε₁) → ι # ε₂`
+    Note: while matching `β × (γ list → δ ! ε₀) → ζ ! ε₀` against `(η → θ ! ε₁) → ι ! ε₂`
   ======================================================================
   op_case_context.tpe
   ======================================================================
   === Run 1 ===
   return 12
   State: [
-    { resource_1 ↦ <fun> # 0 }
+    { resource_1 ↦ <fun> ! 0 }
   ]
   
   ======================================================================
@@ -2858,7 +2858,7 @@ it names none:
   === Run 1 ===
   return 7
   State: [
-    { resource_1 ↦ <fun> # 0, resource_3 ↦ <fun> # 0 }
+    { resource_1 ↦ <fun> ! 0, resource_3 ↦ <fun> ! 0 }
   ]
   
   ======================================================================
@@ -2881,7 +2881,7 @@ it names none:
   operation_reject_datatype.tpe
   ======================================================================
   File "operation_reject_datatype.tpe", line 5, characters 0-40:
-  5 | operation Op : callback list ~> unit # 1
+  5 | operation Op : callback list ~> unit ! 1
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The operation `Op` has a parameter type containing a function type through the definition of `callback`; operation parameter and result types must be ground
     Note: a function or handler in an operation's parameter or result lets a handler build non-terminating programs without recursion
@@ -2889,7 +2889,7 @@ it names none:
   operation_reject_higher_order.tpe
   ======================================================================
   File "operation_reject_higher_order.tpe", line 8, characters 0-45:
-  8 | operation Op : unit ~> (unit -> unit # 0) # 0
+  8 | operation Op : unit ~> (unit -> unit ! 0) ! 0
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The operation `Op` has a result type containing a function type; operation parameter and result types must be ground
     Note: a function or handler in an operation's parameter or result lets a handler build non-terminating programs without recursion
@@ -2938,43 +2938,43 @@ it names none:
   === Run 1 ===
   return 6
   State: [
-    { resource_0 ↦ 5 # 1 }
+    { resource_0 ↦ 5 ! 1 }
   ]
   
   === Run 2 ===
   return 8
   State: [
-    { resource_0 ↦ 7 # 0 }
+    { resource_0 ↦ 7 ! 0 }
   ]
   
   === Run 3 ===
   return 9
   State: [
-    { resource_1 ↦ <fun> # 0 }
+    { resource_1 ↦ <fun> ! 0 }
   ]
   
   === Run 4 ===
   return 4
   State: [
-    { resource_1 ↦ <fun> # 0 }
+    { resource_1 ↦ <fun> ! 0 }
   ]
   
   === Run 5 ===
   return 1
   State: [
-    { resource_1 ↦ <fun> # 0 }
+    { resource_1 ↦ <fun> ! 0 }
   ]
   
   === Run 6 ===
   return 2
   State: [
-    { resource_1 ↦ <fun> # 0 }
+    { resource_1 ↦ <fun> ! 0 }
   ]
   
   === Run 7 ===
   return 3
   State: [
-    { resource_1 ↦ <fun> # 0 }
+    { resource_1 ↦ <fun> ! 0 }
   ]
   
   === Run 8 ===
@@ -3086,7 +3086,7 @@ it names none:
     Note: the resource inequality `{Heat} <= {1}` does not hold
   
   File "plain_traces_upper_reject.tpe", lines 22-23, characters 32-67:
-  22 | let read_or_send (fresh : bool) : unit # {Read} =
+  22 | let read_or_send (fresh : bool) : unit ! {Read} =
                                        ^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Read | Send}`, which does not match its annotated grade `{Read}`
     Note: the effect inequality `{Read | Send} <= {Read}` does not hold
@@ -3139,7 +3139,7 @@ it names none:
     3 |     (v 42, v "foo")
              ^^^^
     `nat` was inferred here
-    Note: while matching `nat → nat` against `string → α # ε₀`
+    Note: while matching `nat → nat` against `string → α ! ε₀`
   ======================================================================
   positivity.tpe
   ======================================================================
@@ -3197,9 +3197,9 @@ it names none:
   === Run 1 ===
   return "tea"
   State: [
-    { resource_0 ↦ "tea" # [0.5, 1.5] },
+    { resource_0 ↦ "tea" ! [0.5, 1.5] },
     [0.25, 0.25],
-    { resource_2 ↦ <fun> # [0.5, 0.75] },
+    { resource_2 ↦ <fun> ! [0.5, 0.75] },
     [0.625, 0.625]
   ]
   
@@ -3227,7 +3227,7 @@ it names none:
   rational_time_intervals_reject_within.tpe
   ======================================================================
   File "rational_time_intervals_reject_within.tpe", line 10, characters 0-60:
-  10 | operation Dose : unit ~> unit # [0.5, 1.5] within [1/2, 3/2]
+  10 | operation Dose : unit ~> unit ! [0.5, 1.5] within [1/2, 3/2]
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `time-interval-rational` grading monoid, which does not use them
   ======================================================================
@@ -3236,10 +3236,10 @@ it names none:
   === Run 1 ===
   return "ripe"
   State: [
-    { resource_0 ↦ "ripe" # 2.25 },
+    { resource_0 ↦ "ripe" ! 2.25 },
     0.5,
     1.25,
-    { resource_2 ↦ <fun> # 0.5 },
+    { resource_2 ↦ <fun> ! 0.5 },
     0.5
   ]
   
@@ -3251,7 +3251,7 @@ it names none:
                                   ^^^^^^^^^^^^^^^^^^^^^
   Typing error: For every grade `ε_Op` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε_Op`, but its grade `5` does not
     File "rational_time_lower_reject.tpe", line 6, characters 0-31:
-    6 | operation Op : unit ~> unit # 1
+    6 | operation Op : unit ~> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "rational_time_lower_reject.tpe", line 11, characters 33-34:
@@ -3287,7 +3287,7 @@ it names none:
   === Run 1 ===
   return "fresh"
   State: [
-    { resource_0 ↦ "fresh" # 1 },
+    { resource_0 ↦ "fresh" ! 1 },
     1/3,
     1/3,
     1/3
@@ -3296,7 +3296,7 @@ it names none:
   === Run 2 ===
   return "fresh"
   State: [
-    { resource_0 ↦ "fresh" # 0.5 },
+    { resource_0 ↦ "fresh" ! 0.5 },
     0.375,
     0.125
   ]
@@ -3304,9 +3304,9 @@ it names none:
   === Run 3 ===
   return "fresh"
   State: [
-    { resource_0 ↦ "fresh" # 0.5 },
+    { resource_0 ↦ "fresh" ! 0.5 },
     0.375,
-    { resource_2 ↦ <fun> # 0.125 },
+    { resource_2 ↦ <fun> ! 0.125 },
     0.0625
   ]
   
@@ -3367,7 +3367,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` takes a duration in `[2, 2]`, which is not within the running-time bounds `[1, 2)` of `Send`
     File "rational_traces_intervals_default_open_reject.tpe", line 12, characters 0-62:
-    12 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
+    12 | operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
   
@@ -3376,7 +3376,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` takes a duration in `[1, 1]`, which is not within the running-time bounds `(1, 2]` of `Beep`
     File "rational_traces_intervals_default_open_reject.tpe", line 13, characters 0-62:
-    13 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+    13 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
   ======================================================================
@@ -3388,7 +3388,7 @@ it names none:
   Typing error: The grade `[{0.75; Sample}, {0.5; Sample}]` admits no run: no run meets both its lower and its upper end
   
   File "rational_traces_intervals_no_common_run_reject.tpe", line 25, characters 32-54:
-  25 | operation Slow : unit ~> unit # [{5/2}, {Sample; 1/2}]
+  25 | operation Slow : unit ~> unit ! [{5/2}, {Sample; 1/2}]
                                        ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{2.5}, {Sample; 0.5}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2.5 and its upper end at most 1.5
   ======================================================================
@@ -3424,7 +3424,7 @@ it names none:
   === Run 1 ===
   return 3
   State: [
-    { resource_0 ↦ () # {2.75} },
+    { resource_0 ↦ () ! {2.75} },
     {0.5},
     {0.25},
     {0.25}
@@ -3485,7 +3485,7 @@ it names none:
   === Run 1 ===
   return ()
   State: [
-    { resource_1 ↦ <fun> # [1, ∞) },
+    { resource_1 ↦ <fun> ! [1, ∞) },
     [1, 1],
     [1, 1],
     [1, 1],
@@ -3512,15 +3512,15 @@ it names none:
   recursion_closure_reject_upper.tpe
   ======================================================================
   File "recursion_closure_reject_upper.tpe", line 15, characters 22-26:
-  15 | let f () : unit # 1 = wait 2
+  15 | let f () : unit ! 1 = wait 2
                              ^^^^
   Typing error: The effect inequality `∞ <= 1` does not hold
     File "recursion_closure_reject_upper.tpe", lines 10-11, characters 0-51:
-    10 | let rec wait (n : nat) : unit # 'e =
+    10 | let rec wait (n : nat) : unit ! 'e =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `wait` is defined here
     File "recursion_closure_reject_upper.tpe", line 15, characters 9-28:
-    15 | let f () : unit # 1 = wait 2
+    15 | let f () : unit ! 1 = wait 2
                   ^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
   
@@ -3529,7 +3529,7 @@ it names none:
                        ^^^^
   Typing error: The effect inequality `∀ε_Read. ∞ <= 1 · ε_Read` does not hold
     File "recursion_closure_reject_upper.tpe", lines 10-11, characters 0-51:
-    10 | let rec wait (n : nat) : unit # 'e =
+    10 | let rec wait (n : nat) : unit ! 'e =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `wait` is defined here
     File "recursion_closure_reject_upper.tpe", line 21, characters 4-22:
@@ -3554,7 +3554,7 @@ it names none:
   === Run 2 ===
   return ()
   State: [
-    { resource_1 ↦ <fun> # 1 }
+    { resource_1 ↦ <fun> ! 1 }
   ]
   
   ======================================================================
@@ -3563,7 +3563,7 @@ it names none:
   === Run 1 ===
   return 3
   State: [
-    { resource_0 ↦ 3 # High }
+    { resource_0 ↦ 3 ! High }
   ]
   
   ======================================================================
@@ -3588,7 +3588,7 @@ it names none:
   recursion_effect_reject_invariant.tpe
   ======================================================================
   File "recursion_effect_reject_invariant.tpe", lines 8-13, characters 15-12:
-  8 | let rec wait n : unit # 5 =
+  8 | let rec wait n : unit ! 5 =
                      ^^^^^^^^^^^^
   Typing error: This function's body has grade `6`, which does not match its annotated grade `5`
     Note: the effect inequality `6 <= 5` does not hold
@@ -3596,7 +3596,7 @@ it names none:
   recursion_effect_reject_lower.tpe
   ======================================================================
   File "recursion_effect_reject_lower.tpe", lines 7-12, characters 15-12:
-  7 | let rec wait n : unit # 3 =
+  7 | let rec wait n : unit ! 3 =
                      ^^^^^^^^^^^^
   Typing error: This function's body has grade `0`, which does not match its annotated grade `3`
     Note: the effect inequality `0 >= 3` does not hold
@@ -3641,9 +3641,9 @@ it names none:
   === Run 4 ===
   return 2
   State: [
-    { resource_1 ↦ <fun> # ∞ },
+    { resource_1 ↦ <fun> ! ∞ },
     1,
-    { resource_3 ↦ <fun> # ∞ },
+    { resource_3 ↦ <fun> ! ∞ },
     1
   ]
   
@@ -3651,7 +3651,7 @@ it names none:
   recursion_handler_reject_upper.tpe
   ======================================================================
   File "recursion_handler_reject_upper.tpe", lines 16-17, characters 26-55:
-  16 |       let rec w (n : nat) : unit # 'e =
+  16 |       let rec w (n : nat) : unit ! 'e =
                                  ^^^^^^^^^^^^^
   Typing error: This function's body has grade `∞`, which does not match its annotated grade `1 · ε_Read`
     File "recursion_handler_reject_upper.tpe", lines 15-18, characters 4-9:
@@ -3665,7 +3665,7 @@ it names none:
     Note: the effect inequality `∀ε_Read. ∞ <= 1 · ε_Read` does not hold: for `ε_Read = 0` it becomes `∞ <= 1`
   
   File "recursion_handler_reject_upper.tpe", lines 26-27, characters 26-55:
-  26 |       let rec w (n : nat) : unit # 'e =
+  26 |       let rec w (n : nat) : unit ! 'e =
                                  ^^^^^^^^^^^^^
   Typing error: This function's body has grade `∞`, which does not match its annotated grade `1 · ε_Read`
     File "recursion_handler_reject_upper.tpe", lines 25-28, characters 4-9:
@@ -3683,7 +3683,7 @@ it names none:
   === Run 1 ===
   return ()
   State: [
-    { resource_1 ↦ <fun> # ∞ },
+    { resource_1 ↦ <fun> ! ∞ },
     1,
     1,
     1,
@@ -3694,15 +3694,15 @@ it names none:
   recursion_invariant_reject_upper.tpe
   ======================================================================
   File "recursion_invariant_reject_upper.tpe", line 15, characters 22-23:
-  15 | let g () : unit # 1 = w 2
+  15 | let g () : unit ! 1 = w 2
                              ^
   Typing error: The effect inequality `∞ <= 1` does not hold
     File "recursion_invariant_reject_upper.tpe", lines 10-11, characters 0-49:
-    10 | let rec w (n : nat) : unit # 'e =
+    10 | let rec w (n : nat) : unit ! 'e =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `w` is defined here
     File "recursion_invariant_reject_upper.tpe", line 15, characters 9-25:
-    15 | let g () : unit # 1 = w 2
+    15 | let g () : unit ! 1 = w 2
                   ^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
   ======================================================================
@@ -3727,11 +3727,11 @@ it names none:
   === Run 1 ===
   return (12, 2, 3)
   State: [
-    { resource_1 ↦ <fun> # 0,
-      resource_3 ↦ <fun> # 0,
-      resource_5 ↦ <fun> # 0,
-      resource_7 ↦ <fun> # 0,
-      resource_9 ↦ <fun> # 0
+    { resource_1 ↦ <fun> ! 0,
+      resource_3 ↦ <fun> ! 0,
+      resource_5 ↦ <fun> ! 0,
+      resource_7 ↦ <fun> ! 0,
+      resource_9 ↦ <fun> ! 0
     }
   ]
   
@@ -3809,7 +3809,7 @@ it names none:
     Note: the resource inequality `{Sample; 1; Send} <= {Sample; [0, 1); Send}` does not hold
   
   File "regex_rational_reject.tpe", line 31, characters 14-43:
-  31 | let thirds () : unit # {(1/2)*} = delay 1/3
+  31 | let thirds () : unit ! {(1/2)*} = delay 1/3
                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{1/3}`, which does not match its annotated grade `{(0.5)*}`
     Note: the effect inequality `{1/3} <= {(0.5)*}` does not hold
@@ -3832,7 +3832,7 @@ it names none:
   regex_timed_compound_named_later_reject.tpe
   ======================================================================
   File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
-  10 | operation Two : unit ~> unit # {Fetch; Later}
+  10 | operation Two : unit ~> unit ! {Fetch; Later}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Later` in the grade of operation `Two`
   ======================================================================
@@ -3844,7 +3844,7 @@ it names none:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # [{2}, {4}] },
+    { resource_0 ↦ Token "t" ! [{2}, {4}] },
     [{3}, {3}]
   ]
   
@@ -3857,7 +3857,7 @@ it names none:
   Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
-  24 | operation Slow : unit ~> unit # [{4; Fetch*}, {Store; 1}]
+  24 | operation Slow : unit ~> unit ! [{4; Fetch*}, {Store; 1}]
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
   ======================================================================
@@ -3899,7 +3899,7 @@ it names none:
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
-  24 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
+  24 | operation Other : unit ~> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
@@ -3908,7 +3908,7 @@ it names none:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # {Ping; 3} },
+    { resource_0 ↦ Token "t" ! {Ping; 3} },
     {1},
     {3},
     {1}
@@ -3976,7 +3976,7 @@ it names none:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # [{0.5}, {1.5}] },
+    { resource_0 ↦ Token "t" ! [{0.5}, {1.5}] },
     [{0.5}, {0.5}]
   ]
   
@@ -3988,7 +3988,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` has grade `[{2}, {2}]`, which does not match the declared grade `[{1}, {[0, 2)}]` of `Send`
     File "regex_timed_rational_interval_default_open_reject.tpe", line 11, characters 0-62:
-    11 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
+    11 | operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
     Note: the effect inequality `[{2}, {2}] <= [{1}, {[0, 2)}]` does not hold
@@ -3998,7 +3998,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
     File "regex_timed_rational_interval_default_open_reject.tpe", line 12, characters 0-62:
-    12 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+    12 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
@@ -4011,7 +4011,7 @@ it names none:
   Typing error: The grade `[{(2, 3)}, {[0, 2]}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_rational_interval_no_common_run_reject.tpe", line 24, characters 32-54:
-  24 | operation Slow : unit ~> unit # [{5/2}, {Sample; 1/2}]
+  24 | operation Slow : unit ~> unit ! [{5/2}, {Sample; 1/2}]
                                        ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{2.5}, {Sample; 0.5}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2.5 and its upper end at most 2
   ======================================================================
@@ -4022,7 +4022,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
     File "regex_timed_rational_interval_open_reject.tpe", line 10, characters 0-62:
-    10 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+    10 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
@@ -4117,7 +4117,7 @@ it names none:
     Note: the grade `{1/3}` is below `{(0, 1)}` but not below `{0.5}`
   
   File "regex_timed_rational_lower_reject.tpe", line 40, characters 13-44:
-  40 | let quick () : nat # {1} = perform Sample ()
+  40 | let quick () : nat ! {1} = perform Sample ()
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Sample}`, which does not match its annotated grade `{1}`
     Note: the effect inequality `{Sample} <= {1}` does not hold
@@ -4138,7 +4138,7 @@ it names none:
   === Run 1 ===
   return 1
   State: [
-    { resource_0 ↦ 1 # {[0, 2)} },
+    { resource_0 ↦ 1 ! {[0, 2)} },
     {1.9}
   ]
   
@@ -4164,7 +4164,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{2}`, which does not match the declared grade `{[0, 2)}` of `Beep`
     File "regex_timed_rational_upper_open_reject.tpe", line 12, characters 0-54:
-    12 | operation Beep : unit ~> unit # {Beep} within [1/2, 2)
+    12 | operation Beep : unit ~> unit ! {Beep} within [1/2, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{2} <= {[0, 2)}` does not hold
@@ -4249,30 +4249,30 @@ it names none:
     Note: the resource inequality `{Send; 1} <= {Send; ([0, 1] & ~1)}` does not hold
   
   File "regex_timed_rational_upper_reject.tpe", lines 56-58, characters 19-19:
-  56 | let two_samples () : nat # {5/2} =
+  56 | let two_samples () : nat ! {5/2} =
                           ^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Sample^2}`, which does not match its annotated grade `{2.5}`
     Note: the effect inequality `{Sample^2} <= {2.5}` does not hold
   ======================================================================
   regex_timed_rigid_interval_inconsistent_reject.tpe
   ======================================================================
-  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 25, characters 6-24:
-  25 |   box [{!≥5}, {!≤2}] (Token "a") as a in
-             ^^^^^^^^^^^^^^
-  Typing error: The grade `[{!≥5}, {!≤2}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 5 and its upper end at most 2
+  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 25, characters 6-32:
+  25 |   box [{idle ≥5}, {idle ≤2}] (Token "a") as a in
+             ^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{idle ≥5}, {idle ≤2}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 5 and its upper end at most 2
   
-  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 32, characters 6-21:
-  32 |   box [{!2}, {Write}] (Token "s") as s in
-             ^^^^^^^^^^^^^^^
-  Typing error: The grade `[{!≥2}, {Write}]` admits no run: no run meets both its lower and its upper end
+  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 32, characters 6-25:
+  32 |   box [{idle 2}, {Write}] (Token "s") as s in
+             ^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{idle ≥2}, {Write}]` admits no run: no run meets both its lower and its upper end
   
-  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 40, characters 6-44:
-  40 |   box [{!>1; Read; ≥0}, {!<2; Read; ≤5}] (Token "b") as b in
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `[{!≥2; Read; ≥0}, {!≤1; Read; ≤5}]` admits no run: no run meets both its lower and its upper end
+  File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 40, characters 6-52:
+  40 |   box [{idle >1; Read; ≥0}, {idle <2; Read; ≤5}] (Token "b") as b in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{idle ≥2; Read; ≥0}, {idle ≤1; Read; ≤5}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 47, characters 33-62:
-  47 | operation Other : unit ~> unit # [{Write}, {Read; Read; Read}]
+  47 | operation Other : unit ~> unit ! [{Write}, {Read; Read; Read}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Write}, {Read^3}]` admits no run: no run meets both its lower and its upper end
   ======================================================================
@@ -4281,7 +4281,7 @@ it names none:
   File "regex_timed_rigid_interval_reject.tpe", lines 33-34, characters 2-5:
   33 |   unbox l as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `l` is unboxed with grade `{!1; Read; Log; Read}` accumulated since it was bound, which is not below its box grade `{([1, 2]; Read)*}`
+  Typing error: Variable `l` is unboxed with grade `{idle 1; Read; Log; Read}` accumulated since it was bound, which is not below its box grade `{([1, 2]; Read)*}`
     File "regex_timed_rigid_interval_reject.tpe", line 28, characters 50-51:
     28 |   box [{(1; Read)*}, {(2; Read)*}] (Token "l") as l in
                                                            ^
@@ -4289,7 +4289,7 @@ it names none:
     File "regex_timed_rigid_interval_reject.tpe", line 29, characters 2-9:
     29 |   delay 1;
            ^^^^^^^
-    grade `{!1}` accumulates here (delay)
+    grade `{idle 1}` accumulates here (delay)
     File "regex_timed_rigid_interval_reject.tpe", line 30, characters 10-25:
     30 |   let a = perform Read () in
                    ^^^^^^^^^^^^^^^
@@ -4302,7 +4302,7 @@ it names none:
     32 |   let b = perform Read () in
                    ^^^^^^^^^^^^^^^
     grade `{Read}` accumulates here (operation `Read`)
-    Note: the resource inequality `{!1; Read; Log; Read} <= {([1, 2]; Read)*}` does not hold
+    Note: the resource inequality `{idle 1; Read; Log; Read} <= {([1, 2]; Read)*}` does not hold
   ======================================================================
   regex_timed_rigid_rational_interval_inconsistent_reject.tpe
   ======================================================================
@@ -4311,15 +4311,15 @@ it names none:
              ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{≥2 & Write}, {Write}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2 and its upper end less than 2
   
-  File "regex_timed_rigid_rational_interval_inconsistent_reject.tpe", line 33, characters 6-22:
-  33 |   box [{!>2}, {!≤2}] (Token "a") as a in
-             ^^^^^^^^^^^^^^
-  Typing error: The grade `[{!>2}, {!≤2}]` admits no run: no run meets both its lower and its upper end: its lower end lasts more than 2 and its upper end at most 2
+  File "regex_timed_rigid_rational_interval_inconsistent_reject.tpe", line 33, characters 6-30:
+  33 |   box [{idle >2}, {idle ≤2}] (Token "a") as a in
+             ^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{idle >2}, {idle ≤2}]` admits no run: no run meets both its lower and its upper end: its lower end lasts more than 2 and its upper end at most 2
   
-  File "regex_timed_rigid_rational_interval_inconsistent_reject.tpe", line 40, characters 6-62:
-  40 |   box [{!≥1/2; Read; Write}, {!≤1/2; Read; (≤3 & Read)}] (Token "r") as r in
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `[{!≥0.5; Read; Write}, {!≤0.5; Read; (≤3 & Read)}]` admits no run: no run meets both its lower and its upper end
+  File "regex_timed_rigid_rational_interval_inconsistent_reject.tpe", line 40, characters 6-70:
+  40 |   box [{idle ≥1/2; Read; Write}, {idle ≤1/2; Read; (≤3 & Read)}] (Token "r") as r in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `[{idle ≥0.5; Read; Write}, {idle ≤0.5; Read; (≤3 & Read)}]` admits no run: no run meets both its lower and its upper end
   ======================================================================
   regex_timed_rigid_rational_upper.tpe
   ======================================================================
@@ -4359,7 +4359,7 @@ it names none:
   File "regex_timed_rigid_rational_upper_reject.tpe", lines 38-39, characters 2-5:
   38 |   unbox p as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `p` is unboxed with grade `{!≤300}` accumulated since it was bound, which is not below its box grade `{(≤2.5; ReadImu; ReadClock)*}`
+  Typing error: Variable `p` is unboxed with grade `{idle ≤300}` accumulated since it was bound, which is not below its box grade `{(≤2.5; ReadImu; ReadClock)*}`
     File "regex_timed_rigid_rational_upper_reject.tpe", line 36, characters 50-51:
     36 |   box {(2.5; ReadImu; ReadClock)*} (Token "p") as p in
                                                            ^
@@ -4367,8 +4367,8 @@ it names none:
     File "regex_timed_rigid_rational_upper_reject.tpe", line 37, characters 2-11:
     37 |   delay 300;
            ^^^^^^^^^
-    grade `{!≤300}` accumulates here (delay)
-    Note: the resource inequality `{!≤300} <= {(≤2.5; ReadImu; ReadClock)*}` does not hold
+    grade `{idle ≤300}` accumulates here (delay)
+    Note: the resource inequality `{idle ≤300} <= {(≤2.5; ReadImu; ReadClock)*}` does not hold
   
   File "regex_timed_rigid_rational_upper_reject.tpe", lines 48-49, characters 2-5:
   48 |   unbox s as tok in
@@ -4395,7 +4395,7 @@ it names none:
   File "regex_timed_rigid_rational_upper_reject.tpe", lines 59-60, characters 2-5:
   59 |   unbox i as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `i` is unboxed with grade `{ReadTouch; ConfigureImu; !≤50; ReadTouch}` accumulated since it was bound, which is not below its box grade `{(ReadTouch; ≤50)*}`
+  Typing error: Variable `i` is unboxed with grade `{ReadTouch; ConfigureImu; idle ≤50; ReadTouch}` accumulated since it was bound, which is not below its box grade `{(ReadTouch; ≤50)*}`
     File "regex_timed_rigid_rational_upper_reject.tpe", line 54, characters 40-41:
     54 |   box {(ReadTouch; 50)*} (Token "i") as i in
                                                  ^
@@ -4411,17 +4411,17 @@ it names none:
     File "regex_timed_rigid_rational_upper_reject.tpe", line 57, characters 2-10:
     57 |   delay 50;
            ^^^^^^^^
-    grade `{!≤50}` accumulates here (delay)
+    grade `{idle ≤50}` accumulates here (delay)
     File "regex_timed_rigid_rational_upper_reject.tpe", line 58, characters 10-30:
     58 |   let y = perform ReadTouch () in
                    ^^^^^^^^^^^^^^^^^^^^
     grade `{ReadTouch}` accumulates here (operation `ReadTouch`)
-    Note: the resource inequality `{ReadTouch; ConfigureImu; !≤50; ReadTouch} <= {(ReadTouch; ≤50)*}` does not hold
+    Note: the resource inequality `{ReadTouch; ConfigureImu; idle ≤50; ReadTouch} <= {(ReadTouch; ≤50)*}` does not hold
   
   File "regex_timed_rigid_rational_upper_reject.tpe", lines 70-71, characters 2-5:
   70 |   unbox w as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `w` is unboxed with grade `{Wash; ChangeTip; Wash; !≤6; ChangeTip}` accumulated since it was bound, which is not below its box grade `{_*; Wash; _*; Wash; ≤5; ChangeTip}`
+  Typing error: Variable `w` is unboxed with grade `{Wash; ChangeTip; Wash; idle ≤6; ChangeTip}` accumulated since it was bound, which is not below its box grade `{_*; Wash; _*; Wash; ≤5; ChangeTip}`
     File "regex_timed_rigid_rational_upper_reject.tpe", line 64, characters 61-62:
     64 |   box {_*; Wash; _*; Wash; [2, 5]; ChangeTip} (Token "w") as w in
                                                                       ^
@@ -4441,12 +4441,12 @@ it names none:
     File "regex_timed_rigid_rational_upper_reject.tpe", line 68, characters 2-9:
     68 |   delay 6;
            ^^^^^^^
-    grade `{!≤6}` accumulates here (delay)
+    grade `{idle ≤6}` accumulates here (delay)
     File "regex_timed_rigid_rational_upper_reject.tpe", line 69, characters 2-22:
     69 |   perform ChangeTip ();
            ^^^^^^^^^^^^^^^^^^^^
     grade `{ChangeTip}` accumulates here (operation `ChangeTip`)
-    Note: the resource inequality `{Wash; ChangeTip; Wash; !≤6; ChangeTip} <= {_*; Wash; _*; Wash; ≤5; ChangeTip}` does not hold
+    Note: the resource inequality `{Wash; ChangeTip; Wash; idle ≤6; ChangeTip} <= {_*; Wash; _*; Wash; ≤5; ChangeTip}` does not hold
   
   File "regex_timed_rigid_rational_upper_reject.tpe", lines 77-78, characters 2-5:
   77 |   unbox e as tok in
@@ -4467,7 +4467,7 @@ it names none:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # {4} },
+    { resource_0 ↦ Token "t" ! {4} },
     {3}
   ]
   
@@ -4502,7 +4502,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
     File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
-    12 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+    12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
@@ -4557,7 +4557,7 @@ it names none:
     Note: the grade `{Fetch}` is below `{Fetch | Ping}` but not below `{(Log | Ping)*}`
   
   File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
-  39 | let two_pings () : unit # {3} =
+  39 | let two_pings () : unit ! {3} =
                         ^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Ping^2}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping^2} <= {3}` does not hold
@@ -4567,7 +4567,7 @@ it names none:
   === Run 1 ===
   return (Token "l")
   State: [
-    { resource_0 ↦ Token "l" # {_ & ~(1 | Fetch)} },
+    { resource_0 ↦ Token "l" ! {_ & ~(1 | Fetch)} },
     {1}
   ]
   
@@ -4580,7 +4580,7 @@ it names none:
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_timed_upper_ticks_reject.tpe", line 22, characters 26-43:
-  22 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
+  22 | let annotated () : unit ! {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
@@ -4594,7 +4594,7 @@ it names none:
   === Run 1 ===
   return 42
   State: [
-    { resource_0 ↦ 42 # {3; _*} },
+    { resource_0 ↦ 42 ! {3; _*} },
     {4}
   ]
   
@@ -4653,14 +4653,14 @@ it names none:
   regular_reject_bounds.tpe
   ======================================================================
   File "regular_reject_bounds.tpe", line 9, characters 0-52:
-  9 | operation Send : unit ~> unit # {Send} within [1, 2]
+  9 | operation Send : unit ~> unit ! {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-symbolic` grading monoid, which does not use them
   ======================================================================
   regular_reject_counterexample.tpe
   ======================================================================
   File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
-  18 | let session (b : bool) : nat # {Open; Read*; Close} =
+  18 | let session (b : bool) : nat ! {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
@@ -4706,7 +4706,7 @@ it names none:
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
   File "regular_reject_protocol.tpe", lines 23-24, characters 16-34:
-  23 | let unclosed () : nat # {Open; Read*; Close} =
+  23 | let unclosed () : nat ! {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
@@ -4720,7 +4720,7 @@ it names none:
   === Run 2 ===
   return (File "a", File "b")
   State: [
-    { resource_1 ↦ <fun> # ([0, 1], 1), resource_3 ↦ <fun> # ([0, 1], 1) }
+    { resource_1 ↦ <fun> ! ([0, 1], 1), resource_3 ↦ <fun> ! ([0, 1], 1) }
   ]
   
   === Run 3 ===
@@ -4741,13 +4741,13 @@ it names none:
   resource_levels_by_resource_reject.tpe
   ======================================================================
   File "resource_levels_by_resource_reject.tpe", lines 16-20, characters 14-19:
-  16 | let relock () : unit # ((Files, 0, 2), (Locks, 0, 1)) =
+  16 | let relock () : unit ! ((Files, 0, 2), (Locks, 0, 1)) =
                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Locks, 0, 2)`, which does not match its annotated grade `((Files, 0, 2), (Locks, 0, 1))`
     Note: the effect inequality `(Locks, 0, 2) <= ((Files, 0, 2), (Locks, 0, 1))` does not hold
   
   File "resource_levels_by_resource_reject.tpe", lines 23-29, characters 19-17:
-  23 | let three_files () : unit # (0, 2) =
+  23 | let three_files () : unit ! (0, 2) =
                           ^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Files, 0, 3)`, which does not match its annotated grade `(0, 2)`
     Note: the effect inequality `(Files, 0, 3) <= (0, 2)` does not hold
@@ -4776,7 +4776,7 @@ it names none:
   resource_levels_reject.tpe
   ======================================================================
   File "resource_levels_reject.tpe", lines 13-19, characters 13-17:
-  13 | let three () : unit # (0, 2) =
+  13 | let three () : unit ! (0, 2) =
                     ^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(0, 3)`, which does not match its annotated grade `(0, 2)`
     Note: the effect inequality `(0, 3) <= (0, 2)` does not hold
@@ -4804,7 +4804,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Close` has grade `(0, 0)`, which does not match the declared grade `(-1, 0)` of `Close`
     File "resource_levels_reject.tpe", line 10, characters 0-40:
-    10 | operation Close : file ~> unit # (-1, 0)
+    10 | operation Close : file ~> unit ! (-1, 0)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Close` is declared here
     Note: the effect inequality `(0, 0) <= (-1, 0)` does not hold
@@ -4824,7 +4824,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Open` has grade `(0, 0)`, which does not match the declared grade `(1, 1)` of `Open`
     File "resource_levels_reject.tpe", line 9, characters 0-40:
-    9 | operation Open : string ~> file # (1, 1)
+    9 | operation Open : string ~> file ! (1, 1)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Open` is declared here
     Note: the effect inequality `(0, 0) <= (1, 1)` does not hold
@@ -4840,7 +4840,7 @@ it names none:
     Note: the resource inequality `(0, 0) <= (1, 1)` does not hold
   
   File "resource_levels_reject.tpe", lines 53-56, characters 18-3:
-  53 | let rotate_late f : file # (-1, 0, 0) =
+  53 | let rotate_late f : file ! (-1, 0, 0) =
                          ^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(0, 1)`, which does not match its annotated grade `(-1, 0, 0)`
     Note: the effect inequality `(0, 1) <= (-1, 0, 0)` does not hold
@@ -4864,10 +4864,10 @@ it names none:
   File "strict_delays_lower_reject.tpe", lines 33-34, characters 2-5:
   33 |   unbox w as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `w` is unboxed with grade `{Open; Stir^2; Close}` accumulated since it was bound, which is not below its box grade `{Open; !≥5; Close}`
-    File "strict_delays_lower_reject.tpe", line 28, characters 39-40:
-    28 |   box {Open; !5; Close} (Token "w") as w in
-                                                ^
+  Typing error: Variable `w` is unboxed with grade `{Open; Stir^2; Close}` accumulated since it was bound, which is not below its box grade `{Open; idle ≥5; Close}`
+    File "strict_delays_lower_reject.tpe", line 28, characters 43-44:
+    28 |   box {Open; idle 5; Close} (Token "w") as w in
+                                                    ^
     `w` is bound here
     File "strict_delays_lower_reject.tpe", line 29, characters 2-17:
     29 |   perform Open ();
@@ -4885,17 +4885,17 @@ it names none:
     32 |   perform Close ();
            ^^^^^^^^^^^^^^^^
     grade `{Close}` accumulates here (operation `Close`)
-    Note: the resource inequality `{Open; Stir^2; Close} <= {Open; !≥5; Close}` does not hold
+    Note: the resource inequality `{Open; Stir^2; Close} <= {Open; idle ≥5; Close}` does not hold
   ======================================================================
   strict_delays_rational_reject.tpe
   ======================================================================
   File "strict_delays_rational_reject.tpe", lines 37-38, characters 2-5:
   37 |   unbox b as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `b` is unboxed with grade `{AddBeads; !7; ChangeTip; MagnetOn}` accumulated since it was bound, which is not below its box grade `{AddBeads; ![5, 10]; MagnetOn}`
-    File "strict_delays_rational_reject.tpe", line 32, characters 52-53:
-    32 |   box {AddBeads; ![5, 10]; MagnetOn} (Token "b") as b in
-                                                             ^
+  Typing error: Variable `b` is unboxed with grade `{AddBeads; idle 7; ChangeTip; MagnetOn}` accumulated since it was bound, which is not below its box grade `{AddBeads; idle [5, 10]; MagnetOn}`
+    File "strict_delays_rational_reject.tpe", line 32, characters 56-57:
+    32 |   box {AddBeads; idle [5, 10]; MagnetOn} (Token "b") as b in
+                                                                 ^
     `b` is bound here
     File "strict_delays_rational_reject.tpe", line 33, characters 2-21:
     33 |   perform AddBeads ();
@@ -4904,7 +4904,7 @@ it names none:
     File "strict_delays_rational_reject.tpe", line 34, characters 2-9:
     34 |   delay 7;
            ^^^^^^^
-    grade `{!7}` accumulates here (delay)
+    grade `{idle 7}` accumulates here (delay)
     File "strict_delays_rational_reject.tpe", line 35, characters 2-22:
     35 |   perform ChangeTip ();
            ^^^^^^^^^^^^^^^^^^^^
@@ -4913,20 +4913,20 @@ it names none:
     36 |   perform MagnetOn ();
            ^^^^^^^^^^^^^^^^^^^
     grade `{MagnetOn}` accumulates here (operation `MagnetOn`)
-    Note: the resource inequality `{AddBeads; !7; ChangeTip; MagnetOn} <= {AddBeads; ![5, 10]; MagnetOn}` does not hold
+    Note: the resource inequality `{AddBeads; idle 7; ChangeTip; MagnetOn} <= {AddBeads; idle [5, 10]; MagnetOn}` does not hold
   
   File "strict_delays_rational_reject.tpe", lines 58-59, characters 2-5:
   58 |   unbox s as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `s` is unboxed with grade `{!10; Read; Log; !10; Read}` accumulated since it was bound, which is not below its box grade `{(![9.5, 10.5]; Read)*}`
-    File "strict_delays_rational_reject.tpe", line 52, characters 45-46:
-    52 |   box {(![9.5, 10.5]; Read)*} (Token "s") as s in
-                                                      ^
+  Typing error: Variable `s` is unboxed with grade `{idle 10; Read; Log; idle 10; Read}` accumulated since it was bound, which is not below its box grade `{(idle [9.5, 10.5]; Read)*}`
+    File "strict_delays_rational_reject.tpe", line 52, characters 49-50:
+    52 |   box {(idle [9.5, 10.5]; Read)*} (Token "s") as s in
+                                                          ^
     `s` is bound here
     File "strict_delays_rational_reject.tpe", line 53, characters 2-10:
     53 |   delay 10;
            ^^^^^^^^
-    grade `{!10}` accumulates here (delay)
+    grade `{idle 10}` accumulates here (delay)
     File "strict_delays_rational_reject.tpe", line 54, characters 10-25:
     54 |   let a = perform Read () in
                    ^^^^^^^^^^^^^^^
@@ -4938,17 +4938,17 @@ it names none:
     File "strict_delays_rational_reject.tpe", line 56, characters 2-10:
     56 |   delay 10;
            ^^^^^^^^
-    grade `{!10}` accumulates here (delay)
+    grade `{idle 10}` accumulates here (delay)
     File "strict_delays_rational_reject.tpe", line 57, characters 10-25:
     57 |   let b = perform Read () in
                    ^^^^^^^^^^^^^^^
     grade `{Read}` accumulates here (operation `Read`)
-    Note: the resource inequality `{!10; Read; Log; !10; Read} <= {(![9.5, 10.5]; Read)*}` does not hold
+    Note: the resource inequality `{idle 10; Read; Log; idle 10; Read} <= {(idle [9.5, 10.5]; Read)*}` does not hold
   
   File "strict_delays_rational_reject.tpe", lines 75-76, characters 2-5:
   75 |   unbox r as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `r` is unboxed with grade `{Read; !2; Reset}` accumulated since it was bound, which is not below its box grade `{≥0 & ~Reset}`
+  Typing error: Variable `r` is unboxed with grade `{Read; idle 2; Reset}` accumulated since it was bound, which is not below its box grade `{≥0 & ~Reset}`
     File "strict_delays_rational_reject.tpe", line 71, characters 37-38:
     71 |   box {≥0 & ~Reset} (Token "r") as r in
                                             ^
@@ -4960,22 +4960,22 @@ it names none:
     File "strict_delays_rational_reject.tpe", line 73, characters 2-9:
     73 |   delay 2;
            ^^^^^^^
-    grade `{!2}` accumulates here (delay)
+    grade `{idle 2}` accumulates here (delay)
     File "strict_delays_rational_reject.tpe", line 74, characters 2-18:
     74 |   perform Reset ();
            ^^^^^^^^^^^^^^^^
     grade `{Reset}` accumulates here (operation `Reset`)
-    Note: the resource inequality `{Read; !2; Reset} <= {≥0 & ~Reset}` does not hold
+    Note: the resource inequality `{Read; idle 2; Reset} <= {≥0 & ~Reset}` does not hold
   ======================================================================
   strict_delays_traces_reject.tpe
   ======================================================================
   File "strict_delays_traces_reject.tpe", lines 32-33, characters 2-5:
   32 |   unbox h as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `h` is unboxed with grade `{Heat; !≤2; Stir; Cool}` accumulated since it was bound, which is not below its box grade `{Heat; !≤3; Cool}`
-    File "strict_delays_traces_reject.tpe", line 27, characters 38-39:
-    27 |   box {Heat; !3; Cool} (Token "h") as h in
-                                               ^
+  Typing error: Variable `h` is unboxed with grade `{Heat; idle ≤2; Stir; Cool}` accumulated since it was bound, which is not below its box grade `{Heat; idle ≤3; Cool}`
+    File "strict_delays_traces_reject.tpe", line 27, characters 42-43:
+    27 |   box {Heat; idle 3; Cool} (Token "h") as h in
+                                                   ^
     `h` is bound here
     File "strict_delays_traces_reject.tpe", line 28, characters 2-17:
     28 |   perform Heat ();
@@ -4984,7 +4984,7 @@ it names none:
     File "strict_delays_traces_reject.tpe", line 29, characters 2-9:
     29 |   delay 2;
            ^^^^^^^
-    grade `{!≤2}` accumulates here (delay)
+    grade `{idle ≤2}` accumulates here (delay)
     File "strict_delays_traces_reject.tpe", line 30, characters 2-17:
     30 |   perform Stir ();
            ^^^^^^^^^^^^^^^
@@ -4993,22 +4993,22 @@ it names none:
     31 |   perform Cool ();
            ^^^^^^^^^^^^^^^
     grade `{Cool}` accumulates here (operation `Cool`)
-    Note: the resource inequality `{Heat; !≤2; Stir; Cool} <= {Heat; !≤3; Cool}` does not hold
+    Note: the resource inequality `{Heat; idle ≤2; Stir; Cool} <= {Heat; idle ≤3; Cool}` does not hold
   ======================================================================
   strict_delays_whole_reject.tpe
   ======================================================================
   File "strict_delays_whole_reject.tpe", lines 34-35, characters 2-5:
   34 |   unbox l as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `l` is unboxed with grade `{!2; Read; Log; !2; Read}` accumulated since it was bound, which is not below its box grade `{(![2, 4]; Read)*}`
-    File "strict_delays_whole_reject.tpe", line 28, characters 40-41:
-    28 |   box {(![2, 4]; Read)*} (Token "l") as l in
-                                                 ^
+  Typing error: Variable `l` is unboxed with grade `{idle 2; Read; Log; idle 2; Read}` accumulated since it was bound, which is not below its box grade `{(idle [2, 4]; Read)*}`
+    File "strict_delays_whole_reject.tpe", line 28, characters 44-45:
+    28 |   box {(idle [2, 4]; Read)*} (Token "l") as l in
+                                                     ^
     `l` is bound here
     File "strict_delays_whole_reject.tpe", line 29, characters 2-9:
     29 |   delay 2;
            ^^^^^^^
-    grade `{!2}` accumulates here (delay)
+    grade `{idle 2}` accumulates here (delay)
     File "strict_delays_whole_reject.tpe", line 30, characters 10-25:
     30 |   let a = perform Read () in
                    ^^^^^^^^^^^^^^^
@@ -5020,12 +5020,12 @@ it names none:
     File "strict_delays_whole_reject.tpe", line 32, characters 2-9:
     32 |   delay 2;
            ^^^^^^^
-    grade `{!2}` accumulates here (delay)
+    grade `{idle 2}` accumulates here (delay)
     File "strict_delays_whole_reject.tpe", line 33, characters 10-25:
     33 |   let b = perform Read () in
                    ^^^^^^^^^^^^^^^
     grade `{Read}` accumulates here (operation `Read`)
-    Note: the resource inequality `{!2; Read; Log; !2; Read} <= {(![2, 4]; Read)*}` does not hold
+    Note: the resource inequality `{idle 2; Read; Log; idle 2; Read} <= {(idle [2, 4]; Read)*}` does not hold
   ======================================================================
   string_reject_newline_location.tpe
   ======================================================================
@@ -5234,9 +5234,9 @@ it names none:
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
     7,
-    { resource_0 ↦ Fresh (Model "Sword") # 5 },
+    { resource_0 ↦ Fresh (Model "Sword") ! 5 },
     7,
-    { resource_1 ↦ Fresh (Model "Hammer") # 5 },
+    { resource_1 ↦ Fresh (Model "Hammer") ! 5 },
     5,
     5
   ]
@@ -5688,14 +5688,14 @@ it names none:
   return resource_0
   State: [
     5,
-    { resource_0 ↦ 11 # 3 },
+    { resource_0 ↦ 11 ! 3 },
     3
   ]
   
   === Run 8 ===
   return 42
   State: [
-    { resource_0 ↦ 42 # 3 },
+    { resource_0 ↦ 42 ! 3 },
     5
   ]
   
@@ -5704,7 +5704,7 @@ it names none:
   State: [
     2,
     10,
-    { resource_0 ↦ (43, 99, "test") # 3 },
+    { resource_0 ↦ (43, 99, "test") ! 3 },
     3
   ]
   
@@ -5714,7 +5714,7 @@ it names none:
   === Run 1 ===
   return 42
   State: [
-    { resource_0 ↦ 42 # 7, resource_2 ↦ <fun> # 7 },
+    { resource_0 ↦ 42 ! 7, resource_2 ↦ <fun> ! 7 },
     3,
     4
   ]
@@ -5723,7 +5723,7 @@ it names none:
   time_reject_within.tpe
   ======================================================================
   File "time_reject_within.tpe", line 6, characters 0-47:
-  6 | operation Heat : unit ~> unit # 2 within [1, 2]
+  6 | operation Heat : unit ~> unit ! 2 within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `time-lower-bound` grading monoid, which does not use them
   ======================================================================
@@ -5771,7 +5771,7 @@ it names none:
   === Run 1 ===
   return (Fresh (Model "Sword"))
   State: [
-    { resource_1 ↦ <fun> # {Heat; Extrude; Cool} },
+    { resource_1 ↦ <fun> ! {Heat; Extrude; Cool} },
     {1},
     {3},
     {2}
@@ -5792,7 +5792,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Extrude` has grade `[{1}, {1}]`, which does not match the declared grade `[{3}, {5}]` of `Extrude`
     File "traces_intervals_default_bounds.tpe", line 12, characters 0-71:
-    12 | operation Extrude : unit ~> unit # [{Extrude}, {Extrude}] within [3, 5]
+    12 | operation Extrude : unit ~> unit ! [{Extrude}, {Extrude}] within [3, 5]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{3}, {5}]` does not hold
@@ -5804,7 +5804,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` has grade `[{3}, {3}]`, which does not match the declared grade `[{1}, {2}]` of `Send`
     File "traces_intervals_default_open_reject.tpe", line 11, characters 0-62:
-    11 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 3)
+    11 | operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
     Note: the effect inequality `[{3}, {3}] <= [{1}, {2}]` does not hold
@@ -5814,7 +5814,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{2}, {3}]` of `Beep`
     File "traces_intervals_default_open_reject.tpe", line 12, characters 0-62:
-    12 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 3]
+    12 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 3]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{2}, {3}]` does not hold
@@ -5827,7 +5827,7 @@ it names none:
   Typing error: The grade `[{Write}, {Read; Read; Read}]` admits no run: no run meets both its lower and its upper end
   
   File "traces_intervals_no_common_run_reject.tpe", line 24, characters 32-48:
-  24 | operation Slow : unit ~> unit # [{5}, {Read; 2}]
+  24 | operation Slow : unit ~> unit ! [{5}, {Read; 2}]
                                        ^^^^^^^^^^^^^^^^
   Typing error: The grade `[{5}, {Read; 2}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 5 and its upper end at most 4
   ======================================================================
@@ -5836,7 +5836,7 @@ it names none:
   === Run 1 ===
   return 7
   State: [
-    { resource_0 ↦ 42 # {Heat; 4 | 4; Heat} }
+    { resource_0 ↦ 42 ! {Heat; 4 | 4; Heat} }
   ]
   
   ======================================================================
@@ -5870,7 +5870,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
     File "traces_open_bounds_reject.tpe", line 12, characters 0-52:
-    12 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+    12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
@@ -5894,28 +5894,28 @@ it names none:
   traces_reject_bounds.tpe
   ======================================================================
   File "traces_reject_bounds.tpe", line 8, characters 0-52:
-  8 | operation Heat : unit ~> unit # {Heat} within [3, 0]
+  8 | operation Heat : unit ~> unit ! {Heat} within [3, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The running-time bounds of operation `Heat` must satisfy `lo <= hi`
   ======================================================================
   traces_reject_bounds_declared.tpe
   ======================================================================
   File "traces_reject_bounds_declared.tpe", line 11, characters 0-61:
-  11 | operation Send : string ~> unit # {Tx | Tx; Tx} within [2, 6]
+  11 | operation Send : string ~> unit ! {Tx | Tx; Tx} within [2, 6]
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Operation `Send` is compound, so its running-time bounds follow from its grade `{Tx | Tx; Tx}` and must not be declared
   ======================================================================
   traces_reject_bounds_zero.tpe
   ======================================================================
   File "traces_reject_bounds_zero.tpe", line 9, characters 0-52:
-  9 | operation Heat : unit ~> unit # {Heat} within [0, 0]
+  9 | operation Heat : unit ~> unit ! {Heat} within [0, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The upper running-time bound of operation `Heat` must be positive
   ======================================================================
   traces_reject_bounds_zero_lower.tpe
   ======================================================================
   File "traces_reject_bounds_zero_lower.tpe", line 10, characters 0-52:
-  10 | operation Heat : unit ~> unit # {Heat} within [0, 2]
+  10 | operation Heat : unit ~> unit ! {Heat} within [0, 2]
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The running time of operation `Heat` must be positive: write the lower end of its bounds above 0 or open at 0, as `within (0, 1]`
   ======================================================================
@@ -5926,7 +5926,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Extrude` has grade `{6}`, which does not match the declared grade `{5}` of `Extrude`
     File "traces_reject_default_bounds.tpe", line 11, characters 0-58:
-    11 | operation Extrude : unit ~> unit # {Extrude} within [3, 5]
+    11 | operation Extrude : unit ~> unit ! {Extrude} within [3, 5]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
     Note: the effect inequality `{6} <= {5}` does not hold
@@ -5941,14 +5941,14 @@ it names none:
   traces_reject_fractional_bound.tpe
   ======================================================================
   File "traces_reject_fractional_bound.tpe", line 10, characters 47-50:
-  10 | operation Heat : unit ~> unit # {Heat} within [1/2, 1]
+  10 | operation Heat : unit ~> unit ! {Heat} within [1/2, 1]
                                                       ^^^
   Syntax error: In the `traces-timed-upper-bound` grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `mode-times` or `event-separation` grading monoids?
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================
   File "traces_reject_missing_within.tpe", line 10, characters 0-38:
-  10 | operation Heat : unit ~> unit # {Heat}
+  10 | operation Heat : unit ~> unit ! {Heat}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Atomic operation `Heat` needs running-time bounds `within [lo, hi]` under the `traces-timed-upper-bound` grading monoid
   ======================================================================
@@ -5979,7 +5979,7 @@ it names none:
   traces_reject_self_retry.tpe
   ======================================================================
   File "traces_reject_self_retry.tpe", line 11, characters 0-53:
-  11 | operation Send : string ~> unit # {Send | Send; Send}
+  11 | operation Send : string ~> unit ! {Send | Send; Send}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Compound operation `Send` may not name itself in its grade `{Send | Send; Send}`
   ======================================================================
@@ -5994,7 +5994,7 @@ it names none:
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `h` is defined here
     File "traces_reject_undecided_condition.tpe", line 16, characters 0-31:
-    16 | operation Op : unit ~> unit # 1
+    16 | operation Op : unit ~> unit ! 1
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "traces_reject_undecided_condition.tpe", line 18, characters 33-34:
@@ -6010,7 +6010,7 @@ it names none:
   traces_reject_unknown_event.tpe
   ======================================================================
   File "traces_reject_unknown_event.tpe", line 11, characters 0-53:
-  11 | operation PrintModel : unit ~> unit # {Heat; Extrude}
+  11 | operation PrintModel : unit ~> unit ! {Heat; Extrude}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Extrude` in the grade of operation `PrintModel`
   ======================================================================
@@ -6019,7 +6019,7 @@ it names none:
   File "traces_rigid_upper_reject.tpe", lines 31-32, characters 2-5:
   31 |   unbox u as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `u` is unboxed with grade `{Heat; !≤3}` accumulated since it was bound, which is not below its box grade `{Heat; ≤3; Cool}`
+  Typing error: Variable `u` is unboxed with grade `{Heat; idle ≤3}` accumulated since it was bound, which is not below its box grade `{Heat; ≤3; Cool}`
     File "traces_rigid_upper_reject.tpe", line 28, characters 37-38:
     28 |   box {Heat; 3; Cool} (Token "u") as u in
                                               ^
@@ -6031,8 +6031,8 @@ it names none:
     File "traces_rigid_upper_reject.tpe", line 30, characters 2-9:
     30 |   delay 3;
            ^^^^^^^
-    grade `{!≤3}` accumulates here (delay)
-    Note: the resource inequality `{Heat; !≤3} <= {Heat; ≤3; Cool}` does not hold
+    grade `{idle ≤3}` accumulates here (delay)
+    Note: the resource inequality `{Heat; idle ≤3} <= {Heat; ≤3; Cool}` does not hold
   ======================================================================
   tydef.tpe
   ======================================================================
@@ -6070,7 +6070,7 @@ it names none:
   === Run 1 ===
   return 3
   State: [
-    { resource_0 ↦ (1, 2) # 5 },
+    { resource_0 ↦ (1, 2) ! 5 },
     5
   ]
   
@@ -6172,7 +6172,7 @@ it names none:
   === Run 4 ===
   return 42
   State: [
-    { resource_1 ↦ <fun> # 1 },
+    { resource_1 ↦ <fun> ! 1 },
     1
   ]
   
@@ -6197,14 +6197,14 @@ it names none:
   return ()
   State: [
     2,
-    { resource_1 ↦ <fun> # (1, (Send, {0})) },
+    { resource_1 ↦ <fun> ! (1, (Send, {0})) },
     1
   ]
   
   === Run 3 ===
   return 7
   State: [
-    { resource_0 ↦ 7 # [2, 4] },
+    { resource_0 ↦ 7 ! [2, 4] },
     2,
     1
   ]
@@ -6213,13 +6213,13 @@ it names none:
   windowed_schedules_reject.tpe
   ======================================================================
   File "windowed_schedules_reject.tpe", lines 11-13, characters 17-17:
-  11 | let late_send () : unit # (4, (Send, {2})) =
+  11 | let late_send () : unit ! (4, (Send, {2})) =
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(4, (Send, {3}))`, which does not match its annotated grade `(4, (Send, {2}))`
     Note: the effect inequality `(4, (Send, {3})) <= (4, (Send, {2}))` does not hold
   
   File "windowed_schedules_reject.tpe", lines 16-18, characters 12-17:
-  16 | let slow () : unit # ([2, 3], (Send, {1 | 2})) =
+  16 | let slow () : unit ! ([2, 3], (Send, {1 | 2})) =
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `([2, 4], (Send, {1; (0 | 1 | 2)}))`, which does not match its annotated grade `([2, 3], (Send, {1 | 2}))`
     Note: the effect inequality `([2, 4], (Send, {1; (0 | 1 | 2)})) <= ([2, 3], (Send, {1 | 2}))` does not hold
@@ -6261,7 +6261,7 @@ it names none:
     Note: the resource inequality `(2, (Send, {0 | 1})) <= (1, (Send, {0}))` does not hold
   
   File "windowed_schedules_reject.tpe", line 36, characters 15-58:
-  36 | let renamed () : unit # (1, (Recv, {0})) = perform Send ()
+  36 | let renamed () : unit ! (1, (Recv, {0})) = perform Send ()
                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(1, (Send, {0}))`, which does not match its annotated grade `(1, (Recv, {0}))`
     Note: the effect inequality `(1, (Send, {0})) <= (1, (Recv, {0}))` does not hold
@@ -6292,97 +6292,97 @@ automata, 'regex-upper-bound-letter-automata':
   === Run 1 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Send | Read*} }
+    { resource_0 ↦ 1 ! {Send | Read*} }
   ]
   
   === Run 2 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read*} }
+    { resource_0 ↦ 1 ! {Read*} }
   ]
   
   === Run 3 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read*} }
+    { resource_0 ↦ 1 ! {Read*} }
   ]
   
   === Run 4 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {_} }
+    { resource_0 ↦ 1 ! {_} }
   ]
   
   === Run 5 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 3; (Send | Write)*} }
+    { resource_0 ↦ 1 ! {Read; 3; (Send | Write)*} }
   ]
   
   === Run 6 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {(Send; 2)*} }
+    { resource_0 ↦ 1 ! {(Send; 2)*} }
   ]
   
   === Run 7 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {(_ & ~Revoke)*} }
+    { resource_0 ↦ 1 ! {(_ & ~Revoke)*} }
   ]
   
   === Run 8 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Open; (Read | Write)*; Close} }
+    { resource_0 ↦ 1 ! {Open; (Read | Write)*; Close} }
   ]
   
   === Run 9 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {3 | 2*} }
+    { resource_0 ↦ 1 ! {3 | 2*} }
   ]
   
   === Run 10 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {3} }
+    { resource_0 ↦ 1 ! {3} }
   ]
   
   === Run 11 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {0} }
+    { resource_0 ↦ 1 ! {0} }
   ]
   
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 1; (0 | 1)^2; Send} }
+    { resource_0 ↦ 1 ! {Read; 1; (0 | 1)^2; Send} }
   ]
   
   === Run 13 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 2; (0 | 1); Send} }
+    { resource_0 ↦ 1 ! {Read; 2; (0 | 1); Send} }
   ]
   
   === Run 14 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 2; 1*} }
+    { resource_0 ↦ 1 ! {Read; 2; 1*} }
   ]
   
   === Run 15 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {2; (0 | 1; (0 | 1))} }
+    { resource_0 ↦ 1 ! {2; (0 | 1; (0 | 1))} }
   ]
   
   === Run 16 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # ⊤ }
+    { resource_0 ↦ 1 ! ⊤ }
   ]
   
   ======================================================================
@@ -6391,7 +6391,7 @@ automata, 'regex-upper-bound-letter-automata':
   === Run 1 ===
   return 42
   State: [
-    { resource_0 ↦ 42 # {3; _*} },
+    { resource_0 ↦ 42 ! {3; _*} },
     {4}
   ]
   
@@ -6450,14 +6450,14 @@ automata, 'regex-upper-bound-letter-automata':
   regular_reject_bounds.tpe (regex-upper-bound-letter-automata)
   ======================================================================
   File "regular_reject_bounds.tpe", line 9, characters 0-52:
-  9 | operation Send : unit ~> unit # {Send} within [1, 2]
+  9 | operation Send : unit ~> unit ! {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-letter-automata` grading monoid, which does not use them
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound-letter-automata)
   ======================================================================
   File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
-  18 | let session (b : bool) : nat # {Open; Read*; Close} =
+  18 | let session (b : bool) : nat ! {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
@@ -6503,7 +6503,7 @@ automata, 'regex-upper-bound-letter-automata':
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
   File "regular_reject_protocol.tpe", lines 23-24, characters 16-34:
-  23 | let unclosed () : nat # {Open; Read*; Close} =
+  23 | let unclosed () : nat ! {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
@@ -6529,7 +6529,7 @@ have one implementation, excepted:
   regex_timed_compound_named_later_reject.tpe (regex-timed-interval-letter-automata)
   ======================================================================
   File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
-  10 | operation Two : unit ~> unit # {Fetch; Later}
+  10 | operation Two : unit ~> unit ! {Fetch; Later}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Later` in the grade of operation `Two`
   ======================================================================
@@ -6541,7 +6541,7 @@ have one implementation, excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # [{2}, {4}] },
+    { resource_0 ↦ Token "t" ! [{2}, {4}] },
     [{3}, {3}]
   ]
   
@@ -6554,7 +6554,7 @@ have one implementation, excepted:
   Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
-  24 | operation Slow : unit ~> unit # [{4; Fetch*}, {Store; 1}]
+  24 | operation Slow : unit ~> unit ! [{4; Fetch*}, {Store; 1}]
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
   ======================================================================
@@ -6596,7 +6596,7 @@ have one implementation, excepted:
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
-  24 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
+  24 | operation Other : unit ~> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
@@ -6605,7 +6605,7 @@ have one implementation, excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # {Ping; 3} },
+    { resource_0 ↦ Token "t" ! {Ping; 3} },
     {1},
     {3},
     {1}
@@ -6673,7 +6673,7 @@ have one implementation, excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # {4} },
+    { resource_0 ↦ Token "t" ! {4} },
     {3}
   ]
   
@@ -6708,7 +6708,7 @@ have one implementation, excepted:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
     File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
-    12 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+    12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
@@ -6763,7 +6763,7 @@ have one implementation, excepted:
     Note: the grade `{Fetch}` is below `{Fetch | Ping}` but not below `{(Log | Ping)*}`
   
   File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
-  39 | let two_pings () : unit # {3} =
+  39 | let two_pings () : unit ! {3} =
                         ^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Ping^2}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping^2} <= {3}` does not hold
@@ -6773,7 +6773,7 @@ have one implementation, excepted:
   === Run 1 ===
   return (Token "l")
   State: [
-    { resource_0 ↦ Token "l" # {_ & ~(1 | Fetch)} },
+    { resource_0 ↦ Token "l" ! {_ & ~(1 | Fetch)} },
     {1}
   ]
   
@@ -6786,7 +6786,7 @@ have one implementation, excepted:
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_timed_upper_ticks_reject.tpe", line 22, characters 26-43:
-  22 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
+  22 | let annotated () : unit ! {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
@@ -6860,7 +6860,7 @@ their visible implementations, under their implementations by automata
     Note: the resource inequality `{Sample; 1; Send} <= {Sample; [0, 1); Send}` does not hold
   
   File "regex_rational_reject.tpe", line 31, characters 14-43:
-  31 | let thirds () : unit # {(1/2)*} = delay 1/3
+  31 | let thirds () : unit ! {(1/2)*} = delay 1/3
                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{1/3}`, which does not match its annotated grade `{(0.5)*}`
     Note: the effect inequality `{1/3} <= {(0.5)*}` does not hold
@@ -6885,7 +6885,7 @@ their visible implementations, under their implementations by automata
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # [{0.5}, {1.5}] },
+    { resource_0 ↦ Token "t" ! [{0.5}, {1.5}] },
     [{0.5}, {0.5}]
   ]
   
@@ -6897,7 +6897,7 @@ their visible implementations, under their implementations by automata
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` has grade `[{2}, {2}]`, which does not match the declared grade `[{1}, {[0, 2)}]` of `Send`
     File "regex_timed_rational_interval_default_open_reject.tpe", line 11, characters 0-62:
-    11 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
+    11 | operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
     Note: the effect inequality `[{2}, {2}] <= [{1}, {[0, 2)}]` does not hold
@@ -6907,7 +6907,7 @@ their visible implementations, under their implementations by automata
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
     File "regex_timed_rational_interval_default_open_reject.tpe", line 12, characters 0-62:
-    12 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+    12 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
@@ -6920,7 +6920,7 @@ their visible implementations, under their implementations by automata
   Typing error: The grade `[{(2, 3)}, {[0, 2]}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_rational_interval_no_common_run_reject.tpe", line 24, characters 32-54:
-  24 | operation Slow : unit ~> unit # [{5/2}, {Sample; 1/2}]
+  24 | operation Slow : unit ~> unit ! [{5/2}, {Sample; 1/2}]
                                        ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{2.5}, {Sample; 0.5}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2.5 and its upper end at most 2
   ======================================================================
@@ -6931,7 +6931,7 @@ their visible implementations, under their implementations by automata
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
     File "regex_timed_rational_interval_open_reject.tpe", line 10, characters 0-62:
-    10 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+    10 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
@@ -7026,7 +7026,7 @@ their visible implementations, under their implementations by automata
     Note: the grade `{1/3}` is below `{(0, 1)}` but not below `{0.5}`
   
   File "regex_timed_rational_lower_reject.tpe", line 40, characters 13-44:
-  40 | let quick () : nat # {1} = perform Sample ()
+  40 | let quick () : nat ! {1} = perform Sample ()
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Sample}`, which does not match its annotated grade `{1}`
     Note: the effect inequality `{Sample} <= {1}` does not hold
@@ -7047,7 +7047,7 @@ their visible implementations, under their implementations by automata
   === Run 1 ===
   return 1
   State: [
-    { resource_0 ↦ 1 # {[0, 2)} },
+    { resource_0 ↦ 1 ! {[0, 2)} },
     {1.9}
   ]
   
@@ -7073,7 +7073,7 @@ their visible implementations, under their implementations by automata
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{2}`, which does not match the declared grade `{[0, 2)}` of `Beep`
     File "regex_timed_rational_upper_open_reject.tpe", line 12, characters 0-54:
-    12 | operation Beep : unit ~> unit # {Beep} within [1/2, 2)
+    12 | operation Beep : unit ~> unit ! {Beep} within [1/2, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{2} <= {[0, 2)}` does not hold
@@ -7158,7 +7158,7 @@ their visible implementations, under their implementations by automata
     Note: the resource inequality `{Send; 1} <= {Send; ([0, 1] & ~1)}` does not hold
   
   File "regex_timed_rational_upper_reject.tpe", lines 56-58, characters 19-19:
-  56 | let two_samples () : nat # {5/2} =
+  56 | let two_samples () : nat ! {5/2} =
                           ^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Sample^2}`, which does not match its annotated grade `{2.5}`
     Note: the effect inequality `{Sample^2} <= {2.5}` does not hold
@@ -7192,7 +7192,7 @@ the rigid grades excepted:
   === Run 1 ===
   return "settled"
   State: [
-    { resource_0 ↦ "settled" # {3; _*} },
+    { resource_0 ↦ "settled" ! {3; _*} },
     {4}
   ]
   
@@ -7202,7 +7202,7 @@ the rigid grades excepted:
   === Run 1 ===
   return "settled"
   State: [
-    { resource_0 ↦ "settled" # {3; _*} },
+    { resource_0 ↦ "settled" ! {3; _*} },
     {4}
   ]
   
@@ -7236,7 +7236,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Part "gear")
   State: [
-    { resource_0 ↦ Part "gear" # {Coat; 4} },
+    { resource_0 ↦ Part "gear" ! {Coat; 4} },
     {1},
     {4},
     {2}
@@ -7248,7 +7248,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Part "gear")
   State: [
-    { resource_0 ↦ Part "gear" # {Coat; 4} },
+    { resource_0 ↦ Part "gear" ! {Coat; 4} },
     {1},
     {4},
     {2}
@@ -7260,7 +7260,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Checkpoint 5, 2)
   State: [
-    { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
+    { resource_0 ↦ Checkpoint 5 ! {Login; (Fetch | Store)*; Logout} },
     {3},
     {1},
     {1},
@@ -7282,7 +7282,7 @@ the rigid grades excepted:
   === Run 3 ===
   return 3
   State: [
-    { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
+    { resource_1 ↦ <fun> ! {Login; (Fetch | Store)*; Logout} },
     {3},
     {1},
     {1},
@@ -7307,7 +7307,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Checkpoint 5, 2)
   State: [
-    { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
+    { resource_0 ↦ Checkpoint 5 ! {Login; (Fetch | Store)*; Logout} },
     {3},
     {1},
     {1},
@@ -7329,7 +7329,7 @@ the rigid grades excepted:
   === Run 3 ===
   return 3
   State: [
-    { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
+    { resource_1 ↦ <fun> ! {Login; (Fetch | Store)*; Logout} },
     {3},
     {1},
     {1},
@@ -7354,7 +7354,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Reading 0)
   State: [
-    { resource_0 ↦ Reading 0 # {2; Send; 6} },
+    { resource_0 ↦ Reading 0 ! {2; Send; 6} },
     {2},
     {2},
     {5}
@@ -7366,7 +7366,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Reading 0)
   State: [
-    { resource_0 ↦ Reading 0 # {2; Send; 6} },
+    { resource_0 ↦ Reading 0 ! {2; Send; 6} },
     {2},
     {2},
     {5}
@@ -7392,97 +7392,97 @@ the rigid grades excepted:
   === Run 1 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Send | Read*} }
+    { resource_0 ↦ 1 ! {Send | Read*} }
   ]
   
   === Run 2 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read*} }
+    { resource_0 ↦ 1 ! {Read*} }
   ]
   
   === Run 3 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read*} }
+    { resource_0 ↦ 1 ! {Read*} }
   ]
   
   === Run 4 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {_} }
+    { resource_0 ↦ 1 ! {_} }
   ]
   
   === Run 5 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 3; (Send | Write)*} }
+    { resource_0 ↦ 1 ! {Read; 3; (Send | Write)*} }
   ]
   
   === Run 6 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {(Send; 2)*} }
+    { resource_0 ↦ 1 ! {(Send; 2)*} }
   ]
   
   === Run 7 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {(_ & ~Revoke)*} }
+    { resource_0 ↦ 1 ! {(_ & ~Revoke)*} }
   ]
   
   === Run 8 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Open; (Read | Write)*; Close} }
+    { resource_0 ↦ 1 ! {Open; (Read | Write)*; Close} }
   ]
   
   === Run 9 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {3 | 2*} }
+    { resource_0 ↦ 1 ! {3 | 2*} }
   ]
   
   === Run 10 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {3} }
+    { resource_0 ↦ 1 ! {3} }
   ]
   
   === Run 11 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {0} }
+    { resource_0 ↦ 1 ! {0} }
   ]
   
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 1; (0 | 1)^2; Send} }
+    { resource_0 ↦ 1 ! {Read; 1; (0 | 1)^2; Send} }
   ]
   
   === Run 13 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 2; (0 | 1); Send} }
+    { resource_0 ↦ 1 ! {Read; 2; (0 | 1); Send} }
   ]
   
   === Run 14 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 2; 1*} }
+    { resource_0 ↦ 1 ! {Read; 2; 1*} }
   ]
   
   === Run 15 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {2; (0 | 1; (0 | 1))} }
+    { resource_0 ↦ 1 ! {2; (0 | 1; (0 | 1))} }
   ]
   
   === Run 16 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # ⊤ }
+    { resource_0 ↦ 1 ! ⊤ }
   ]
   
   ======================================================================
@@ -7491,97 +7491,97 @@ the rigid grades excepted:
   === Run 1 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Send | Read*} }
+    { resource_0 ↦ 1 ! {Send | Read*} }
   ]
   
   === Run 2 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read*} }
+    { resource_0 ↦ 1 ! {Read*} }
   ]
   
   === Run 3 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read*} }
+    { resource_0 ↦ 1 ! {Read*} }
   ]
   
   === Run 4 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {_} }
+    { resource_0 ↦ 1 ! {_} }
   ]
   
   === Run 5 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 3; (Send | Write)*} }
+    { resource_0 ↦ 1 ! {Read; 3; (Send | Write)*} }
   ]
   
   === Run 6 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {(Send; 2)*} }
+    { resource_0 ↦ 1 ! {(Send; 2)*} }
   ]
   
   === Run 7 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {(_ & ~Revoke)*} }
+    { resource_0 ↦ 1 ! {(_ & ~Revoke)*} }
   ]
   
   === Run 8 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Open; (Read | Write)*; Close} }
+    { resource_0 ↦ 1 ! {Open; (Read | Write)*; Close} }
   ]
   
   === Run 9 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {3 | 2*} }
+    { resource_0 ↦ 1 ! {3 | 2*} }
   ]
   
   === Run 10 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {3} }
+    { resource_0 ↦ 1 ! {3} }
   ]
   
   === Run 11 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {0} }
+    { resource_0 ↦ 1 ! {0} }
   ]
   
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 1; (0 | 1)^2; Send} }
+    { resource_0 ↦ 1 ! {Read; 1; (0 | 1)^2; Send} }
   ]
   
   === Run 13 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 2; (0 | 1); Send} }
+    { resource_0 ↦ 1 ! {Read; 2; (0 | 1); Send} }
   ]
   
   === Run 14 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 2; 1*} }
+    { resource_0 ↦ 1 ! {Read; 2; 1*} }
   ]
   
   === Run 15 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {2; (0 | 1; (0 | 1))} }
+    { resource_0 ↦ 1 ! {2; (0 | 1; (0 | 1))} }
   ]
   
   === Run 16 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # ⊤ }
+    { resource_0 ↦ 1 ! ⊤ }
   ]
   
   ======================================================================
@@ -7590,7 +7590,7 @@ the rigid grades excepted:
   === Run 1 ===
   return 42
   State: [
-    { resource_0 ↦ 42 # {3; _*} },
+    { resource_0 ↦ 42 ! {3; _*} },
     {4}
   ]
   
@@ -7600,7 +7600,7 @@ the rigid grades excepted:
   === Run 1 ===
   return 42
   State: [
-    { resource_0 ↦ 42 # {3; _*} },
+    { resource_0 ↦ 42 ! {3; _*} },
     {4}
   ]
   
@@ -7710,21 +7710,21 @@ the rigid grades excepted:
   regular_reject_bounds.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================
   File "regular_reject_bounds.tpe", line 9, characters 0-52:
-  9 | operation Send : unit ~> unit # {Send} within [1, 2]
+  9 | operation Send : unit ~> unit ! {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-symbolic-by-letters` grading monoid, which does not use them
   ======================================================================
   regular_reject_bounds.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
   File "regular_reject_bounds.tpe", line 9, characters 0-52:
-  9 | operation Send : unit ~> unit # {Send} within [1, 2]
+  9 | operation Send : unit ~> unit ! {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-letter-derivatives` grading monoid, which does not use them
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================
   File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
-  18 | let session (b : bool) : nat # {Open; Read*; Close} =
+  18 | let session (b : bool) : nat ! {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
@@ -7748,7 +7748,7 @@ the rigid grades excepted:
   regular_reject_counterexample.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
   File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
-  18 | let session (b : bool) : nat # {Open; Read*; Close} =
+  18 | let session (b : bool) : nat ! {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
@@ -7794,7 +7794,7 @@ the rigid grades excepted:
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
   File "regular_reject_protocol.tpe", lines 23-24, characters 16-34:
-  23 | let unclosed () : nat # {Open; Read*; Close} =
+  23 | let unclosed () : nat ! {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
@@ -7824,7 +7824,7 @@ the rigid grades excepted:
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
   File "regular_reject_protocol.tpe", lines 23-24, characters 16-34:
-  23 | let unclosed () : nat # {Open; Read*; Close} =
+  23 | let unclosed () : nat ! {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
@@ -7832,14 +7832,14 @@ the rigid grades excepted:
   regex_timed_compound_named_later_reject.tpe (regex-timed-interval-symbolic-by-letters)
   ======================================================================
   File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
-  10 | operation Two : unit ~> unit # {Fetch; Later}
+  10 | operation Two : unit ~> unit ! {Fetch; Later}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Later` in the grade of operation `Two`
   ======================================================================
   regex_timed_compound_named_later_reject.tpe (regex-timed-interval-letter-derivatives)
   ======================================================================
   File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
-  10 | operation Two : unit ~> unit # {Fetch; Later}
+  10 | operation Two : unit ~> unit ! {Fetch; Later}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Later` in the grade of operation `Two`
   ======================================================================
@@ -7854,7 +7854,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # [{2}, {4}] },
+    { resource_0 ↦ Token "t" ! [{2}, {4}] },
     [{3}, {3}]
   ]
   
@@ -7864,7 +7864,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # [{2}, {4}] },
+    { resource_0 ↦ Token "t" ! [{2}, {4}] },
     [{3}, {3}]
   ]
   
@@ -7877,7 +7877,7 @@ the rigid grades excepted:
   Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
-  24 | operation Slow : unit ~> unit # [{4; Fetch*}, {Store; 1}]
+  24 | operation Slow : unit ~> unit ! [{4; Fetch*}, {Store; 1}]
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
   ======================================================================
@@ -7889,7 +7889,7 @@ the rigid grades excepted:
   Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
-  24 | operation Slow : unit ~> unit # [{4; Fetch*}, {Store; 1}]
+  24 | operation Slow : unit ~> unit ! [{4; Fetch*}, {Store; 1}]
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
   ======================================================================
@@ -7961,7 +7961,7 @@ the rigid grades excepted:
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
-  24 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
+  24 | operation Other : unit ~> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
@@ -7973,7 +7973,7 @@ the rigid grades excepted:
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
-  24 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
+  24 | operation Other : unit ~> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
@@ -7982,7 +7982,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # {Ping; 3} },
+    { resource_0 ↦ Token "t" ! {Ping; 3} },
     {1},
     {3},
     {1}
@@ -7994,7 +7994,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # {Ping; 3} },
+    { resource_0 ↦ Token "t" ! {Ping; 3} },
     {1},
     {3},
     {1}
@@ -8118,7 +8118,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # {4} },
+    { resource_0 ↦ Token "t" ! {4} },
     {3}
   ]
   
@@ -8128,7 +8128,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # {4} },
+    { resource_0 ↦ Token "t" ! {4} },
     {3}
   ]
   
@@ -8172,7 +8172,7 @@ the rigid grades excepted:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
     File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
-    12 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+    12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
@@ -8198,7 +8198,7 @@ the rigid grades excepted:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
     File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
-    12 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+    12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
@@ -8253,7 +8253,7 @@ the rigid grades excepted:
     Note: the grade `{Fetch}` is below `{Fetch | Ping}` but not below `{(Log | Ping)*}`
   
   File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
-  39 | let two_pings () : unit # {3} =
+  39 | let two_pings () : unit ! {3} =
                         ^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Ping^2}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping^2} <= {3}` does not hold
@@ -8308,7 +8308,7 @@ the rigid grades excepted:
     Note: the grade `{Fetch}` is below `{Fetch | Ping}` but not below `{(Log | Ping)*}`
   
   File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
-  39 | let two_pings () : unit # {3} =
+  39 | let two_pings () : unit ! {3} =
                         ^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Ping^2}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping^2} <= {3}` does not hold
@@ -8318,7 +8318,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Token "l")
   State: [
-    { resource_0 ↦ Token "l" # {_ & ~(1 | Fetch)} },
+    { resource_0 ↦ Token "l" ! {_ & ~(1 | Fetch)} },
     {1}
   ]
   
@@ -8328,7 +8328,7 @@ the rigid grades excepted:
   === Run 1 ===
   return (Token "l")
   State: [
-    { resource_0 ↦ Token "l" # {_ & ~(1 | Fetch)} },
+    { resource_0 ↦ Token "l" ! {_ & ~(1 | Fetch)} },
     {1}
   ]
   
@@ -8341,7 +8341,7 @@ the rigid grades excepted:
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_timed_upper_ticks_reject.tpe", line 22, characters 26-43:
-  22 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
+  22 | let annotated () : unit ! {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
@@ -8358,7 +8358,7 @@ the rigid grades excepted:
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_timed_upper_ticks_reject.tpe", line 22, characters 26-43:
-  22 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
+  22 | let annotated () : unit ! {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
@@ -8373,7 +8373,7 @@ single-dash form of the help option is not accepted.
   $ ../tempore --typecheck-only ../examples/basics/nat.tpe
   $ ../tempore --typecheck-only comp_type_annotation_reject.tpe
   File "comp_type_annotation_reject.tpe", line 3, characters 9-31:
-  3 | let f () : nat # 5 = delay 3; 1
+  3 | let f () : nat ! 5 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
     Note: the effect inequality `3 >= 5` does not hold

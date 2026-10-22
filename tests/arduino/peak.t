@@ -20,7 +20,7 @@ default implementations of the operations:
   === Run 2 ===
   return ()
   State: [
-    { resource_0 ↦ 0. # ((StorePeak, 0), (_, ∞)) }
+    { resource_0 ↦ 0. ! ((StorePeak, 0), (_, ∞)) }
   ]
   
 
@@ -30,7 +30,7 @@ a write:
 
   $ for v in stored stale; do packages --typecheck-only $app/peak.tpe peak/$v.tpe; echo "[$?]"; done
   File "peak/stored.tpe", lines 3-8, characters 31-6:
-  3 | let step_stored (tilt : float) : float # ((ReadImu, 1), (Publish, 1)) =
+  3 | let step_stored (tilt : float) : float ! ((ReadImu, 1), (Publish, 1)) =
                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `((Publish, 1), (ReadImu, 1), (StorePeak, 1))`, which does not match its annotated grade `((Publish, 1), (ReadImu, 1))`
     Note: the effect inequality `((Publish, 1), (ReadImu, 1), (StorePeak, 1)) <= ((Publish, 1), (ReadImu, 1))` does not hold

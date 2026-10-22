@@ -1,6 +1,6 @@
 (* The step of tilt.tpe clearing the screen and showing the tilt itself. *)
 
-let step_shown (tilt : float) : float # [0, 20) =
+let step_shown (tilt : float) : float ! [0, 20) =
   let imu = perform ReadImu () in
   let tilt = tilt_x gyro_weight period tilt imu in
   perform ClearDisplay ();

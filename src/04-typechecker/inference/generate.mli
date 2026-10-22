@@ -239,7 +239,7 @@ module Make (C : Constraint.S) : sig
 
   val generate_default_effect :
     env -> loc:Location.t -> Ast.operation -> abstraction -> ty * C.t
-  (** [generate_default_effect env ~loc op abs] is the type [param → arity # ε]
+  (** [generate_default_effect env ~loc op abs] is the type [param → arity ! ε]
       of [abs] at [loc] as a default implementation of [op], [ε] a fresh
       unknown, and the constraint of {!generate_default} with [ε] in place of
       the bound on its effect.

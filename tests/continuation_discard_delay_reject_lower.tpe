@@ -2,7 +2,7 @@
 
      ./tempore tests/continuation_discard_delay_reject_lower.tpe *)
 
-operation Op : unit ~> unit # 1
+operation Op : unit ~> unit ! 1
 
 (* Correctly rejected by the typechecker: the case must have a grade matching
    1 · ε for every effect ε of k, and 5 >= 1 · ε fails for ε = 5, though it

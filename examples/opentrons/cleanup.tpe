@@ -8,7 +8,7 @@
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `!` admit none, a
+   admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {0}: the empty trace
@@ -51,28 +51,28 @@ type beads = string
    eluates each take one to two minutes. The plate is moved onto and off the
    magnetic block, and the ethanol is added from above, in at most a
    minute. *)
-operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
+operation AddBeads : unit ~> unit ! {AddBeads} within [1, 2]
 default AddBeads () = delay 2
 
-operation MagnetOn : unit ~> unit # {MagnetOn} within (0, 1]
+operation MagnetOn : unit ~> unit ! {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1
 
-operation MagnetOff : unit ~> unit # {MagnetOff} within (0, 1]
+operation MagnetOff : unit ~> unit ! {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1
 
-operation RemoveLiquid : unit ~> unit # {RemoveLiquid} within [1, 2]
+operation RemoveLiquid : unit ~> unit ! {RemoveLiquid} within [1, 2]
 default RemoveLiquid () = delay 1
 
-operation AddEthanol : unit ~> unit # {AddEthanol} within (0, 1]
+operation AddEthanol : unit ~> unit ! {AddEthanol} within (0, 1]
 default AddEthanol () = delay 1
 
-operation RemoveEthanol : unit ~> unit # {RemoveEthanol} within [1, 2]
+operation RemoveEthanol : unit ~> unit ! {RemoveEthanol} within [1, 2]
 default RemoveEthanol () = delay 2
 
-operation AddBuffer : unit ~> unit # {AddBuffer} within [1, 2]
+operation AddBuffer : unit ~> unit ! {AddBuffer} within [1, 2]
 default AddBuffer () = delay 1
 
-operation Transfer : unit ~> unit # {Transfer} within [1, 2]
+operation Transfer : unit ~> unit ! {Transfer} within [1, 2]
 default Transfer () = delay 2
 
 (* The compound operations, their running-time bounds derived from their
@@ -82,12 +82,12 @@ default Transfer () = delay 2
    after a minute. The elution resuspends the beads off the magnet in the
    buffer for two to five minutes, engages the magnet and, after three to five
    minutes, transfers the eluates. The upper bounds are the example's own. *)
-operation Bind : beads ~> [[3, 5]] beads # {AddBeads; [5, 10]; MagnetOn}
+operation Bind : beads ~> [[3, 5]] beads ! {AddBeads; [5, 10]; MagnetOn}
 
-operation EthanolWash : unit ~> unit # {AddEthanol; 1; RemoveEthanol}
+operation EthanolWash : unit ~> unit ! {AddEthanol; 1; RemoveEthanol}
 
 operation EluteDNA : beads ~> beads
-  # {MagnetOff; AddBuffer; [2, 5]; MagnetOn; [3, 5]; Transfer}
+  ! {MagnetOff; AddBuffer; [2, 5]; MagnetOn; [3, 5]; Transfer}
 
 (* Correctly accepted by the typechecker: each case performs the atomic
    operations its compound operation names, in order, with waits within the

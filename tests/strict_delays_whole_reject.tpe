@@ -4,13 +4,13 @@
        tests/strict_delays_whole_reject.tpe
 
    Rejected under the 'regex-timed-rigid-interval-symbolic' grading monoid:
-   over whole time steps, a strict delay `!d` admits waiting only; the budget
-   form is accepted, the strict form rejected. *)
+   over whole time steps, a strict delay `idle d` admits waiting only; the
+   budget form is accepted, the strict form rejected. *)
 
 type token = Token of string
 
-operation Read : unit ~> nat # {Read} within [1, 1]
-operation Log : unit ~> unit # {Log} within [1, 1]
+operation Read : unit ~> nat ! {Read} within [1, 1]
+operation Log : unit ~> unit ! {Log} within [1, 1]
 
 (* A log of one step fits a period of two to four steps beside a wait of
    two. *)
@@ -25,7 +25,7 @@ let logged_budget () =
   tok
 
 let logged_strict () =
-  box {(![2, 4]; Read)*} (Token "l") as l in
+  box {(idle [2, 4]; Read)*} (Token "l") as l in
   delay 2;
   let a = perform Read () in
   perform Log ();

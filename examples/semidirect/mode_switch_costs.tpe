@@ -20,26 +20,26 @@
    the mode, so these operations have no default implementation, and neither
    have those performed only in some modes: a run stops at the first of
    them. *)
-operation RadioOn : unit ~> unit # (Off, On, 2)
-operation RadioOff : unit ~> unit # (On, Off, 1)
+operation RadioOn : unit ~> unit ! (Off, On, 2)
+operation RadioOff : unit ~> unit ! (On, Off, 1)
 
 (* A sample costs 1 with the radio off and 3 with it on. *)
-operation Sample : unit ~> nat # ((Off, Off, 1), (On, On, 3))
+operation Sample : unit ~> nat ! ((Off, Off, 1), (On, On, 3))
 
 (* A transmission is possible only with the radio on, and costs 4. *)
-operation Send : nat ~> unit # (On, On, 4)
+operation Send : nat ~> unit ! (On, On, 4)
 
 (* Sleeping for ten ticks draws 10 with the radio off and 50 with it on. *)
-operation Sleep : unit ~> unit # ((Off, Off, 10), (On, On, 50))
+operation Sleep : unit ~> unit ! ((Off, Off, 10), (On, On, 50))
 
 (* Averaging costs 1 whatever the mode, and keeps it. *)
-operation Average : nat * nat ~> nat # 1
+operation Average : nat * nat ~> nat ! 1
 default Average (x, y) = (x + y) / 2
 
 (* Correctly accepted by the typechecker: from the radio off back to it off,
    sampling first and sleeping last costs 1 + 2 + 4 + 1 + 10; from the radio
    on, the trace gets stuck at switching it on, after sampling at cost 3. *)
-let report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =
+let report () : unit ! ((Off, Off, 18), (On, Stuck, 3)) =
   let x = perform Sample () in
   perform RadioOn ();
   perform Send x;
@@ -48,7 +48,7 @@ let report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =
 
 (* Correctly accepted by the typechecker: averaging two samples keeps the mode,
    costing 3 with the radio off and 7 with it on. *)
-let averaged () : nat # ((Off, Off, 3), (On, On, 7)) =
+let averaged () : nat ! ((Off, Off, 3), (On, On, 7)) =
   let x = perform Sample () in
   let y = perform Sample () in
   perform Average (x, y)
@@ -56,12 +56,12 @@ let averaged () : nat # ((Off, Off, 3), (On, On, 7)) =
 (* Correctly accepted by the typechecker: a branch takes the greater cost of
    its arms between each pair of modes, here reporting or only sleeping, and
    from the radio on either gets stuck or keeps it on. *)
-let maybe_report b : unit # ((Off, Off, 18), (On, Stuck, 3), (On, On, 50)) =
+let maybe_report b : unit ! ((Off, Off, 18), (On, Stuck, 3), (On, On, 50)) =
   if b then report () else perform Sleep ()
 
 (* Correctly accepted by the typechecker: averaging alone costs 1 in any
    mode. *)
-let average_only () : nat # 1 = perform Average (4, 6)
+let average_only () : nat ! 1 = perform Average (4, 6)
 
 (* Correctly rejected by the typechecker: started with the radio on, a report
    gets stuck at switching it on after cost 3, which the annotation, listing
@@ -74,7 +74,7 @@ let average_only () : nat # 1 = perform Average (4, 6)
        the inequality goes through the annotation here
 *)
 (*
-let maybe_report_on b : unit # ((Off, Off, 18), (On, On, 50)) =
+let maybe_report_on b : unit ! ((Off, Off, 18), (On, On, 50)) =
   if b then report () else perform Sleep ()
 *)
 
@@ -89,7 +89,7 @@ let maybe_report_on b : unit # ((Off, Off, 18), (On, On, 50)) =
          does not hold
 *)
 (*
-let sleepy_report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =
+let sleepy_report () : unit ! ((Off, Off, 18), (On, Stuck, 3)) =
   let x = perform Sample () in
   perform RadioOn ();
   perform Send x;
@@ -110,7 +110,7 @@ let sleepy_report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =
          does not hold
 *)
 (*
-let silent_report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =
+let silent_report () : unit ! ((Off, Off, 18), (On, Stuck, 3)) =
   let x = perform Sample () in
   perform Send x;
   perform Sleep ()

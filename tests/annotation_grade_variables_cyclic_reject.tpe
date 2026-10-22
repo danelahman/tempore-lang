@@ -8,18 +8,18 @@
 
 (* The body of f has the grade of g followed by 10 ticks, which the annotation
    bounds by the same 'e. *)
-let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
+let f (g : unit -> unit ! 'e) : unit ! 'e = g (); delay 10
 
 (* Correctly rejected by the typechecker: the 10 ticks are a factor of the
    grade of f's body, which h's annotation bounds by 5. *)
-let h () : unit # 5 = f (fun () -> ())
+let h () : unit ! 5 = f (fun () -> ())
 
 (* The body of loop has the grade of the recursive call followed by one tick,
    which the annotation bounds by the same 'e. *)
-let rec loop (n : nat) : unit # 'e =
+let rec loop (n : nat) : unit ! 'e =
   match n with 0 -> () | m + 1 -> (loop m; delay 1)
 
 (* Correctly rejected by the typechecker: the least grade ε₀ with
    1 · ε₀ ≾ ε₀ is ∞, which the annotation bounds by 3; loop 20 takes 20
    ticks. *)
-let bad () : unit # 3 = loop 20
+let bad () : unit ! 3 = loop 20

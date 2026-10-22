@@ -8,8 +8,8 @@
    takes two or three ticks, and a default of two ticks stays
    within [1, 3). *)
 
-operation Tx : unit ~> unit # {Tx} within (1, 4)
-operation Beep : unit ~> unit # {Beep} within [1, 3)
+operation Tx : unit ~> unit ! {Tx} within (1, 4)
+operation Beep : unit ~> unit ! {Beep} within [1, 3)
 
 default Beep () = delay 2
 

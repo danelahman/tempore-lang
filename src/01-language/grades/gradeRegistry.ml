@@ -276,13 +276,13 @@ let interval_words =
 
 let rigid_lower =
   "Regular languages of " ^ interval_words
-  ^ "; lengths bounded below, ≥d and !≥d, operations counting at their lower \
-     running-time bounds."
+  ^ "; lengths bounded below, ≥d and idle ≥d, operations counting at their \
+     lower running-time bounds."
 
 let rigid_upper =
   "Regular languages of " ^ interval_words
-  ^ "; lengths bounded above, ≤d and !≤d, operations counting at their upper \
-     running-time bounds."
+  ^ "; lengths bounded above, ≤d and idle ≤d, operations counting at their \
+     upper running-time bounds."
 
 let rigid_interval =
   "Intervals [L, U] of a lower and an upper bound of regular languages of \
@@ -290,12 +290,12 @@ let rigid_interval =
 
 let rigid_lower_rational =
   "Regular languages of " ^ interval_words
-  ^ "; rational lengths bounded below, ≥d, >d, !≥d and !>d, operations \
+  ^ "; rational lengths bounded below, ≥d, >d, idle ≥d and idle >d, operations \
      counting at their lower running-time bounds; exact."
 
 let rigid_upper_rational =
   "Regular languages of " ^ interval_words
-  ^ "; rational lengths bounded above, ≤d, <d, !≤d and !<d, operations \
+  ^ "; rational lengths bounded above, ≤d, <d, idle ≤d and idle <d, operations \
      counting at their upper running-time bounds; exact."
 
 let rigid_interval_rational =
@@ -305,13 +305,13 @@ let rigid_interval_rational =
 
 let traces_rigid_lower =
   "Finite sets of " ^ interval_words
-  ^ "; lengths bounded below, ≥d and !≥d, operations counting at their lower \
-     running-time bounds."
+  ^ "; lengths bounded below, ≥d and idle ≥d, operations counting at their \
+     lower running-time bounds."
 
 let traces_rigid_upper =
   "Finite sets of " ^ interval_words
-  ^ "; lengths bounded above, ≤d and !≤d, operations counting at their upper \
-     running-time bounds."
+  ^ "; lengths bounded above, ≤d and idle ≤d, operations counting at their \
+     upper running-time bounds."
 
 let traces_rigid_interval =
   "Intervals [L, U] of a lower and an upper bound of finite sets of words with \

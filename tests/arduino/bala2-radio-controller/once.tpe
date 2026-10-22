@@ -2,18 +2,18 @@
 
 let rec session_once (n : nat)
     ((link_shown, shown_tilt, bubble_next, guide_shown) : view) : unit
-    # {((ReadTouch; SendBeat; ReceiveMessage;
-         (DrawLevel | ShowColourTextAt | 0); !21/2)*;
+    ! {((ReadTouch; SendBeat; ReceiveMessage;
+         (DrawLevel | ShowColourTextAt | 0); idle 21/2)*;
         (ReadTouch | 0);
-        Beep; ReadImu; (SendStart; !25/2)^80; SendStart; !25/2;
+        Beep; ReadImu; (SendStart; idle 25/2)^80; SendStart; idle 25/2;
         ReceiveMessage;
-        (SendStart; !25/2; ReceiveMessage)*;
+        (SendStart; idle 25/2; ReceiveMessage)*;
         (ReadImu; ReadTouch; (SendDrive | SendBeat);
          (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | 0);
-         !21/2; ReceiveMessage)*;
-        (ReadImu; ReadTouch | 0); Beep; (SendStop; !25/2)^20; ShowTextAt)*;
+         idle 21/2; ReceiveMessage)*;
+        (ReadImu; ReadTouch | 0); Beep; (SendStop; idle 25/2)^20; ShowTextAt)*;
        ((ReadTouch; SendBeat; ReceiveMessage;
-         (DrawLevel | ShowColourTextAt | 0); !21/2)*;
+         (DrawLevel | ShowColourTextAt | 0); idle 21/2)*;
         (ReadTouch | 0)
        | 0)} =
   match n with

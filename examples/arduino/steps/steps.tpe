@@ -40,17 +40,17 @@
    label, or, active, yellow with a black label. Their bounds are
    PROVISIONAL, not yet measured. *)
 
-operation CountStep : nat ~> unit # {CountStep} within (0, 0.2]
+operation CountStep : nat ~> unit ! {CountStep} within (0, 0.2]
 default CountStep _ = delay 1/10
 
-operation ResetSteps : unit ~> unit # {ResetSteps} within (0, 0.2]
+operation ResetSteps : unit ~> unit ! {ResetSteps} within (0, 0.2]
 default ResetSteps () = delay 1/10
 
-operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
+operation ReadClock : unit ~> nat ! {ReadClock} within (0, 0.05]
 default ReadClock () = delay 1/100; 0
 
 operation ShowButton : nat * nat * nat * nat * bool * string ~> unit
-    # {ShowButton} within (0, 33]
+    ! {ShowButton} within (0, 33]
 default ShowButton _ = delay 3
 
 (* The states of the counter: at rest, a run of steps not yet confirmed, a
@@ -105,7 +105,7 @@ let toward (w : float) (a : vector) (b : vector) : vector =
   plus a (scale w (minus b a))
 
 (* The acceleration, in g. *)
-let reading () : vector # {ReadImu} =
+let reading () : vector ! {ReadImu} =
   let accel, _ = perform ReadImu () in
   accel
 
@@ -480,7 +480,7 @@ let settle c = step5 (step5 (step5 c))
    invariant: readings at least every 50 ms, the end at most 46 ms after the
    start of the last, and no count, the steps found being deferred. *)
 let rec wait (n : nat) (since : nat) (c : counter) : counter * key
-    # ((ReadImu, [0, 0], [0, 50], [0, 46]), (0, CountStep, [0, ∞))) =
+    ! ((ReadImu, [0, 0], [0, 50], [0, 46]), (0, CountStep, [0, ∞))) =
   match n with
   | 0 -> (c, Elsewhere)
   | m + 1 ->
@@ -571,7 +571,7 @@ let respond (c : counter) (k : key) =
    the confirming run are program logic, which the types do not check; the
    steps found within the cooldown are counted with the next count. *)
 let rec listen (n : nat) (c : counter) : counter
-    # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
+    ! ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
   match n with
   | 0 -> c
   | m + 1 ->
@@ -666,7 +666,7 @@ let calibrate (samples : sampling) (steps : nat) : readiness =
    before its first count. The rate limit (CountStep, [250, ∞)), whose
    lead may be 0, is not closed under this sequencing and is rejected. *)
 let rec sessions (n : nat) (c : counter)
-    : unit # (CountStep, [250, ∞), [250, ∞), [0, ∞)) =
+    : unit ! (CountStep, [250, ∞), [250, ∞), [0, ∞)) =
   let _, _, (shown, _), _, _, _, _, _ = c in
   let samples = hold_still () in
   let ready = calibrate samples shown in
@@ -721,7 +721,7 @@ let round (c : counter) =
   let c, added = advance c in
   if added = 0 then (pause c, 0) else (count c added, added)
 
-let rec cool (n : nat) (t : nat) (c : counter) : counter * nat # ⊤ =
+let rec cool (n : nat) (t : nat) (c : counter) : counter * nat ! ⊤ =
   match n with
   | 0 -> (c, t)
   | m + 1 ->
@@ -735,7 +735,7 @@ let rec cool (n : nat) (t : nat) (c : counter) : counter * nat # ⊤ =
    the second count. *)
 let rec replay (n : nat) (t : nat) (c : counter)
     ((counts, steps, last, least) : nat * nat * nat * nat)
-    : nat * nat * nat * nat # ⊤ =
+    : nat * nat * nat * nat ! ⊤ =
   match n with
   | 0 -> (counts, steps, last, least)
   | m + 1 ->

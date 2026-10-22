@@ -15,27 +15,27 @@ the operations, which read a unit at rest:
   === Run 1 ===
   return 0
   State: [
-    { resource_0 ↦ 0.1 # [{≥100}, {(!≤10.5; ReadImu)^10}] },
-    {!10},
-    {!0.6},
-    {!10},
-    {!0.6},
-    {!10},
-    {!0.6},
-    {!10},
-    {!0.6},
-    {!10},
-    {!0.6},
-    {!10},
-    {!0.6},
-    {!10},
-    {!0.6},
-    {!10},
-    {!0.6},
-    {!10},
-    {!0.6},
-    {!10},
-    {!0.6}
+    { resource_0 ↦ 0.1 ! [{≥100}, {(idle ≤10.5; ReadImu)^10}] },
+    {idle 10},
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6},
+    {idle 10},
+    {idle 0.6}
   ]
   
 
@@ -47,7 +47,7 @@ fall, and an alarm sounding on the even seconds only:
   File "fall/silent.tpe", lines 6-7, characters 2-16:
   6 |   unbox event as detected in
         ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `event` is unboxed with grade `{!20000}` accumulated since it was bound, which is not below its box grade `{ShowColourTextAt^2; Beep; [10000, 30000]}`
+  Typing error: Variable `event` is unboxed with grade `{idle 20000}` accumulated since it was bound, which is not below its box grade `{ShowColourTextAt^2; Beep; [10000, 30000]}`
     File "fall/silent.tpe", line 4, characters 73-78:
     4 |   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
                                                                                  ^^^^^
@@ -55,16 +55,16 @@ fall, and an alarm sounding on the even seconds only:
     File "fall/silent.tpe", line 5, characters 2-13:
     5 |   delay 20000;
           ^^^^^^^^^^^
-    grade `{!20000}` accumulates here (delay)
-    Note: the resource inequality `{!20000} <= {ShowColourTextAt^2; Beep; [10000, 30000]}` does not hold
+    grade `{idle 20000}` accumulates here (delay)
+    Note: the resource inequality `{idle 20000} <= {ShowColourTextAt^2; Beep; [10000, 30000]}` does not hold
   [1]
   File "fall/rated.tpe", line 7, characters 18-49:
   7 |   if falling then (unbox onset as least in least) else first
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `onset` is unboxed with grade `{ConfigureImu; (!10; ReadImu)^10}` accumulated since it was bound, which is not below its box grade `[{≥100}, {(!≤10.5; ReadImu)^10}]`
-    File "fall/rated.tpe", line 4, characters 53-58:
-    4 |   box [{100}, {(![9.5, 10.5]; ReadImu)^10}] first as onset in
-                                                             ^^^^^
+  Typing error: Variable `onset` is unboxed with grade `{ConfigureImu; (idle 10; ReadImu)^10}` accumulated since it was bound, which is not below its box grade `[{≥100}, {(idle ≤10.5; ReadImu)^10}]`
+    File "fall/rated.tpe", line 4, characters 57-62:
+    4 |   box [{100}, {(idle [9.5, 10.5]; ReadImu)^10}] first as onset in
+                                                                 ^^^^^
     `onset` is bound here
     File "fall/rated.tpe", line 5, characters 2-26:
     5 |   perform ConfigureImu 400;
@@ -73,15 +73,15 @@ fall, and an alarm sounding on the even seconds only:
     File "fall/rated.tpe", line 6, characters 16-26:
     6 |   let falling = confirm () in
                         ^^^^^^^^^^
-    grade `{(!10; ReadImu)^10}` accumulates here (this computation)
-    Note: the resource inequality `{ConfigureImu; (!10; ReadImu)^10} <= [{≥100}, {(!≤10.5; ReadImu)^10}]` does not hold
+    grade `{(idle 10; ReadImu)^10}` accumulates here (this computation)
+    Note: the resource inequality `{ConfigureImu; (idle 10; ReadImu)^10} <= [{≥100}, {(idle ≤10.5; ReadImu)^10}]` does not hold
   [1]
   File "fall/even.tpe", lines 3-21, characters 45-35:
   3 | let rec alarm_even (n : nat) (seconds : nat) : unit
                                                    ^^^^^^
-  Typing error: This function's body has grade `{((ReadTouch; !50)^20; (Beep; ShowColourTextAt^2; !2000 | ShowColourTextAt; ShowTimeAt; Beep?; ((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)?))?}`, which does not match its annotated grade `{((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)?}`
-    Note: the effect inequality `{((ReadTouch; !50)^20; (Beep; ShowColourTextAt^2; !2000 | ShowColourTextAt; ShowTimeAt; Beep?; ((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)?))?} <= {((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)?}` does not hold
-    Note: the grade `[{ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ReadTouch; !≥50; ShowColourTextAt; ShowTimeAt}, {((ReadTouch; !≤50)^20; (Beep; ShowColourTextAt^2; !≤2000 | ShowColourTextAt; ShowTimeAt; Beep?; ((ReadTouch; !≤50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; !≤50)^20; Beep; ShowColourTextAt^2; !≤2000)?))?}]` is below `{((ReadTouch; !50)^20; (Beep; ShowColourTextAt^2; !2000 | ShowColourTextAt; ShowTimeAt; Beep?; ((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)?))?}` but not below `{((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)?}`
+  Typing error: This function's body has grade `{((ReadTouch; idle 50)^20; (Beep; ShowColourTextAt^2; idle 2000 | ShowColourTextAt; ShowTimeAt; Beep?; ((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)?))?}`, which does not match its annotated grade `{((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)?}`
+    Note: the effect inequality `{((ReadTouch; idle 50)^20; (Beep; ShowColourTextAt^2; idle 2000 | ShowColourTextAt; ShowTimeAt; Beep?; ((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)?))?} <= {((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)?}` does not hold
+    Note: the grade `[{ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ReadTouch; idle ≥50; ShowColourTextAt; ShowTimeAt}, {((ReadTouch; idle ≤50)^20; (Beep; ShowColourTextAt^2; idle ≤2000 | ShowColourTextAt; ShowTimeAt; Beep?; ((ReadTouch; idle ≤50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; idle ≤50)^20; Beep; ShowColourTextAt^2; idle ≤2000)?))?}]` is below `{((ReadTouch; idle 50)^20; (Beep; ShowColourTextAt^2; idle 2000 | ShowColourTextAt; ShowTimeAt; Beep?; ((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)?))?}` but not below `{((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*; ((ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)?}`
   [1]
 
 The project, for the board m5stack-cores3; its sources compile without

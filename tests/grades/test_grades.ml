@@ -2802,15 +2802,22 @@ let interval_letter_laws =
       operations = List.map fst table;
     }
   in
-  let braces text =
-    "{" ^ String.concat "; " (String.split_on_char ' ' text) ^ "}"
+  (* [letters text] is the space-separated letters of [text], a strict wait
+     [idle d] one letter. *)
+  let letters text =
+    let rec join = function
+      | "idle" :: d :: rest -> ("idle " ^ d) :: join rest
+      | w :: rest -> w :: join rest
+      | [] -> []
+    in
+    join (String.split_on_char ' ' text)
   in
+  let braces text = "{" ^ String.concat "; " (letters text) ^ "}" in
   (* [flanked text] is [text] with [≥0] before every letter and at the end. *)
   let flanked text =
     "{"
     ^ String.concat "; "
-        (List.concat_map (fun t -> [ "≥0"; t ]) (String.split_on_char ' ' text)
-        @ [ "≥0" ])
+        (List.concat_map (fun t -> [ "≥0"; t ]) (letters text) @ [ "≥0" ])
     ^ "}"
   in
   let checks (type a) (module M : Grade.S with type t = a) =
@@ -2839,9 +2846,10 @@ let interval_letter_laws =
     let lit, leq, product, delay = checks (module M) in
     [
       leq "F4 premise" "{1}" "{1}" true;
-      leq "F4 premise" "{1}" "{!1; 1}" true;
-      product "F4: {1}·{1} <= {1; !1; 1}" ("{1}", "{1}") ("{1}", "{!1; 1}") true;
-      leq "F4 product" "{1; 1}" "{1; !1; 1}" true;
+      leq "F4 premise" "{1}" "{idle 1; 1}" true;
+      product "F4: {1}·{1} <= {1; idle 1; 1}" ("{1}", "{1}")
+        ("{1}", "{idle 1; 1}") true;
+      leq "F4 product" "{1; 1}" "{1; idle 1; 1}" true;
       leq "window rule: both sets" "{C}" "{(2 & C); (2 & (A | C))}" true;
       leq "window rule: a set without it" "{C}" "{(2 & C); (2 & A)}" false;
       leq "a restricted budget into a wider one" "{(2 & A)}" "{2 & (A | C)}"
@@ -2849,8 +2857,8 @@ let interval_letter_laws =
       leq "a budget into a restricted one" "{2}" "{2 & (A | C)}" false;
       leq "an excluded operation" "{A; S; A}" "{A; (3 & ~S); A}" false;
       product "window rule: monotone"
-        ("{!1; (1 & A)}", "{(1 & A); !1}")
-        ("{!1; (1 & (A | C))}", "{(1 & A); !1}")
+        ("{idle 1; (1 & A)}", "{(1 & A); idle 1}")
+        ("{idle 1; (1 & (A | C))}", "{(1 & A); idle 1}")
         true;
       check
         (M.name ^ ": delays are a monoid morphism")
@@ -2867,31 +2875,32 @@ let interval_letter_laws =
     @ List.map
         (fun (name, p, b, expected) -> leq name (braces p) (braces b) expected)
         [
-          ("traces budget stir", "H !2 S C", "H 3 C", true);
-          ("traces strict stir", "H !2 S C", "H !3 C", false);
-          ("logged", "H L !2 C", "H 3 C", true);
-          ("uncooled", "H !3", "H 3 C", false);
-          ("kind", "!5", "5", true);
-          ("kind", "5", "!5", false);
-          ("strict and budget", "A !2 3", "A 5", true);
-          ("strict and budget", "A 5", "A !2 3", false);
-          ("too long a wait", "!3 A", "!1 1 A", false);
-          ("wait into a budget", "!2 A", "!1 1 A", true);
-          ("budget into a wait", "1 A", "!2 A", false);
-          ("binding strict", "K !7 S R", "K !10 R", false);
-          ("binding budget", "K !7 S R", "K 10 R", true);
-          ("unused strict", "1", "!1 1", true);
-          ("operation across a strict delay", "B", "1 !1 1", true);
-          ("wait across budgets", "!2", "1 1", true);
+          ("traces budget stir", "H idle 2 S C", "H 3 C", true);
+          ("traces strict stir", "H idle 2 S C", "H idle 3 C", false);
+          ("logged", "H L idle 2 C", "H 3 C", true);
+          ("uncooled", "H idle 3", "H 3 C", false);
+          ("kind", "idle 5", "5", true);
+          ("kind", "5", "idle 5", false);
+          ("strict and budget", "A idle 2 3", "A 5", true);
+          ("strict and budget", "A 5", "A idle 2 3", false);
+          ("too long a wait", "idle 3 A", "idle 1 1 A", false);
+          ("wait into a budget", "idle 2 A", "idle 1 1 A", true);
+          ("budget into a wait", "1 A", "idle 2 A", false);
+          ("binding strict", "K idle 7 S R", "K idle 10 R", false);
+          ("binding budget", "K idle 7 S R", "K 10 R", true);
+          ("unused strict", "1", "idle 1 1", true);
+          ("operation across a strict delay", "B", "1 idle 1 1", true);
+          ("wait across budgets", "idle 2", "1 1", true);
         ]
   in
   let lower (type a) (module M : Grade.S with type t = a) =
     let lit, leq, product, delay = checks (module M) in
     [
-      leq "F4 premise" "{1; !1}" "{1; !1}" true;
-      leq "F4 premise fails" "{1; !1}" "{!1}" false;
-      product "F4: {1; !1}·{1; !1} <= {1; !2}" ("{1; !1}", "{1; !1}")
-        ("{1; !2}", "{0}") false;
+      leq "F4 premise" "{1; idle 1}" "{1; idle 1}" true;
+      leq "F4 premise fails" "{1; idle 1}" "{idle 1}" false;
+      product "F4: {1; idle 1}·{1; idle 1} <= {1; idle 2}"
+        ("{1; idle 1}", "{1; idle 1}")
+        ("{1; idle 2}", "{0}") false;
       check
         (M.name ^ ": delays are a monoid morphism")
         (M.equal running_times
@@ -2903,31 +2912,32 @@ let interval_letter_laws =
         (not (M.is_top running_times M.one))
         "{0}";
       check (M.name ^ ": the top") (M.is_top running_times (lit "{≥0}")) "{≥0}";
-      leq "no flank" "{A; !5; C; B}" "{A; !5; B}" false;
+      leq "no flank" "{A; idle 5; C; B}" "{A; idle 5; B}" false;
       leq "window rule: both sets" "{C}" "{(1 & C); (1 & (A | C))}" true;
       leq "window rule: a set without it" "{C}" "{(1 & C); (1 & A)}" false;
       leq "an excluded operation" "{A; S; A}" "{A; (≥0 & ~S); A}" false;
-      leq "a restricted flank" "{A; !2; B}" "{(≥0 & ~S); A; !≥2; B}" true;
+      leq "a restricted flank" "{A; idle 2; B}" "{(≥0 & ~S); A; idle ≥2; B}"
+        true;
     ]
     @ List.map
         (fun (name, r, g, expected) -> leq name (braces r) (flanked g) expected)
         [
-          ("stirred wait", "A C C B", "A !5 B", false);
-          ("wait", "A !5 B", "A !5 B", true);
-          ("longer wait", "A !6 B", "A !5 B", true);
-          ("undisturbed", "A !2 C !3 B", "A !5 B", false);
-          ("budget for a wait", "A 5 B", "A !5 B", false);
+          ("stirred wait", "A C C B", "A idle 5 B", false);
+          ("wait", "A idle 5 B", "A idle 5 B", true);
+          ("longer wait", "A idle 6 B", "A idle 5 B", true);
+          ("undisturbed", "A idle 2 C idle 3 B", "A idle 5 B", false);
+          ("budget for a wait", "A 5 B", "A idle 5 B", false);
           ("operations for a budget", "A C C B", "A 5 B", true);
-          ("operation for a budget", "A C !2 B", "A 1 !2 B", true);
-          ("wait for a budget", "A !3 B", "A 1 !2 B", true);
-          ("flank", "A !5 C B", "A !5 B", true);
-          ("kind", "!5", "5", true);
-          ("kind", "5", "!5", false);
-          ("strict and budget", "A !2 3", "A 5", true);
-          ("strict and budget", "A 5", "A !2 3", false);
-          ("settled", "O !5 L", "O !5 L", true);
-          ("stirred", "O C C L", "O !5 L", false);
-          ("leading flank", "A !1", "!1", true);
+          ("operation for a budget", "A C idle 2 B", "A 1 idle 2 B", true);
+          ("wait for a budget", "A idle 3 B", "A 1 idle 2 B", true);
+          ("flank", "A idle 5 C B", "A idle 5 B", true);
+          ("kind", "idle 5", "5", true);
+          ("kind", "5", "idle 5", false);
+          ("strict and budget", "A idle 2 3", "A 5", true);
+          ("strict and budget", "A 5", "A idle 2 3", false);
+          ("settled", "O idle 5 L", "O idle 5 L", true);
+          ("stirred", "O C C L", "O idle 5 L", false);
+          ("leading flank", "A idle 1", "idle 1", true);
         ]
   in
   upper (module G.Regex.Upper)
@@ -2941,8 +2951,8 @@ let interval_letter_laws =
 
 (* An item that overflows a stretch of an upper bound into a later stretch of
    the same gap, a strict wait between them passed at length 0 (suggested by
-   the formalisation). [x = {!≤1; (≤2 & A)}] is below
-   [y = {(≤2 & A); !≤1; (≤1 & A)}]: a word of [x] of a wait [a ≤ 1] and an
+   the formalisation). [x = {idle ≤1; (≤2 & A)}] is below
+   [y = {(≤2 & A); idle ≤1; (≤1 & A)}]: a word of [x] of a wait [a ≤ 1] and an
    [A]-stretch [b ≤ 2] fits [y] with the strict wait at length 0, the first
    stretch of length [min (a + b) 2] and the last of the rest, at most 1, the
    [A]-stretch of [x] overlapping both, which admit it. The contrasts: a word
@@ -2980,46 +2990,54 @@ let interval_letter_overflow =
       cases
   in
   let n = Rational.of_int and q = Rational.make in
-  let y = "{(≤2 & A); !≤1; (≤1 & A)}" in
+  let y = "{(≤2 & A); idle ≤1; (≤1 & A)}" in
   let whole =
     [
       (* A stretch of [x] fits [y] whatever the running time of [A]. *)
-      ("stretch overflow", n 2, "{!≤1; (≤2 & A)}", y, true);
-      ("stretch overflow", n 1, "{!≤1; (≤2 & A)}", y, true);
+      ("stretch overflow", n 2, "{idle ≤1; (≤2 & A)}", y, true);
+      ("stretch overflow", n 1, "{idle ≤1; (≤2 & A)}", y, true);
       (* [A] of [hi(A) = 2] after a wait of 1 spans [[1, 3]]. *)
-      ("operation overflow", n 2, "{!≤1; A}", y, true);
+      ("operation overflow", n 2, "{idle ≤1; A}", y, true);
       (* [A] of [hi(A) = 3] after a wait of 1 spans [[1, 4]] around the
          strict wait. *)
-      ("operation over a strict wait", n 3, "{!≤1; A}", y, false);
-      ("stretch over a strict wait", n 2, "{!≤1; (≤3 & A)}", y, false);
+      ("operation over a strict wait", n 3, "{idle ≤1; A}", y, false);
+      ("stretch over a strict wait", n 2, "{idle ≤1; (≤3 & A)}", y, false);
       (* The rest of the [A]-stretch falls into a strict wait or a stretch
          without [A]. *)
       ( "overflow into another set",
         n 2,
-        "{!≤1; (≤2 & A)}",
-        "{(≤2 & A); !≤1; (≤1 & B)}",
+        "{idle ≤1; (≤2 & A)}",
+        "{(≤2 & A); idle ≤1; (≤1 & B)}",
         false );
     ]
   in
   (* The same cases at half the lengths. *)
   let rational =
-    let y = "{(≤1 & A); !≤1/2; (≤1/2 & A)}" in
+    let y = "{(≤1 & A); idle ≤1/2; (≤1/2 & A)}" in
     [
-      ("half: stretch overflow", n 1, "{!≤1/2; (≤1 & A)}", y, true);
-      ("half: operation overflow", n 1, "{!≤1/2; A}", y, true);
-      ("half: operation over a strict wait", q 3 2, "{!≤1/2; A}", y, false);
-      ("half: stretch over a strict wait", n 1, "{!≤1/2; (≤3/2 & A)}", y, false);
+      ("half: stretch overflow", n 1, "{idle ≤1/2; (≤1 & A)}", y, true);
+      ("half: operation overflow", n 1, "{idle ≤1/2; A}", y, true);
+      ("half: operation over a strict wait", q 3 2, "{idle ≤1/2; A}", y, false);
+      ( "half: stretch over a strict wait",
+        n 1,
+        "{idle ≤1/2; (≤3/2 & A)}",
+        y,
+        false );
     ]
   in
   let interval =
-    let y = "{([0, 2] & A); ![0, 1]; ([0, 1] & A)}" in
+    let y = "{([0, 2] & A); idle [0, 1]; ([0, 1] & A)}" in
     [
-      ("interval: stretch overflow", n 2, "{![0, 1]; ([0, 2] & A)}", y, true);
-      ("interval: operation overflow", n 2, "{![0, 1]; A}", y, true);
-      ("interval: operation over a strict wait", n 3, "{![0, 1]; A}", y, false);
+      ("interval: stretch overflow", n 2, "{idle [0, 1]; ([0, 2] & A)}", y, true);
+      ("interval: operation overflow", n 2, "{idle [0, 1]; A}", y, true);
+      ( "interval: operation over a strict wait",
+        n 3,
+        "{idle [0, 1]; A}",
+        y,
+        false );
       ( "interval: stretch over a strict wait",
         n 2,
-        "{![0, 1]; ([0, 3] & A)}",
+        "{idle [0, 1]; ([0, 3] & A)}",
         y,
         false );
     ]

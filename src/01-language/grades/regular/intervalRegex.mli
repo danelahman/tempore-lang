@@ -40,8 +40,8 @@
 
     A brace literal is read on a side: an operation name, a union of names, [_],
     [~A] and [_ & ~A] are operation sets; a delay [d], an interval [[a, b]] and
-    the one-sided intervals [≤d], [<d], [≥d] and [>d] are budgets, and under [!]
-    strict waits; the intersection [(I & S)] of an interval [I] with an
+    the one-sided intervals [≤d], [<d], [≥d] and [>d] are budgets, and under
+    [idle] strict waits; the intersection [(I & S)] of an interval [I] with an
     operation set [S] is a budget restricted to [S], as [≥0 & ~Read] or
     [(≤5 & (Scan | Turn))]; a two-sided interval is read by its hull on the
     side, [[a, b]] as [≤b] on the upper side and [≥a] on the lower one, and a
@@ -162,16 +162,16 @@ module type S = sig
 
       @raise Invalid_literal
         on [lit] if [r] has a fraction over whole time steps, a one-sided
-        interval of the other side, [!_], a complement or an intersection of
+        interval of the other side, [idle _], a complement or an intersection of
         expressions, the complement of an interval, or, if [finite], a
         repetition [*], an unbounded count or a cofinite operation set as a
         letter. *)
 
   val show : t -> string
-  (** [show r] prints [r] as the contents of a brace literal: [!≤2] or [!<2] and
-      [≤5] on the upper side, [!≥2] or [!>2] and [≥5] on the lower, the stretch
-      of every length [≥0], [r | 0] as [r?], and the empty language as [_ & ~_].
-  *)
+  (** [show r] prints [r] as the contents of a brace literal: [idle ≤2] or
+      [idle <2] and [≤5] on the upper side, [idle ≥2] or [idle >2] and [≥5] on
+      the lower, the stretch of every length [≥0], [r | 0] as [r?], and the
+      empty language as [_ & ~_]. *)
 end
 
 module Upper : S

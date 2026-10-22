@@ -1,7 +1,7 @@
 (* An iteration of the drive that waits 150 ms and clears and redraws the
    display, after balance.tpe. *)
 
-let drive_step_redrawn (n : nat) : unit # [0, 200) =
+let drive_step_redrawn (n : nat) : unit ! [0, 200) =
   let tilt, _ = perform LatestTilt () in
   perform Move (0.0, 0.0);
   perform ClearDisplay ();
