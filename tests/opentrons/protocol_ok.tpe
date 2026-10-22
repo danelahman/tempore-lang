@@ -3,10 +3,10 @@
    by its default implementation, and 'Lost' only by a definition that no run
    uses. *)
 
-operation Pipette : nat ~> nat # [1, 2]
-operation Probe : unit ~> nat # [0, 1]
-operation Shake : unit ~> unit # [0, 5]
-operation Lost : unit ~> unit # [0, 1]
+operation Pipette : nat ~> nat ! [1, 2]
+operation Probe : unit ~> nat ! [0, 1]
+operation Shake : unit ~> unit ! [0, 5]
+operation Lost : unit ~> unit ! [0, 1]
 
 default Shake () = delay 1
 

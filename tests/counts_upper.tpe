@@ -4,14 +4,14 @@
 
    Operation counts: at most n calls of each operation. *)
 
-operation Send : nat ~> unit # (Send, 1)
-operation Auth : unit ~> unit # (Auth, 1)
+operation Send : nat ~> unit ! (Send, 1)
+operation Auth : unit ~> unit ! (Auth, 1)
 
 default Send n = ()
 default Auth () = ()
 
 (* Accepted: one authentication and three transmissions. *)
-let burst () : unit # ((Auth, 1), (Send, 3)) =
+let burst () : unit ! ((Auth, 1), (Send, 3)) =
   perform Auth ();
   perform Send 1;
   perform Send 2;
@@ -24,10 +24,10 @@ let paced () =
   perform Send 2
 
 (* Accepted: a plain number bounds every operation. *)
-let at_most_three () : unit # 3 = burst ()
+let at_most_three () : unit ! 3 = burst ()
 
 (* Accepted: an entry '(_, n)' bounds every operation not listed. *)
-let others () : unit # ((Send, ∞), (_, 1)) = burst ()
+let others () : unit ! ((Send, ∞), (_, 1)) = burst ()
 
 (* Accepted: a handler may perform an operation fewer times. *)
 let silent () =

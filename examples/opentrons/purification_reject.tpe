@@ -8,7 +8,7 @@
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `!` admit none, a
+   admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {0}: the empty trace
@@ -18,36 +18,36 @@
 type sample = string
 type beads = string
 
-operation AddBeads : sample ~> beads # {AddBeads} within [1, 2]
+operation AddBeads : sample ~> beads ! {AddBeads} within [1, 2]
 default AddBeads samples = delay 3/2; "beads"
 
-operation MagnetOn : unit ~> unit # {MagnetOn} within (0, 1]
+operation MagnetOn : unit ~> unit ! {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1/2
 
-operation MagnetOff : unit ~> unit # {MagnetOff} within (0, 1]
+operation MagnetOff : unit ~> unit ! {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1/2
 
-operation RemoveSupernatant : beads ~> unit # {RemoveSupernatant}
+operation RemoveSupernatant : beads ~> unit ! {RemoveSupernatant}
   within [1, 2]
 default RemoveSupernatant beads = delay 3/2
 
-operation AddEthanol : unit ~> unit # {AddEthanol} within (0, 1]
+operation AddEthanol : unit ~> unit ! {AddEthanol} within (0, 1]
 default AddEthanol () = delay 3/4
 
-operation RemoveEthanol : unit ~> unit # {RemoveEthanol} within [1, 2]
+operation RemoveEthanol : unit ~> unit ! {RemoveEthanol} within [1, 2]
 default RemoveEthanol () = delay 3/2
 
-operation RemoveResidualEthanol : beads ~> unit # {RemoveResidualEthanol}
+operation RemoveResidualEthanol : beads ~> unit ! {RemoveResidualEthanol}
   within (0, 1]
 default RemoveResidualEthanol beads = delay 3/4
 
-operation EluteDNA : beads ~> unit # {EluteDNA} within [1, 2]
+operation EluteDNA : beads ~> unit ! {EluteDNA} within [1, 2]
 default EluteDNA beads = delay 3/2
 
-operation Transfer : sample ~> unit # {Transfer} within [1, 2]
+operation Transfer : sample ~> unit ! {Transfer} within [1, 2]
 default Transfer samples = delay 3/2
 
-operation AddMasterMix : beads ~> unit # {AddMasterMix} within [1, 2]
+operation AddMasterMix : beads ~> unit ! {AddMasterMix} within [1, 2]
 default AddMasterMix eluates = delay 3/2
 
 let bind (samples : sample) =
@@ -64,16 +64,16 @@ let clear (settling : [[3, 5]]beads) =
   delay 4;
   unbox settling as beads in
   perform RemoveSupernatant beads;
-  box {AddEthanol; ![1/2, 3/2]} beads
+  box {AddEthanol; idle [1/2, 3/2]} beads
 
-let wash (soaking : [{AddEthanol; ![1/2, 3/2]}]beads) =
+let wash (soaking : [{AddEthanol; idle [1/2, 3/2]}]beads) =
   perform AddEthanol ();
   delay 1;
   unbox soaking as beads in
   perform RemoveEthanol ();
-  box {AddEthanol; ![1/2, 3/2]; RemoveEthanol} beads
+  box {AddEthanol; idle [1/2, 3/2]; RemoveEthanol} beads
 
-let final_wash (rinsing : [{AddEthanol; ![1/2, 3/2]; RemoveEthanol}]beads) =
+let final_wash (rinsing : [{AddEthanol; idle [1/2, 3/2]; RemoveEthanol}]beads) =
   perform AddEthanol ();
   delay 3/4;
   perform RemoveEthanol ();
@@ -113,7 +113,7 @@ let clear_long (settling : [[3, 5]]beads) =
   delay 5;
   unbox settling as beads in
   perform RemoveSupernatant beads;
-  box {AddEthanol; ![1/2, 3/2]} beads
+  box {AddEthanol; idle [1/2, 3/2]} beads
 
 let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
   delay 5;
@@ -142,8 +142,8 @@ let purification_generous (samples : sample) =
    for the removal of its ethanol before the box is opened:
 
      Typing error: The resource inequality
-       `{AddEthanol; ![0.5, 1.5]; RemoveEthanol} <=
-       {AddEthanol; ![0.5, 1.5]}` does not hold
+       `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol} <=
+       {AddEthanol; idle [0.5, 1.5]}` does not hold
 *)
 let purification_one_wash (samples : sample) =
   let binding = bind samples in
@@ -161,15 +161,15 @@ let purification_one_wash (samples : sample) =
    during the first soak, and the ethanol is removed off the magnet:
 
      Typing error: Variable `soaking` is unboxed with grade `{AddEthanol;
-       MagnetOff; !0.5}` accumulated since it was bound, which is not below its
-       box grade ...
+       MagnetOff; idle 0.5}` accumulated since it was bound, which is not below
+       its box grade ...
 *)
-let wash_off_magnet (soaking : [{AddEthanol; ![1/2, 3/2]}]beads) =
+let wash_off_magnet (soaking : [{AddEthanol; idle [1/2, 3/2]}]beads) =
   perform AddEthanol ();
   perform MagnetOff ();
   delay 1/2;
   unbox soaking as beads in
   perform RemoveEthanol ();
-  box {AddEthanol; ![1/2, 3/2]; RemoveEthanol} beads
+  box {AddEthanol; idle [1/2, 3/2]; RemoveEthanol} beads
 
 run purification_generous "samples"

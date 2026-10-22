@@ -12,7 +12,7 @@
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `!` admit none, a
+   admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {0}: the empty trace
@@ -49,22 +49,22 @@
 
 type calibration = Calibration of float
 
-operation Publish : float * float * float * float ~> unit # {Publish} within (0, 0.05]
+operation Publish : float * float * float * float ~> unit ! {Publish} within (0, 0.05]
 default Publish _ = delay 1/100
 
-operation Setpoints : unit ~> bool * float * float * float # {Setpoints} within (0, 0.05]
+operation Setpoints : unit ~> bool * float * float * float ! {Setpoints} within (0, 0.05]
 default Setpoints () = delay 1/100; (true, 0.0, 0.0, 0.0)
 
-operation LatestTilt : unit ~> float * float # {LatestTilt} within (0, 0.05]
+operation LatestTilt : unit ~> float * float ! {LatestTilt} within (0, 0.05]
 default LatestTilt () = delay 1/100; (0.0, 0.0)
 
-operation StartBalancing : calibration ~> unit # {StartBalancing} within (0, 0.05]
+operation StartBalancing : calibration ~> unit ! {StartBalancing} within (0, 0.05]
 default StartBalancing _ = delay 1/100
 
-operation StopBalancing : unit ~> unit # {StopBalancing} within (0, 0.05]
+operation StopBalancing : unit ~> unit ! {StopBalancing} within (0, 0.05]
 default StopBalancing () = delay 1/100
 
-operation Move : float * float ~> unit # {Move} within (0, 0.05]
+operation Move : float * float ~> unit ! {Move} within (0, 0.05]
 default Move _ = delay 1/100
 
 (* The control step. The state is the tilt, in degrees, filtered from the
@@ -116,7 +116,7 @@ let clamp (limit : float) (x : float) =
    since it was taken. While a turn is commanded, the heading held follows the
    difference of the counts; stopped, the step holds the present heading. *)
 let step ((tilt, speed, integral, position, heading) : state) : state
-    # {ReadImu; ReadEncoders; Setpoints; Publish; SetMotors} =
+    ! {ReadImu; ReadEncoders; Setpoints; Publish; SetMotors} =
   let reading = perform ReadImu () in
   box {(ReadEncoders | Setpoints)*} reading as fresh in
   let left, right = perform ReadEncoders () in
@@ -201,7 +201,7 @@ let step_stopped
 (* Correctly accepted by the typechecker: the sum of n rates, each read
    after the last within 10 ms, with no other operation between. *)
 
-let rec rate_sum (n : nat) (sum : float) : float # {(LatestTilt; 10)*} =
+let rec rate_sum (n : nat) (sum : float) : float ! {(LatestTilt; 10)*} =
   match n with
   | 0 -> sum
   | m + 1 ->
@@ -214,7 +214,7 @@ let rec rate_sum (n : nat) (sum : float) : float # {(LatestTilt; 10)*} =
    and shows a message before it reads
    the rates, in this order. *)
 let measure_bias () : float
-    # {StopBalancing; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+    ! {StopBalancing; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
        (LatestTilt; 10)*} =
   perform StopBalancing ();
   perform ClearDisplay ();
@@ -235,7 +235,7 @@ let measure_bias () : float
 *)
 (*
 let measure_bias_balancing () : float
-    # {StopBalancing; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+    ! {StopBalancing; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
        (LatestTilt; 10)*} =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Balancing robot with regexes");
@@ -250,12 +250,12 @@ let measure_bias_balancing () : float
    22.5 ms:
 
      Typing error: This function's body has grade `{(LatestTilt; ShowNumber;
-       !10; …)?}`, which does not match its annotated grade
+       idle 10; …)?}`, which does not match its annotated grade
        `{(LatestTilt; 10)*}`
        ...
 *)
 (*
-let rec rate_sum_shown (n : nat) (sum : float) : float # {(LatestTilt; 10)*} =
+let rec rate_sum_shown (n : nat) (sum : float) : float ! {(LatestTilt; 10)*} =
   match n with
   | 0 -> sum
   | m + 1 ->
@@ -281,7 +281,7 @@ let calibrate () =
    renewed within at most 112.6 ms, before the step replaces it by zero
    setpoints. *)
 let rec drive (n : nat) (tilt : float) (command : [[0, 200)](float * float))
-    : unit # {((ShowNumber | 0); 100; LatestTilt; Move)*} =
+    : unit ! {((ShowNumber | 0); 100; LatestTilt; Move)*} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -298,7 +298,7 @@ let rec drive (n : nat) (tilt : float) (command : [[0, 200)](float * float))
    is the protocol of the supervision: calibrate, start, drive and stop, in
    this order. *)
 let supervise () : unit
-    # {StopBalancing; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+    ! {StopBalancing; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
        (LatestTilt; 10)*; ShowText; 1000; StartBalancing; ShowText; LatestTilt;
        Move;
        ((ShowNumber | 0); 100; LatestTilt; Move)*; StopBalancing} =
@@ -367,7 +367,7 @@ let simulated_robot (tilt : float) (rate : float) (position : float) =
    state of the step and the tilt of the model after the last step. *)
 let rec balance (n : nat) (tilt : float) (rate : float) (position : float)
     (s : state) : state * float
-    # {(ReadImu; ReadEncoders; Setpoints; Publish; SetMotors)*} =
+    ! {(ReadImu; ReadEncoders; Setpoints; Publish; SetMotors)*} =
   match n with
   | 0 -> (s, tilt)
   | m + 1 ->
@@ -395,7 +395,7 @@ let stuck_gyroscope =
    stuck. The result is the state of the step and the mean drive of the
    motors in the last step. *)
 let rec held (n : nat) (s : state) (mean_drive : float) : state * float
-    # {(ReadImu; ReadEncoders; Setpoints; Publish; SetMotors)*} =
+    ! {(ReadImu; ReadEncoders; Setpoints; Publish; SetMotors)*} =
   match n with
   | 0 -> (s, mean_drive)
   | m + 1 ->

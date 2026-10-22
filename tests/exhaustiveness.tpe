@@ -62,7 +62,7 @@ run (xor true false, code "b", value (Done 4), swap (1, 2), three ())
 run (nth [1; 2; 3] 1, nth [1; 2; 3] 5, hd [1], tl [1], zip [1; 2; 3] ["a"])
 
 (* Handler clauses and defaults. *)
-operation Put : nat * bool ~> unit # 1
+operation Put : nat * bool ~> unit ! 1
 
 default Put (n, _) = delay 1
 

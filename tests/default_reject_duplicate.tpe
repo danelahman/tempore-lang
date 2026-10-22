@@ -2,7 +2,7 @@
    grading monoid: an operation may be given at most one default
    implementation. *)
 
-operation Log : string ~> unit # 1
+operation Log : string ~> unit ! 1
 
 default Log msg = delay 1
 default Log msg = delay 2

@@ -2,7 +2,7 @@
    returns a nat, so the case for 'Op' must return one too, and it returns a
    string instead. *)
 
-operation Op : unit ~> unit # 1
+operation Op : unit ~> unit ! 1
 
 let h = handler
   | x -> 0

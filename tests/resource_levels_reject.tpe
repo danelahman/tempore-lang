@@ -6,11 +6,11 @@
 
 type file = File of string
 
-operation Open : string ~> file # (1, 1)
-operation Close : file ~> unit # (-1, 0)
+operation Open : string ~> file ! (1, 1)
+operation Close : file ~> unit ! (-1, 0)
 
 (* Rejected: three descriptors are held at the peak. *)
-let three () : unit # (0, 2) =
+let three () : unit ! (0, 2) =
   let a = perform Open "a" in
   let b = perform Open "b" in
   let c = perform Open "c" in
@@ -50,7 +50,7 @@ let unheld () =
 
 (* Rejected: opening a descriptor before closing the given one rises to one
    above the start. *)
-let rotate_late f : file # (-1, 0, 0) =
+let rotate_late f : file ! (-1, 0, 0) =
   let g = perform Open "g" in
   perform Close f;
   g

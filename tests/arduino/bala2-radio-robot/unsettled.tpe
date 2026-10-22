@@ -4,7 +4,7 @@
 
 let measure_unsettled () =
   let rest = perform CheckAtRest () in
-  box {(Reading; !10)*} rest as checked in
+  box {(Reading; idle 10)*} rest as checked in
   perform StopBalancing ();
   let samples = sample () in
   unbox checked as at_rest in

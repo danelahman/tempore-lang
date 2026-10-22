@@ -6,7 +6,7 @@
    Time lower bounds paired with security levels: rejected claims of an
    embargoed report. *)
 
-operation Publish : string ~> unit # (1, High)
+operation Publish : string ~> unit ! (1, High)
 
 default Publish s = delay 1
 

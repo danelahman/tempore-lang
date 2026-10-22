@@ -55,11 +55,11 @@
    upper bound 1.5 times the greatest time measured with the radio, rounded
    up, and the lower bound that of the CoreS3 without it. *)
 
-operation ReadImu : unit ~> imu # [0.2, 1.5]
+operation ReadImu : unit ~> imu ! [0.2, 1.5]
 default ReadImu () = delay 3/5; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
 
-operation ConfigureImu : nat ~> unit # [0.1, 0.4]
+operation ConfigureImu : nat ~> unit ! [0.1, 0.4]
 default ConfigureImu _ = delay 1/5
 
-operation CheckAtRest : unit ~> bool # [17.95, 28.5]
+operation CheckAtRest : unit ~> bool ! [17.95, 28.5]
 default CheckAtRest () = delay 18; true

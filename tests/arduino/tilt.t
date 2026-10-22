@@ -27,7 +27,7 @@ with the default implementations of the operations:
     [31, 31],
     [3, 3],
     [0.01, 0.01],
-    { resource_0 ↦ 0. # [0, 20) },
+    { resource_0 ↦ 0. ! [0, 20) },
     [1, 1],
     [1, 1],
     [3, 3],
@@ -63,7 +63,7 @@ itself and may last its period:
     Note: the resource inequality `[31.1, 93.5] <= [0, 20)` does not hold
   [1]
   File "tilt/shown.tpe", lines 3-8, characters 30-6:
-  3 | let step_shown (tilt : float) : float # [0, 20) =
+  3 | let step_shown (tilt : float) : float ! [0, 20) =
                                     ^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `[31.25, 62]`, which does not match its annotated grade `[0, 20)`
     Note: the effect inequality `[31.25, 62] <= [0, 20)` does not hold

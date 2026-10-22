@@ -9,8 +9,8 @@
 
 type token = Token of string
 
-operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
-operation Send : nat ~> unit # {Send} within [1/4, 1]
+operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
+operation Send : nat ~> unit ! {Send} within [1/4, 1]
 
 (* A delay of a quarter is short of the half demanded. *)
 let too_early () =
@@ -28,7 +28,7 @@ let waiting () =
 
 (* Delays between none and a time unit may be arbitrarily short, and cover no
    guarantee of a half. *)
-let some_delay () : unit # {(0, 1)} = delay 1/2
+let some_delay () : unit ! {(0, 1)} = delay 1/2
 
 let delayed () =
   box {1/2} (Token "p") as p in
@@ -37,4 +37,4 @@ let delayed () =
   tok
 
 (* A sample may take only half a time unit, short of the one annotated. *)
-let quick () : nat # {1} = perform Sample ()
+let quick () : nat ! {1} = perform Sample ()

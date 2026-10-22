@@ -79,48 +79,48 @@ let parses text expected =
 
 let syntax =
   [
-    parses "{!<=3}" "!≤3";
-    parses "{!≤3}" "!≤3";
-    parses "{!<3}" "!<3";
-    parses "{!>=2.5}" "!≥2.5";
-    parses "{!>2}" "!>2";
+    parses "{idle <=3}" "idle ≤3";
+    parses "{idle ≤3}" "idle ≤3";
+    parses "{idle <3}" "idle <3";
+    parses "{idle >=2.5}" "idle ≥2.5";
+    parses "{idle >2}" "idle >2";
     parses "{<=5; >=1000}" "≤5; ≥1000";
     parses "{≤∞}" "≤∞";
     parses "{<inf}" "≤∞";
     parses "{A?|B}" "A | 0 | B";
     parses "{A?;B}" "(A | 0); B";
-    parses "{(A; !<=1)?}" "A; !≤1 | 0";
-    parses "{!~[2, 3]}" "!(~[2, 3])";
+    parses "{(A; idle <=1)?}" "A; idle ≤1 | 0";
+    parses "{idle ~[2, 3]}" "idle (~[2, 3])";
     parses "{>=0 & ~Read}" "≥0 & ~Read";
-    parses "{!<=1*}" "!≤1*";
+    parses "{idle <=1*}" "idle ≤1*";
     syntax_error "{<0}" "`<0` holds no delay";
     syntax_error "{>=inf}" "`≥∞` holds no delay";
-    syntax_error "{!A}"
-      "A strict wait `!` applies to a length or an interval of lengths, not to \
-       `A`";
+    syntax_error "{idle A}"
+      "A strict wait `idle` applies to a length or an interval of lengths, not \
+       to `A`";
   ]
 
 (* {1 Normal forms and printing} *)
 
 let normal_forms =
   [
-    reads `Upper "{1; !1; 1}" "≤1; !≤1; ≤1";
+    reads `Upper "{1; idle 1; 1}" "≤1; idle ≤1; ≤1";
     reads `Upper "{1; 1}" "≤2";
-    reads `Upper "{!1; !2.5}" "!≤3.5";
-    reads `Lower "{1; !1; 1}" "≥1; !≥1; ≥1";
-    reads `Lower "{!1; !2}" "!≥3";
+    reads `Upper "{idle 1; idle 2.5}" "idle ≤3.5";
+    reads `Lower "{1; idle 1; 1}" "≥1; idle ≥1; ≥1";
+    reads `Lower "{idle 1; idle 2}" "idle ≥3";
     reads `Upper "{1; (A | 0); 1}" "≤1; A?; ≤1";
-    reads `Upper "{(!400)^500}" "!≤200000";
-    reads `Lower "{(!400)^500}" "!≥200000";
-    reads `Lower "{(!400)^[0, 500]}" "(!≥400)?";
-    reads `Upper "{(ReceiveMessage; ReportStatus; !400)^[1, 500]}"
-      "(ReceiveMessage; ReportStatus; !≤400)^[1, 500]";
-    reads `Lower "{(ReceiveMessage; ReportStatus; !400)^[1, 500]}"
-      "(ReceiveMessage; ReportStatus; !≥400)^[1, 500]";
-    reads `Upper "{(!2)*}" "!≥0";
-    reads `Lower "{(!2)*}" "(!≥2)?";
+    reads `Upper "{(idle 400)^500}" "idle ≤200000";
+    reads `Lower "{(idle 400)^500}" "idle ≥200000";
+    reads `Lower "{(idle 400)^[0, 500]}" "(idle ≥400)?";
+    reads `Upper "{(ReceiveMessage; ReportStatus; idle 400)^[1, 500]}"
+      "(ReceiveMessage; ReportStatus; idle ≤400)^[1, 500]";
+    reads `Lower "{(ReceiveMessage; ReportStatus; idle 400)^[1, 500]}"
+      "(ReceiveMessage; ReportStatus; idle ≥400)^[1, 500]";
+    reads `Upper "{(idle 2)*}" "idle ≥0";
+    reads `Lower "{(idle 2)*}" "(idle ≥2)?";
     reads `Lower "{(>=0)*}" "≥0";
-    reads `Lower "{(!>=0)*}" "!≥0";
+    reads `Lower "{(idle >=0)*}" "idle ≥0";
     reads `Upper "{[2, 5]}" "≤5";
     reads `Lower "{[2, 5]}" "≥2";
     reads `Lower "{(2, 5]}" ">2";
@@ -128,12 +128,12 @@ let normal_forms =
     reads `Upper "{<3}" "<3";
     reads ~whole:true `Upper "{<3}" "≤2";
     reads ~whole:true `Upper "{<1}" "0";
-    reads ~whole:true `Upper "{!<1}" "0";
+    reads ~whole:true `Upper "{idle <1}" "0";
     reads `Upper "{1 | 3}" "≤3";
     reads `Lower "{1 | 3}" "≥1";
     reads `Lower "{0 | 3}" "≥3?";
     reads `Upper "{0 | 3}" "≤3";
-    reads `Upper "{0 | !3}" "!≤3";
+    reads `Upper "{0 | idle 3}" "idle ≤3";
     reads `Upper "{0}" "0";
     reads `Lower "{>=0}" "≥0";
     reads `Upper "{>=0}" "≥0";
@@ -150,8 +150,8 @@ let normal_forms =
     reads `Upper "{A; A; A}" "A^3";
     reads `Upper "{A?}" "A?";
     reads `Upper "{(A; B)?}" "(A; B)?";
-    reads `Upper "{(!1)?}" "!≤1";
-    reads `Upper "{!1; A; !1}" "!≤1; A; !≤1";
+    reads `Upper "{(idle 1)?}" "idle ≤1";
+    reads `Upper "{idle 1; A; idle 1}" "idle ≤1; A; idle ≤1";
   ]
 
 (* {1 Rejections} *)
@@ -174,19 +174,20 @@ let rejections =
     reads `Upper "{(≤1 & A) | (≤3 & A)}" "≤3 & A";
     reads `Lower "{(≥1 & A) | (≥3 & A)}" "≥1 & A";
     reads `Upper "{(≤1 & ~(A | B))*}" "≥0 & ~(A | B)";
-    rejects `Upper "{(!≤1 & A)}" "the intersection `&` applies";
-    reads `Upper "{(≤1 & (A & B))}" "!≤1";
+    rejects `Upper "{(idle ≤1 & A)}" "the intersection `&` applies";
+    reads `Upper "{(≤1 & (A & B))}" "idle ≤1";
     reads ~finite:true `Upper "{A; (≤3 & ~B)}" "A; (≤3 & ~B)";
-    rejects `Upper "{!_}" "`!_` is no letter of these grades";
-    rejects `Upper "{!~[2, 3]}" "the complement of an interval is not one-sided";
+    rejects `Upper "{idle _}" "`idle _` is no letter of these grades";
+    rejects `Upper "{idle ~[2, 3]}"
+      "the complement of an interval is not one-sided";
     rejects `Upper "{~[2, 3]}" "the complement of an interval is not one-sided";
     rejects `Lower "{<=3}"
-      "lower bounds have letters bounded below only, such as `≥3` or `!≥3`, \
-       not `≤3`";
-    rejects `Lower "{!<3}" "not `!<3`";
+      "lower bounds have letters bounded below only, such as `≥3` or `idle \
+       ≥3`, not `≤3`";
+    rejects `Lower "{idle <3}" "not `idle <3`";
     rejects `Upper "{>=3}"
-      "upper bounds have letters bounded above only, such as `≤3` or `!≤3`, \
-       not `≥3`";
+      "upper bounds have letters bounded above only, such as `≤3` or `idle \
+       ≤3`, not `≥3`";
     rejects ~whole:true `Upper "{1/2}" "";
     rejects ~finite:true `Upper "{A*}" "repetition `*`";
     rejects ~finite:true `Upper "{A^[1, ∞)}" "the unbounded repetition";
@@ -222,14 +223,14 @@ let zipping =
       (zip_pair "{≥1000 & ~Move}" "{≤600000 & ~Move}");
     expect "does not zip different sets" show_option ~expected:None
       (zip_pair "{≥1000 & ~Move}" "{≤600000 & ~ReceiveMessage}");
-    zips "{AddEthanol; ![0.5, 1.5]}" "AddEthanol; ![0.5, 1.5]";
-    zips "{!400}" "!400";
+    zips "{AddEthanol; idle [0.5, 1.5]}" "AddEthanol; idle [0.5, 1.5]";
+    zips "{idle 400}" "idle 400";
     zips "{[1000, 600000]}" "[1000, 600000]";
     zips "{(2, 3)}" "(2, 3)";
     zips "{[2, ∞)}" "[2, ∞)";
     zips "{≥0}" "≥0";
-    zips "{(ReceiveMessage; ReportStatus; !400)^[1, 500]}"
-      "(ReceiveMessage; ReportStatus; !400)^[1, 500]";
+    zips "{(ReceiveMessage; ReportStatus; idle 400)^[1, 500]}"
+      "(ReceiveMessage; ReportStatus; idle 400)^[1, 500]";
     zips "{(A | B); 2 | C; 3}" "(A | B); 2 | C; 3";
     zips "{[0, 1]}" "[0, 1]";
     zips "{A?; 3}" "A?; 3";

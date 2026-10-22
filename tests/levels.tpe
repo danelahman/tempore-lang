@@ -6,8 +6,8 @@
    a box at level l may be unboxed only while the level has not risen above l
    since boxing. *)
 
-operation Send : string ~> unit # High
-operation Read : unit ~> string # Low
+operation Send : string ~> unit ! High
+operation Read : unit ~> string ! Low
 
 default Send s = ()
 default Read () = "report"

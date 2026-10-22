@@ -6,7 +6,7 @@
    Time upper bounds paired with security levels: rejected uses of an expiring
    capability. *)
 
-operation Leak : string ~> unit # (1, High)
+operation Leak : string ~> unit ! (1, High)
 
 default Leak s = delay 1
 

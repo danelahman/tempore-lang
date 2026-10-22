@@ -9,7 +9,7 @@
 
 type token = Token of string
 
-operation Fetch : unit ~> unit # {Fetch} within [2, 4]
+operation Fetch : unit ~> unit ! {Fetch} within [2, 4]
 
 (* A box grade whose traces perform an operation other than a fetch, when a
    fetch is the only operation the program declares. *)
@@ -19,7 +19,7 @@ let other_than_fetch () =
   tok
 
 (* The same grade as an annotation. *)
-let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
+let annotated () : unit ! {_ & ~1 & ~Fetch} = perform Fetch ()
 
 (* The same grade in a type definition, which ends the typechecking. *)
 type pending = Pending of [{_ & ~1 & ~Fetch}]token

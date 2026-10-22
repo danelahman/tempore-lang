@@ -4,7 +4,7 @@
 let rec fact (n : nat) : nat = match n with 0 -> 1 | m + 1 -> n * fact m
 
 (* Correctly accepted by the typechecker: the same with the result grade. *)
-let rec fact_graded (n : nat) : nat # 0 =
+let rec fact_graded (n : nat) : nat ! 0 =
   match n with 0 -> 1 | m + 1 -> n * fact_graded m
 
 (* Correctly accepted by the typechecker: a type variable 'b of an annotation

@@ -2,7 +2,7 @@
    encoders 1.5 ms apart, after balance.tpe. *)
 
 let step_stale ((tilt, speed, integral, position, heading) : state) : state
-    # [0, 5) =
+    ! [0, 5) =
   let reading = perform ReadImu () in
   box [0, 2] reading as fresh in
   let left1, right1 = perform ReadEncoders () in

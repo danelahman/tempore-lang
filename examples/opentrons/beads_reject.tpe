@@ -11,13 +11,13 @@
 
 type beads = string
 
-operation MagnetOff : beads ~> unit # [0, 1]
+operation MagnetOff : beads ~> unit ! [0, 1]
 default MagnetOff beads = ()
 
-operation FinalWash : beads ~> [[2, 3]]beads # [1, 2]
+operation FinalWash : beads ~> [[2, 3]]beads ! [1, 2]
 default FinalWash beads = delay 1; box [2, 3] beads
 
-operation EluteDNA : beads ~> unit # [1, 2]
+operation EluteDNA : beads ~> unit ! [1, 2]
 default EluteDNA beads = delay 1
 
 (* Correctly rejected by the typechecker: the elution buffer is added four to

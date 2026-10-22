@@ -6,14 +6,14 @@
    sessions open, read and write any number of times, and close, in that
    order. *)
 
-operation Open : unit ~> unit # {Open}
-operation Read : unit ~> nat # {Read}
-operation Write : nat ~> unit # {Write}
-operation Close : unit ~> unit # {Close}
-operation Session : unit ~> nat # {Open; (Read | Write)*; Close}
+operation Open : unit ~> unit ! {Open}
+operation Read : unit ~> nat ! {Read}
+operation Write : nat ~> unit ! {Write}
+operation Close : unit ~> unit ! {Close}
+operation Session : unit ~> nat ! {Open; (Read | Write)*; Close}
 
 (* Two copies within one session. *)
-let copy_twice () : nat # {Open; (Read | Write)*; Close} =
+let copy_twice () : nat ! {Open; (Read | Write)*; Close} =
   perform Open ();
   let x = perform Read () in
   perform Write x;
@@ -23,7 +23,7 @@ let copy_twice () : nat # {Open; (Read | Write)*; Close} =
   x + y
 
 (* An empty session is a session too. *)
-let touch () : unit # {Open; (Read | Write)*; Close} =
+let touch () : unit ! {Open; (Read | Write)*; Close} =
   perform Open (); perform Close ()
 
 (* A session realised by one read. *)
@@ -38,7 +38,7 @@ let sessions =
 
 (* Sub-effecting: a single read fits inside any number of reads and writes,
    and delays may be spent between sessions. *)
-let two_sessions () : nat # {(Open; (Read | Write)*; Close | 1)*} =
+let two_sessions () : nat ! {(Open; (Read | Write)*; Close | 1)*} =
   let x = perform Session () in
   delay 2;
   let y = perform Session () in

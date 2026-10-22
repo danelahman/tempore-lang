@@ -2,7 +2,7 @@
 
      ./tempore --grades time-upper-bound tests/continuation_fixed.tpe *)
 
-operation Op : unit ~> unit # 1
+operation Op : unit ~> unit ! 1
 
 (* Correctly accepted by the typechecker: the case returns a function graded
    by the continuation, whose grade may be any; the only solution grades the

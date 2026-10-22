@@ -9,8 +9,8 @@
    period of a timer, and a trace too short for a lower bound on its delay,
    which a note refutes by one of its traces. *)
 
-operation Sample : unit ~> nat # {Sample}
-operation Send : nat ~> unit # {Send}
+operation Sample : unit ~> nat ! {Sample}
+operation Send : nat ~> unit ! {Send}
 
 let offbeat () =
   box {~1} 7 as t in
@@ -28,7 +28,7 @@ let late () =
   unbox due as u in
   u
 
-let thirds () : unit # {(1/2)*} = delay 1/3
+let thirds () : unit ! {(1/2)*} = delay 1/3
 
 let wait (b : bool) =
   box {[1, ∞)} () as w in

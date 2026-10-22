@@ -9,9 +9,9 @@
 
 type token = Token of string
 
-operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
+operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
 default Sample () = delay 1/2; 3
-operation Send : nat ~> unit # {Send} within [1/4, 1]
+operation Send : nat ~> unit ! {Send} within [1/4, 1]
 default Send n = delay 0.25
 
 (* A sample takes between a half and one and a half time units. *)

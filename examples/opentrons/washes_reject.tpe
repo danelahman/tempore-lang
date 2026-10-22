@@ -7,7 +7,7 @@
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `!` admit none, a
+   admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {0}: the empty trace
@@ -16,10 +16,10 @@
 
 type beads = string
 
-operation Wash : beads ~> unit # {Wash} within [1, 2]
+operation Wash : beads ~> unit ! {Wash} within [1, 2]
 default Wash beads = delay 1
 
-operation ChangeTip : unit ~> unit # {ChangeTip} within (0, 1]
+operation ChangeTip : unit ~> unit ! {ChangeTip} within (0, 1]
 default ChangeTip () = delay 1
 
 (* Correctly rejected by the typechecker: the further washes share a tip,
@@ -30,7 +30,7 @@ default ChangeTip () = delay 1
        ...
 *)
 let rec washes_shared_tip (beads : beads) (n : nat)
-    : unit # {(Wash; ChangeTip)*} =
+    : unit ! {(Wash; ChangeTip)*} =
   match n with
   | 0 -> ()
   | m + 1 ->

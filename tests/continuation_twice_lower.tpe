@@ -2,7 +2,7 @@
 
      ./tempore tests/continuation_twice_lower.tpe *)
 
-operation Op : unit ~> unit # 0
+operation Op : unit ~> unit ! 0
 
 (* Resuming twice gives the case grade ε · ε and unboxes k after ε; under a
    lower bound ε · ε >= 0 · ε and ε >= 0 hold for every effect ε of k. *)

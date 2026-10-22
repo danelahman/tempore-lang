@@ -3,8 +3,8 @@
    the frames inside the handler, and the frames outside it continue with the
    value of the case. *)
 
-operation Fail : string ~> unit # 0
-operation Ask : unit ~> nat # 0
+operation Fail : string ~> unit ! 0
+operation Ask : unit ~> nat ! 0
 
 let catch =
   handler

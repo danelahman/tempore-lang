@@ -10,13 +10,13 @@
 
 type token = Token of string
 
-operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
-operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
-operation Beep : unit ~> unit # {Beep} within (0, 0.15]
-operation ReadTouch : unit ~> bool # {ReadTouch} within [0.1, 1]
-operation ConfigureImu : unit ~> unit # {ConfigureImu} within [0.1, 0.4]
-operation Wash : unit ~> unit # {Wash} within [1, 2]
-operation ChangeTip : unit ~> unit # {ChangeTip} within [1, 1]
+operation ReadImu : unit ~> nat ! {ReadImu} within [0.2, 1.5]
+operation ReadClock : unit ~> nat ! {ReadClock} within (0, 0.05]
+operation Beep : unit ~> unit ! {Beep} within (0, 0.15]
+operation ReadTouch : unit ~> bool ! {ReadTouch} within [0.1, 1]
+operation ConfigureImu : unit ~> unit ! {ConfigureImu} within [0.1, 0.4]
+operation Wash : unit ~> unit ! {Wash} within [1, 2]
+operation ChangeTip : unit ~> unit ! {ChangeTip} within [1, 1]
 
 (* Three polls, each after a delay of at most 2.5. *)
 let three_polls () =

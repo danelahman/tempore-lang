@@ -7,7 +7,7 @@ let fail = TestSupport.Failures.fail
 let declaration =
   {
     BackendRegistry.filename = "binding.tpe";
-    text = "operation Wait : unit ~> unit # 1";
+    text = "operation Wait : unit ~> unit ! 1";
     running_times =
       [
         ( "Wait",
@@ -81,7 +81,7 @@ let () =
         {
           key with
           declared =
-            [ { declaration with text = "operation Wait : unit ~> unit # 2" } ];
+            [ { declaration with text = "operation Wait : unit ~> unit ! 2" } ];
         } );
       ( "running times",
         {

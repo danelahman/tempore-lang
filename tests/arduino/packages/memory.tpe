@@ -4,8 +4,8 @@
    which no device answers, is a run-time error. Time is in milliseconds,
    under the grades time-interval-rational. *)
 
-operation Report : nat ~> unit # [0, 1]
-operation ReportInt : int ~> unit # [0, 1]
+operation Report : nat ~> unit ! [0, 1]
+operation ReportInt : int ~> unit ! [0, 1]
 
 let check () =
   perform I2cWrite32 (80, 16, 305419896);

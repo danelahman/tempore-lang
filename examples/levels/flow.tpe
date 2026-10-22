@@ -10,23 +10,23 @@
      - Product: (l, W) · (l', W') = (l ⊔ l', W ⊔ W' raised to l) *)
 
 (* Reading the weather touches nothing secret, reading the vault does. *)
-operation ReadPublic : unit ~> string # Low
+operation ReadPublic : unit ~> string ! Low
 default ReadPublic () = "weather: sunny"
 
-operation ReadSecret : unit ~> string # High
+operation ReadSecret : unit ~> string ! High
 default ReadSecret () = "launch code: 0000"
 
 (* Posting writes to the public board and logging to the audit trail, each at
    the level touched before. *)
-operation Post : string ~> unit # (Low, (Board, Low))
+operation Post : string ~> unit ! (Low, (Board, Low))
 default Post msg = ()
 
-operation Log : string ~> unit # (Low, (Audit, Low))
+operation Log : string ~> unit ! (Low, (Audit, Low))
 default Log msg = ()
 
 (* Correctly accepted by the typechecker: the weather is posted before the
    vault is read, and only the audit trail is written after it. *)
-let report () : unit # (High, (Audit, High), (Board, Low)) =
+let report () : unit ! (High, (Audit, High), (Board, Low)) =
   let w = perform ReadPublic () in
   perform Post w;
   let s = perform ReadSecret () in
@@ -34,7 +34,7 @@ let report () : unit # (High, (Audit, High), (Board, Low)) =
 
 (* Correctly accepted by the typechecker: a branch writes the board at the
    join of the levels of its arms, here 'Low'. *)
-let maybe_report b : unit # (High, (Audit, High), (Board, Low)) =
+let maybe_report b : unit ! (High, (Audit, High), (Board, Low)) =
   if b then report () else perform Post "no report today"
 
 (* Correctly accepted by the typechecker: a draft boxed at '(Low, (Board,
@@ -57,7 +57,7 @@ let draft () =
          (High, (Audit, High), (Board, Low))` does not hold
 *)
 (*
-let late_post () : unit # (High, (Audit, High), (Board, Low)) =
+let late_post () : unit ! (High, (Audit, High), (Board, Low)) =
   let w = perform ReadPublic () in
   let s = perform ReadSecret () in
   perform Log s;

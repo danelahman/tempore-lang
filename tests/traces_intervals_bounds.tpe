@@ -9,8 +9,8 @@
    and the upper bound permits a retry, which takes at most six, so 'Send' gets
    the bounds [2, 6], which the box in 'telemetry' relies on. *)
 
-operation Tx : string ~> unit # [{Tx}, {Tx}] within [2, 3]
-operation Send : string ~> unit # [{Tx}, {Tx | Tx; Tx}]
+operation Tx : string ~> unit ! [{Tx}, {Tx}] within [2, 3]
+operation Send : string ~> unit ! [{Tx}, {Tx | Tx; Tx}]
 
 let telemetry () =
   box [2, 6] 1 as slot in

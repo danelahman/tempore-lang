@@ -7,5 +7,5 @@
    grading monoid: a compound operation's running-time bounds follow from its
    grade and those of the operations it names, so they must not be declared. *)
 
-operation Tx : string ~> unit # {Tx} within [2, 3]
-operation Send : string ~> unit # {Tx | Tx; Tx} within [2, 6]
+operation Tx : string ~> unit ! {Tx} within [2, 3]
+operation Send : string ~> unit ! {Tx | Tx; Tx} within [2, 6]

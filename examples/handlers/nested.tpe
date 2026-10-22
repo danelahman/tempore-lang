@@ -9,8 +9,8 @@
      - Top 0: no time needed; the unit is the top
      - Product: addition *)
 
-operation Op1 : unit ~> unit # 2
-operation Op2 : unit ~> unit # 3
+operation Op1 : unit ~> unit ! 2
+operation Op2 : unit ~> unit ! 3
 
 (* Correctly accepted by the typechecker: with ε₀ the grade the outer
    continuation 'k' may have and ε₁ that of the inner 'k'', the inner case

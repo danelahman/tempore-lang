@@ -10,7 +10,7 @@ let claim_top_ascii () =
   unbox r as y in
   y
 
-let annotated : ([top] string) -> string # ⊤ = fun r -> unbox r as y in y
+let annotated : ([top] string) -> string ! ⊤ = fun r -> unbox r as y in y
 
 run claim_top ()
 run claim_top_ascii ()

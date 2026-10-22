@@ -46,7 +46,7 @@ let () =
     "(* p *)\n\
      let full = 1\n\n\
      operation Show : nat * string ~> unit\n\
-    \    # {Show} within (0, 33]\n\
+    \    ! {Show} within (0, 33]\n\
      default Show _ = delay 3\n"
   in
   let sources = [ { WebDeclarations.filename; text } ] in
@@ -65,7 +65,7 @@ let () =
   (match WebDeclarations.place sources Operation (at "Show") with
   | Some { line = 4; text; filename = f; _ } ->
       check "lines of an operation"
-        (text = "operation Show : nat * string ~> unit\n# {Show} within (0, 33]"
+        (text = "operation Show : nat * string ~> unit\n! {Show} within (0, 33]"
         && f = filename)
   | _ -> fail "place of an operation");
   check "place outside the sources"
@@ -144,7 +144,7 @@ let bala2 ~grade ~manifest ~program:path =
           check "ShowTextAt in m5-display"
             (WebDeclarations.package place.filename = "m5-display"
             && String.starts_with ~prefix:"operation ShowTextAt" place.text
-            && String.contains place.text '#')
+            && String.contains place.text '!')
       | None -> fail "no link to ShowTextAt");
       (match List.assoc_opt "bala2_drive" placed with
       | Some place ->

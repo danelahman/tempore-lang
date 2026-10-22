@@ -3,7 +3,7 @@
      ./tempore --grades time-interval-rational \
        tests/rational_time_intervals.tpe *)
 
-operation Pour : unit ~> unit # [0.5, 3/4]
+operation Pour : unit ~> unit ! [0.5, 3/4]
 
 (* Correctly accepted by the typechecker: a delay of 1/4 and a pour accumulate
    [0.75, 1], which lies inside [0.5, 1.5]. *)

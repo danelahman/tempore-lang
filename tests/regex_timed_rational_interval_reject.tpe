@@ -8,8 +8,8 @@
 
 type token = Token of string
 
-operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
-operation Send : nat ~> unit # {Send} within [1/4, 1]
+operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
+operation Send : nat ~> unit ! {Send} within [1/4, 1]
 
 (* A sample may take only a half, short of the lower bound of 3/4. *)
 let too_quick () =

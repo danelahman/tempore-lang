@@ -5,7 +5,7 @@
    The top '⊤' (ASCII 'top') under traces-timed-interval is '[{0}, ∞)', an
    interval unbounded above. *)
 
-operation Send : unit ~> unit # {Send} within [1, 2]
+operation Send : unit ~> unit ! {Send} within [1, 2]
 
 default Send () = delay 1
 

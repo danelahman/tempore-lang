@@ -1,8 +1,8 @@
 (* A rejected variant of examples/arduino/fall/fall.tpe. *)
 
 let rec alarm_even (n : nat) (seconds : nat) : unit
-    # {((ReadTouch; !50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
-       (0 | (ReadTouch; !50)^20; Beep; ShowColourTextAt^2; !2000)} =
+    ! {((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
+       (0 | (ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)} =
   match n with
   | 0 -> ()
   | m + 1 ->

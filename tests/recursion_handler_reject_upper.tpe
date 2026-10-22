@@ -5,7 +5,7 @@
    A recursive function local to a handler clause, whose recursive case calls
    it twice, and the qualifier of the handler once its unknowns are reported. *)
 
-operation Read : unit ~> unit # 1
+operation Read : unit ~> unit ! 1
 
 (* Correctly rejected by the typechecker: the clause for Read takes at most 1,
    the base case of w at least 1, so w is given the effect 1, and the
@@ -13,7 +13,7 @@ operation Read : unit ~> unit # 1
 let h = handler
   | x -> x
   | Read p k ->
-      let rec w (n : nat) : unit # 'e =
+      let rec w (n : nat) : unit ! 'e =
         match n with 0 -> delay 1 | m + 1 -> (w m; w m) in
       w 2
 
@@ -23,6 +23,6 @@ run handle (perform Read ()) with h
 run handle (perform Read ()) with handler
   | x -> x
   | Read p k ->
-      let rec w (n : nat) : unit # 'e =
+      let rec w (n : nat) : unit ! 'e =
         match n with 0 -> delay 1 | m + 1 -> (w m; w m) in
       w 2

@@ -2,7 +2,7 @@
 
      ./tempore tests/continuation_discard_reject_lower.tpe *)
 
-operation Op : unit ~> unit # 1
+operation Op : unit ~> unit ! 1
 
 (* Correctly rejected by the typechecker: as 'continuation_discard_upper.tpe',
    but under a lower bound 0 is the top of the order, so 0 >= 1 · ε fails

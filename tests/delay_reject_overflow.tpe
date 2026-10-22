@@ -7,4 +7,4 @@
 
 let f () = delay 4611686018427387903; delay 1; ()
 
-let g () : unit # 0 = f ()
+let g () : unit ! 0 = f ()

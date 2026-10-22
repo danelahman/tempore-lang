@@ -105,39 +105,39 @@
    1000 pixels each if the vial lies within the display: at most 10 ms. Their
    lower bound is 0, the time of a call of DrawLevel that draws nothing. *)
 
-operation ShowText : string ~> unit # [0.05, 12.5]
+operation ShowText : string ~> unit ! [0.05, 12.5]
 default ShowText _ = delay 1
 
-operation ShowNumber : float ~> unit # [0.05, 12.5]
+operation ShowNumber : float ~> unit ! [0.05, 12.5]
 default ShowNumber _ = delay 1
 
-operation ClearDisplay : unit ~> unit # [31, 48]
+operation ClearDisplay : unit ~> unit ! [31, 48]
 default ClearDisplay () = delay 31
 
-operation ShowTextAt : nat * nat * nat * string ~> unit # [0.05, 33]
+operation ShowTextAt : nat * nat * nat * string ~> unit ! [0.05, 33]
 default ShowTextAt _ = delay 3
 
-operation ShowNumberAt : nat * nat * nat * nat * float ~> unit # [0.05, 33]
+operation ShowNumberAt : nat * nat * nat * nat * float ~> unit ! [0.05, 33]
 default ShowNumberAt _ = delay 3
 
-operation ShowTimeAt : nat * nat * nat * string * nat ~> unit # [0.05, 33]
+operation ShowTimeAt : nat * nat * nat * string * nat ~> unit ! [0.05, 33]
 default ShowTimeAt _ = delay 3
 
 operation ShowColourTextAt : nat * nat * nat * nat * nat * string ~> unit
-    # [0.05, 33]
+    ! [0.05, 33]
 default ShowColourTextAt _ = delay 3
 
 (* The bounds of ShowColourNumberAt are those of ShowNumberAt, not measured
    separately. *)
 operation ShowColourNumberAt
-    : nat * nat * nat * nat * nat * nat * float ~> unit # [0.05, 33]
+    : nat * nat * nat * nat * nat * nat * float ~> unit ! [0.05, 33]
 default ShowColourNumberAt _ = delay 3
 
-operation DrawButton : nat * nat * nat * nat * string ~> unit # [0, 33]
+operation DrawButton : nat * nat * nat * nat * string ~> unit ! [0, 33]
 default DrawButton _ = delay 3
 
-operation DrawBar : nat * nat * nat * nat * nat * nat ~> unit # [0, 33]
+operation DrawBar : nat * nat * nat * nat * nat * nat ~> unit ! [0, 33]
 default DrawBar _ = delay 1
 
-operation DrawLevel : nat * nat * nat * int * int * nat ~> unit # [0, 10]
+operation DrawLevel : nat * nat * nat * int * int * nat ~> unit ! [0, 10]
 default DrawLevel _ = delay 1

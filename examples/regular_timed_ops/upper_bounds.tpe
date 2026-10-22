@@ -15,13 +15,13 @@ type reading = Reading of nat
 (* The operations of a sensor station: a sample has a running time of one to
    two ticks, a transmission of two to three and a calibration of four to
    six. *)
-operation Sample : unit ~> nat # {Sample} within [1, 2]
+operation Sample : unit ~> nat ! {Sample} within [1, 2]
 default Sample () = delay 2; 7
 
-operation Send : nat ~> unit # {Send} within [2, 3]
+operation Send : nat ~> unit ! {Send} within [2, 3]
 default Send x = delay 2
 
-operation Calibrate : unit ~> unit # {Calibrate} within [4, 6]
+operation Calibrate : unit ~> unit ! {Calibrate} within [4, 6]
 default Calibrate () = delay 5
 
 (* Correctly accepted by the typechecker: six ticks pay for a calibration,
@@ -44,7 +44,7 @@ let send_then_calibrate () =
 
 (* Correctly accepted by the typechecker: any number of samples, then a
    transmission. *)
-let batch () : nat # {Sample*; Send} =
+let batch () : nat ! {Sample*; Send} =
   let x = perform Sample () in
   let y = perform Sample () in
   perform Send (x + y);
@@ -63,7 +63,7 @@ let paced () =
 (* Correctly accepted by the typechecker: grades are compared up to their
    closures, and '{Calibrate | 6}' is equivalent to '{6}', which already pays
    for a calibration. *)
-let calibrate_or_wait (b : bool) : unit # {6} =
+let calibrate_or_wait (b : bool) : unit ! {6} =
   if b then perform Calibrate () else delay 6
 
 (* Correctly accepted by the typechecker: '_' is any single tick or declared
@@ -146,7 +146,7 @@ let no_calibration () =
          `{Sample; Calibrate; Send} <= {Sample*; Send}` does not hold
 *)
 (*
-let batch_calibrated (b : bool) : nat # {Sample*; Send} =
+let batch_calibrated (b : bool) : nat ! {Sample*; Send} =
   let x = perform Sample () in
   if b then perform Calibrate () else ();
   perform Send x;

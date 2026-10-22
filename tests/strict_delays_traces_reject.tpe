@@ -4,14 +4,14 @@
        tests/strict_delays_traces_reject.tpe
 
    Rejected under the 'traces-timed-rigid-upper-bound' grading monoid: a
-   strict delay `!d` admits waiting only; the budget form is accepted, the
-   strict form rejected. *)
+   strict delay `idle d` admits waiting only; the budget form is accepted,
+   the strict form rejected. *)
 
 type token = Token of string
 
-operation Heat : unit ~> unit # {Heat} within [2, 4]
-operation Stir : unit ~> unit # {Stir} within [1, 1]
-operation Cool : unit ~> unit # {Cool} within [1, 3]
+operation Heat : unit ~> unit ! {Heat} within [2, 4]
+operation Stir : unit ~> unit ! {Stir} within [1, 1]
+operation Cool : unit ~> unit ! {Cool} within [1, 3]
 
 (* A stir of one step fits a delay of three beside a wait of two. *)
 let stirred_budget () =
@@ -24,7 +24,7 @@ let stirred_budget () =
   tok
 
 let stirred_strict () =
-  box {Heat; !3; Cool} (Token "h") as h in
+  box {Heat; idle 3; Cool} (Token "h") as h in
   perform Heat ();
   delay 2;
   perform Stir ();

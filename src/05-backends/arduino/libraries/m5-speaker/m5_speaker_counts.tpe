@@ -3,5 +3,5 @@
    counts once, and its running time is not bounded. Beep and its default
    implementation are those of m5_speaker.tpe. *)
 
-operation Beep : nat * nat ~> unit # (Beep, 1)
+operation Beep : nat * nat ~> unit ! (Beep, 1)
 default Beep _ = ()

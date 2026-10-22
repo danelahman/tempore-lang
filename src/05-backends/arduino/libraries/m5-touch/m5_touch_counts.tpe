@@ -3,5 +3,5 @@
    reading counts once, and its running time is not bounded. ReadTouch and its
    default implementation are those of m5_touch.tpe. *)
 
-operation ReadTouch : unit ~> bool * nat * nat # (ReadTouch, 1)
+operation ReadTouch : unit ~> bool * nat * nat ! (ReadTouch, 1)
 default ReadTouch () = (false, 0, 0)

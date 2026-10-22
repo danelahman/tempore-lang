@@ -8,8 +8,8 @@
    non-negative rationals, and adjacent delays are merged, so that two delays
    of a quarter make the trace listed with a delay of a half. *)
 
-operation Sample : unit ~> nat # {Sample}
-operation Send : nat ~> unit # {Send}
+operation Sample : unit ~> nat ! {Sample}
+operation Send : nat ~> unit ! {Send}
 
 let report () =
   box {Sample; 1/2; Send | 3/2} () as due in

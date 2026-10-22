@@ -16,22 +16,21 @@ let running_time = function
   | "P" -> { R.lo = 0; lo_open = true; hi = Some 1; hi_open = false }
   | name -> invalid_arg ("running_time: " ^ name)
 
-(* [word ~side text] is the expression of the word [text] of operation names,
-   delays [d] and strict delays [!d], each delay read as its hull on [side]. *)
+(* [word ~side text] is the expression of the space-separated word [text] of
+   operation names, delays [d] and strict delays [idle d], each delay read as
+   its hull on [side]. *)
 let word ~upper text =
   let hull d = if upper then R.at_most d else R.at_least d in
-  R.Seq
-    (List.map
-       (fun token ->
-         if token.[0] = '!' then
-           R.strict
-             (hull
-                (int_of_string (String.sub token 1 (String.length token - 1))))
-         else
-           match int_of_string_opt token with
-           | Some d -> R.budget (hull d)
-           | None -> R.op token)
-       (String.split_on_char ' ' text))
+  let rec letters = function
+    | "idle" :: d :: rest -> R.strict (hull (int_of_string d)) :: letters rest
+    | token :: rest ->
+        (match int_of_string_opt token with
+        | Some d -> R.budget (hull d)
+        | None -> R.op token)
+        :: letters rest
+    | [] -> []
+  in
+  R.Seq (letters (String.split_on_char ' ' text))
 
 (* [flanked text] is the lower word [text] with a stretch [≥0] before every
    letter other than a budget and at the end, merged into adjacent budgets. *)
@@ -186,11 +185,11 @@ let low = word ~upper:false
 let f4 =
   [
     verdict "upper premise" (up "1") (up "1") true;
-    verdict "upper premise" (up "1") (up "!1 1") true;
-    verdict "upper product" (up "1 1") (up "1 !1 1") true;
-    verdict "lower premise" (low "1 !1") (low "1 !1") true;
-    verdict "lower premise fails" (low "1 !1") (low "!1") false;
-    verdict "lower product" (low "1 !1 1 !1") (low "1 !2") false;
+    verdict "upper premise" (up "1") (up "idle 1 1") true;
+    verdict "upper product" (up "1 1") (up "1 idle 1 1") true;
+    verdict "lower premise" (low "1 idle 1") (low "1 idle 1") true;
+    verdict "lower premise fails" (low "1 idle 1") (low "idle 1") false;
+    verdict "lower product" (low "1 idle 1 1 idle 1") (low "1 idle 2") false;
   ]
 
 (* The rows of the upper bounds, a program below a bound, with the verdicts of
@@ -199,23 +198,23 @@ let upper_rows =
   List.map
     (fun (name, p, b, expected) -> verdict name (up p) (up b) expected)
     [
-      ("traces budget stir", "H !2 S C", "H 3 C", true);
-      ("traces strict stir", "H !2 S C", "H !3 C", false);
-      ("logged", "H L !2 C", "H 3 C", true);
-      ("uncooled", "H !3", "H 3 C", false);
-      ("kind", "!5", "5", true);
-      ("kind", "5", "!5", false);
-      ("strict and budget", "A !2 3", "A 5", true);
-      ("strict and budget", "A 5", "A !2 3", false);
-      ("too long a wait", "!3 A", "!1 1 A", false);
-      ("wait into a budget", "!2 A", "!1 1 A", true);
-      ("budget into a wait", "1 A", "!2 A", false);
-      ("binding strict", "K !7 S R", "K !10 R", false);
-      ("binding budget", "K !7 S R", "K 10 R", true);
-      ("unused strict", "1", "!1 1", true);
-      ("product", "1 1", "1 !1 1", true);
-      ("operation across a strict delay", "B", "1 !1 1", true);
-      ("wait across budgets", "!2", "1 1", true);
+      ("traces budget stir", "H idle 2 S C", "H 3 C", true);
+      ("traces strict stir", "H idle 2 S C", "H idle 3 C", false);
+      ("logged", "H L idle 2 C", "H 3 C", true);
+      ("uncooled", "H idle 3", "H 3 C", false);
+      ("kind", "idle 5", "5", true);
+      ("kind", "5", "idle 5", false);
+      ("strict and budget", "A idle 2 3", "A 5", true);
+      ("strict and budget", "A 5", "A idle 2 3", false);
+      ("too long a wait", "idle 3 A", "idle 1 1 A", false);
+      ("wait into a budget", "idle 2 A", "idle 1 1 A", true);
+      ("budget into a wait", "1 A", "idle 2 A", false);
+      ("binding strict", "K idle 7 S R", "K idle 10 R", false);
+      ("binding budget", "K idle 7 S R", "K 10 R", true);
+      ("unused strict", "1", "idle 1 1", true);
+      ("product", "1 1", "1 idle 1 1", true);
+      ("operation across a strict delay", "B", "1 idle 1 1", true);
+      ("wait across budgets", "idle 2", "1 1", true);
     ]
 
 (* The rows of the lower bounds, a run below a guarantee given flanks, with
@@ -224,31 +223,31 @@ let lower_rows =
   List.map
     (fun (name, r, g, expected) -> verdict name (low r) (flanked g) expected)
     [
-      ("stirred wait", "A C C B", "A !5 B", false);
-      ("wait", "A !5 B", "A !5 B", true);
-      ("longer wait", "A !6 B", "A !5 B", true);
-      ("undisturbed", "A !2 C !3 B", "A !5 B", false);
-      ("budget for a wait", "A 5 B", "A !5 B", false);
+      ("stirred wait", "A C C B", "A idle 5 B", false);
+      ("wait", "A idle 5 B", "A idle 5 B", true);
+      ("longer wait", "A idle 6 B", "A idle 5 B", true);
+      ("undisturbed", "A idle 2 C idle 3 B", "A idle 5 B", false);
+      ("budget for a wait", "A 5 B", "A idle 5 B", false);
       ("operations for a budget", "A C C B", "A 5 B", true);
-      ("operation for a budget", "A C !2 B", "A 1 !2 B", true);
-      ("wait for a budget", "A !3 B", "A 1 !2 B", true);
-      ("flank", "A !5 C B", "A !5 B", true);
-      ("kind", "!5", "5", true);
-      ("kind", "5", "!5", false);
-      ("strict and budget", "A !2 3", "A 5", true);
-      ("strict and budget", "A 5", "A !2 3", false);
-      ("settled", "O !5 L", "O !5 L", true);
-      ("stirred", "O C C L", "O !5 L", false);
-      ("leading flank", "A !1", "!1", true);
+      ("operation for a budget", "A C idle 2 B", "A 1 idle 2 B", true);
+      ("wait for a budget", "A idle 3 B", "A 1 idle 2 B", true);
+      ("flank", "A idle 5 C B", "A idle 5 B", true);
+      ("kind", "idle 5", "5", true);
+      ("kind", "5", "idle 5", false);
+      ("strict and budget", "A idle 2 3", "A 5", true);
+      ("strict and budget", "A 5", "A idle 2 3", false);
+      ("settled", "O idle 5 L", "O idle 5 L", true);
+      ("stirred", "O C C L", "O idle 5 L", false);
+      ("leading flank", "A idle 1", "idle 1", true);
     ]
 
 (* Without flanks, a lower bound fixes its skeleton. *)
 let unflanked =
   [
-    verdict "no trailing flank" (low "A !5 C B") (low "A !5 B") false;
-    verdict "no leading flank" (low "A !1") (low "!1") false;
+    verdict "no trailing flank" (low "A idle 5 C B") (low "A idle 5 B") false;
+    verdict "no leading flank" (low "A idle 1") (low "idle 1") false;
     verdict "the unit is not the top" (low "A") R.Eps false;
-    verdict "the top" (low "A !2 B 3") (R.budget R.unbounded) true;
+    verdict "the top" (low "A idle 2 B 3") (R.budget R.unbounded) true;
   ]
 
 let strict_open iv = R.strict iv

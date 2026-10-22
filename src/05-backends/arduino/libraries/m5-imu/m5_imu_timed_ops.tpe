@@ -7,11 +7,11 @@
    CheckAtRest; the types and the attitude filter are defined in
    m5_imu_filter.tpe. *)
 
-operation ReadImu : unit ~> imu # {ReadImu} within [0.2, 1.5]
+operation ReadImu : unit ~> imu ! {ReadImu} within [0.2, 1.5]
 default ReadImu () = delay 3/5; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
 
-operation ConfigureImu : nat ~> unit # {ConfigureImu} within [0.1, 0.4]
+operation ConfigureImu : nat ~> unit ! {ConfigureImu} within [0.1, 0.4]
 default ConfigureImu _ = delay 1/5
 
-operation CheckAtRest : unit ~> bool # {CheckAtRest} within [17.95, 28.5]
+operation CheckAtRest : unit ~> bool ! {CheckAtRest} within [17.95, 28.5]
 default CheckAtRest () = delay 18; true

@@ -20,11 +20,11 @@ sends Start once, against the protocol of its grade:
   [1]
   Typing error: Variable `latest_reading` is unboxed with grade `{ReadTouch; DrawLevel}` accumulated since it was bound, which is not below its box grade `{[0, 2]
   [1]
-  Typing error: Variable `zero` is unboxed with grade `{(SendStart; !12.5)^80; SendStart; !12.5; ReceiveMessage; (SendStart; !12.5; ReceiveMessage)*; (ReadImu; Re
+  Typing error: Variable `zero` is unboxed with grade `{(SendStart; idle 12.5)^80; SendStart; idle 12.5; ReceiveMessage; (SendStart; idle 12.5; ReceiveMessage)*; 
   [1]
   Typing error: Variable `latest` is unboxed with grade `{ClearDisplay; ShowTextAt^4; DrawButton^2}` accumulated since it was bound, which is not below its box gr
   [1]
-  Typing error: This function's body has grade `{(ReadTouch; SendBeat; ReceiveMessage; (DrawLevel | ShowColourTextAt)?; !10.5)*; ReadTouch?; (Beep; ReadImu; SendS
+  Typing error: This function's body has grade `{(ReadTouch; SendBeat; ReceiveMessage; (DrawLevel | ShowColourTextAt)?; idle 10.5)*; ReadTouch?; (Beep; ReadImu; S
 
 The PlatformIO project for the M5Stack CoreS3, its C++ sources checked
 without exceptions and run-time type information:

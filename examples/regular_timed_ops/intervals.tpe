@@ -15,16 +15,16 @@ type part = Part of string
 (* The operations of a coating line: a coating has a running time of one to
    two ticks, a bake of three to five, an inspection of one and a sealing of
    one to two. *)
-operation Coat : unit ~> unit # {Coat} within [1, 2]
+operation Coat : unit ~> unit ! {Coat} within [1, 2]
 default Coat () = delay 1
 
-operation Bake : unit ~> unit # {Bake} within [3, 5]
+operation Bake : unit ~> unit ! {Bake} within [3, 5]
 default Bake () = delay 4
 
-operation Inspect : unit ~> unit # {Inspect} within [1, 1]
+operation Inspect : unit ~> unit ! {Inspect} within [1, 1]
 default Inspect () = delay 1
 
-operation Seal : unit ~> unit # {Seal} within [1, 2]
+operation Seal : unit ~> unit ! {Seal} within [1, 2]
 default Seal () = delay 2
 
 (* Correctly accepted by the typechecker: the part cures for at least four and
@@ -58,7 +58,7 @@ let baked_and_inspected () =
 
 (* Correctly accepted by the typechecker: the function coats, cures for four
    to eight ticks, and seals. *)
-let sealed () : unit # [{Coat; 4; Seal}, {Coat; 8; Seal}] =
+let sealed () : unit ! [{Coat; 4; Seal}, {Coat; 8; Seal}] =
   perform Coat ();
   perform Bake ();
   perform Inspect ();

@@ -13,7 +13,7 @@
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
    durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `!` admit none, a
+   admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {0}: the empty trace
@@ -36,7 +36,7 @@
 
 (* ReadClock () is the time since start-up, in microseconds, modulo 2^32.
    Its bounds are PROVISIONAL, not yet measured. *)
-operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
+operation ReadClock : unit ~> nat ! {ReadClock} within (0, 0.05]
 default ReadClock () = delay 1/100; 0
 
 (* An athlete at the start: the lane and the false starts charged to the
@@ -101,7 +101,7 @@ let black = 0x000000
 let absolute (x : float) = if x < 0.0 then ~-.x else x
 
 (* The magnitude of the acceleration, in g. *)
-let load () : float # {ReadImu} =
+let load () : float ! {ReadImu} =
   let (ax, ay, az), _ = perform ReadImu () in
   sqrt ((ax *. ax) +. (ay *. ay) +. (az *. az))
 
@@ -136,7 +136,7 @@ type sense = float * float * float * float * bool * bool
    19.7 to 22.45 ms. A touch begins where the screen is touched and was not
    at the last poll, so that the finger of the tap on Start begins none. *)
 let poll_slow ((sum, square, lo, hi, held, stood) : sense) : sense
-    # {19.5; ReadImu; ReadTouch} =
+    ! {19.5; ReadImu; ReadTouch} =
   delay 39/2;
   let m = load () in
   let touched, x, y = perform ReadTouch () in
@@ -148,7 +148,7 @@ let poll_slow ((sum, square, lo, hi, held, stood) : sense) : sense
     stood || (touched && (not held) && key x y = Start) )
 
 (* Ten slow polls: 197 to 224.5 ms. *)
-let ten_slow (s : sense) : sense # {[197, 224.5]} =
+let ten_slow (s : sense) : sense ! {[197, 224.5]} =
   poll_slow (poll_slow (poll_slow (poll_slow (poll_slow (poll_slow (poll_slow
     (poll_slow (poll_slow (poll_slow s)))))))))
 
@@ -162,12 +162,12 @@ let moved (m : float) (w : float) ((_, _, lo, hi, _, _) : sense) =
 (* A slow poll unless the hold is over, the block moved or Stand up was
    tapped, with the optional polls left. *)
 let poll_more (m : float) (w : float) ((s, left) : sense * nat) : sense * nat
-    # {0 | 19.5; ReadImu; ReadTouch} =
+    ! {0 | 19.5; ReadImu; ReadTouch} =
   if left = 0 || stood s || moved m w s then (s, left)
   else (poll_slow s, left - 1)
 
 let ten_more (m : float) (w : float) (s : sense * nat) : sense * nat
-    # {[0, 224.5]} =
+    ! {[0, 224.5]} =
   let s = poll_more m w s in
   let s = poll_more m w s in
   let s = poll_more m w s in
@@ -182,7 +182,7 @@ let ten_more (m : float) (w : float) (s : sense * nat) : sense * nat
 
 (* Up to fifty optional polls: at most 1122.5 ms. *)
 let fifty_more (m : float) (w : float) (s : sense * nat) : sense * nat
-    # {[0, 1122.5]} =
+    ! {[0, 1122.5]} =
   let s = ten_more m w s in
   let s = ten_more m w s in
   let s = ten_more m w s in
@@ -196,7 +196,7 @@ let fifty_more (m : float) (w : float) (s : sense * nat) : sense * nat
    only from a reading whose time was read at once, with no operation
    between. *)
 let poll_fast (m : float) (w : float) ((found, at) : bool * nat) : bool * nat
-    # {0 | !2.5; ReadImu; ReadClock} =
+    ! {0 | idle 2.5; ReadImu; ReadClock} =
   if found then (found, at)
   else (
     delay 5/2;
@@ -208,7 +208,7 @@ let poll_fast (m : float) (w : float) ((found, at) : bool * nat) : bool * nat
 
 (* Ten fast polls, until the push: up to 40.5 ms. *)
 let ten_fast (m : float) (w : float) (r : bool * nat) : bool * nat
-    # {(0 | !2.5; ReadImu; ReadClock)^10} =
+    ! {(0 | idle 2.5; ReadImu; ReadClock)^10} =
   let r = poll_fast m w r in
   let r = poll_fast m w r in
   let r = poll_fast m w r in
@@ -223,7 +223,7 @@ let ten_fast (m : float) (w : float) (r : bool * nat) : bool * nat
 
 (* Fifty fast polls, until the push: up to 202.5 ms. *)
 let fifty_fast (m : float) (w : float) (r : bool * nat) : bool * nat
-    # {(0 | !2.5; ReadImu; ReadClock)^50} =
+    ! {(0 | idle 2.5; ReadImu; ReadClock)^50} =
   let r = ten_fast m w r in
   let r = ten_fast m w r in
   let r = ten_fast m w r in
@@ -234,7 +234,7 @@ let fifty_fast (m : float) (w : float) (r : bool * nat) : bool * nat
 (* Two hundred fast polls, until the push: a push is found within 4.05 ms of
    its start, and no push declared 540 to 810 ms after the first poll. *)
 let react (m : float) (w : float) : bool * nat
-    # {(0 | !2.5; ReadImu; ReadClock)^200} =
+    ! {(0 | idle 2.5; ReadImu; ReadClock)^200} =
   let r = fifty_fast m w (false, 0) in
   let r = fifty_fast m w r in
   let r = fifty_fast m w r in
@@ -242,7 +242,7 @@ let react (m : float) (w : float) : bool * nat
   r
 
 (* The recall of the athletes: two tones 110 ms apart. *)
-let recall () : unit # {Beep; [100, 120]; Beep} =
+let recall () : unit ! {Beep; [100, 120]; Beep} =
   perform Beep (800, 80);
   delay 110;
   perform Beep (800, 80)
@@ -264,8 +264,8 @@ let recall () : unit # {Beep; [100, 120]; Beep} =
    demands no polls until a push or the end of the window, and admits the
    polls ended once the push is found. *)
 let fire (gun : at_gun) (m : float) (w : float) : outcome
-    # {Beep; ReadClock; [0, 810]} =
-  box {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*} elapsed
+    ! {Beep; ReadClock; [0, 810]} =
+  box {Beep; ReadClock; (idle [0, 2.5]; ReadImu; ReadClock)*} elapsed
     as window in
   perform Beep (2500, 300);
   let fired = perform ReadClock () in
@@ -279,15 +279,15 @@ let fire (gun : at_gun) (m : float) (w : float) : outcome
    48 ms:
 
      Typing error: Variable `gun` is unboxed with grade
-       `{Beep; ClearDisplay; ReadClock; (!2.5; ReadImu; ReadClock)?^200}`
+       `{Beep; ClearDisplay; ReadClock; (idle 2.5; ReadImu; ReadClock)?^200}`
        accumulated since it was bound, which is not below its box grade
        `{Beep; ReadClock; [0, 1000]}`
        ...
 *)
 (*
 let fire_cleared (gun : at_gun) (m : float) (w : float) : outcome
-    # {Beep; ReadClock; [0, 810]} =
-  box {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*} elapsed
+    ! {Beep; ReadClock; [0, 810]} =
+  box {Beep; ReadClock; (idle [0, 2.5]; ReadImu; ReadClock)*} elapsed
     as window in
   perform Beep (2500, 300);
   perform ClearDisplay ();
@@ -303,16 +303,16 @@ let fire_cleared (gun : at_gun) (m : float) (w : float) : outcome
    which a push is not seen. The box of the athlete admits it, within its
    second:
 
-     Typing error: Variable `window` is unboxed with grade
-       `{Beep; ReadClock; ShowColourTextAt; (!2.5; ReadImu; ReadClock)?^200}`
-       accumulated since it was bound, which is not below its box grade
-       `{Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*}`
+     Typing error: Variable `window` is unboxed with grade `{Beep; ReadClock;
+       ShowColourTextAt; (idle 2.5; ReadImu; ReadClock)?^200}` accumulated
+       since it was bound, which is not below its box grade
+       `{Beep; ReadClock; (idle [0, 2.5]; ReadImu; ReadClock)*}`
        ...
 *)
 (*
 let fire_shown (gun : at_gun) (m : float) (w : float) : outcome
-    # {Beep; ReadClock; ShowColourTextAt; [0, 810]} =
-  box {Beep; ReadClock; (![0, 2.5]; ReadImu; ReadClock)*} elapsed
+    ! {Beep; ReadClock; ShowColourTextAt; [0, 810]} =
+  box {Beep; ReadClock; (idle [0, 2.5]; ReadImu; ReadClock)*} elapsed
     as window in
   perform Beep (2500, 300);
   let fired = perform ReadClock () in
@@ -344,7 +344,7 @@ let fire_shown (gun : at_gun) (m : float) (w : float) : outcome
    followed by the gun, its time and the polls for the push; 197.1 to
    5273.9 ms in all. *)
 let start_once (a : athlete) : outcome
-    # {ShowColourTextAt; ShowColourTextAt; DrawButton; DrawButton;
+    ! {ShowColourTextAt; ShowColourTextAt; DrawButton; DrawButton;
        [197, 1347];
        (0
        | ShowColourTextAt; ShowColourTextAt; Beep; ReadClock; [197, 2918.5];
@@ -442,7 +442,7 @@ let frame () =
    all. Each band of text extends to the right edge, so each row is written
    from left to right. *)
 let board ((legal, warned, out, none, best) : tally)
-    ((lane, warnings) : athlete) : unit # {ShowTextAt; [0, 495]} =
+    ((lane, warnings) : athlete) : unit ! {ShowTextAt; [0, 495]} =
   perform ShowTextAt (0, 100, 2, "Legal");
   perform ShowNumberAt (96, 100, 2, 0, float_of_nat legal);
   perform ShowTextAt (160, 100, 2, "Warnings");
@@ -475,7 +475,7 @@ type message =
   | Warned of bool
   | Disqualified of bool
 
-let say (m : message) : unit # {ShowColourTextAt; ShowColourTextAt} =
+let say (m : message) : unit ! {ShowColourTextAt; ShowColourTextAt} =
   match m with
   | Ready ->
       perform ShowColourTextAt (0, 40, 3, black, white, "READY");
@@ -552,7 +552,7 @@ let conclude (t : tally) (a : athlete) (o : outcome) : tally * athlete =
 (* Correctly accepted by the typechecker: a start, its outcome and the
    tally, On your marks first and at most 6 s in all. *)
 let race (t : tally) (a : athlete) : tally * athlete
-    # {ShowColourTextAt; [0, 6000]} =
+    ! {ShowColourTextAt; [0, 6000]} =
   let o = start_once a in
   let t, a = conclude t a o in
   board t a;
@@ -570,7 +570,7 @@ let race (t : tally) (a : athlete) : tally * athlete
    of 50 ms; another operation fits only within the durations of a start
    and of the tally. *)
 let rec officiate (n : nat) (t : tally) (a : athlete) (held : bool) : unit
-    # {(ReadTouch;
+    ! {(ReadTouch;
         (ShowColourTextAt; [0, 6000]
         | Beep; ShowColourTextAt; ShowColourTextAt; ShowTextAt; [0, 495]
         | 50))*} =

@@ -24,7 +24,7 @@ let claim_top () =
   unbox r as y in
   y
 
-let wait : unit -> unit # top = fun () -> delay 7
+let wait : unit -> unit ! top = fun () -> delay 7
 
 (* '(1, 5)' is '[2, 4]', '[2, 5)' is '[2, 4]', '(2, 5]' is '[3, 5]' and
    '(2, ∞)' is '[3, ∞)'. *)
@@ -37,16 +37,16 @@ let claim_open () =
 let claim_half_open () = box [2, 5) "half" as r in delay 2; unbox r as y in y
 let claim_open_below () = box (2, 5] "below" as r in delay 5; unbox r as y in y
 let claim_open_late () = box (2, ∞) "late" as r in delay 3; unbox r as y in y
-let open_type (x : [(0, 3)]nat) : nat # [1, 1] = delay 1; unbox x as y in y
+let open_type (x : [(0, 3)]nat) : nat ! [1, 1] = delay 1; unbox x as y in y
 
 (* Intervals in box types and effect annotations, beside list literals and
    list patterns. *)
-let unbox_later (x : [[1, 2]]nat list) : nat list # [1, 1] =
+let unbox_later (x : [[1, 2]]nat list) : nat list ! [1, 1] =
   delay 1;
   unbox x as ys in
   match ys with [] -> [0] | [y] -> [y; y] | y :: _ -> [y]
 
-let open_ended (x : [[1, ∞)]nat) : nat # [2, 2] =
+let open_ended (x : [[1, ∞)]nat) : nat ! [2, 2] =
   delay 2;
   unbox x as y in
   y

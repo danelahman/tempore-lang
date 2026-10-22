@@ -305,8 +305,8 @@ See [`tests/arduino/handlers.tpe`](../../../tests/arduino/handlers.tpe).
 
 The function of each periodic task is checked against its period: the
 durations of its effect must lie below the period, as for
-`step : float -> float # [0, 20)`, and under the regular expressions of timed
-operations for `watch : float -> float # {ReadImu; Publish}`, whose durations
+`step : float -> float ! [0, 20)`, and under the regular expressions of timed
+operations for `watch : float -> float ! {ReadImu; Publish}`, whose durations
 are those of the operations of its trace. Under grades that bound no
 durations, such as the operation counts, the period is checked by the
 monitor only, and the operations have no running-time bounds.

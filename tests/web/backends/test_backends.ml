@@ -381,13 +381,13 @@ let check_entries name t expected =
    performs make up its grade; only calls at the top level add to the
    accumulated grade. *)
 let nested =
-  {|operation Inner : unit ~> unit # [1, 2]
+  {|operation Inner : unit ~> unit ! [1, 2]
 default Inner () = delay 1
 
-operation Outer : unit ~> unit # [2, 4]
+operation Outer : unit ~> unit ! [2, 4]
 default Outer () = delay 1; perform Inner (); delay 1
 
-operation Missing : unit ~> unit # [0, 1]
+operation Missing : unit ~> unit ! [0, 1]
 
 run perform Outer (); delay 5; perform Outer ()
 run perform Outer (); perform Missing ()
@@ -518,10 +518,10 @@ let check_boxes name grade source expected =
    call. *)
 let nested_boxes ~op ~outer ~inner ~unit ~handled =
   Printf.sprintf
-    {|operation Op : unit ~> unit # %s
+    {|operation Op : unit ~> unit ! %s
 default Op () = delay 2
 
-operation Get : unit ~> [%s]unit # %s
+operation Get : unit ~> [%s]unit ! %s
 
 run
   box %s () as p in
@@ -619,7 +619,7 @@ let () =
 (* Under the security levels the delays are unit grades. *)
 let () =
   check_boxes "security-levels" "security-levels"
-    {|operation Read : unit ~> nat # Low
+    {|operation Read : unit ~> nat ! Low
 default Read () = delay 1; 7
 
 run
@@ -935,7 +935,7 @@ let () =
           refused ~sub:"resumed outside tail position" output
           && located ~file:"" output );
     ]
-    "operation Pause : unit ~> unit # [1, 1]\n\
+    "operation Pause : unit ~> unit ! [1, 1]\n\
      let counted =\n\
     \  handler\n\
     \  | r -> (r, 0)\n\

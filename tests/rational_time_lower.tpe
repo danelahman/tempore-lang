@@ -3,7 +3,7 @@
      ./tempore --grades time-lower-bound-rational \
        tests/rational_time_lower.tpe *)
 
-operation Wait : unit ~> unit # 1/2
+operation Wait : unit ~> unit ! 1/2
 
 (* Correctly accepted by the typechecker: the delays of 1/2 and 1.25 and the
    operation's 1/2 accumulate 2.25, at least the 2.25 the box demands. *)

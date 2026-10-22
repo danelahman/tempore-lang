@@ -7,14 +7,14 @@
 
 type file = File of string
 
-operation Open : string ~> file # (1, 1)
-operation Close : file ~> unit # (-1, 0)
-operation Reserve : string ~> file # ([0, 1], 1)
+operation Open : string ~> file ! (1, 1)
+operation Close : file ~> unit ! (-1, 0)
+operation Reserve : string ~> file ! ([0, 1], 1)
 
 default Reserve name = File name
 
 (* Accepted: the peak is two, and both descriptors are released. *)
-let pair () : unit # (0, 2) =
+let pair () : unit ! (0, 2) =
   let a = perform Open "a" in
   let b = perform Open "b" in
   perform Close b;
@@ -44,12 +44,12 @@ let unheld () =
 
 (* Accepted: closing a descriptor before opening one falls to one below the
    start. *)
-let rotate f : file # (-1, 0, 0) =
+let rotate f : file ! (-1, 0, 0) =
   perform Close f;
   perform Open "g"
 
 (* Accepted: a delay changes nothing. *)
-let wait () : unit # (0, 0) = delay 5
+let wait () : unit ! (0, 0) = delay 5
 
 run twice ()
 run unheld ()

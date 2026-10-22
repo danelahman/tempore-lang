@@ -10,18 +10,18 @@
 
 (* A reading of the sensor takes between half a time unit and one and a
    half. *)
-operation Sample : unit ~> nat # [{Sample}, {Sample}] within [1/2, 3/2]
+operation Sample : unit ~> nat ! [{Sample}, {Sample}] within [1/2, 3/2]
 default Sample () = delay 3/4; 3
 
 (* Two readings with a delay of a quarter between them. *)
 operation Pair : unit ~> nat
-  # [{Sample; 1/4; Sample}, {Sample; 1/4; Sample}]
+  ! [{Sample; 1/4; Sample}, {Sample; 1/4; Sample}]
 
 (* A pair followed by a third reading. The running-time bounds of 'Pair'
    follow from its grade, 1/2 + 1/4 + 1/2 = 5/4 at the fastest and
    3/2 + 1/4 + 3/2 = 13/4 at the slowest, and so do those of 'Batch':
    5/4 + 1/2 = 7/4 and 13/4 + 3/2 = 19/4. *)
-operation Batch : unit ~> nat # [{Pair; Sample}, {Pair; Sample}]
+operation Batch : unit ~> nat ! [{Pair; Sample}, {Pair; Sample}]
 
 (* A reading is ready after half a time unit and due within two: the sample
    banks its lower bound of 1/2, and at its upper bound of 3/2 it leaves 1/2

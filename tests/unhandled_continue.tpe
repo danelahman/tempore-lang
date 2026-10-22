@@ -1,7 +1,7 @@
 (* Correctly accepted by the typechecker: a run stops at an operation call
    that no handler or default handles, and the runs after it are executed. *)
 
-operation Get : unit ~> nat # 1
+operation Get : unit ~> nat ! 1
 
 let h =
   handler

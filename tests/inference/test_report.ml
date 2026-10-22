@@ -166,10 +166,10 @@ end
 let declarations ~traces ~upper =
   let op name result lo hi =
     if traces then
-      Printf.sprintf "operation %s : unit ~> %s # {%s} within [%d, %d]" name
+      Printf.sprintf "operation %s : unit ~> %s ! {%s} within [%d, %d]" name
         result name lo hi
     else
-      Printf.sprintf "operation %s : unit ~> %s # %d" name result
+      Printf.sprintf "operation %s : unit ~> %s ! %d" name result
         (if upper then hi else lo)
   in
   [
@@ -311,15 +311,15 @@ let expected g =
     ("snd", typed "α × β → β");
     ("not", typed "bool → bool");
     (* An empty match has a scrutinee of type [empty]. *)
-    ("absurd", typed "empty → α # ε₀");
-    ("pipe", typed "α → ((α → β # ε₀) → β # ε₀)");
+    ("absurd", typed "empty → α ! ε₀");
+    ("pipe", typed "α → ((α → β ! ε₀) → β ! ε₀)");
     (* [g]'s effect, then [f]'s; [f] is used after [g x] has run, so [g]'s
        effect is bounded by the unit, and is the unit where the unit is
        least. *)
     ( "compose",
       typed
-        (if g.least then "(α → β # ε₀) → (γ → α) → (γ → β # ε₀)"
-         else "(α → β # ε₀) → (γ → α # ε₁) → (γ → β # ε₁ · ε₀)") );
+        (if g.least then "(α → β ! ε₀) → (γ → α) → (γ → β ! ε₀)"
+         else "(α → β ! ε₀) → (γ → α ! ε₁) → (γ → β ! ε₁ · ε₀)") );
     ( "min",
       typed
         ~atoms:
@@ -329,76 +329,76 @@ let expected g =
                 Printf.sprintf "Et(α) ∨ ∣ε₀∣ ≾ %s" u;
                 Printf.sprintf "Et(β) ∨ ∣ε₀∣ ≾ %s" u;
               ])
-        "(α × β → bool # ε₀) → α → (β → γ # ε₀)" );
+        "(α × β → bool ! ε₀) → α → (β → γ ! ε₀)" );
     (* Of the two disjunctions owed by [a], after [f] and after [f] and [g],
        the second entails the first where the unit is least. *)
     ( "reused_around_claim",
       typed
         ~atoms:(after_call [ Printf.sprintf "Et(α) ∨ ∣ε₀∣ · ∣ε₁∣ ≾ %s" u ])
-        "α → (unit → β # ε₀) → ([∣ε₀∣](α → γ # ε₁) → α # ε₀ · ε₁)" );
+        "α → (unit → β ! ε₀) → ([∣ε₀∣](α → γ ! ε₁) → α ! ε₀ · ε₁)" );
     (* The box is claimed after [f] and behind the clause's lock: its grade
        [∣ε₀∣ · ⊤] is the top where the unit is least, the top absorbing the
        product, and [∣ε₀∣] where the unit is the top. *)
     ( "claimed_after_call",
       typed
         (Printf.sprintf
-           "(unit → α # ε₀) → ([%s]β → ((unit → γ # ε₁) → unit # ε₁) # ε₀)"
+           "(unit → α ! ε₀) → ([%s]β → ((unit → γ ! ε₁) → unit ! ε₁) ! ε₀)"
            (if g.least then g.top else "∣ε₀∣")) );
     ("id_bool", typed "bool → bool");
     ("id_unit", typed "unit → unit");
-    ("compose_g", typed "(unit → α # ε₀) → (unit → unit) → (unit → α # ε₀)");
+    ("compose_g", typed "(unit → α ! ε₀) → (unit → unit) → (unit → α ! ε₀)");
     ( "stale_call",
-      where_top (typed (Printf.sprintf "(unit → α # ε₀) → α # %s · ε₀" (lit 1)))
+      where_top (typed (Printf.sprintf "(unit → α ! ε₀) → α ! %s · ε₀" (lit 1)))
     );
     ( "boxed_call",
-      where_top (typed (Printf.sprintf "(unit → α # ε₀) → α # %s · ε₀" (lit 1)))
+      where_top (typed (Printf.sprintf "(unit → α ! ε₀) → α ! %s · ε₀" (lit 1)))
     );
     ( "handed_box_call",
-      typed (Printf.sprintf "[%s](unit → α # ε₀) → α # %s · ε₀" (lit 1) (lit 1))
+      typed (Printf.sprintf "[%s](unit → α ! ε₀) → α ! %s · ε₀" (lit 1) (lit 1))
     );
     ( "boxing_an_argument",
       typed
         ~atoms:(if g.least then [ "Et(α)" ] else [])
         (Printf.sprintf "α → [%s]α" (lit 1)) );
     (* A lease is claimable up to its grade, a promise from it on. *)
-    ("claim_early", where_least (typed (Printf.sprintf "α → unit # %s" (lit 2))));
-    ("claim_on_time", typed (Printf.sprintf "α → unit # %s" (lit 3)));
-    ("claim_late", where_top (typed (Printf.sprintf "α → unit # %s" (lit 4))));
-    ("inferred_grade", typed (Printf.sprintf "[%s]α → α # %s" (lit 2) (lit 2)));
+    ("claim_early", where_least (typed (Printf.sprintf "α → unit ! %s" (lit 2))));
+    ("claim_on_time", typed (Printf.sprintf "α → unit ! %s" (lit 3)));
+    ("claim_late", where_top (typed (Printf.sprintf "α → unit ! %s" (lit 4))));
+    ("inferred_grade", typed (Printf.sprintf "[%s]α → α ! %s" (lit 2) (lit 2)));
     ( "kept_and_claimed",
-      typed (Printf.sprintf "[%s ⊔ ρ₀]α → [ρ₀]α × (β → α # %s)" (lit 2) (lit 2))
+      typed (Printf.sprintf "[%s ⊔ ρ₀]α → [ρ₀]α × (β → α ! %s)" (lit 2) (lit 2))
     );
     ( "escaping_early",
-      where_least (typed (Printf.sprintf "α → unit # %s" (lit 1))) );
-    ("escaping_on_time", typed (Printf.sprintf "α → unit # %s" (lit 2)));
-    ("escaping_late", where_top (typed (Printf.sprintf "α → unit # %s" (lit 4))));
+      where_least (typed (Printf.sprintf "α → unit ! %s" (lit 1))) );
+    ("escaping_on_time", typed (Printf.sprintf "α → unit ! %s" (lit 2)));
+    ("escaping_late", where_top (typed (Printf.sprintf "α → unit ! %s" (lit 4))));
     ( "branches",
       typed ~atoms:[ "α <: β" ]
-        (Printf.sprintf "bool → ([%s]α → β # %s)" g.join_1_3 g.join_1_3) );
+        (Printf.sprintf "bool → ([%s]α → β ! %s)" g.join_1_3 g.join_1_3) );
     (* A promise of two steps is due after [Write] or [Send], a lease of two
        steps covers [Read] only. *)
     ( "read_licensed",
-      where_least (typed (Printf.sprintf "unit → unit # %s" (g.op "Read" 1 1)))
+      where_least (typed (Printf.sprintf "unit → unit ! %s" (g.op "Read" 1 1)))
     );
     ( "write_licensed",
-      where_top (typed (Printf.sprintf "unit → unit # %s" (g.op "Write" 2 3)))
+      where_top (typed (Printf.sprintf "unit → unit ! %s" (g.op "Write" 2 3)))
     );
     ( "send_licensed",
-      where_top (typed (Printf.sprintf "unit → unit # %s" (g.op "Send" 4 6))) );
+      where_top (typed (Printf.sprintf "unit → unit ! %s" (g.op "Send" 4 6))) );
     ( "nested",
-      typed (Printf.sprintf "[%s][%s]α → α # %s" (lit 1) (lit 2) (lit 3)) );
-    ("nesting", where_top (typed (Printf.sprintf "α → unit # %s" (lit 3))));
+      typed (Printf.sprintf "[%s][%s]α → α ! %s" (lit 1) (lit 2) (lit 3)) );
+    ("nesting", where_top (typed (Printf.sprintf "α → unit ! %s" (lit 3))));
     (* A clause sees the context behind the lock of the top. *)
-    ("claimed_in_clause_unit", where_top (typed "(unit → α # ε₀) → unit # ε₀"));
+    ("claimed_in_clause_unit", where_top (typed "(unit → α ! ε₀) → unit ! ε₀"));
     ("claimed_in_clause_one", Untypable);
     ( "handed_to_clause",
-      typed (Printf.sprintf "(unit → α # ε₀) → ([%s]β → unit # ε₀)" g.top) );
-    ("relay", typed "(unit → α # ε₀) → unit # ε₀");
-    ("relay_boxed", typed "(unit → α # ε₀) → unit # ε₀");
+      typed (Printf.sprintf "(unit → α ! ε₀) → ([%s]β → unit ! ε₀)" g.top) );
+    ("relay", typed "(unit → α ! ε₀) → unit ! ε₀");
+    ("relay_boxed", typed "(unit → α ! ε₀) → unit ! ε₀");
     (* Dropping the continuation needs the unit least, resuming it twice the
        unit the top. *)
-    ("discard", where_least (typed "(unit → α # ε₀) → unit # ε₀"));
-    ("resume_twice", where_top (typed "(unit → α # ε₀) → unit # ε₀"));
+    ("discard", where_least (typed "(unit → α ! ε₀) → unit ! ε₀"));
+    ("resume_twice", where_top (typed "(unit → α ! ε₀) → unit ! ε₀"));
   ]
 
 (* ------------------------------------------------------------------ *)
@@ -480,13 +480,13 @@ let check_fixed () =
    a factor to the product, and is dropped. *)
 let recursive_programs =
   [
-    "let rec iter_after (g : [top](unit -> unit # 1)) (n : nat) : unit # top = \
+    "let rec iter_after (g : [top](unit -> unit ! 1)) (n : nat) : unit ! top = \
      match n with | 0 -> () | m + 1 -> iter_after g m; unbox g as h in h ()";
-    "let rec iter_twice (g : [top](unit -> unit # 1)) (n : nat) : unit # top = \
+    "let rec iter_twice (g : [top](unit -> unit ! 1)) (n : nat) : unit ! top = \
      match n with | 0 -> () | m + 1 -> iter_twice g m; unbox g as h in h (); \
      unbox g as h2 in h2 ()";
-    "let rec map_boxed (f : [top](nat -> nat # 1)) (xs : nat list) : nat list \
-     # top = match xs with | [] -> [] | x :: rest -> let ys = map_boxed f rest \
+    "let rec map_boxed (f : [top](nat -> nat ! 1)) (xs : nat list) : nat list \
+     ! top = match xs with | [] -> [] | x :: rest -> let ys = map_boxed f rest \
      in unbox f as h in let y = h x in y :: ys";
     "let rec fold_after f xs acc = match xs with | [] -> acc | x :: xs -> let \
      acc2 = fold_after f xs acc in f x acc2";
@@ -499,13 +499,13 @@ let check_recursive () =
   compare_schemes grades
     (T.schemes (String.concat "\n" recursive_programs))
     [
-      ("iter_after", typed "[∞](unit → unit # 1) → (nat → unit # ∞)");
-      ("iter_twice", typed "[∞](unit → unit # 1) → (nat → unit # ∞)");
-      ("map_boxed", typed "[∞](nat → nat # 1) → (nat list → nat list # ∞)");
+      ("iter_after", typed "[∞](unit → unit ! 1) → (nat → unit ! ∞)");
+      ("iter_twice", typed "[∞](unit → unit ! 1) → (nat → unit ! ∞)");
+      ("map_boxed", typed "[∞](nat → nat ! 1) → (nat list → nat list ! ∞)");
       ( "fold_after",
         typed
           ~atoms:[ "γ <: β"; "δ <: β"; "ε₁ · ε₀ ≾ 0" ]
-          "(α → (β → γ # ε₀) # ε₁) → α list → δ → β" );
+          "(α → (β → γ ! ε₀) ! ε₁) → α list → δ → β" );
     ]
 
 (* Annotated types, each with its type as printed. The precedences are, by
@@ -515,23 +515,23 @@ let check_recursive () =
    function type is parenthesised where either arrow shows its effect. *)
 let annotations =
   [
-    ("nat -> (nat -> nat # 1) # 2", "nat → (nat → nat # 1) # 2");
-    ( "(nat -> nat # 1) -> (nat -> (bool -> nat # 2)) # 3",
-      "(nat → nat # 1) → (nat → (bool → nat # 2)) # 3" );
-    ("nat -> nat -> nat # 1", "nat → (nat → nat # 1)");
-    ("nat -> (nat -> nat) # 1", "nat → (nat → nat) # 1");
+    ("nat -> (nat -> nat ! 1) ! 2", "nat → (nat → nat ! 1) ! 2");
+    ( "(nat -> nat ! 1) -> (nat -> (bool -> nat ! 2)) ! 3",
+      "(nat → nat ! 1) → (nat → (bool → nat ! 2)) ! 3" );
+    ("nat -> nat -> nat ! 1", "nat → (nat → nat ! 1)");
+    ("nat -> (nat -> nat) ! 1", "nat → (nat → nat) ! 1");
     ("(nat -> nat) -> nat -> nat", "(nat → nat) → nat → nat");
     ("[2]nat -> nat", "[2]nat → nat");
     ("[2](nat -> nat)", "[2](nat → nat)");
-    ( "nat -> [2](nat -> (nat -> bool # 1)) # 1",
-      "nat → [2](nat → (nat → bool # 1)) # 1" );
+    ( "nat -> [2](nat -> (nat -> bool ! 1)) ! 1",
+      "nat → [2](nat → (nat → bool ! 1)) ! 1" );
     ("[2]nat list", "[2]nat list");
     ("([2]nat) list", "([2]nat) list");
     ("[2][3]nat", "[2][3]nat");
     ("[2]nat * bool -> nat", "[2]nat × bool → nat");
     ("[2](nat * bool)", "[2](nat × bool)");
     ("(nat * nat) * nat", "(nat × nat) × nat");
-    ("nat * nat -> (nat * nat -> nat # 1)", "nat × nat → (nat × nat → nat # 1)");
+    ("nat * nat -> (nat * nat -> nat ! 1)", "nat × nat → (nat × nat → nat ! 1)");
   ]
 
 let check_round_trip () =

@@ -10,15 +10,15 @@
 
 type token = Token of string
 
-operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
-operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
-operation ShowColourTextAt : unit ~> unit # {ShowColourTextAt} within [0.05, 33]
-operation ClearDisplay : unit ~> unit # {ClearDisplay} within [31, 48]
-operation Beep : unit ~> unit # {Beep} within (0, 0.15]
-operation ReadTouch : unit ~> bool # {ReadTouch} within [0.1, 1]
-operation ConfigureImu : unit ~> unit # {ConfigureImu} within [0.1, 0.4]
-operation Wash : unit ~> unit # {Wash} within [1, 2]
-operation ChangeTip : unit ~> unit # {ChangeTip} within [1, 1]
+operation ReadImu : unit ~> nat ! {ReadImu} within [0.2, 1.5]
+operation ReadClock : unit ~> nat ! {ReadClock} within (0, 0.05]
+operation ShowColourTextAt : unit ~> unit ! {ShowColourTextAt} within [0.05, 33]
+operation ClearDisplay : unit ~> unit ! {ClearDisplay} within [31, 48]
+operation Beep : unit ~> unit ! {Beep} within (0, 0.15]
+operation ReadTouch : unit ~> bool ! {ReadTouch} within [0.1, 1]
+operation ConfigureImu : unit ~> unit ! {ConfigureImu} within [0.1, 0.4]
+operation Wash : unit ~> unit ! {Wash} within [1, 2]
+operation ChangeTip : unit ~> unit ! {ChangeTip} within [1, 1]
 
 (* A redraw of up to 33 between two polls does not fit in a delay of 2.5. *)
 let redraw () =

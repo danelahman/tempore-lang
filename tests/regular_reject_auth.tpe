@@ -9,9 +9,9 @@
 
 type token = Token of string
 
-operation Auth : unit ~> unit # {Auth}
-operation Fetch : unit ~> unit # {Fetch}
-operation Revoke : unit ~> unit # {Revoke}
+operation Auth : unit ~> unit ! {Auth}
+operation Fetch : unit ~> unit ! {Fetch}
+operation Revoke : unit ~> unit ! {Revoke}
 
 let before_auth () =
   box {_*; Auth; _*} (Token "t") as t in

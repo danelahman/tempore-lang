@@ -3,7 +3,7 @@
    single delay of 7 that the grade of 'Tick' asks for, and an operation case
    may in any case take longer than the grade of its operation prescribes. *)
 
-operation Tick : unit ~> unit # 7
+operation Tick : unit ~> unit ! 7
 
 let h =
   handler

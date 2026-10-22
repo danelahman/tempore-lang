@@ -13,15 +13,15 @@ type report = Report of string
 
 (* Compiling the figures takes at least two ticks and touches nothing
    secret. *)
-operation Compile : unit ~> report # (2, Low)
+operation Compile : unit ~> report ! (2, Low)
 default Compile () = delay 3; Report "quarterly figures"
 
 (* Consulting an insider takes at least a tick and taints the desk. *)
-operation Consult : string ~> string # (1, High)
+operation Consult : string ~> string ! (1, High)
 default Consult question = delay 2; "insider view"
 
 (* Publishing a report takes at least a tick. *)
-operation Publish : report ~> report # (1, Low)
+operation Publish : report ~> report ! (1, Low)
 default Publish r = delay 1; r
 
 (* A report under embargo: publishable in three ticks by an untainted

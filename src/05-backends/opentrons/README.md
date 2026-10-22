@@ -64,7 +64,7 @@ operation is implemented by handlers only.
 
 Each call of a binding function is monitored against the running-time
 bounds of its operation: those it declares by `within`, or else the
-interval of durations its grade determines, such as `[2, 4]` for `# [2, 4]`
+interval of durations its grade determines, such as `[2, 4]` for `! [2, 4]`
 under `time-interval`. An operation with neither is not monitored.
 
 A call outside its bounds ends the protocol with an error, is reported by a

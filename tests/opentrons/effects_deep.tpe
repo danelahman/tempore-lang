@@ -2,7 +2,7 @@
    continuation before it adds the argument, so that the evaluation context
    grows with the number of calls. *)
 
-operation Emit : nat ~> unit # 0
+operation Emit : nat ~> unit ! 0
 
 let rec countdown n =
   match n with

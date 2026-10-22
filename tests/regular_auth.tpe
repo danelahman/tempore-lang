@@ -7,9 +7,9 @@
 
 type token = Token of string
 
-operation Auth : unit ~> unit # {Auth}
-operation Fetch : unit ~> unit # {Fetch}
-operation Revoke : unit ~> unit # {Revoke}
+operation Auth : unit ~> unit ! {Auth}
+operation Fetch : unit ~> unit ! {Fetch}
+operation Revoke : unit ~> unit ! {Revoke}
 
 (* A token usable only once the session has authenticated. *)
 let after_auth () =

@@ -4,27 +4,27 @@
 
    Mode times: rejected programs. *)
 
-operation Take : unit ~> unit # ({Take}, Cold, Out) within [1, 2]
-operation Return : unit ~> unit # ({Return}, Out, Cold) within [1, 1]
-operation Pipette : unit ~> unit # ({Pipette}, Out, Out) within [3, 5]
+operation Take : unit ~> unit ! ({Take}, Cold, Out) within [1, 2]
+operation Return : unit ~> unit ! ({Return}, Out, Cold) within [1, 1]
+operation Pipette : unit ~> unit ! ({Pipette}, Out, Out) within [3, 5]
 
-let round () : unit # (Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) =
+let round () : unit ! (Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) =
   perform Take ();
   perform Pipette ();
   delay 4;
   perform Return ()
 
 (* Rejected: four rounds may be out of the cold block for 40 minutes. *)
-let rounds () : unit # (Cold, Cold, (Out, [0, 30])) =
+let rounds () : unit ! (Cold, Cold, (Out, [0, 30])) =
   round ();
   round ();
   round ();
   round ()
 
 (* Rejected: a pipetting gets stuck in the cold block. *)
-let cold_pipette () : unit # (Cold, Cold) = perform Pipette ()
+let cold_pipette () : unit ! (Cold, Cold) = perform Pipette ()
 
 (* Rejected: a delay before the return is spent outside the cold block. *)
-let late () : unit # (Out, Cold, (Out, [0, 1])) =
+let late () : unit ! (Out, Cold, (Out, [0, 1])) =
   delay 5;
   perform Return ()

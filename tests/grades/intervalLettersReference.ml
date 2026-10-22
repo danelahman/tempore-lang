@@ -253,7 +253,7 @@ let rec show = function
   | Empty -> "∅"
   | Letter (Op [ name ]) -> name
   | Letter (Op names) -> "(" ^ String.concat " | " names ^ ")"
-  | Letter (Stretch (Names [], iv)) -> "!" ^ show_interval iv
+  | Letter (Stretch (Names [], iv)) -> "idle " ^ show_interval iv
   | Letter (Stretch (All, iv)) -> show_interval iv
   | Letter (Stretch (Names names, iv)) ->
       "(" ^ show_interval iv ^ " & (" ^ String.concat " | " names ^ "))"

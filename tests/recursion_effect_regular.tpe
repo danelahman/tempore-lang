@@ -6,11 +6,11 @@
    A recursive definition annotated with an effect has that effect at every
    call, including the recursive calls in its own body. *)
 
-operation Read : unit ~> nat # {Read}
+operation Read : unit ~> nat ! {Read}
 
 (* Correctly accepted by the typechecker: the recursive call follows a read,
    and the body has effect {1 | Read; Read*}, below {Read*}. *)
-let rec read_all n : nat # {Read*} =
+let rec read_all n : nat ! {Read*} =
   match n with
   | 0 -> 0
   | m + 1 ->
@@ -20,7 +20,7 @@ let rec read_all n : nat # {Read*} =
 
 (* Correctly accepted by the typechecker: a caller sees the annotated
    effect. *)
-let read_twice () : nat # {Read*} =
+let read_twice () : nat ! {Read*} =
   let x = read_all 1 in
   let y = read_all 1 in
   x + y

@@ -50,14 +50,14 @@ type angle = Angle of nat
    as a policy on the history since calibrating, every reconfiguration is
    followed by a self-test. A reading is in a box graded with '{_*}', every
    trace, and may be used whatever the history. *)
-operation Calibrate      : unit ~> [{~(_*; Configure; (_ & ~SelfTest)*)}]calibration # {Calibrate}
-operation Scan           : unit ~> [{_*}]reading # {Scan}
-operation Configure      : unit ~> unit # {Configure}
-operation SelfTest       : unit ~> unit # {SelfTest}
-operation HighwayMode    : unit ~> unit # {Configure; SelfTest}
-operation SetLongRange   : unit ~> unit # {Configure}
-operation AngleOf        : reading ~> angle # {AngleOf}
-operation SetOffsetAngle : calibration * angle ~> unit # {SetOffsetAngle}
+operation Calibrate      : unit ~> [{~(_*; Configure; (_ & ~SelfTest)*)}]calibration ! {Calibrate}
+operation Scan           : unit ~> [{_*}]reading ! {Scan}
+operation Configure      : unit ~> unit ! {Configure}
+operation SelfTest       : unit ~> unit ! {SelfTest}
+operation HighwayMode    : unit ~> unit ! {Configure; SelfTest}
+operation SetLongRange   : unit ~> unit ! {Configure}
+operation AngleOf        : reading ~> angle ! {AngleOf}
+operation SetOffsetAngle : calibration * angle ~> unit ! {SetOffsetAngle}
 
 (* Example: This program is correctly accepted by the typechecker.
 

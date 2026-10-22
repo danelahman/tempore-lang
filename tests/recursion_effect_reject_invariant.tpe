@@ -5,7 +5,7 @@
 
 (* Correctly rejected by the typechecker: assuming the recursive call takes at
    most 5, a round takes at most 6, which is not below 5. *)
-let rec wait n : unit # 5 =
+let rec wait n : unit ! 5 =
   match n with
   | 0 -> ()
   | m + 1 ->

@@ -23,7 +23,7 @@ let claim_top () =
   unbox r as y in
   y
 
-let wait : unit -> unit # top = fun () -> delay 7
+let wait : unit -> unit ! top = fun () -> delay 7
 
 run claim_late ()
 run claim_late_ascii ()

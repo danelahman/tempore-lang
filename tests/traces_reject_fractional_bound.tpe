@@ -7,4 +7,4 @@
    traces-timed-upper-bound are whole numbers of ticks; the error names the
    trace grades of timed operations whose delays are rationals. *)
 
-operation Heat : unit ~> unit # {Heat} within [1/2, 1]
+operation Heat : unit ~> unit ! {Heat} within [1/2, 1]

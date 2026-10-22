@@ -7,7 +7,7 @@
 
         Typing error: This argument has type `string` but the function
           expects `nat`
-          Note: while matching `nat → nat` against `string → α # ε₀`
+          Note: while matching `nat → nat` against `string → α ! ε₀`
 *)
 
 let f x = x

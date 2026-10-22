@@ -11,7 +11,7 @@
 
 type token = Token of string
 
-operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
+operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
 
 (* A wait of more than 2 guaranteed, at most 2 permitted. *)
 let waiting () =
@@ -21,4 +21,4 @@ let waiting () =
   tok
 
 (* At least 5/2 time units guaranteed, at most 2 permitted. *)
-operation Slow : unit ~> unit # [{5/2}, {Sample; 1/2}]
+operation Slow : unit ~> unit ! [{5/2}, {Sample; 1/2}]

@@ -259,9 +259,9 @@ computation takes.
   For example, with `Read` taking at most two ticks,
 
   ```
-  operation Read : unit ~> nat # 2
+  operation Read : unit ~> nat ! 2
 
-  let read_twice () : nat # 5 =
+  let read_twice () : nat ! 5 =
     let x = perform Read () in
     delay 1;
     let y = perform Read () in
@@ -269,7 +269,7 @@ computation takes.
   ```
 
   is accepted, as two reads and a delay take at most `2 + 1 + 2` ticks, while if
-  we had given the function the type annotation `nat # 4`, the definition would
+  we had given the function the type annotation `nat ! 4`, the definition would
   have been rejected with
 
       This function's body has grade `5`, which does not match its annotated
@@ -296,9 +296,9 @@ For example, under `time-interval-rational`, with `Sense` taking between a
 quarter and a half of a unit of time,
 
 ```
-operation Sense : unit ~> nat # [1/4, 1/2]
+operation Sense : unit ~> nat ! [1/4, 1/2]
 
-let sample () : nat # (1, 2) =
+let sample () : nat ! (1, 2) =
   let x = perform Sense () in
   delay 1;
   x
@@ -334,11 +334,11 @@ For example, under `traces-upper-bound`, a door that opens for three ticks for a
 known badge and raises an alarm for an unknown one,
 
 ```
-operation Unlock : unit ~> unit # {Unlock}
-operation Lock : unit ~> unit # {Lock}
-operation Alarm : unit ~> unit # {Alarm}
+operation Unlock : unit ~> unit ! {Unlock}
+operation Lock : unit ~> unit ! {Lock}
+operation Alarm : unit ~> unit ! {Alarm}
 
-let enter (known : bool) : unit # {Unlock; 3; Lock | Alarm} =
+let enter (known : bool) : unit ! {Unlock; 3; Lock | Alarm} =
   if known then (perform Unlock (); delay 3; perform Lock ())
   else perform Alarm ()
 ```
@@ -373,9 +373,9 @@ The grading monoids are:
   For example, with `Read` taking between one and three ticks,
 
   ```
-  operation Read : unit ~> nat # {Read} within [1, 3]
+  operation Read : unit ~> nat ! {Read} within [1, 3]
 
-  let read_then_wait () : nat # {5} =
+  let read_then_wait () : nat ! {5} =
     let x = perform Read () in
     delay 2;
     x
@@ -411,10 +411,10 @@ declare bounds such as `within [1/2, 3/2]`.
 For example, under `traces-timed-interval-rational`, the program
 
 ```
-operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
-operation Send : nat ~> unit # {Send} within [1/4, 1]
+operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
+operation Send : nat ~> unit ! {Send} within [1/4, 1]
 
-let report () : unit # [1, 3] =
+let report () : unit ! [1, 3] =
   let x = perform Sample () in
   delay 1/2;
   perform Send x
@@ -492,12 +492,12 @@ The two variants are:
   For example, the file session
 
   ```
-  operation Open : unit ~> unit # {Open}
-  operation Read : unit ~> nat # {Read}
-  operation Write : nat ~> unit # {Write}
-  operation Close : unit ~> unit # {Close}
+  operation Open : unit ~> unit ! {Open}
+  operation Read : unit ~> nat ! {Read}
+  operation Write : nat ~> unit ! {Write}
+  operation Close : unit ~> unit ! {Close}
 
-  let copy () : unit # {Open; (Read | Write)*; Close} =
+  let copy () : unit ! {Open; (Read | Write)*; Close} =
     perform Open ();
     let x = perform Read () in
     perform Write x;
@@ -541,10 +541,10 @@ The two variants are:
   For example, the program
 
   ```
-  operation Sample : unit ~> nat # {Sample}
-  operation Send : nat ~> unit # {Send}
+  operation Sample : unit ~> nat ! {Sample}
+  operation Send : nat ~> unit ! {Send}
 
-  let report () : unit # {Sample; [0, 1/2); Send} =
+  let report () : unit ! {Sample; [0, 1/2); Send} =
     let x = perform Sample () in
     delay 1/4;
     delay 1/8;
@@ -573,8 +573,8 @@ concatenations of `k` words of `r` for `k` from `m` to `n`; `r^0` is `0`,
 `r^1` is `r` and `r^[0, ∞)` is `r*`. It is notation: a repetition and its
 unrolling are the same grade. It is read by every grade of regular expressions,
 also of timed operations and rigid, with strict waits inside, as in
-`{(!2.5; ReadImu)^3}`; the grades of finite sets of traces read finite counts
-only. A repetition is decided without unrolling, by derivatives with a counter,
+`{(idle 2.5; ReadImu)^3}`; the grades of finite sets of traces read finite
+counts only. A repetition is decided without unrolling, by derivatives with a counter,
 in time linear in its count.
 
 A grade the typechecker computes, an inferred grade, a counterexample or a
@@ -583,7 +583,7 @@ as one repetition, as kept in its normal form: three calls of `Ping` print as
 `{Ping^3}`. For example, the annotation of
 
 ```
-let pings () : unit # {Ping^[1, 2]; Close} =
+let pings () : unit ! {Ping^[1, 2]; Close} =
   perform Ping ();
   perform Ping ();
   perform Ping ();
@@ -597,7 +597,7 @@ admits one or two calls of `Ping` only:
 
 The sprint start system
 ([`examples/arduino/starter/starter.tpe`](examples/arduino/starter/starter.tpe))
-annotates its 200 polls `{(0 | !2.5; ReadImu; ReadClock)^200}`.
+annotates its 200 polls `{(0 | idle 2.5; ReadImu; ReadClock)^200}`.
 
 #### Implementations for benchmarking
 <!-- web-skip -->
@@ -660,10 +660,10 @@ Under these:
 For example, under `regex-timed-lower-bound-symbolic`, the program
 
 ```
-operation Fetch : unit ~> nat # {Fetch} within [2, 3]
-operation Send : nat ~> unit # {Send} within [1, 1]
+operation Fetch : unit ~> nat ! {Fetch} within [2, 3]
+operation Send : nat ~> unit ! {Send} within [1, 1]
 
-let send_after_wait () : unit # {5; Send} =
+let send_after_wait () : unit ! {5; Send} =
   let x = perform Fetch () in
   delay 3;
   perform Send x
@@ -730,10 +730,10 @@ Under these:
 For example, under `regex-timed-upper-bound-rational-symbolic`, the program
 
 ```
-operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
-operation Send : nat ~> unit # {Send} within [1/4, 1/2]
+operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
+operation Send : nat ~> unit ! {Send} within [1/4, 1/2]
 
-let report () : unit # {[0, 3)} =
+let report () : unit ! {[0, 3)} =
   let x = perform Sample () in
   delay 1/4;
   perform Send x
@@ -778,12 +778,12 @@ The letters are:
 - a *budget*, a stretch of time in which operations may fall: `d`,
   `[a, b]`, `(a, b)`, `≤d`, `<d`, `≥d` or `>d` (ASCII `<=` and `>=`); `≥0`
   is any stretch, and the top;
-- a *strict wait*, a stretch without operations: a budget letter after `!`,
-  such as `!10`, `![2, 3]` or `!≤5`;
+- a *strict wait*, a stretch without operations: a budget letter after `idle`,
+  such as `idle 10`, `idle [2, 3]` or `idle ≤5`;
 - a *restricted budget* `I & S` of a budget `I` and a set of operations
   `S`, such as `≥0 & ~Read`: a budget whose operations lie in `S`;
-- `0`, the empty trace; a stretch of length 0, such as `!0` or `≤0`, is the
-  empty trace too.
+- `0`, the empty trace; a stretch of length 0, such as `idle 0` or `≤0`, is
+  the empty trace too.
 
 Expressions use `;`, `|`, `*`, `^n`, `^[m, n]` and the postfix `r?`, which
 is `r | 0`. The complement `~` and the intersection `&` apply to sets of
@@ -797,8 +797,8 @@ lower end: `[2, 5]` is `≤5` in an upper bound and `≥2` in a lower one, and
 bounds those bounded above, and `≥0` both: `{≤3}` is not a lower bound. Under
 the interval grades a literal `{e}` is the pair of its two readings,
 `[{L}, {U}]` gives them apart, and a pair is printed as one literal where it
-is the pair of one, as `{!10}` for `[{!≥10}, {!≤10}]`. The unit is `{0}` and
-the top `{≥0}`.
+is the pair of one, as `{idle 10}` for `[{idle ≥10}, {idle ≤10}]`. The unit is
+`{0}` and the top `{≥0}`.
 
 #### The order
 
@@ -813,12 +813,12 @@ As a lower bound:
 
 - a budget `≥d` demands at least `d` units, covered by waits and by
   operations at their `lo`;
-- a strict wait `!≥d` demands an undisturbed wait of at least `d`;
-- there are no implicit stretches around the letters: `{A; !5; B}` demands
+- a strict wait `idle ≥d` demands an undisturbed wait of at least `d`;
+- there are no implicit stretches around the letters: `{A; idle 5; B}` demands
   `A`, a wait of at least `5` and `B` with nothing in between, and
   `{≥0; A; ≥0}` an `A` anywhere.
 
-The grade of `delay d` is the strict wait `!d`. Every operation takes a
+The grade of `delay d` is the strict wait `idle d`. Every operation takes a
 positive time: a declaration `within [0, hi]` is rejected, and is written
 `within (0, hi]`.
 
@@ -826,9 +826,9 @@ For example, under `regex-timed-rigid-upper-bound-rational-symbolic`, the
 program
 
 ```
-operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
-operation ReadClock : unit ~> nat # {ReadClock} within (0, 0.05]
-operation Redraw : unit ~> unit # {Redraw} within [0.05, 33]
+operation ReadImu : unit ~> nat ! {ReadImu} within [0.2, 1.5]
+operation ReadClock : unit ~> nat ! {ReadClock} within (0, 0.05]
+operation Redraw : unit ~> unit ! {Redraw} within [0.05, 33]
 
 let polls () =
   let start = perform ReadClock () in
@@ -856,16 +856,16 @@ Under `regex-timed-upper-bound-rational-symbolic` both are accepted.
 A strict wait matters where a budget leaves slack: a range of delays, or a
 delay longer than the program's own wait, so that a short operation fits
 beside it. For periodic sampling with a jitter of `δ`,
-`(![T - δ, T + δ]; Read)*` permits the readings and waits only, whereas
+`(idle [T - δ, T + δ]; Read)*` permits the readings and waits only, whereas
 `([T - δ, T + δ]; Read)*` admits any operation with `hi` at most `δ` beside
 each wait. With
 
 ```
-operation Beep : unit ~> unit # {Beep} within (0, 0.15]
+operation Beep : unit ~> unit ! {Beep} within (0, 0.15]
 
 let sampled () =
   let first = perform ReadImu () in
-  box {(![9.5, 10.5]; ReadImu)*} first as s in
+  box {(idle [9.5, 10.5]; ReadImu)*} first as s in
   delay 10;
   let a = perform ReadImu () in
   perform Beep ();
@@ -877,9 +877,10 @@ let sampled () =
 
 the program is rejected, as the beep falls in a strict wait:
 
-    Variable `s` is unboxed with grade `{!≤10; ReadImu; Beep; !≤10; ReadImu}`
-    accumulated since it was bound, which is not below its box grade
-    `{(!≤10.5; ReadImu)*}`
+    Variable `s` is unboxed with grade
+    `{idle ≤10; ReadImu; Beep; idle ≤10; ReadImu}` accumulated since it was
+    bound, which is not below its box grade
+    `{(idle ≤10.5; ReadImu)*}`
 
 With the box grade `{([9.5, 10.5]; ReadImu)*}` it is accepted, the beep of at
 most `0.15` fitting beside the wait of `10`.
@@ -902,8 +903,9 @@ let drift () =
 
 is rejected with
 
-    Variable `w` is unboxed with grade `{ReadImu; !≤2; ConfigureImu; ReadImu}`
-    accumulated since it was bound, which is not below its box grade
+    Variable `w` is unboxed with grade
+    `{ReadImu; idle ≤2; ConfigureImu; ReadImu}` accumulated since it was bound,
+    which is not below its box grade
     `{≥0 & ~ConfigureImu}`
 
 The Arduino packages declare their operations under the rational rigid grades
@@ -942,9 +944,9 @@ In this category, we have the following grading monoids:
   For example, the program
 
   ```
-  operation ReadPublic : unit ~> string # Low
-  operation ReadSecret : unit ~> string # High
-  operation Post : string * string ~> unit # Low
+  operation ReadPublic : unit ~> string ! Low
+  operation ReadSecret : unit ~> string ! High
+  operation Post : string * string ~> unit ! Low
 
   let forward () =
     let c = box Low "public" in
@@ -971,8 +973,8 @@ In this category, we have the following grading monoids:
   five ticks or once something secret is touched, the program
 
   ```
-  operation Query : string ~> string # (2, Low)
-  operation ReadPayroll : unit ~> string # (1, High)
+  operation Query : string ~> string ! (2, Low)
+  operation ReadPayroll : unit ~> string ! (1, High)
 
   let query_in_time () =
     let t = box (5, Low) "token" in
@@ -999,10 +1001,10 @@ In this category, we have the following grading monoids:
   not announced, the program
 
   ```
-  operation ReadSecret : unit ~> string # High
-  operation Publish : string ~> unit # (Low, (Board, Low))
+  operation ReadSecret : unit ~> string ! High
+  operation Publish : string ~> unit ! (Low, (Board, Low))
 
-  let announce () : unit # (High, (Board, Low)) =
+  let announce () : unit ! (High, (Board, Low)) =
     perform Publish "maintenance at noon";
     let _ = perform ReadSecret () in
     ()
@@ -1060,10 +1062,10 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
   For example, the program
 
   ```
-  operation Open : string ~> unit # (Files, 1, 1)
-  operation Close : string ~> unit # (Files, -1, 0)
+  operation Open : string ~> unit ! (Files, 1, 1)
+  operation Close : string ~> unit ! (Files, -1, 0)
 
-  let copy () : unit # (Files, 0, 2) =
+  let copy () : unit ! (Files, 0, 2) =
     perform Open "a";
     perform Open "b";
     perform Close "b";
@@ -1094,9 +1096,9 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
   or 5, the program
 
   ```
-  operation Send : unit ~> unit # (1, (Send, {0}))
+  operation Send : unit ~> unit ! (1, (Send, {0}))
 
-  let send_in_window () : unit # ([5, 6], (Send, {4 | 5})) =
+  let send_in_window () : unit ! ([5, 6], (Send, {4 | 5})) =
     delay 4;
     perform Send ()
   ```
@@ -1126,17 +1128,17 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
   one, `(_, ≠, n)` from one to another and `(_, Stuck, n)` from one into
   `Stuck`; a branch between a transmission and an operation of cost 1 in every
   mode has grade `((On, On, 4), (_, _, 1), (_, Stuck, 0))`. Delays cost nothing;
-  idle draw is charged by operations such as `Sleep : unit ~> unit # ((Off, Off,
+  idle draw is charged by operations such as `Sleep : unit ~> unit ! ((Off, Off,
   10), (On, On, 50))`.
 
   For example, where switching a radio on costs 2 and a transmission
   4, the program
 
   ```
-  operation TurnOn : unit ~> unit # (Off, On, 2)
-  operation Transmit : string ~> unit # (On, On, 4)
+  operation TurnOn : unit ~> unit ! (Off, On, 2)
+  operation Transmit : string ~> unit ! (On, On, 4)
 
-  let report () : unit # (Off, On, 6) =
+  let report () : unit ! (Off, On, 6) =
     perform TurnOn ();
     perform Transmit "reading"
   ```
@@ -1170,11 +1172,11 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
   minutes and a pipetting 3 to 5, the program
 
   ```
-  operation Take : unit ~> unit # ({Take}, Cold, Out) within [1, 2]
-  operation Pipette : unit ~> unit # ({Pipette}, Out, Out) within [3, 5]
-  operation Return : unit ~> unit # ({Return}, Out, Cold) within [1, 1]
+  operation Take : unit ~> unit ! ({Take}, Cold, Out) within [1, 2]
+  operation Pipette : unit ~> unit ! ({Pipette}, Out, Out) within [3, 5]
+  operation Return : unit ~> unit ! ({Return}, Out, Cold) within [1, 1]
 
-  let round () : unit # (Cold, Cold, (Out, [0, 10])) =
+  let round () : unit ! (Cold, Cold, (Out, [0, 10])) =
     perform Take ();
     perform Pipette ();
     delay 4;
@@ -1203,15 +1205,15 @@ operation `A`, `n` possibly `∞`; sequencing adds the calls of each operation,
 and delays count none. An operation not listed is bounded by `0`, or by the
 entry `(_, n)`, and a plain `n` bounds every operation: `((Auth, 1), (Send, 3))`
 allows one `Auth`, three `Send` and nothing else. An operation counts itself,
-e.g. `operation Send : nat ~> unit # (Send, 1)`.
+e.g. `operation Send : nat ~> unit ! (Send, 1)`.
 
 For example, the program
 
 ```
-operation Auth : string ~> unit # (Auth, 1)
-operation Send : string ~> unit # (Send, 1)
+operation Auth : string ~> unit ! (Auth, 1)
+operation Send : string ~> unit ! (Send, 1)
 
-let notify () : unit # ((Auth, 1), (Send, 3)) =
+let notify () : unit ! ((Auth, 1), (Send, 3)) =
   perform Auth "key";
   perform Send "a";
   perform Send "b"
@@ -1263,7 +1265,7 @@ operations is not examined.
 For example, where `Beat` takes 0.1 to 0.5 and `Work` 1 to 3, the program
 
 ```
-let rec heartbeat n : unit # (Beat, [0, 0], [0, 5], [0, 5]) =
+let rec heartbeat n : unit ! (Beat, [0, 0], [0, 5], [0, 5]) =
   match n with
   | 0 -> ()
   | m + 1 -> perform Beat (); perform Work (); heartbeat m
@@ -1298,7 +1300,7 @@ becomes a qualifier of the definition's scheme, checked at each use.
 
 Under `time-upper-bound`, the program `let keep x = delay 1; x` gets the scheme
 
-    ∀ α. Et(α) ⇒ α → α # 1
+    ∀ α. Et(α) ⇒ α → α ! 1
 
 so `keep 5` is accepted by the typechecker and `keep (fun () -> ())` is
 rejected.
@@ -1316,7 +1318,7 @@ algebraic types.
 ### Operations and their grades
 
 ```
-operation Read : unit ~> string # 2
+operation Read : unit ~> string ! 2
 ```
 
 declares an operation whose call `perform Read ()` has grade `2`. Under the
@@ -1324,7 +1326,7 @@ trace and regular-expression monoids of timed operations, an *atomic* operation,
 graded by its own name, also declares its running-time bounds (`within [n, m]`):
 
 ```
-operation Tx : string ~> unit # {Tx} within [2, 3]
+operation Tx : string ~> unit ! {Tx} within [2, 3]
 ```
 
 The bounds are durations, written as for `delay` (see [Delays](#delays)), with
@@ -1345,7 +1347,7 @@ is attained: with `A` declared `within [1, 2)`, `{A}` is below `{[0, 2)}` under
 takes less than `2`.
 
 A *compound* operation names other operations in its grade, and its bounds are
-computed from theirs: `Send : string ~> unit # {Tx | Tx; Tx}` gets `[2, 6]`.
+computed from theirs: `Send : string ~> unit ! {Tx | Tx; Tx}` gets `[2, 6]`.
 
 ### Handlers and continuations
 
@@ -1360,7 +1362,7 @@ An operation case receives the argument `p` and the continuation `k`, resumed
 with `continue k with v`. Unhandled operations are forwarded. The continuation
 is a resource boxed with the operation's grade, resumed only once the case has
 accumulated a sub-grade of that grade: under `time-lower-bound`,
-`Get () k -> delay 71; continue k with 42` handles `Get # 71`. A case is
+`Get () k -> delay 71; continue k with 42` handles `Get ! 71`. A case is
 checked for every effect its continuation may have; a failure names the
 instance:
 
@@ -1424,13 +1426,13 @@ operation cases](#contexts-of-operation-cases)); `f` itself may be called
 anywhere in `c`, including after delays and in operation cases.
 
 A recursive function has the unit effect unless it is annotated
-`let rec f p₁ … pₙ : ty # ε = c`. Then
-`f : A₁ → … → (Aₙ → ty # ε)`, the outer arrows having the unit effect, and `ε`
+`let rec f p₁ … pₙ : ty ! ε = c`. Then
+`f : A₁ → … → (Aₙ → ty ! ε)`, the outer arrows having the unit effect, and `ε`
 must bound the effect of `c` assuming every recursive call has effect `ε`.
 
 Under `regex-upper-bound-symbolic`,
 ```
-let rec read_all n : nat # {Read*} =
+let rec read_all n : nat ! {Read*} =
   match n with
   | 0 -> 0
   | m + 1 -> let x = perform Read () in let y = read_all m in x + y
@@ -1467,19 +1469,19 @@ continuation of a case for `Op`, primed (`ε_Op′`) for another case for `Op`.
 
 Under `time-upper-bound`, the standard library's `compose f g x = f (g x)` has
 
-    ∀ α β γ ε₀. (α → β # ε₀) → (γ → α) → (γ → β # ε₀)
+    ∀ α β γ ε₀. (α → β ! ε₀) → (γ → α) → (γ → β ! ε₀)
 
 where `g` takes no time, since the non-eternal `f` is used after it: the
 qualifier `∣ε₁∣ ≾ 0` on the effect `ε₁` of `g` admits only the least value
 `0`, which the scheme substitutes; an effect of the unit is not printed.
 
-Under `time-lower-bound`, with `operation Op : unit ~> unit # 1`, the handler
+Under `time-lower-bound`, with `operation Op : unit ~> unit ! 1`, the handler
 
     let via f = handler | x -> x | Op () k -> f (); continue k with ()
 
 has
 
-    ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 1 ∧ (∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op) ⇒ (unit → α # ε₀) → (β # ε₁ ⇒ β)
+    ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 1 ∧ (∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op) ⇒ (unit → α ! ε₀) → (β ! ε₁ ⇒ β)
 
 where `R`, `∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op`, states that for every effect `ε_Op`
 of `k` the case, `f` followed by `k`, takes at least the time of `Op` followed
@@ -1498,26 +1500,26 @@ fractions are slow to decide.
 
 ### Annotations
 
-A function's computation type may be annotated, `let f () : nat # 3 = ...`; the
+A function's computation type may be annotated, `let f () : nat ! 3 = ...`; the
 body's grade must be a sub-grade of the annotation. Types may contain variables
 `'a`, and grades may be variables `'e` or `'r`: within a top-level definition,
 the same name is the same unknown, inferred and generalised with it. A name also
-written after `#` stands for the resource image `∣ε∣` of that effect in box
-grades. `let pass (f : unit -> nat # 'e) : nat # 'e = f ()` has the grade of
+written after `!` stands for the resource image `∣ε∣` of that effect in box
+grades. `let pass (f : unit -> nat ! 'e) : nat ! 'e = f ()` has the grade of
 `f`.
 
 Type-constructor application binds tightest, then the box `[rho]`, then
 products `a * b`, which are n-ary and non-associative, and last arrows
-`a -> b # e`, which are right-associative: `[2]nat list * bool -> nat` takes
+`a -> b ! e`, which are right-associative: `[2]nat list * bool -> nat` takes
 a pair of a `[2](nat list)` and a `bool`, and a box of a function is written
 `[2](nat -> nat)`.
 
-An effect `# e` belongs to the innermost arrow, so `nat -> nat -> nat # 1` is
-`nat -> (nat -> nat # 1)`, and an arrow without one has the unit effect.
+An effect `! e` belongs to the innermost arrow, so `nat -> nat -> nat ! 1` is
+`nat -> (nat -> nat ! 1)`, and an arrow without one has the unit effect.
 
 Printed types use the same precedences and leave out an effect of the unit; a
 result that is a function type is printed in parentheses where either arrow
-shows its effect, `nat → (nat → nat # 1)`.
+shows its effect, `nat → (nat → nat ! 1)`.
 
 ### Sub-effecting
 
@@ -1525,22 +1527,22 @@ A computation may be used where one of a super-grade is expected. Under
 `time-upper-bound`,
 
 ```
-let apply (f : unit -> nat # 2) = f ()
+let apply (f : unit -> nat ! 2) = f ()
 let slow () = delay 1; 3
 let branch c = if c then delay 1 else delay 2
 ```
 
-`apply slow` is accepted, `unit → nat # 1` being a subtype of
-`unit → nat # 2`, and `branch` has the type `bool → unit # 2`. A box type is
+`apply slow` is accepted, `unit → nat ! 1` being a subtype of
+`unit → nat ! 2`, and `branch` has the type `bool → unit ! 2`. A box type is
 contravariant in its grade: under `time-lower-bound`, a `[2]nat` is accepted
 where a `[3]nat` is expected, but a `[4]nat` is not.
 
 Limits:
 
 - type-constructor arguments and handler inputs are compared by equality: a
-  `(unit -> nat # 1) list` is not accepted where a `(unit -> nat # 2) list` is
+  `(unit -> nat ! 1) list` is not accepted where a `(unit -> nat ! 2) list` is
   expected, although `[slow]` has the scheme
-  `∀ ε₀. 1 ≾ ε₀ ⇒ (unit → nat # ε₀) list` and is accepted at both;
+  `∀ ε₀. 1 ≾ ε₀ ⇒ (unit → nat ! ε₀) list` and is accepted at both;
 - local `let` definitions are not generalised;
 - the continuation effect of an operation case is rigid (see
   [Handlers and continuations](#handlers-and-continuations));

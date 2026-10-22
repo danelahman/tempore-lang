@@ -14,12 +14,12 @@ noneternal type token = Token
 type 'a tag = Tag
 
 (* Correctly accepted by the typechecker: x is used after a tick of waiting,
-   so keep gets the qualified scheme ∀ α. Et(α) ⇒ α → α # 1. *)
+   so keep gets the qualified scheme ∀ α. Et(α) ⇒ α → α ! 1. *)
 let keep x = delay 1; x
 
 (* Correctly accepted by the typechecker: x is used after g has run, whose
    effect ε₀ is unknown here, so after gets the scheme ∀ α β ε₀. Et(β) ∨
-   ∣ε₀∣ ≾ 0 ⇒ (unit → α # ε₀) → (β → β # ε₀), and either side of the
+   ∣ε₀∣ ≾ 0 ⇒ (unit → α ! ε₀) → (β → β ! ε₀), and either side of the
    disjunction may discharge the constraint at a use. *)
 let after g x = g (); x
 
@@ -32,7 +32,7 @@ let twice_keep x = keep (keep x)
 
 (* Correctly accepted by the typechecker: a local variable of eternal type
    may be captured by an operation case. *)
-operation Op : unit ~> unit # 1
+operation Op : unit ~> unit ! 1
 let h x = handler | y -> y | Op p k -> let r = continue k with () in x
 
 (* Correctly accepted by the typechecker: nat is eternal. *)

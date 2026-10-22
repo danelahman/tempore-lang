@@ -3,8 +3,8 @@
      ./tempore --grades time-upper-bound \
        tests/continuation_nested_escape_reject.tpe *)
 
-operation Op1 : unit ~> unit # 1
-operation Op2 : unit ~> unit # 1
+operation Op1 : unit ~> unit ! 1
+operation Op2 : unit ~> unit ! 1
 
 (* Correctly rejected by the typechecker: g is bound outside the case for Op1,
    which is typed under the lock of the top grade ∞, and a function is never

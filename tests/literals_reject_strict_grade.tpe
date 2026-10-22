@@ -6,9 +6,9 @@
    Rejected under the 'regex-timed-upper-bound-rational-symbolic' grading
    monoid: strict delays are read by the rigid grades only. *)
 
-operation Read : unit ~> nat # {Read} within [1, 1]
+operation Read : unit ~> nat ! {Read} within [1, 1]
 
-let read () : nat # {Read; !3} =
+let read () : nat ! {Read; idle 3} =
   let a = perform Read () in
   delay 3;
   a

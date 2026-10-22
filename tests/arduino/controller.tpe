@@ -1,8 +1,8 @@
 (* A step of a PID controller that reads a sensor, waits and drives an
    actuator, with its gains a top-level constant. *)
 
-operation ReadAngle : unit ~> float # 1
-operation Drive : string * float ~> unit # 1
+operation ReadAngle : unit ~> float ! 1
+operation Drive : string * float ~> unit ! 1
 
 type gains = Gains of float * float * float
 

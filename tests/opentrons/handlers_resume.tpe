@@ -3,8 +3,8 @@
    alternatives, nested handlers forward operations to the outer one, and a
    handler is applied to every call of its operation in the continuation. *)
 
-operation Choose : unit ~> bool # 0
-operation Emit : nat ~> unit # 0
+operation Choose : unit ~> bool ! 0
+operation Emit : nat ~> unit ! 0
 
 let all_choices =
   handler

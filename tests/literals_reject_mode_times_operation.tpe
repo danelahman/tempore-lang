@@ -4,4 +4,4 @@
 
    Rejected: the grade of an operation names a single operation. *)
 
-operation Round : unit ~> unit # ({Take; Return}, Cold, Cold) within [2, 3]
+operation Round : unit ~> unit ! ({Take; Return}, Cold, Cold) within [2, 3]

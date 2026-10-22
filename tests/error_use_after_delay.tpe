@@ -10,7 +10,7 @@
 
 noneternal type token = Token
 
-operation Ping : unit ~> unit # 1
+operation Ping : unit ~> unit ! 1
 
 run
   let t = Token in

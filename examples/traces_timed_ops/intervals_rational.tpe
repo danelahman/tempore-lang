@@ -16,26 +16,26 @@ type packet = Packet of reading
 
 (* A reading of the sensors has a running time between half a second and one
    and a half; its default takes three quarters of a second. *)
-operation Sample : unit ~> reading # [{Sample}, {Sample}] within [1/2, 3/2]
+operation Sample : unit ~> reading ! [{Sample}, {Sample}] within [1/2, 3/2]
 default Sample () = delay 0.75; Reading 12
 
 (* Compressing a reading has a running time between a quarter of a second and
    one second; its default takes half a second. *)
 operation Compress : reading ~> packet
-  # [{Compress}, {Compress}]
+  ! [{Compress}, {Compress}]
   within [1/4, 1]
 default Compress r = delay 1/2; Packet r
 
 (* A transmission has a running time between one second and two and a half;
    its default takes one and three quarters. *)
 operation Transmit : packet ~> unit
-  # [{Transmit}, {Transmit}]
+  ! [{Transmit}, {Transmit}]
   within [1, 5/2]
 default Transmit p = delay 7/4
 
 (* A report samples, compresses and transmits, in that order. *)
 operation Report : unit ~> unit
-  # [{Sample; Compress; Transmit}, {Sample; Compress; Transmit}]
+  ! [{Sample; Compress; Transmit}, {Sample; Compress; Transmit}]
 
 (* Correctly accepted by the typechecker: the reading is compressed after a
    delay of a fifth of a second, which lets the sensors settle. The previous
@@ -75,7 +75,7 @@ let report_by_hand () =
    after 3/2 seconds and closes after 11/2, since its operations bank at least
    1/2 + 1/4 + 1 = 7/4 and take at most 3/2 + 1 + 5/2 = 5; the slot is the
    annotated grade of the function. *)
-let report_in_slot () : unit # [3/2, 11/2] =
+let report_in_slot () : unit ! [3/2, 11/2] =
   perform Report ()
 
 (* Correctly rejected by the typechecker: without the delay, the previous

@@ -8,8 +8,8 @@
    takes a duration within the running-time bounds of its operation, strictly
    inside an open end and at most at a closed one. *)
 
-operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
-operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 2)
+operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
 
 default Send () = delay 3/2
 default Beep () = delay 2

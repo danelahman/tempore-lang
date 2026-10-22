@@ -9,9 +9,9 @@
 
 type token = Token of string
 
-operation Heat : unit ~> unit # {Heat} within [2, 4]
-operation Cool : unit ~> unit # {Cool} within [1, 2]
-operation Log : unit ~> unit # {Log} within [1, 1]
+operation Heat : unit ~> unit ! {Heat} within [2, 4]
+operation Cool : unit ~> unit ! {Cool} within [1, 2]
+operation Log : unit ~> unit ! {Log} within [1, 1]
 
 (* A log bought within the delay between heating and cooling. *)
 let logged () =

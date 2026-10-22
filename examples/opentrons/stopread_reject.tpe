@@ -11,13 +11,13 @@
 
 type plate = string
 
-operation AddStop : plate ~> [[0, 30]]plate # [1, 2]
+operation AddStop : plate ~> [[0, 30]]plate ! [1, 2]
 default AddStop plate = delay 2; box [0, 30] plate
 
-operation Stop : plate ~> [[0, 30]]plate # [1, 2]
+operation Stop : plate ~> [[0, 30]]plate ! [1, 2]
 default Stop plate = delay 1; box [0, 30] plate
 
-operation Read : plate ~> nat # [1, 2]
+operation Read : plate ~> nat ! [1, 2]
 default Read plate = delay 1; 0
 
 let simulated_reader =

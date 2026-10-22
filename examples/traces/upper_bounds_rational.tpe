@@ -15,17 +15,17 @@ type sample = Sample of nat
 
 (* The operations declare no running-time bounds: a trace records the
    operations and the delays between them, and a delay pays for no operation. *)
-operation Read : unit ~> sample # {Read}
-operation Beep : unit ~> unit # {Beep}
-operation Flag : unit ~> unit # {Flag}
+operation Read : unit ~> sample ! {Read}
+operation Beep : unit ~> unit ! {Beep}
+operation Flag : unit ~> unit ! {Flag}
 
 (* A cycle, a compound operation: a steady heartbeat reads then beeps after
    half a second, an irregular one reads and flags at once. *)
-operation Cycle : unit ~> sample # {Read; 1/2; Beep | Read; Flag}
+operation Cycle : unit ~> sample ! {Read; 1/2; Beep | Read; Flag}
 
 (* Correctly accepted by the typechecker: the traces of the two branches are
    joined into the set of both. *)
-let cycle (steady : bool) : sample # {Read; 1/2; Beep | Read; Flag} =
+let cycle (steady : bool) : sample ! {Read; 1/2; Beep | Read; Flag} =
   let s = perform Read () in
   if steady then (
     delay 1/2;
@@ -38,7 +38,7 @@ let cycle (steady : bool) : sample # {Read; 1/2; Beep | Read; Flag} =
 (* Correctly accepted by the typechecker: the half-second delay is performed
    as delays of a fifth and of three tenths of a second, merged into the one
    the grade lists. *)
-let cycle_in_steps () : sample # {Read; 1/2; Beep} =
+let cycle_in_steps () : sample ! {Read; 1/2; Beep} =
   let s = perform Read () in
   delay 1/5;
   delay 3/10;
@@ -76,7 +76,7 @@ run box {1/2; 1 | 5/2} "ready" as s in delay 3/2; unbox s as msg in msg
          `{Read; 0.25; Beep} <= {Read; 0.5; Beep}` does not hold
 *)
 (*
-let cycle_brief () : sample # {Read; 1/2; Beep} =
+let cycle_brief () : sample ! {Read; 1/2; Beep} =
   let s = perform Read () in
   delay 1/4;
   perform Beep ();
@@ -91,5 +91,5 @@ let cycle_brief () : sample # {Read; 1/2; Beep} =
        `traces-upper-bound-rational` grading monoid, which does not use them
 *)
 (*
-operation ReadBounded : unit ~> sample # {Read} within (0, 1]
+operation ReadBounded : unit ~> sample ! {Read} within (0, 1]
 *)

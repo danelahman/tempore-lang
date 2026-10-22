@@ -8,7 +8,7 @@
    [1/2, 3/2) takes up to nearly 3/2 time units, more than the 1.4 the box
    allows. *)
 
-operation Sample : unit ~> unit # {Sample} within [1/2, 3/2)
+operation Sample : unit ~> unit ! {Sample} within [1/2, 3/2)
 
 let sample () =
   box {1.4} 1 as slot in

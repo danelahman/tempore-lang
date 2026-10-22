@@ -2,7 +2,7 @@
 
      ./tempore tests/continuation_discard_abort_reject_lower.tpe *)
 
-operation Op : unit ~> unit # 1
+operation Op : unit ~> unit ! 1
 
 (* Accepted: the case for Op discards k and runs f, so the handler carries the
    obligation that the effect ε₀ of f matches 1 · ε for every effect ε of k. *)

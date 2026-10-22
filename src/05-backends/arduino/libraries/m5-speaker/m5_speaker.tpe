@@ -26,5 +26,5 @@
    110 s and 276 s) measured Beep at 0.061 to 0.068 ms, within the declared
    bounds, which hold there. *)
 
-operation Beep : nat * nat ~> unit # [0, 0.15]
+operation Beep : nat * nat ~> unit ! [0, 0.15]
 default Beep _ = delay 3/20

@@ -10,8 +10,8 @@
 
 type token = Token of string
 
-operation Write : unit ~> unit # {Write} within [1, 2]
-operation Read : unit ~> unit # {Read} within [1, 2]
+operation Write : unit ~> unit ! {Write} within [1, 2]
+operation Read : unit ~> unit ! {Read} within [1, 2]
 
 (* A write guaranteed, only reads permitted. *)
 let mismatched () =
@@ -21,4 +21,4 @@ let mismatched () =
   tok
 
 (* At least 5 time units guaranteed, at most 4 permitted. *)
-operation Slow : unit ~> unit # [{5}, {Read; 2}]
+operation Slow : unit ~> unit ! [{5}, {Read; 2}]

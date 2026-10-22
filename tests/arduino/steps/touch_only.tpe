@@ -1,7 +1,7 @@
 (* A rejected variant of examples/arduino/steps/steps.tpe. *)
 
 let rec wait_touch (n : nat) (since : nat) (c : counter) : counter * key
-    # ((ReadTouch, [0, 0], [0, 50], [0, 50]), (0, CountStep, [0, ∞))) =
+    ! ((ReadTouch, [0, 0], [0, 50], [0, 50]), (0, CountStep, [0, ∞))) =
   match n with
   | 0 -> (c, Elsewhere)
   | m + 1 ->

@@ -6,46 +6,46 @@
    The operations, their bounds and their default implementations are those
    of m5_display.tpe. *)
 
-operation ShowText : string ~> unit # {ShowText} within [0.05, 12.5]
+operation ShowText : string ~> unit ! {ShowText} within [0.05, 12.5]
 default ShowText _ = delay 1
 
-operation ShowNumber : float ~> unit # {ShowNumber} within [0.05, 12.5]
+operation ShowNumber : float ~> unit ! {ShowNumber} within [0.05, 12.5]
 default ShowNumber _ = delay 1
 
-operation ClearDisplay : unit ~> unit # {ClearDisplay} within [31, 48]
+operation ClearDisplay : unit ~> unit ! {ClearDisplay} within [31, 48]
 default ClearDisplay () = delay 31
 
 operation ShowTextAt : nat * nat * nat * string ~> unit
-    # {ShowTextAt} within [0.05, 33]
+    ! {ShowTextAt} within [0.05, 33]
 default ShowTextAt _ = delay 3
 
 operation ShowNumberAt : nat * nat * nat * nat * float ~> unit
-    # {ShowNumberAt} within [0.05, 33]
+    ! {ShowNumberAt} within [0.05, 33]
 default ShowNumberAt _ = delay 3
 
 operation ShowTimeAt : nat * nat * nat * string * nat ~> unit
-    # {ShowTimeAt} within [0.05, 33]
+    ! {ShowTimeAt} within [0.05, 33]
 default ShowTimeAt _ = delay 3
 
 operation ShowColourTextAt : nat * nat * nat * nat * nat * string ~> unit
-    # {ShowColourTextAt} within [0.05, 33]
+    ! {ShowColourTextAt} within [0.05, 33]
 default ShowColourTextAt _ = delay 3
 
 (* The bounds of ShowColourNumberAt are those of ShowNumberAt, not measured
    separately. *)
 operation ShowColourNumberAt
     : nat * nat * nat * nat * nat * nat * float ~> unit
-    # {ShowColourNumberAt} within [0.05, 33]
+    ! {ShowColourNumberAt} within [0.05, 33]
 default ShowColourNumberAt _ = delay 3
 
 operation DrawButton : nat * nat * nat * nat * string ~> unit
-    # {DrawButton} within (0, 33]
+    ! {DrawButton} within (0, 33]
 default DrawButton _ = delay 3
 
 operation DrawBar : nat * nat * nat * nat * nat * nat ~> unit
-    # {DrawBar} within (0, 33]
+    ! {DrawBar} within (0, 33]
 default DrawBar _ = delay 1
 
 operation DrawLevel : nat * nat * nat * int * int * nat ~> unit
-    # {DrawLevel} within (0, 10]
+    ! {DrawLevel} within (0, 10]
 default DrawLevel _ = delay 1

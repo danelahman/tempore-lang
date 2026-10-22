@@ -5,7 +5,7 @@
 
    Rejected: a specification names an operation that is not declared. *)
 
-operation Beat : unit ~> unit # {Beat} within [0.1, 0.5]
+operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]
 default Beat () = delay 0.2
 
-let beat () : unit # (Bleat, [0, 5]) = perform Beat ()
+let beat () : unit ! (Bleat, [0, 5]) = perform Beat ()

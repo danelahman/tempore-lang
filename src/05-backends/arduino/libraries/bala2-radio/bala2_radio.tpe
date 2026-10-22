@@ -21,23 +21,23 @@
    0.35], SendBeat [0, 0.5] and SendDrive [0.1, 0.45]. SendStatus is not
    measured. *)
 
-operation SendStart : unit ~> unit # [0, 1]
+operation SendStart : unit ~> unit ! [0, 1]
 default SendStart _ = delay 1/10
 
-operation SendDrive : float * float ~> unit # [0, 1]
+operation SendDrive : float * float ~> unit ! [0, 1]
 default SendDrive _ = delay 1/10
 
-operation SendStop : unit ~> unit # [0, 1]
+operation SendStop : unit ~> unit ! [0, 1]
 default SendStop _ = delay 1/10
 
 (* SendStatus (code, tilt) queues the status of the robot to the peer: the
    code of its phase, by remote_phase_code, and its tilt; with the
    provisional bounds of Send. *)
 
-operation SendStatus : nat * float ~> unit # [0, 1]
+operation SendStatus : nat * float ~> unit ! [0, 1]
 default SendStatus _ = delay 1/10
 
-operation SendBeat : unit ~> unit # [0, 1]
+operation SendBeat : unit ~> unit ! [0, 1]
 default SendBeat _ = delay 1/10
 
 (* A message received, to be used within 150 ms. *)

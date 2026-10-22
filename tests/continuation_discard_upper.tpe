@@ -2,7 +2,7 @@
 
      ./tempore --grades time-upper-bound tests/continuation_discard_upper.tpe *)
 
-operation Op : unit ~> unit # 1
+operation Op : unit ~> unit ! 1
 
 (* A case that does not resume has grade 0, a sub-grade of 1 · ε for every
    effect ε of k, since under an upper bound 0 is the minimum. *)

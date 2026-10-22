@@ -1,6 +1,6 @@
 (* The step of peak.tpe writing the flash itself. *)
 
-let step_stored (tilt : float) : float # ((ReadImu, 1), (Publish, 1)) =
+let step_stored (tilt : float) : float ! ((ReadImu, 1), (Publish, 1)) =
   let imu = perform ReadImu () in
   let tilt = tilt_x gyro_weight period tilt imu in
   perform Publish tilt;

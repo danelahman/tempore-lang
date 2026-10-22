@@ -5,5 +5,5 @@
    running time. Beep, its bounds and its default implementation are those of
    m5_speaker.tpe. *)
 
-operation Beep : nat * nat ~> unit # {Beep} within (0, 0.15]
+operation Beep : nat * nat ~> unit ! {Beep} within (0, 0.15]
 default Beep _ = delay 3/20

@@ -18,7 +18,7 @@ type uvCured = UvCured of cooled
 type complete = Complete of uvCured
 
 (* Correctly accepted by the typechecker: a mock print, of type
-   model -> [5]fresh # 8 --- it takes eight ticks, and the print it hands back
+   model -> [5]fresh ! 8 --- it takes eight ticks, and the print it hands back
    has to cool for five before it may be touched. *)
 let printResinModel model = 
   delay 8;
@@ -26,7 +26,7 @@ let printResinModel model =
   printingResult
 
 (* Correctly accepted by the typechecker: a mock UV cure, of type
-   cooled -> uvCured # 6. *)
+   cooled -> uvCured ! 6. *)
 let uvCure cooledObject = 
   delay 6;
   UvCured cooledObject
