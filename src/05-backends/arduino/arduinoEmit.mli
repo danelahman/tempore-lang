@@ -91,8 +91,12 @@ val compile :
     [program], of the source file named [source], each with its name: the
     runtime header [tempore_arduino.h], the header [tempore_program.h] and the
     source [tempore_program.cpp]. The entry points, declared in the header, are
-    the instances of the top-level functions of the program's sources whose
-    types have no type variables; the other instances are [static].
+    the instances of the top-level functions of the program's sources among its
+    entry points ({!ArduinoFragment.program}) whose types have no type
+    variables; the other instances are [static]. Only the units reached from the
+    entry points, and from the [run] commands if they are compiled, are
+    compiled, and the operations declared are those they perform outside all
+    handlers.
 
     If [host_runs] (default [false]), the [run] commands of [program] are
     compiled too, to the functions [tempore_run1], [tempore_run2], ..., and a

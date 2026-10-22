@@ -90,17 +90,17 @@ calls the monitored operation:
   $ cd _arduino/projects/calibrated
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ sed -n '/^static .* calibrated_ReadImu.*{/,/^}/p' src/tempore_program.cpp
-  static tempore_tuple3 calibrated_ReadImu_11(float bias_49, tempore_unit) {
+  static tempore_tuple3 calibrated_ReadImu_1(float bias_19, tempore_unit) {
     const tempore_tuple3 tempore_t0 = tempore_op_ReadImu(tempore_unit{});
-    const tempore_tuple2 accel_50 = tempore_t0.c0;
-    const float gx_51 = tempore_t0.c1.c0;
-    const float gy_52 = tempore_t0.c1.c1;
-    const float gz_53 = tempore_t0.c1.c2;
-    const float b_54 = (gx_51 - bias_49);
-    return tempore_tuple3{accel_50, tempore_tuple2{b_54, gy_52, gz_53}};
+    const tempore_tuple2 accel_20 = tempore_t0.c0;
+    const float gx_21 = tempore_t0.c1.c0;
+    const float gy_22 = tempore_t0.c1.c1;
+    const float gz_23 = tempore_t0.c1.c2;
+    const float b_24 = (gx_21 - bias_19);
+    return tempore_tuple3{accel_20, tempore_tuple2{b_24, gy_22, gz_23}};
   }
   $ grep '= calibrated_ReadImu' src/tempore_program.cpp
-    const tempore_tuple3 imu_47 = calibrated_ReadImu_11(tempore_c0_0, tempore_unit{});
+    const tempore_tuple3 imu_52 = calibrated_ReadImu_1(tempore_c0_0, tempore_unit{});
   $ cd ../../..
 
 Two seconds of simulated time: the initial function reads the unit 50

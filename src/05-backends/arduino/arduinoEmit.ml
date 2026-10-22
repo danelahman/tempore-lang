@@ -1831,8 +1831,8 @@ type definitions = {
 }
 
 (* The instances of the top-level functions of the program's sources whose
-   types have no type variables. *)
-let entry_keys (program : F.program) =
+   types have no type variables, in the order of the sources. *)
+let source_function_keys (program : F.program) =
   List.filter_map
     (fun (d : F.definition) ->
       match (d.in_sources, d.quantified, d.definition_body) with
@@ -1840,20 +1840,42 @@ let entry_keys (program : F.program) =
       | _ -> None)
     program.definitions
 
+(* The units reached from the entry points [entries] and the computations
+   [runs], as {!instances}: dead-code elimination by reachability over the
+   graph of the uses of units. They are visited again from the instances of
+   [sources] reached outside all handlers, in the order of the sources, so
+   that the order of the units, and with it their names, follows the
+   sources. *)
+let reached_units definitions ~entries ~runs ~sources =
+  let ops = operations definitions ~roots:entries ~runs in
+  let reached, _, _ =
+    instances ops ~entries ~runs
+      (List.map (fun key -> Instance (key, [])) entries)
+  in
+  let seen = UnitSet.of_list (List.map (fun inst -> inst.key) reached) in
+  let roots =
+    List.filter (fun key -> UnitSet.mem (Instance (key, [])) seen) sources
+  in
+  let ops = operations definitions ~roots ~runs in
+  ( ops,
+    instances ops ~entries ~runs
+      (List.map (fun key -> Instance (key, [])) roots) )
+
 let definitions ~host_runs (program : F.program) =
   let datatypes =
     List.fold_left
       (fun map (d : F.datatype) -> Ast.TyNameMap.add d.type_name d map)
       Ast.TyNameMap.empty program.datatypes
   in
-  let entries = entry_keys program in
+  let sources = source_function_keys program in
+  let entries =
+    List.filter (fun (x, _) -> Ast.VariableSet.mem x program.entries) sources
+  in
   let runs =
     if host_runs then List.map ground_computation program.runs else []
   in
-  let ops = operations program.definitions ~roots:entries ~runs in
-  let instances, handlers, external_ops =
-    instances ops ~entries ~runs
-      (List.map (fun key -> Instance (key, [])) entries)
+  let ops, (instances, handlers, external_ops) =
+    reached_units program.definitions ~entries ~runs ~sources
   in
   let performed =
     List.filter

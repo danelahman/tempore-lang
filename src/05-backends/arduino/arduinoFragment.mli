@@ -234,6 +234,11 @@ type program = {
   runs : computation list;  (** the [run] commands, if requested, in order *)
   datatypes : datatype list;  (** those of the program and the library *)
   operations : operation list;  (** those the definitions and runs perform *)
+  entries : Language.Ast.VariableSet.t;
+      (** the top-level definitions of the sources that are entry points: those
+          named by [roots]; without [roots], those that the [run] commands of
+          the sources mention outside the handled computation of every [handle],
+          or all of them if the sources have no [run] command *)
   warnings : Utils.Diagnostic.t list;
       (** under [roots], a warning for each handler that is not tail-resumptive
           among those written in the top-level definitions of the sources that
