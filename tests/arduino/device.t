@@ -279,6 +279,11 @@ task at its next release; under warn the violations are logged.
   [10.000 ms] Task step stopped
   [60.000 ms] End of the simulation
 
+The simulation of a device whose tasks have halted ends with exit code 3:
+
+  $ emit slow --device toy/slow.device.json toy/toy.tpe --host-simulate 0.06 > /dev/null
+  [3]
+
 While halted, the reason is logged again every 5 s:
 
   $ emit slow --device toy/slow.device.json toy/toy.tpe --host-simulate 11 | grep 'Halted\|End of'

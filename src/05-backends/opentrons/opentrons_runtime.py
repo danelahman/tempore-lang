@@ -1212,6 +1212,11 @@ def tempore_execute_run(run: tempore_Run) -> object:
     return tempore_execute(run.comp(), run.defaults)
 
 
+# The exit code of a program whose run has failed, as that of the
+# command-line interpreter.
+tempore_RUN_FAILURE = 3
+
+
 def tempore_run_plain(runs: tuple[tempore_Run, ...], **configuration) -> None:
     """Executes the run commands `runs` in order with the runtime `tempore_rt`
     configured by `configuration`, by default on a virtual clock that delays do
@@ -1219,8 +1224,11 @@ def tempore_run_plain(runs: tuple[tempore_Run, ...], **configuration) -> None:
     without the final state of its resources. A run that ends at an unhandled
     operation call is reported as such and the next one follows; a stuck run
     ends the execution; a run-time error or a violation of running-time bounds
-    is reported on the standard error and ends the program with exit code 1."""
+    is reported on the standard error and ends the execution. The program
+    ends with the exit code tempore_RUN_FAILURE if a run has failed in one of
+    these ways."""
     tempore_rt.configure(**configuration)
+    failed = False
     for number, run in enumerate(runs, 1):
         try:
             value = tempore_execute_run(run)
@@ -1230,20 +1238,25 @@ def tempore_run_plain(runs: tuple[tempore_Run, ...], **configuration) -> None:
             )
             tempore_sys.stdout.write(tempore_unhandled(call.op, call.arg))
             tempore_sys.stdout.write("\n")
+            failed = True
             continue
         except tempore_Stuck:
-            return
+            tempore_sys.stdout.flush()
+            tempore_sys.exit(tempore_RUN_FAILURE)
         except tempore_RuntimeError as error:
             tempore_sys.stdout.flush()
             tempore_sys.stderr.write("Run-time error: %s\n" % error)
-            tempore_sys.exit(1)
+            tempore_sys.exit(tempore_RUN_FAILURE)
         except tempore_BoundViolation as violation:
             tempore_sys.stdout.flush()
             tempore_sys.stderr.write("Monitor error: %s\n" % violation)
-            tempore_sys.exit(1)
+            tempore_sys.exit(tempore_RUN_FAILURE)
         tempore_sys.stdout.write("=== Run %d ===\n" % number)
         tempore_sys.stdout.write(tempore_returned(value))
         tempore_sys.stdout.write("\n")
+    if failed:
+        tempore_sys.stdout.flush()
+        tempore_sys.exit(tempore_RUN_FAILURE)
 
 
 def tempore_elapse(seconds: tempore_Seconds) -> None:

@@ -632,7 +632,10 @@ simulation of `steps` reads the accelerometer readings of a recording.
 ## Host simulation
 
 Under `--host-simulate` the tasks run against host models of the devices and
-of the physical world, in simulated time, and the log is printed.
+of the physical world, in simulated time, and the log is printed. The exit
+code is 3 if the tasks have halted, by a monitor or a run-time error, and 0
+otherwise; without `--device`, a run-time error of the `run` commands ends
+the program with exit code 3.
 
 ## Examples
 

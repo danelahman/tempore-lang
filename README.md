@@ -88,6 +88,12 @@ kept):
 loads the listed `.tpe` files, typechecks them, runs every `run` command in
 them, and prints each `run` result with the final resource state.
 
+The exit code is 0 on success; 1 for a rejected program or another error; 2
+for invalid options or an exhausted stack; and 3 when the program is accepted but a run fails: it
+stops at an operation call without a handler or a default implementation, or
+at a run-time error such as a division by zero. The other runs are still
+executed after an unhandled operation call.
+
 Command-line options:
 
 - `--grades <grades>` selects the [grading monoid](#grading-monoids) (default

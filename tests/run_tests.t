@@ -8485,3 +8485,16 @@ single-dash form of the help option is not accepted.
     --typecheck-only  Typecheck the files without running them
     --upload          Build the project written with --device with PlatformIO and upload it to the board, passing its output through and exiting with its exit code
   [2]
+
+The exit code of an accepted program a run of which fails is 3: for a run
+that ends at an operation call without a handler or a default implementation,
+the runs after it executed, and for a run-time error. A typing error keeps
+the exit code 1.
+
+  $ ../tempore unhandled_continue.tpe > /dev/null
+  [3]
+  $ ../tempore int_division_by_zero.tpe
+  Run-time error: Division by zero
+  [3]
+  $ ../tempore --typecheck-only unhandled_continue.tpe
+  $ ../tempore ../examples/basics/nat.tpe > /dev/null

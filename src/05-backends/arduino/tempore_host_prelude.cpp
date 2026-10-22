@@ -2,10 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Reports the run-time error message and ends the program with exit code 3,
+// that of a failed run.
 void tempore_fault(const char *message) {
   fflush(stdout);
   fprintf(stderr, "Run-time error: %s\n", message);
-  exit(1);
+  exit(3);
 }
 
 void tempore_delay(uint32_t, uint32_t) {}

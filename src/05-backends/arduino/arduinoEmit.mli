@@ -101,6 +101,6 @@ val compile :
     it, without the final state of its resources: a header [=== Run n ===], the
     line [return v] and an empty line. It also defines [tempore_fault], which
     reports a run-time error on the standard error as the interpreter reports it
-    and ends the program with exit code 1, a [tempore_delay] that returns at
-    once, and functions for the operations performed outside all handlers that
-    report a run-time error. *)
+    and ends the program with exit code 3, that of a failed run, a
+    [tempore_delay] that returns at once, and functions for the operations
+    performed outside all handlers that report a run-time error. *)

@@ -76,9 +76,13 @@ void wait_resumed(std::unique_lock<std::mutex> &lock, Task *task) {
   task->resumed = false;
 }
 
+// The exit code of a simulation in which the tasks have halted.
+const int halted_exit_code = 3;
+
 // Prints the end of the simulation at the time now, or at duration if later,
 // lets the world finish, logs the profile if TEMPORE_PROFILE is defined and
-// ends the program.
+// ends the program, with the exit code halted_exit_code if the tasks have
+// halted and 0 otherwise.
 [[noreturn]] void finish(int64_t duration) {
   if (now < duration) now = duration;
   tempore_log_end();
@@ -89,7 +93,7 @@ void wait_resumed(std::unique_lock<std::mutex> &lock, Task *task) {
   tempore_profile_report();
 #endif
   fflush(stdout);
-  _Exit(0);
+  _Exit(tempore_halted() ? halted_exit_code : 0);
 }
 
 // Blocks the calling task until the time wake, or for ever if stop. Outside
