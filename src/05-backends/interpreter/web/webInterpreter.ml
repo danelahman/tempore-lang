@@ -26,7 +26,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     in
     let print_var_and_expr (variable, (rho, expr)) ppf =
       let surround ppf = if is_active variable then active_mark ppf in
-      Format.fprintf ppf "%t@[<hv 2>%t%t%t ↦@ %t@ # %t@]%t" surround label_mark
+      Format.fprintf ppf "%t@[<hv 2>%t%t%t ↦@ %t@ ! %t@]%t" surround label_mark
         (Ast.Variable.print variable)
         label_mark
         (PrettyPrint.print_expression ~abbreviated:true (module GS.R) expr)

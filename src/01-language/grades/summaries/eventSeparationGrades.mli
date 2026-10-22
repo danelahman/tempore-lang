@@ -51,7 +51,7 @@
     {2 Literals}
 
     - [{X}] is the occurrence of the operation [X], the grade it declares, e.g.
-      [operation Beat : unit ~> unit # {Beat} within [0.1, 0.5]]; a brace
+      [operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]]; a brace
       literal is a sequence [;] and a union [|] of operation names, delays and
       intervals of delays, e.g. [{Beat; 2 | Beat; [1, 3]}].
     - A number [q] or an interval, e.g. [[1, 2]], [(1/2, 3\]] or the open pair

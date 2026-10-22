@@ -107,13 +107,13 @@ let rec map_arrows f { domains; codomain; grade } =
   { domains; codomain; grade }
 
 (** [print_arrows arrows ppf] prints [arrows], the domains followed by [→] and
-    the effect grade preceded by [#]. *)
+    the effect grade preceded by [!]. *)
 let rec print_arrows { domains; codomain; grade } ppf =
   List.iter (fun domain -> Format.fprintf ppf "%t → " domain) domains;
   (match codomain with
   | Plain part -> part ppf
   | Parenthesised arrows -> Format.fprintf ppf "(%t)" (print_arrows arrows));
-  Option.iter (fun grade -> Format.fprintf ppf " # %t" grade) grade
+  Option.iter (fun grade -> Format.fprintf ppf " ! %t" grade) grade
 
 (** [parenthesised_codomain grades eps ty] is whether the codomain [ty] of an
     arrow of effect grade [eps] is printed in parentheses: where it is a handler
@@ -148,7 +148,7 @@ let rec print_ty ?max_level grades ty_print_param ty ppf =
   | TyHandler (CompTy (ty1, eps1), CompTy (ty2, eps2)) ->
       let computation ty eps ppf =
         if grades.pure eps then aux ~max_level:3 ty ppf
-        else Format.fprintf ppf "%t # %t" (aux ~max_level:3 ty) (grades.eps eps)
+        else Format.fprintf ppf "%t ! %t" (aux ~max_level:3 ty) (grades.eps eps)
       in
       print ~at_level:4 "%t ⇒ %t" (computation ty1 eps1) (computation ty2 eps2)
 
@@ -332,7 +332,7 @@ let print_vars_and_exprs resource_grade print_var_and_expr
 
 let print_interpreter_state resource_grade ctx ppf =
   let print_var_and_expr (variable, (rho, expr)) ppf =
-    Format.fprintf ppf "@[<hv 2>%t ↦@ %t@ # %t@]" (Variable.print variable)
+    Format.fprintf ppf "@[<hv 2>%t ↦@ %t@ ! %t@]" (Variable.print variable)
       (print_expression ~abbreviated:true resource_grade expr)
       (print_rho resource_grade rho)
   in

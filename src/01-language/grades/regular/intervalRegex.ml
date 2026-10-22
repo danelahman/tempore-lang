@@ -130,7 +130,7 @@ module Printed = struct
     | Empty -> { text = "_ & ~_"; level = 1 }
     | Eps -> atom "0"
     | Ops s -> ops s
-    | Length (s, text) when Ops.is_empty s -> atom ("!" ^ text)
+    | Length (s, text) when Ops.is_empty s -> atom ("idle " ^ text)
     | Length (Ops.Except [], text) -> atom text
     | Length (s, text) ->
         let set =
@@ -502,13 +502,13 @@ struct
     match side with
     | Upper ->
         Printf.sprintf
-          "upper bounds have letters bounded above only, such as `≤3` or \
-           `!≤3`, not `%s`"
+          "upper bounds have letters bounded above only, such as `≤3` or `idle \
+           ≤3`, not `%s`"
           letter
     | Lower ->
         Printf.sprintf
-          "lower bounds have letters bounded below only, such as `≥3` or \
-           `!≥3`, not `%s`"
+          "lower bounds have letters bounded below only, such as `≥3` or `idle \
+           ≥3`, not `%s`"
           letter
 
   (* [ops_of r] is the operation set of the expression [r] of operation sets
@@ -587,7 +587,7 @@ struct
       let q = number q in
       if Rational.sign q = 0 then eps else stretch set (Finite (q, true))
     in
-    let prefix set = if Ops.is_empty set then "!" else "" in
+    let prefix set = if Ops.is_empty set then "idle " else "" in
     let rec go set r =
       match ops_of r with
       | Some s -> (
@@ -625,8 +625,8 @@ struct
               | Upper, _ -> fail "%s" (wrong_side (prefix set ^ show_above b)))
           | Strict Any ->
               fail
-                "`!_` is no letter of these grades: `_` is one operation, \
-                 `!≥0` a wait of any length, and `(≥0 & S)` a stretch with \
+                "`idle _` is no letter of these grades: `_` is one operation, \
+                 `idle ≥0` a wait of any length, and `(≥0 & S)` a stretch with \
                  operations of S"
           | Strict a when has_compl a -> interval_complement ()
           | Strict a -> go Ops.empty a

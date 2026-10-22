@@ -631,7 +631,7 @@ let scheme_doc (d : Model.definition) =
     let result =
       match grade with
       | None -> codomain
-      | Some grade -> Cat [ codomain; ty (" # " ^ grade) ]
+      | Some grade -> Cat [ codomain; ty (" ! " ^ grade) ]
     in
     match domains with
     | [] -> result

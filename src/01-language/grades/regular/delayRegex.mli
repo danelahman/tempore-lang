@@ -23,9 +23,9 @@
 val automaton : GradeLiteral.regex -> DelayAutomaton.t
 (** [automaton r] is the language [r] denotes, built by recursion on [r] with
     the constructions of {!DelayAutomaton}, a bounded repetition unrolled
-    ({!GradeLiteral.unrolled}); a strict delay [!r] is rejected. A subexpression
-    without names, [_] or complements denotes single delays only, and its
-    automaton is the single transition on its {!delays}. *)
+    ({!GradeLiteral.unrolled}); a strict delay [idle r] is rejected. A
+    subexpression without names, [_] or complements denotes single delays only,
+    and its automaton is the single transition on its {!delays}. *)
 
 val delays : GradeLiteral.regex -> DelaySet.t
 (** [delays r] is the set [ν(r)] of the delays that [r] denotes, computed by

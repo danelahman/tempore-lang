@@ -71,7 +71,7 @@ module type WORLD = sig
 
   val literal_of_word : word -> lit
   (** [literal_of_word w] is the literal of the single trace [w], its strict
-      delays written [!d]. *)
+      delays written [idle d]. *)
 
   val single : lit -> bool
   (** [single lit] is whether the literal [lit] of an interval abbreviates the
