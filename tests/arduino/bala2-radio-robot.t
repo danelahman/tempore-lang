@@ -55,9 +55,8 @@ for 1 s, Drive (100, 0) from 2.5 s, Stop at 3.5 s, Beat, Start again for
 again from 10 s. The robot starts the link before its first step and its
 first report, is calibrated at rest, held upright, beeps at 2 kHz when it
 waits for Start, is started once a poll finds Start, and stopped at the
-Stop; it then falls, so that the at-rest check
-fails and it shows "Hold still", until the user stands it up at 3.8 s and
-holds it still; it is calibrated anew, beeps, the session before having
+Stop; it then falls, so that the at-rest check fails and it shows "Hold
+still: check", until the user stands it up at 3.8 s and holds it still; it is calibrated anew, beeps, the session before having
 received Start, is started again and balances;
 it shows "Link lost" and beeps at 880 Hz about 2 s after the last message,
 still balancing, and "Balancing" again when messages return. Its status, sent at
@@ -86,18 +85,18 @@ library, are not shown:
   [3538.166 ms] Display at (0, 102): Calibrating
   [3538.266 ms] ESP-NOW: status, phase 2.000
   [4056.969 ms] ESP-NOW: status, phase 3.000
-  [4060.729 ms] Display at (0, 102): Hold still
-  [4564.509 ms] Display at (0, 102): Calibrating
-  [5083.312 ms] ESP-NOW: status, phase 2.000
-  [5087.112 ms] Display at (0, 102): Hold upright
-  [6091.112 ms] Display at (0, 102): Waiting for Start
-  [6091.262 ms] Speaker: 2000 Hz for 80 ms
-  [6091.362 ms] ESP-NOW: status, phase 0.000
-  [6895.202 ms] Display at (0, 102): Balancing
-  [6895.302 ms] ESP-NOW: status, phase 1.000
-  [9658.342 ms] Display at (0, 102): Link lost
-  [9658.492 ms] Speaker: 880 Hz for 200 ms
-  [10015.032 ms] Display at (0, 102): Balancing
+  [4060.869 ms] Display at (0, 102): Hold still: check
+  [4564.649 ms] Display at (0, 102): Calibrating
+  [5083.452 ms] ESP-NOW: status, phase 2.000
+  [5087.252 ms] Display at (0, 102): Hold upright
+  [6091.252 ms] Display at (0, 102): Waiting for Start
+  [6091.402 ms] Speaker: 2000 Hz for 80 ms
+  [6091.502 ms] ESP-NOW: status, phase 0.000
+  [6895.342 ms] Display at (0, 102): Balancing
+  [6895.442 ms] ESP-NOW: status, phase 1.000
+  [9658.482 ms] Display at (0, 102): Link lost
+  [9658.632 ms] Speaker: 880 Hz for 200 ms
+  [10015.172 ms] Display at (0, 102): Balancing
   [12000.000 ms] End of the simulation
   [12000.000 ms] Plant: released at 6895.0 ms
 
@@ -105,31 +104,35 @@ Held askew at 0.5 rad (28.6 degrees) from the start, the robot is
 calibrated, since it is held still, but not started at the Start of 1.5 s: the
 published tilt lies beyond the 10 degrees of upright_limit, and the session
 shows "Not upright" and calibrates anew; the body, released at 2 s, falls
-during that calibration, which therefore shows "Hold still"; the motors are
-not driven:
+during that calibration, which therefore shows "Hold still: check"; the
+motors are not driven. This simulation and the next are built with the
+spread of CheckAtRest of the device builds, TEMPORE_IMU_REST_SPREAD=25:
 
   $ cd _arduino/projects/robot
-  $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_TILT=0.5 -pthread -I host -I src src/*.cpp host/*.cpp -o askew
+  $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_TILT=0.5 -DTEMPORE_IMU_REST_SPREAD=25 -pthread -I host -I src src/*.cpp host/*.cpp -o askew
   $ ./askew 3000000 | grep 'Display at (0, 102)\|motors were never'
   [100.793 ms] Display at (0, 102): Calibrating
   [623.396 ms] Display at (0, 102): Hold upright
   [1627.396 ms] Display at (0, 102): Waiting for Start
   [2031.426 ms] Display at (0, 102): Not upright
   [2035.206 ms] Display at (0, 102): Calibrating
-  [2557.769 ms] Display at (0, 102): Hold still
+  [2557.909 ms] Display at (0, 102): Hold still: check
   [3000.000 ms] Plant: the motors were never driven
 
 Held and turned steadily by 0.1 rad/s (5.7 degrees per second), the robot
 is never calibrated: the rate is constant, so that the spread of the rates
 and CheckAtRest admit it, but the direction of gravity turns by more than
-the 2 degrees of rest_cosine over the samples:
+the 2 degrees of rest_angle over the samples, which the display shows with
+the angle in degrees:
 
-  $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_HELD_RATE=0.1 -pthread -I host -I src src/*.cpp host/*.cpp -o turned
-  $ ./turned 1900000 | grep 'Display at (0, 102)\|motors were never'
+  $ c++ -std=c++17 -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DPLANT_HELD_RATE=0.1 -DTEMPORE_IMU_REST_SPREAD=25 -pthread -I host -I src src/*.cpp host/*.cpp -o turned
+  $ ./turned 1900000 | grep 'Display at (\(0\|204\), 102)\|motors were never'
   [100.793 ms] Display at (0, 102): Calibrating
-  [623.356 ms] Display at (0, 102): Hold still
-  [1127.136 ms] Display at (0, 102): Calibrating
-  [1649.779 ms] Display at (0, 102): Hold still
+  [623.476 ms] Display at (0, 102): Hold still: turn
+  [625.464 ms] Display at (204, 102): 2.8
+  [1129.244 ms] Display at (0, 102): Calibrating
+  [1651.927 ms] Display at (0, 102): Hold still: turn
+  [1653.915 ms] Display at (204, 102): 2.8
   [1900.000 ms] Plant: the motors were never driven
   $ cd ../../..
 

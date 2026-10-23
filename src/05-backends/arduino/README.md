@@ -95,7 +95,9 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
     unchanged;
   - `CheckAtRest`, a check of plausibility, not a self-test: whether the unit
     is at rest, judged by the variation of four readings, so that a constant
-    bias of the gyroscope passes;
+    bias of the gyroscope passes; the spread of the angular rate about each
+    axis is to lie below the build flag `TEMPORE_IMU_REST_SPREAD`, in degrees
+    per second (default 5);
   - under the rigid grades of timed operations, `read_imu_boxed`, one reading
     in one box, `latest_imu`, of grade `{≤2 & ~ReadImu}`, usable within 2 ms
     and before the next `ReadImu`;
@@ -497,7 +499,7 @@ recordings from the serial output:
     EXAMPLE_RECORD_FILTER = examples/arduino/bala2/recordings.awk
 
 `EXAMPLE_BUILD_FLAGS` gives the build flags of every device build of the
-example. `EXAMPLE_LINK` and `EXAMPLE_LINK_ROLE` name the encrypted ESP-NOW
+example, as `-DTEMPORE_IMU_REST_SPREAD=25` for `bala2-radio-robot`. `EXAMPLE_LINK` and `EXAMPLE_LINK_ROLE` name the encrypted ESP-NOW
 link of its device builds and the role of its board in it, as
 `bala2-radio-robot` and `bala2-radio-controller` do
 ([Pairing the robot and the controller](#pairing-the-robot-and-the-controller)).
