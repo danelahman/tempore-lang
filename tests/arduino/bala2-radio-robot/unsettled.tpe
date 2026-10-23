@@ -8,4 +8,4 @@ let measure_unsettled () =
   perform StopBalancing ();
   let samples = sample () in
   unbox checked as at_rest in
-  if at_rest && still samples then bias_of samples else 0.0
+  match verdict at_rest samples with Rest -> bias_of samples | _ -> 0.0

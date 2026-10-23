@@ -198,20 +198,25 @@ let start () : state =
    that the samples omit about one reading in two. The samples are judged
    at rest by the variation of the readings, as CheckAtRest judges its four:
    the magnitude of each acceleration between 0.9 and 1.1 g, the greatest
-   less the least rate about each axis below rest_spread, 5 degrees per
-   second, and the angle between the first and the last acceleration below
-   2 degrees, whose cosine is rest_cosine; at least rest_readings of the
-   samples are to be distinct readings, which excludes a window mostly
-   before the first reading of the step. A constant bias passes; a hand that
-   holds, turns or moves the robot does not. The spread lies well above the
-   noise of the gyroscope, about 0.1 degrees per second rms on the MPU6886
-   and a spread of about 1 degree per second in four readings at rest on
-   the device, and the angle above that between two accelerations at rest,
-   below 1 degree; over the samples, the angle detects a steady turn faster
-   than about 4 degrees per second, which the spread does not. *)
+   less the least rate about each axis below rest_spread, 25 degrees per
+   second, and the angle between the first and the last acceleration at
+   most rest_angle, 2 degrees; at least rest_readings of the samples are to
+   be distinct readings, which excludes a window mostly before the first
+   reading of the step. The device builds give CheckAtRest the same spread
+   by the build flag TEMPORE_IMU_REST_SPREAD of example.mk. A constant bias
+   passes, and so does the tremor of a hand that holds the robot still, a
+   spread of about 8 to 20 degrees per second, whose mean is about zero;
+   the angle bounds the net turn over the samples, hence the error of the
+   mean, and a hand that turns or moves the robot does not pass. The spread
+   lies well above the noise of the gyroscope, about 0.1 degrees per second
+   rms on the MPU6886 and a spread of about 1 degree per second in four
+   readings at rest on the device, and the angle above that between two
+   accelerations at rest, below 1 degree; over the samples, the angle
+   detects a steady turn faster than about 4 degrees per second, which the
+   spread does not. *)
 
-let rest_spread = 5.0
-let rest_cosine = 0.99939083
+let rest_spread = 25.0
+let rest_angle = 2.0
 let rest_readings = 40
 
 (* The samples: the number of the last reading, the number of distinct
@@ -224,6 +229,15 @@ let lesser (a : float) (b : float) = if a < b then a else b
 let greater (a : float) (b : float) = if a > b then a else b
 let dot ((x1, y1, z1) : vector) ((x2, y2, z2) : vector) =
   (x1 *. x2) +. (y1 *. y2) +. (z1 *. z2)
+
+let cross ((x1, y1, z1) : vector) ((x2, y2, z2) : vector) : vector =
+  ((y1 *. z2) -. (z1 *. y2), (z1 *. x2) -. (x1 *. z2), (x1 *. y2) -. (y1 *. x2))
+
+(* The angle between two vectors, in degrees, as atan2 of the magnitude of
+   their cross product and their dot product; 0 if either is zero. *)
+let angle (a : vector) (b : vector) =
+  let c = cross a b in
+  imu_degrees *. atan2 (sqrt (dot c c), dot a b)
 
 let near_one_g (a : vector) =
   let square = dot a a in
@@ -262,15 +276,43 @@ let sample () : samples ! {(Reading; idle 10)*} =
   let zero = (0.0, 0.0, 0.0) in
   sampled 50 (0i, 0, 0.0, zero, zero, zero, zero, true)
 
-(* Whether the samples are at rest. *)
-let still
+(* The verdict of a measurement: Rest, at rest, or the first condition of
+   rest that it fails, in this order: Check, CheckAtRest found the robot not
+   at rest; Gravity, an acceleration lies outside 0.9 to 1.1 g; Few, fewer
+   than rest_readings distinct readings; Spin s, the greatest spread s of
+   the rates about an axis, in degrees per second, is not below
+   rest_spread; Turn t, the angle t between the first and the last
+   acceleration, in degrees, exceeds rest_angle. *)
+type verdict = Rest | Check | Gravity | Few | Spin of float | Turn of float
+
+(* The verdict of the check checked and the samples. *)
+let verdict (checked : bool)
     (((_, count, _, (lx, ly, lz), (gx, gy, gz), first, last, near) : samples))
-    =
-  near && count >= rest_readings
-  && gx -. lx < rest_spread
-  && gy -. ly < rest_spread
-  && gz -. lz < rest_spread
-  && dot first last >= rest_cosine *. sqrt (dot first first *. dot last last)
+    : verdict =
+  let spin = greater (gx -. lx) (greater (gy -. ly) (gz -. lz)) in
+  let turn = angle first last in
+  if not checked then Check
+  else if not near then Gravity
+  else if count < rest_readings then Few
+  else if spin >= rest_spread then Spin spin
+  else if turn > rest_angle then Turn turn
+  else Rest
+
+(* Shows the verdict: "At rest", or "Hold still" with the condition failed,
+   and the spread, in whole degrees per second, or the angle, in degrees
+   with one decimal, right of it. *)
+let show_verdict (v : verdict) : unit ! {ShowTextAt; (ShowNumberAt | 0)} =
+  match v with
+  | Rest -> perform ShowTextAt (0, 100, 2, "At rest")
+  | Check -> perform ShowTextAt (0, 100, 2, "Hold still: check")
+  | Gravity -> perform ShowTextAt (0, 100, 2, "Hold still: g")
+  | Few -> perform ShowTextAt (0, 100, 2, "Hold still: few")
+  | Spin s ->
+      perform ShowTextAt (0, 100, 2, "Hold still: spin");
+      perform ShowNumberAt (204, 100, 2, 0, s)
+  | Turn t ->
+      perform ShowTextAt (0, 100, 2, "Hold still: turn");
+      perform ShowNumberAt (204, 100, 2, 1, t)
 
 (* The mean rate about the x axis, 0 without readings. *)
 let bias_of ((_, count, sum, _, _, _, _, _) : samples) =
@@ -299,19 +341,20 @@ type calibrated =
    and waits alone, with no other operation, such as a StopBalancing or a
    Move, between the check and the samples; the box spans the 50 samples, which
    are judged in turn. If the robot is not at rest, the calibration reports
-   Unsettled, shows "Hold still" and is repeated after 500 ms in the phase
-   Unsettled; after n repetitions it ends with the last measurement.
-   CheckAtRest takes 17.95 to 33 ms, and a measurement 517.95 to 571.2 ms. *)
+   Unsettled, shows "Hold still" with the condition failed first, by
+   show_verdict, and is repeated after 500 ms in the phase Unsettled; after
+   n repetitions it ends with the last measurement. CheckAtRest takes 17.95
+   to 33 ms, and a measurement 517.95 to 571.2 ms. *)
 let rec measure (p : phase) (n : nat) : calibrated
     ! {(ReportStatus; CheckAtRest; (Reading; idle 10)*; ReportStatus;
-        ShowTextAt; idle 500; ShowTextAt)*;
+        ShowTextAt; (ShowNumberAt | 0); idle 500; ShowTextAt)*;
        ReportStatus; CheckAtRest; (Reading; idle 10)*} =
   report p;
   let rest = perform CheckAtRest () in
   box {(Reading; idle 10)*} rest as checked in
   let samples = sample () in
   unbox checked as checked_rest in
-  let at_rest = checked_rest && still samples in
+  let judged = verdict checked_rest samples in
   let bias = bias_of samples in
   match n with
   | 0 ->
@@ -319,23 +362,24 @@ let rec measure (p : phase) (n : nat) : calibrated
         (fun () ->
           box {LatestTilt; ([0, 1) & ~(ReceiveMessage | Move))}
             (Calibration bias))
-  | m + 1 ->
-      if at_rest then
-        box [{≥1000 & ~Move}, {≤600000 & ~Move}]
-          (fun () ->
-            box {LatestTilt; ([0, 1) & ~(ReceiveMessage | Move))}
-              (Calibration bias))
-      else (
-        report Unsettled;
-        perform ShowTextAt (0, 100, 2, "Hold still");
-        delay 500;
-        perform ShowTextAt (0, 100, 2, "Calibrating");
-        measure Unsettled m)
+  | m + 1 -> (
+      match judged with
+      | Rest ->
+          box [{≥1000 & ~Move}, {≤600000 & ~Move}]
+            (fun () ->
+              box {LatestTilt; ([0, 1) & ~(ReceiveMessage | Move))}
+                (Calibration bias))
+      | v ->
+          report Unsettled;
+          show_verdict v;
+          delay 500;
+          perform ShowTextAt (0, 100, 2, "Calibrating");
+          measure Unsettled m)
 
 let calibrate () : calibrated
     ! {StopBalancing; ShowTextAt;
        (ReportStatus; CheckAtRest; (Reading; idle 10)*; ReportStatus;
-        ShowTextAt; idle 500; ShowTextAt)*;
+        ShowTextAt; (ShowNumberAt | 0); idle 500; ShowTextAt)*;
        ReportStatus; CheckAtRest; (Reading; idle 10)*} =
   perform StopBalancing ();
   perform ShowTextAt (0, 100, 2, "Calibrating");
@@ -468,7 +512,7 @@ let rec drive (n : nat) (silent : nat) : unit
 
 (* Correctly accepted by the typechecker: a session calibrates the robot at
    rest, holds it upright for a second and waits for Start, reporting its
-   phase at least every 572 ms; it beeps before the wait if announce holds,
+   phase at least every 605 ms; it beeps before the wait if announce holds,
    that is, after the boot or after a session that received Start, and not
    after a wait for Start that ran out, so that a robot left idle is
    recalibrated silently. At Start it unboxes the calibration, at least a
@@ -483,7 +527,7 @@ let rec drive (n : nat) (silent : nat) : unit
 let rec session (n : nat) (announce : bool) : unit
     ! {(StopBalancing; ShowTextAt;
         (ReportStatus; CheckAtRest; (Reading; idle 10)*; ReportStatus;
-         ShowTextAt; idle 500; ShowTextAt)*;
+         ShowTextAt; (ShowNumberAt | 0); idle 500; ShowTextAt)*;
         ReportStatus; CheckAtRest; (Reading; idle 10)*;
         ReportStatus; ShowTextAt; idle 500; ReportStatus; idle 500; ShowTextAt;
         (Beep | 0); (ReceiveMessage; ReportStatus; idle 400)^[1, 500];

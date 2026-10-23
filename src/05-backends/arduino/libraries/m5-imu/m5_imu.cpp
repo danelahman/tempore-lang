@@ -29,7 +29,8 @@
 // with the normal bandwidth, and on a unit of the MPU6886 family by its
 // sample rate divider SMPLRT_DIV (0x19). CheckAtRest reads the unit four
 // times, the readings started 6 ms apart, and checks that it is at rest by
-// the variation of the readings.
+// the variation of the readings, the spread of the angular rate about each
+// axis below TEMPORE_IMU_REST_SPREAD degrees per second (default 5).
 //
 // Each reading of ReadImu is passed to m5_imu_observe, defined weakly here to
 // do nothing, which an application may define to record the readings.
@@ -227,9 +228,14 @@ static const int64_t m5_imu_check_interval_us = 6000;
 
 // The greatest spread, the greatest less the least reading, of the angular
 // rate about each axis over the readings of CheckAtRest, in degrees per
-// second, and the cosine of the greatest angle between the first and the
-// last direction of the acceleration, 2 degrees.
-static const float m5_imu_rest_spread = 5.0f;
+// second, set by the build flag TEMPORE_IMU_REST_SPREAD (default 5), and the
+// cosine of the greatest angle between the first and the last direction of
+// the acceleration, 2 degrees.
+#ifndef TEMPORE_IMU_REST_SPREAD
+#define TEMPORE_IMU_REST_SPREAD 5
+#endif
+
+static const float m5_imu_rest_spread = TEMPORE_IMU_REST_SPREAD;
 static const float m5_imu_rest_cosine = 0.99939083f;
 
 // Whether the unit is at rest in four readings started 6 ms apart: the

@@ -269,10 +269,10 @@ and ESP_NOW_KEY through shell variables, so that the command does not show
 the key; a build without an upload reads no port:
 
   $ make -s --no-print-directory -n arduino-bala2-radio-robot-build | grep tempore' ' | tr -s ' '
-  link=$(sh scripts/link.sh -t arduino-bala2-radio-controller-upload bala2-radio robot controller) && eval "$link" && PLATFORMIO_BUILD_FLAGS="-DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino robot --device examples/arduino/bala2-radio-robot/robot.device.json --monitor abort --build examples/arduino/bala2-radio-robot/robot.tpe
+  link=$(sh scripts/link.sh -t arduino-bala2-radio-controller-upload bala2-radio robot controller) && eval "$link" && PLATFORMIO_BUILD_FLAGS="-DTEMPORE_IMU_REST_SPREAD=25 -DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key" ./tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-arduino robot --device examples/arduino/bala2-radio-robot/robot.device.json --monitor abort --build examples/arduino/bala2-radio-robot/robot.tpe
   $ make -s --no-print-directory -n arduino-bala2-radio-robot-profile BRIGHTNESS=60 | grep -o '^link=[^&]*\|PLATFORMIO_BUILD_FLAGS="[^"]*"'
   link=$(sh scripts/link.sh -p /dev/cu.usbserial-02012C91 -t arduino-bala2-radio-controller-upload bala2-radio robot controller) 
-  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key"
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DTEMPORE_IMU_REST_SPREAD=25 -DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key"
   $ make -s --no-print-directory -n arduino-bala2-radio-controller-upload PORT_M5STACK_CORES3=/dev/ttyACM0 | grep -o '^link=[^&]*'
   link=$(sh scripts/link.sh -p /dev/ttyACM0 -t arduino-bala2-radio-robot-upload bala2-radio controller robot) 
 

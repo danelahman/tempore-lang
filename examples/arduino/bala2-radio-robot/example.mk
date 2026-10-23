@@ -8,3 +8,8 @@ EXAMPLE_SIMULATE = 12
 # the link are those of its link file, kept by scripts/link.sh.
 EXAMPLE_LINK = bala2-radio
 EXAMPLE_LINK_ROLE = robot
+
+# The spread of the angular rate admitted by CheckAtRest in its device
+# builds, 25 degrees per second, which admits the tremor of a hand that
+# holds the robot still.
+EXAMPLE_BUILD_FLAGS = -DTEMPORE_IMU_REST_SPREAD=25
