@@ -6065,6 +6065,44 @@ it names none:
   State: []
   
   ======================================================================
+  unbox_annotated_signature_reject.tpe
+  ======================================================================
+  File "unbox_annotated_signature_reject.tpe", lines 33-34, characters 2-49:
+  33 |   unbox r as reading in
+         ^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed with grade `{idle 101}` accumulated since it was bound, which is not below its box grade `{[0, 100] & ~Drive}`
+    File "unbox_annotated_signature_reject.tpe", line 31, characters 6-7:
+    31 |   let r = measure () in
+               ^
+    `r` is bound here
+    File "unbox_annotated_signature_reject.tpe", line 32, characters 2-11:
+    32 |   delay 101;
+           ^^^^^^^^^
+    grade `{idle 101}` accumulates here (delay)
+    File "unbox_annotated_signature_reject.tpe", line 31, characters 10-17:
+    31 |   let r = measure () in
+                   ^^^^^^^
+    the inequality goes through the type of `measure` here
+    Note: the resource inequality `{idle 101} <= {[0, 100] & ~Drive}` does not hold
+  
+  File "unbox_annotated_signature_reject.tpe", lines 39-40, characters 2-49:
+  39 |   unbox r as reading in
+         ^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed with grade `{idle 101}` accumulated since it was bound, which is not below its box grade `{[0, 100] & ~Drive}`
+    File "unbox_annotated_signature_reject.tpe", line 37, characters 6-7:
+    37 |   let r = measure_inferred () in
+               ^
+    `r` is bound here
+    File "unbox_annotated_signature_reject.tpe", line 38, characters 2-11:
+    38 |   delay 101;
+           ^^^^^^^^^
+    grade `{idle 101}` accumulates here (delay)
+    File "unbox_annotated_signature_reject.tpe", line 37, characters 10-26:
+    37 |   let r = measure_inferred () in
+                   ^^^^^^^^^^^^^^^^
+    the inequality goes through the type of `measure_inferred` here
+    Note: the resource inequality `{idle 101} <= {[0, 100] & ~Drive}` does not hold
+  ======================================================================
   unbox_annotation.tpe
   ======================================================================
   === Run 1 ===

@@ -1,0 +1,40 @@
+(* Run this test with the 'regex-timed-rigid-interval-rational-symbolic'
+   grading monoid, e.g.
+
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
+       tests/unbox_annotated_signature_reject.tpe
+
+   Rejected under the 'regex-timed-rigid-interval-rational-symbolic' grading
+   monoid: a box returned by a function is unboxed after its box grade has
+   lapsed; the failing unbox is reported with its accumulated grade both when
+   the function's type and effect are annotated and when only its type is. *)
+
+operation Read : unit ~> float ! {Read} within (0.0,0.1]
+operation Drive : float ~> unit ! {Drive} within (0.0,0.5]
+
+default Read () = delay 0.05; 1.0
+default Drive _ = delay 0.2
+
+noneternal type reading = Reading of float
+
+let measure () : [{[0, 100] & ~Drive}]reading ! {Read; idle [1, 1]} =
+  let x = perform Read () in
+  delay 1;
+  box {[0, 100] & ~Drive} (Reading x)
+
+let measure_inferred () : [{[0, 100] & ~Drive}]reading =
+  let x = perform Read () in
+  delay 1;
+  box {[0, 100] & ~Drive} (Reading x)
+
+let stale () =
+  let r = measure () in
+  delay 101;
+  unbox r as reading in
+  match reading with Reading x -> perform Drive x
+
+let stale_inferred () =
+  let r = measure_inferred () in
+  delay 101;
+  unbox r as reading in
+  match reading with Reading x -> perform Drive x
