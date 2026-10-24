@@ -56,7 +56,6 @@ let h'' =
    80 · eps, which still meets its box grade 71, since more grade only helps. *)
 let h_twice =
   handler
-  | x -> x
   | Get () k ->
       delay 80;
       let y = continue k with 42 in

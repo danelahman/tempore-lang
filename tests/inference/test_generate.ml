@@ -98,6 +98,7 @@ let malformed =
     "delay_reject_expression.tpe";
     "delay_reject_fraction.tpe";
     "delay_reject_variable.tpe";
+    "handler_return_reject_not_first.tpe";
     "regular_reject_bounds.tpe";
     "regex_timed_interval_ticks_reject.tpe";
     "regex_timed_interval_no_common_run_reject.tpe";

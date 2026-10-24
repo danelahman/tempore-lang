@@ -1396,6 +1396,35 @@ it names none:
     grade `(Low, (Board, Low))` accumulates here (operation `Post`)
     Note: the resource inequality `(Low, (Board, Low)) <= (Low, (Audit, Low))` does not hold
   ======================================================================
+  handler_return_omitted.tpe
+  ======================================================================
+  === Run 1 ===
+  return 15
+  State: [
+    { resource_1 ↦ <fun> ! 0 }
+  ]
+  
+  === Run 2 ===
+  return 15
+  State: [
+    { resource_1 ↦ <fun> ! 0 }
+  ]
+  
+  ======================================================================
+  handler_return_reject_not_first.tpe
+  ======================================================================
+  File "handler_return_reject_not_first.tpe", line 9, characters 4-5:
+  9 |   | x -> x
+          ^
+  Syntax error: Only the first case of a handler may be a return case
+  ======================================================================
+  handler_return_variant.tpe
+  ======================================================================
+  === Run 1 ===
+  return 6
+  State: []
+  
+  ======================================================================
   int_division_by_zero.tpe
   ======================================================================
   Run-time error: Division by zero

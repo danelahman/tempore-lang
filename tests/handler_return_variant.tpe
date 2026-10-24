@@ -1,0 +1,10 @@
+(* Correctly accepted by the typechecker: a case of a constructor applied to one
+   pattern is a return case, not an operation case. *)
+
+type stamp = Stamp of nat
+
+let h =
+  handler
+  | Stamp n -> n + 1
+
+run handle return (Stamp 5) with h

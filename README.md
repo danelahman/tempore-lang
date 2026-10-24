@@ -1415,6 +1415,7 @@ handle e with
   | Op p k -> operation-case
 ```
 
+The return case comes first and may be omitted, in which case it is `x -> x`.
 An operation case receives the argument `p` and the continuation `k`, resumed
 with `continue k with v`. Unhandled operations are forwarded. The continuation
 is a resource boxed with the operation's grade, resumed only once the case has

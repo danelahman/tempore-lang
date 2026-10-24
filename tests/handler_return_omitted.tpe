@@ -1,0 +1,16 @@
+(* Correctly accepted by the typechecker: a handler without a return case has
+   the return case `x -> x`, so both runs return 2 * 7 + 1. *)
+
+operation Op : nat ~> nat ! 0
+
+let h_implicit =
+  handler
+  | Op p k -> continue k with (2 * p)
+
+let h_explicit =
+  handler
+  | x -> x
+  | Op p k -> continue k with (2 * p)
+
+run handle (let v = perform Op 7 in return (v + 1)) with h_implicit
+run handle (let v = perform Op 7 in return (v + 1)) with h_explicit

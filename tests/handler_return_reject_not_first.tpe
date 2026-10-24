@@ -1,0 +1,11 @@
+(* Correctly rejected by the parser: the return case of a handler is its first
+   case. *)
+
+operation Op : nat ~> nat ! 0
+
+let h =
+  handler
+  | Op p k -> continue k with p
+  | x -> x
+
+run handle perform Op 1 with h

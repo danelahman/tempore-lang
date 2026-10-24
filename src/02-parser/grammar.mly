@@ -15,6 +15,23 @@
       (fun p t -> { it = lambda (p, t); at = Location.merge p.at t.at })
       ps t
 
+  (* [handler ~loc cases] is the handler of the cases [cases]. Its return case
+     is the first case if that is one, and [x -> x] at [loc] otherwise; a
+     return case elsewhere is a syntax error. *)
+  let handler ~loc cases =
+    let ret, ops =
+      match cases with
+      | Either.Left ret :: cases -> (ret, cases)
+      | cases -> (({ it = PVar "x"; at = loc }, { it = Var "x"; at = loc }), cases)
+    in
+    let op_case = function
+      | Either.Right op_case -> op_case
+      | Either.Left (p, _) ->
+        Error.syntax ~loc:p.at
+          "Only the first case of a handler may be a return case"
+    in
+    Handler (ret, List.map op_case ops)
+
   (* The hint naming the grades [names]. *)
   let suggestion names =
     let quote name = "`" ^ name ^ "`" in
@@ -358,10 +375,8 @@ plain_term:
     { GenUnbox (e) }
   | PERFORM op = mark_position(UNAME) e = comma_term
     { Perform (op, e) }
-  | HANDLER BAR? ret_case = case %prec below_BAR
-    { Handler (ret_case, []) }
-  | HANDLER BAR? ret_case = case op_cases = bar_cases0(op_case)
-    { Handler (ret_case, op_cases) }
+  | HANDLER cs = cases(handler_case)
+    { handler ~loc:(location $loc) cs }
   | HANDLE c = term WITH h = term %prec below_AS
     { Handle (c, h) }
   | CONTINUE k = term WITH e = term %prec below_AS
@@ -473,11 +488,14 @@ case:
   | p = pattern ARROW t = term
     { (p, t) }
 
-(* An operation case [Op p k -> t], its argument and continuation patterns
-   simple, as the arguments of a constructor are. *)
-op_case:
-  | op = UNAME p = simple_pattern k = simple_pattern ARROW t = term
-    { (op, ({it= PTuple [p; k]; at= location $loc}, t)) }
+(* A case of a handler: an operation case [Op p k -> t], its argument and
+   continuation patterns simple, as the arguments of a constructor are, or a
+   return case [p -> t]. *)
+handler_case:
+  | op = mark_position(UNAME) p = simple_pattern k = simple_pattern ARROW t = term
+    { Either.Right (op.it, ({it= PTuple [p; k]; at= location $loc}, t)) }
+  | c = case
+    { Either.Left c }
 
 (* Parameters, an optional annotation of the result by a type of [TY], and the
    body after [SEP]: the parameters, and the body with its annotation. After
@@ -663,12 +681,6 @@ cases0(case):
   | %prec below_BAR
     { [] }
   | cs = cases(case)
-    { cs }
-
-bar_cases0(case):
-  | BAR
-    { [] }
-  | BAR cs = case_list(case)
     { cs }
 
 cases(case):
