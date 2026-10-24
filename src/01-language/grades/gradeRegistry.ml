@@ -533,7 +533,7 @@ let entries =
         end) in
         (module V.SecurityLevels : Grade.S))
       (module LevelGrades.SecurityLevels)
-      security "Levels"
+      security "Security levels"
       "A security lattice, Low < High unless the program declares its own; a \
        box is out of reach once a higher level has been touched.";
     entry

@@ -99,7 +99,7 @@ Regular expressions of timed operations, rigid | Upper bounds (rational, symboli
 Regular expressions of timed operations, rigid | Intervals (rational, symbolic) | regex-timed-rigid-interval-rational-symbolic | regular_timed_rigid/intervals_rational.tpe | A reaction window in milliseconds demanding at least three polls and allowing nothing but polls at most 2.5 milliseconds apart.
 
 group | Security levels | Security | Levels touched, alone or with time bounds and outputs.
-Security levels | Levels | security-levels | levels/security.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
+Security levels | Security levels | security-levels | levels/security.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
 Security levels | Embargoes | time-lower-bound-levels | levels/time_lower.tpe | A box paired with a time lower bound and a level: an embargo with a taint check.
 Security levels | Expiring capabilities | time-upper-bound-levels | levels/time_upper.tpe | A box paired with a time upper bound and a level: a capability that expires and can be revoked by a taint.
 Security levels | Flow-sensitive outputs | flow-levels | levels/flow.tpe | A report whose public post must come before the vault is read, each output graded by the level touched before it.

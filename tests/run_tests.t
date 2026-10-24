@@ -8576,7 +8576,7 @@ single-dash form of the help option is not accepted.
           regex-timed-rigid-interval-rational-symbolic    Intervals (rational, symbolic)
               expressions with interval letters; inclusion by partial derivatives with a stretch reader, breadth-first
         Security levels:
-          security-levels                                 Levels
+          security-levels                                 Security levels
           time-lower-bound-levels                         Embargoes
           time-upper-bound-levels                         Expiring capabilities
           flow-levels                                     Flow-sensitive outputs
