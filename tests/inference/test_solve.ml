@@ -139,6 +139,7 @@ let expected_rejections =
     ("tests/invalid_match_type.tpe", [ 4 ]);
     ("tests/flow_levels_reject.tpe", [ 12; 17; 22; 30 ]);
     ("tests/iterative_unbox.tpe", [ 4 ]);
+    ("tests/unbox_annotated_signature_reject.tpe", [ 30; 36 ]);
     ("tests/unbox_annotation_reject.tpe", [ 4 ]);
     ("tests/unbox_nested_reject_lower.tpe", [ 10; 19 ]);
     ("tests/unbox_nested_reject_upper.tpe", [ 10; 19 ]);

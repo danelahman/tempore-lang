@@ -347,14 +347,26 @@ module Make (C : Inference.Constraint.S) = struct
         | [] -> ((o.lhs, o.rhs), [])
         | rs -> ((lhs, rhs), rs))
 
+  (* Whether two reasons are atoms of the qualifier of one instance of a
+     scheme: of the same variable at the same use. *)
+  let same_instance (r : C.reason) (r' : C.reason) =
+    match (r.why, r'.why) with
+    | Reason.Instance_of { var; _ }, Reason.Instance_of { var = var'; _ } ->
+        Location.equal r.at r'.at && Ast.Variable.equal var var'
+    | _ -> false
+
   (* The hypotheses an ordering of reason [reason] was bounded by, transitively
      through the unknowns of its left side ([`Below]) or of its right side
-     ([`Above]), the farthest first. *)
+     ([`Above]), the farthest first, up to four links away. A run of
+     hypotheses of one instance of a scheme counts as one link. *)
   let bounds sort hyps (o : ('e, C.reason) Inference.GradeNormal.ordering)
       direction =
-    let rec go depth frontier seen =
+    let rec go depth (o : ('e, C.reason) Inference.GradeNormal.ordering) seen =
       if depth = 0 then []
       else
+        let frontier =
+          match direction with `Below -> o.lhs | `Above -> o.rhs
+        in
         let links =
           List.filter
             (fun (h : ('e, C.reason) Inference.GradeNormal.ordering) ->
@@ -367,14 +379,11 @@ module Make (C : Inference.Constraint.S) = struct
         in
         List.concat_map
           (fun (h : ('e, C.reason) Inference.GradeNormal.ordering) ->
-            let next =
-              match direction with `Below -> h.lhs | `Above -> h.rhs
-            in
-            go (depth - 1) next (links @ seen) @ [ h.info ])
+            let link = if same_instance h.info o.info then 0 else 1 in
+            go (depth - link) h (links @ seen) @ [ h.info ])
           links
     in
-    let start = match direction with `Below -> o.lhs | `Above -> o.rhs in
-    go 4 start [ o ]
+    go 4 o [ o ]
 
   (* The reasons of an ordering refuted in the search for a closed instance,
      completed by those of the hypotheses that gave its unknowns their
