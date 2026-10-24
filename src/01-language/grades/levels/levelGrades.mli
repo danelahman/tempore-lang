@@ -1,11 +1,13 @@
-(** The security-level grades, their products with the time grades, and the
-    flow-sensitive levels.
+(** The security-level and taint grades, their products with the time grades,
+    and the flow-sensitive levels.
 
     The level of a computation is the highest level it touches; a box at level
     [ℓ] may be unboxed only while the level has not risen above [ℓ] since it was
     boxed. Delays touch no level. *)
 
-(** The two security levels, [Low < High], written [Low] and [High]. *)
+(** The two levels of a two-point lattice, [Low < High]: the security levels,
+    written [Low] and [High], or the taint levels, written [Untainted] and
+    [Tainted]. *)
 type level = Low | High
 
 module WrittenAt : GradeConstructions.SEMILATTICE with type t = level option
@@ -80,3 +82,17 @@ module TimeUpperBoundLevels :
       at the witness of the level and one sink of the rigid. *)
 module FlowLevels :
   Grade.S with type t = level * Outputs.t and type Delay.t = Delay.Rational.t
+
+(** The two-point lattice [Untainted < Tainted] as a grade, ["taint"] (see
+    {!GradeConstructions.OfLattice}): [Tainted] is the level of a computation
+    that may have processed untrusted input, and [⊤] is [Tainted]. It is
+    {!SecurityLevels} with the levels named [Untainted] and [Tainted]. *)
+module Taint : Grade.S with type t = level and type Delay.t = Delay.Rational.t
+
+(** The product of [time-upper-bound] and [taint], ["time-upper-bound-taint"]:
+    [(n, ℓ)] is "at most [n] time steps, touching nothing above [ℓ]", an
+    expiring capability revoked by untrusted input. *)
+module TimeUpperBoundTaint :
+  Grade.S
+    with type t = TimeGrades.UpperBound.t * level
+     and type Delay.t = Delay.Nat.t

@@ -1,10 +1,18 @@
 type level = Low | High
 
-(** The two-point lattice [Low < High]. *)
-module LowHigh = struct
+(* The names of a two-point lattice: the grade and its two levels. *)
+module type NAMES = sig
+  val name : string
+  val low : string
+  val high : string
+end
+
+(* The two-point lattice [Low < High], its levels printed and read by the names
+   [N]. *)
+module TwoPoint (N : NAMES) = struct
   type t = level
 
-  let name = "security-levels"
+  let name = N.name
   let bottom = Low
   let top = High
   let join l l' = match (l, l') with Low, Low -> Low | _ -> High
@@ -15,17 +23,31 @@ module LowHigh = struct
   let elements = [ Low; High ]
 
   let of_lit = function
-    | Grade.Name "Low" -> Low
-    | Grade.Name "High" -> High
+    | Grade.Name l when String.equal l N.low -> Low
+    | Grade.Name l when String.equal l N.high -> High
     | Grade.Name name as lit ->
-        Grade.invalid_lit lit
-          "unknown level `%s`; the levels are `Low` and `High`" name
+        Grade.invalid_lit lit "unknown level `%s`; the levels are `%s` and `%s`"
+          name N.low N.high
     | lit ->
-        Grade.invalid_lit lit "grades are the levels `Low` and `High`, not %s"
-          (Grade.describe_lit lit)
+        Grade.invalid_lit lit "grades are the levels `%s` and `%s`, not %s"
+          N.low N.high (Grade.describe_lit lit)
 
-  let show = function Low -> "Low" | High -> "High"
+  let show = function Low -> N.low | High -> N.high
 end
+
+(** The security levels [Low < High]. *)
+module LowHigh = TwoPoint (struct
+  let name = "security-levels"
+  let low = "Low"
+  let high = "High"
+end)
+
+(** The taint levels [Untainted < Tainted]. *)
+module UntaintedTainted = TwoPoint (struct
+  let name = "taint"
+  let low = "Untainted"
+  let high = "Tainted"
+end)
 
 (** [join_level l l'] is the join of the levels [l] and [l']. *)
 let join_level = LowHigh.join
@@ -174,4 +196,16 @@ module TimeUpperBoundLevels = struct
   include GradeConstructions.Product (TimeGrades.UpperBound) (SteppedLevels)
 
   let name = "time-upper-bound-levels"
+end
+
+module Taint = GradeConstructions.OfLattice (Delay.Rational) (UntaintedTainted)
+
+module SteppedTaint =
+  GradeConstructions.OfLattice (Delay.Nat) (UntaintedTainted)
+(** The taint levels over the whole-step delays of the time grades. *)
+
+module TimeUpperBoundTaint = struct
+  include GradeConstructions.Product (TimeGrades.UpperBound) (SteppedTaint)
+
+  let name = "time-upper-bound-taint"
 end

@@ -1,0 +1,31 @@
+(* Run this test with the 'time-upper-bound-taint' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound-taint tests/taint_time_upper.tpe
+
+   Time upper bounds paired with taint levels: a reading boxed at
+   (5,Untainted) expires after five ticks, and is usable only while no
+   untrusted input has been processed since it was taken. *)
+
+operation Sense : unit ~> nat ! (1, Untainted)
+operation Receive : unit ~> nat ! (1,Tainted)
+
+default Sense () = delay 1; 7
+default Receive () = delay 1; 0
+
+(* Accepted: a reading used within five ticks, nothing untrusted processed. *)
+let use_in_time () =
+  box (5,Untainted) 7 as r in
+  let _ = perform Sense () in
+  delay 3;
+  unbox r as v in
+  v
+
+(* Accepted: a reading boxed at Tainted survives untrusted input. *)
+let use_after_receive_tainted () =
+  box (5, Tainted) 7 as r in
+  let _ = perform Receive () in
+  unbox r as v in
+  v
+
+run use_in_time ()
+run use_after_receive_tainted ()
