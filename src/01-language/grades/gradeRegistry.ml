@@ -533,7 +533,7 @@ let entries =
         end) in
         (module V.SecurityLevels : Grade.S))
       (module LevelGrades.SecurityLevels)
-      security "Levels"
+      security "Security levels"
       "A security lattice, Low < High unless the program declares its own; a \
        box is out of reach once a higher level has been touched.";
     entry
@@ -556,6 +556,16 @@ let entries =
       security "Expiring capabilities"
       "A time upper bound paired with a security level: at most n time steps, \
        touching nothing above the level.";
+    entry
+      ~over_levels:(fun lattice ->
+        let module V = LevelGrades.Over (struct
+          let lattice = lattice
+        end) in
+        (module V.TimeIntervalLevels : Grade.S))
+      (module LevelGrades.TimeIntervalLevels)
+      security "Timed levels"
+      "A rational time interval paired with a security level: a time within \
+       the interval, touching nothing above the level.";
     entry
       ~over_levels:(fun lattice ->
         let module V = LevelGrades.Over (struct

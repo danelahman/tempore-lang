@@ -32,6 +32,11 @@ module type S = sig
       with type t = TimeGrades.UpperBound.t * level
        and type Delay.t = Delay.Nat.t
 
+  module TimeIntervalLevels :
+    Grade.S
+      with type t = RationalTimeGrades.Interval.t * level
+       and type Delay.t = Delay.Rational.t
+
   module FlowLevels :
     Grade.S with type t = level * Outputs.t and type Delay.t = Delay.Rational.t
 end
@@ -217,6 +222,13 @@ struct
     include GradeConstructions.Product (TimeGrades.UpperBound) (SteppedLevels)
 
     let name = "time-upper-bound-levels"
+  end
+
+  module TimeIntervalLevels = struct
+    include
+      GradeConstructions.Product (RationalTimeGrades.Interval) (SecurityLevels)
+
+    let name = "time-interval-levels"
   end
 end
 

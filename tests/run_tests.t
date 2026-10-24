@@ -789,7 +789,7 @@ it names none:
   File "delay_reject_fraction.tpe", line 8, characters 20-23:
   8 | let wait () = delay 0.5
                           ^^^
-  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `security-levels`, `flow-levels`, `mode-times` or `event-separation` grading monoids?
+  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `security-levels`, `time-interval-levels`, `flow-levels`, `mode-times` or `event-separation` grading monoids?
   ======================================================================
   delay_reject_negative.tpe
   ======================================================================
@@ -1766,6 +1766,93 @@ it names none:
   7 | let claim () = box 3 1
                          ^
   Syntax error: In the `security-levels` grading monoid, grades are the levels `Low` and `High`, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound`, `traces-upper-bound-rational`, `traces-timed-lower-bound`, `traces-timed-upper-bound`, `traces-timed-interval`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound`, `traces-timed-rigid-upper-bound`, `traces-timed-rigid-interval`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `windowed-schedules`, `mode-switch-costs`, `mode-times`, `counts-upper-bound` or `event-separation` grading monoids?
+  ======================================================================
+  levels_time_interval.tpe
+  ======================================================================
+  === Run 1 ===
+  return 544
+  State: [
+    ([0.05, 0.05], Quiet),
+    { resource_0 ↦ 544 ! ([0.5, 2], Quiet) },
+    ([0.75, 0.75], Quiet),
+    ([0.5, 0.5], Quiet)
+  ]
+  
+  === Run 2 ===
+  return 544
+  State: [
+    ([0.05, 0.05], Quiet),
+    { resource_0 ↦ 544 ! ([0.5, 2], Quiet) },
+    ([0.5, 0.5], Quiet)
+  ]
+  
+  === Run 3 ===
+  return ()
+  State: [
+    { resource_0 ↦ () ! ((0.25, 1), Quiet) },
+    ([0.75, 0.75], Quiet)
+  ]
+  
+  === Run 4 ===
+  return ()
+  State: [
+    ([0.5, 0.5], Quiet)
+  ]
+  
+  ======================================================================
+  levels_time_interval_reject.tpe
+  ======================================================================
+  File "levels_time_interval_reject.tpe", lines 19-20, characters 2-3:
+  19 |   unbox s as x in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `s` is unboxed with grade `((0.5, 2.5], Noisy)` accumulated since it was bound, which is not below its box grade `([0.5, 2], Quiet)`
+    File "levels_time_interval_reject.tpe", line 16, characters 6-7:
+    16 |   let s = perform StartTiltRead () in
+               ^
+    `s` is bound here
+    File "levels_time_interval_reject.tpe", line 17, characters 10-30:
+    17 |   let v = perform ReadSpeed () in
+                   ^^^^^^^^^^^^^^^^^^^^
+    grade `([0.5, 1.5], Quiet)` accumulates here (operation `ReadSpeed`)
+    File "levels_time_interval_reject.tpe", line 18, characters 2-20:
+    18 |   perform Transmit v;
+           ^^^^^^^^^^^^^^^^^^
+    grade `((0, 1], Noisy)` accumulates here (operation `Transmit`)
+    Note: the resource inequality `((0.5, 2.5], Noisy) <= ([0.5, 2], Quiet)` does not hold
+  
+  File "levels_time_interval_reject.tpe", lines 26-27, characters 2-3:
+  26 |   unbox s as x in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `s` is unboxed with the unit grade `([0, 0], Quiet)` accumulated since it was bound, which is not below its box grade `([0.5, 2], Quiet)`
+    File "levels_time_interval_reject.tpe", line 25, characters 6-7:
+    25 |   let s = perform StartTiltRead () in
+               ^
+    `s` is bound here
+    Note: the resource inequality `([0, 0], Quiet) <= ([0.5, 2], Quiet)` does not hold
+  
+  File "levels_time_interval_reject.tpe", lines 34-35, characters 2-3:
+  34 |   unbox s as x in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `s` is unboxed with grade `([1, 3], Quiet)` accumulated since it was bound, which is not below its box grade `([0.5, 2], Quiet)`
+    File "levels_time_interval_reject.tpe", line 31, characters 6-7:
+    31 |   let s = perform StartTiltRead () in
+               ^
+    `s` is bound here
+    File "levels_time_interval_reject.tpe", line 32, characters 10-30:
+    32 |   let _ = perform ReadSpeed () in
+                   ^^^^^^^^^^^^^^^^^^^^
+    grade `([0.5, 1.5], Quiet)` accumulates here (operation `ReadSpeed`)
+    File "levels_time_interval_reject.tpe", line 33, characters 10-30:
+    33 |   let _ = perform ReadSpeed () in
+                   ^^^^^^^^^^^^^^^^^^^^
+    grade `([0.5, 1.5], Quiet)` accumulates here (operation `ReadSpeed`)
+    Note: the resource inequality `([1, 3], Quiet) <= ([0.5, 2], Quiet)` does not hold
+  
+  File "levels_time_interval_reject.tpe", lines 38-40, characters 16-22:
+  38 | let open_end () : nat ! ((0.5, 1.6), Quiet) =
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `((0.5, 1.6], Quiet)`, which does not match its annotated grade `((0.5, 1.6), Quiet)`
+    Note: the effect inequality `((0.5, 1.6], Quiet) <= ((0.5, 1.6), Quiet)` does not hold
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -8576,9 +8663,10 @@ single-dash form of the help option is not accepted.
           regex-timed-rigid-interval-rational-symbolic    Intervals (rational, symbolic)
               expressions with interval letters; inclusion by partial derivatives with a stretch reader, breadth-first
         Security levels:
-          security-levels                                 Levels
+          security-levels                                 Security levels
           time-lower-bound-levels                         Embargoes
           time-upper-bound-levels                         Expiring capabilities
+          time-interval-levels                            Timed levels
           flow-levels                                     Flow-sensitive outputs
         Semidirect products:
           resource-levels                                 Resource levels

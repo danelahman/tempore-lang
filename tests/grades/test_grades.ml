@@ -1272,6 +1272,7 @@ let registry =
           "regex-timed-rigid-upper-bound-rational-symbolic";
           "regex-timed-rigid-interval-rational-symbolic";
           "security-levels";
+          "time-interval-levels";
           "flow-levels";
           "mode-times";
           "event-separation";
@@ -1797,6 +1798,7 @@ type family =
   | Rational_regex_timed
   | Levels
   | Timed_levels
+  | Interval_levels
   | Flow
   | Resources
   | Schedules
@@ -1811,6 +1813,7 @@ let family name =
   match name with
   | "security-levels" -> Some Levels
   | "time-lower-bound-levels" | "time-upper-bound-levels" -> Some Timed_levels
+  | "time-interval-levels" -> Some Interval_levels
   | "flow-levels" -> Some Flow
   | "resource-levels" -> Some Resources
   | "windowed-schedules" -> Some Schedules
@@ -2029,6 +2032,16 @@ let cover =
         pair (Int 1) (level "Low");
         pair Inf (level "Low");
         pair (Int 2) Top;
+        pair Top (level "Low");
+      ]
+  | Interval_levels ->
+      [
+        pair (span (Int 0) (Int 0)) (level "Low");
+        pair (span (rat 1 2) (Int 2)) (level "Low");
+        pair (Interval (Open (Int 0), Closed (rat 1 10))) (level "High");
+        pair (Interval (Open (rat 1 2), Open (rat 5 3))) (level "Low");
+        pair (span (Int 1) Inf) (level "High");
+        pair (Interval (Open (rat 1 3), Unbounded)) Top;
         pair Top (level "Low");
       ]
   | Flow ->
@@ -2254,6 +2267,11 @@ let random family st =
       else closed (Braces (timed 2)) (Braces (timed 2))
   | Levels -> level ()
   | Timed_levels -> pair (pick st [ Int (int 5); Inf; Top ]) (level ())
+  | Interval_levels ->
+      let number () = rat (int 9) (1 + int 3) in
+      let end_ a = if Random.State.bool st then Open a else Closed a in
+      let hi = if int 4 = 0 then Unbounded else end_ (number ()) in
+      pair (Interval (end_ (number ()), hi)) (level ())
   | Flow -> (
       match
         List.filter_map
@@ -3768,6 +3786,19 @@ let declared_level_laws (label, lattice) =
       (fun n -> List.map (fun l -> Grade.Tuple [ Grade.Int n; level l ]) names)
       [ 0; 1; 3 ]
   in
+  let intervals =
+    let open Grade in
+    let r n d = rational_lit (Rational.make n d) in
+    List.concat_map
+      (fun i -> List.map (fun l -> Tuple [ i; level l ]) names)
+      [
+        Interval (Closed (Int 0), Closed (Int 0));
+        Interval (Open (Int 0), Closed (r 1 10));
+        Interval (Closed (r 1 2), Closed (Int 2));
+        Interval (Open (r 1 2), Open (r 3 2));
+        Interval (Closed (Int 1), Unbounded);
+      ]
+  in
   let written sink l = Grade.Tuple [ Grade.Name sink; level l ] in
   let flows =
     List.concat_map
@@ -3808,6 +3839,7 @@ let declared_level_laws (label, lattice) =
   laws (grade "security-levels") (Grade.Top :: List.map level names)
   @ laws (grade "time-lower-bound-levels") timed
   @ laws (grade "time-upper-bound-levels") timed
+  @ laws (grade "time-interval-levels") (Grade.Top :: intervals)
   @ laws (grade "flow-levels") (Grade.Top :: flows)
   @ semilattice_laws
       ~width:(List.length written_levels)
