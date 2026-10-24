@@ -119,7 +119,7 @@ let stdlib_filename = "stdlib.tpe"
 let grades_of_sources ~grades sources =
   match
     List.find_map
-      (fun (filename, text) -> Parser.LevelsDeclaration.scan ~filename text)
+      (fun (filename, text) -> Parser.LatticeDeclaration.scan ~filename text)
       sources
   with
   | None -> (
@@ -128,12 +128,12 @@ let grades_of_sources ~grades sources =
       | None ->
           invalid_arg ("Loader.grades_of_sources: unknown grades " ^ grades))
   | Some (at, chains) -> (
-      let lattice = Grades.LevelLattice.of_chains ~at chains in
-      match Grades.GradeRegistry.over_levels grades lattice with
+      let lattice = Grades.GradeLattice.of_chains ~at chains in
+      match Grades.GradeRegistry.over_lattice grades lattice with
       | Some grade -> (grade, Some lattice)
       | None ->
-          Error.syntax ~loc:at "%s" (Grades.GradeRegistry.without_levels grades)
-      )
+          Error.syntax ~loc:at "%s"
+            (Grades.GradeRegistry.without_lattice grades))
 
 module Loader (Backend : Backend.S) = struct
   module D = Desugarer.Make (Backend.Grades)

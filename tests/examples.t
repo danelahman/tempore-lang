@@ -438,7 +438,7 @@ tests show those runs in detail.
      perform SetOffsetAngle (offset, angle) (op_var. return op_var)))
   
   ======================================================================
-  ../examples/levels/flow.tpe
+  ../examples/lattice/flow.tpe
   ======================================================================
   === Run 1 ===
   return ()
@@ -451,7 +451,7 @@ tests show those runs in detail.
   ]
   
   ======================================================================
-  ../examples/levels/quiet_noisy.tpe
+  ../examples/lattice/quiet_noisy.tpe
   ======================================================================
   === Run 1 ===
   return 0.5
@@ -465,7 +465,7 @@ tests show those runs in detail.
   ]
   
   ======================================================================
-  ../examples/levels/quiet_noisy_intervals.tpe
+  ../examples/lattice/quiet_noisy_intervals.tpe
   ======================================================================
   === Run 1 ===
   return 0.5
@@ -479,7 +479,7 @@ tests show those runs in detail.
   ]
   
   ======================================================================
-  ../examples/levels/security.tpe
+  ../examples/lattice/security.tpe
   ======================================================================
   === Run 1 ===
   return "weather: sunny"
@@ -494,7 +494,7 @@ tests show those runs in detail.
   ]
   
   ======================================================================
-  ../examples/levels/staged_release.tpe
+  ../examples/lattice/staged_release.tpe
   ======================================================================
   === Run 1 ===
   return (Stage ((Host "web-1")::[], 
@@ -762,7 +762,7 @@ tests show those runs in detail.
   ]
   
   ======================================================================
-  ../examples/levels/time_lower.tpe
+  ../examples/lattice/time_lower.tpe
   ======================================================================
   === Run 1 ===
   return (Report "quarterly figures")
@@ -784,7 +784,7 @@ tests show those runs in detail.
   ]
   
   ======================================================================
-  ../examples/levels/time_upper.tpe
+  ../examples/lattice/time_upper.tpe
   ======================================================================
   === Run 1 ===
   return "rows"

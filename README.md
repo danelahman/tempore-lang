@@ -20,7 +20,7 @@ Most notably, Tempore adds to Temporal Millet the following:
    natural-number-based time grades, which modelled only whole lower time bounds
    of programs,
 3. a number of concrete examples of such grades (ranging from time to regexes to
-   security levels to trough/peak usage of resources),
+   grade lattices to trough/peak usage of resources),
 4. a cleaner and more systematic treatment of type inference,
 5. [multiple backends](#backends): besides the interpreter, proof-of-concept
    compilers of programs to C++ for Arduino and ESP32 boards and to protocols
@@ -205,7 +205,7 @@ tau'` the grade of `delay (tau + tau')`
 
 `tau` is a non-negative integer or rational fraction, depending on the
 grade. The grades whose names end in `-rational` or `-rational-symbolic`,
-`security-levels` and `flow-levels` have the non-negative rationals as delays
+`lattice` and `flow-lattice` have the non-negative rationals as delays
 and accept any, such as `delay 1/3` or `delay 0.25`; the other monoids count
 whole time steps and accept only integers.
 See [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
@@ -938,15 +938,15 @@ every operation preceded by `≥0`, every delay a budget and `≥0` at the end,
 `{A; 2; B}` as `{≥0; A; ≥2; B; ≥0}`. The non-rigid grades keep decision
 procedures of their own.
 
-### Security levels and products
+### Grade lattices and products
 
 In this category, we have the following grading monoids:
 
-- `security-levels`: the levels are given by the simple security lattice
-  `Low < High`, unless the program declares its own (see
-  [Declaring levels](#declaring-levels)); a computation's grade is the highest level it touches, and
-  delays touch none. A box at `Low` is out of reach once an operation of grade
-  `High` has run.
+- `lattice`: the grades are the elements of a finite grade lattice, the simple
+  security lattice `Low < High` unless the program declares its own (see
+  [Declaring the grade lattice](#declaring-the-grade-lattice)); a computation's
+  grade is the highest element it touches, and delays touch none. A box at
+  `Low` is out of reach once an operation of grade `High` has run.
 
   For example, the program
 
@@ -968,13 +968,15 @@ In this category, we have the following grading monoids:
       Variable `c` is unboxed with grade `High` accumulated since it was bound,
       which is not below its box grade `Low`
 
-- `time-lower-bound-levels`: pairs `(n, l)`, at least `n` ticks and nothing
-  above security level `l`; `(3, Low)` is an embargo with a taint check. This is
-  a direct product of the time lower bounds and security levels grades.
+- `time-lower-bound-lattice`: pairs `(n, l)`, at least `n` ticks and nothing
+  above the element `l` of the grade lattice; `(3, Low)` is an embargo with a
+  taint check. This is a direct product of the time lower bounds and the grade
+  lattice.
 
-- `time-upper-bound-levels`: pairs `(n, l)`, at most `n` ticks and nothing above
-  security level `l`; `(5, Low)` is an expiring capability. This is a direct
-  product of the time upper bounds and security levels grades.
+- `time-upper-bound-lattice`: pairs `(n, l)`, at most `n` ticks and nothing
+  above the element `l` of the grade lattice; `(5, Low)` is an expiring
+  capability. This is a direct product of the time upper bounds and the grade
+  lattice.
 
   For example, where a token boxed at `(5, Low)` expires after
   five ticks or once something secret is touched, the program
@@ -996,13 +998,13 @@ In this category, we have the following grading monoids:
       Variable `t` is unboxed with grade `(1, High)` accumulated since it was
       bound, which is not below its box grade `(5, Low)`
 
-- `time-interval-levels`: pairs `(i, l)`, a time within the rational interval
-  `i` and nothing above security level `l`, as in `((0, 0.1], Low)`; the direct
-  product of `time-interval-rational` and the security levels, adding the
-  intervals by the Minkowski sum.
+- `time-interval-lattice`: pairs `(i, l)`, a time within the rational interval
+  `i` and nothing above the element `l` of the grade lattice, as in
+  `((0, 0.1], Low)`; the direct product of `time-interval-rational` and the
+  grade lattice, adding the intervals by the Minkowski sum.
 
-- `flow-levels`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above `l` touched
-  and each output `Sᵢ` written at most at the level `lᵢ` touched before it; `l`
+- `flow-lattice`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above `l` touched
+  and each output `Sᵢ` written at most at the element `lᵢ` touched before it; `l`
   alone writes no output, and an entry `(_, l')` bounds every output not listed.
   An output is a capitalised name, and an operation writing it has a grade such
   as `(Low, (Board, Low))`; after one of grade `High`, it is written at `High`.
@@ -1032,50 +1034,51 @@ The pairs of the products with the time grades are compared, multiplied and
 joined componentwise.
 
 See
-[`examples/levels/security.tpe`](examples/levels/security.tpe),
-[`examples/levels/time_lower.tpe`](examples/levels/time_lower.tpe),
-[`examples/levels/time_upper.tpe`](examples/levels/time_upper.tpe)
-and [`examples/levels/flow.tpe`](examples/levels/flow.tpe).
+[`examples/lattice/security.tpe`](examples/lattice/security.tpe),
+[`examples/lattice/time_lower.tpe`](examples/lattice/time_lower.tpe),
+[`examples/lattice/time_upper.tpe`](examples/lattice/time_upper.tpe)
+and [`examples/lattice/flow.tpe`](examples/lattice/flow.tpe).
 
-#### Declaring levels
+#### Declaring the grade lattice
 
-A program may declare its own finite lattice of levels in place of `Low < High`,
+A program may declare its own finite grade lattice in place of `Low < High`,
 which all five grading monoids above then use. The declaration opens a file,
 after its header comment:
 
 ```
-levels Quiet < Noisy
+grade lattice Quiet < Noisy
 
-levels Public < Team < Confidential,
-       Public < Partner < Confidential
+grade lattice Public < Team < Confidential,
+              Public < Partner < Confidential
 ```
 
 Each chain `L1 < L2 < ...` gives covering edges, and the order is their
-reflexive-transitive closure. The labels must form a lattice: no label repeated
-in a chain, no cycle, a least label, and a least upper bound for every two
-labels. The files of one run share one declaration, which a file may repeat;
-a differing one is an error, as is a declaration under a grading monoid not
-built on levels. Elsewhere `levels` remains an ordinary name.
+reflexive-transitive closure. The elements must form a lattice: no element
+repeated in a chain, no cycle, a least element, and a least upper bound for
+every two elements. The files of one run share one declaration, which a file
+may repeat; a differing one is an error, as is a declaration under a grading
+monoid not built on a grade lattice. Elsewhere `grade` and `lattice` remain
+ordinary names.
 
 For example, a robot whose tilt conversion must complete while the motors and
 the radio are idle declares
 
 ```
-levels Quiet < Noisy
+grade lattice Quiet < Noisy
 
 operation StartTiltRead : unit ~> [(5, Quiet)] sample ! (1, Quiet)
 operation Transmit : float ~> unit ! (1, Noisy)
 ```
 
-under `time-upper-bound-levels`; transmitting before the conversion is
+under `time-upper-bound-lattice`; transmitting before the conversion is
 collected is rejected:
 
     Variable `s` is unboxed with grade `(1, Noisy)` accumulated since it was
     bound, which is not below its box grade `(5, Quiet)`
 
-See [`examples/levels/quiet_noisy.tpe`](examples/levels/quiet_noisy.tpe), and
-[`examples/levels/quiet_noisy_intervals.tpe`](examples/levels/quiet_noisy_intervals.tpe)
-for the same step under `time-interval-levels`, with running times in rational
+See [`examples/lattice/quiet_noisy.tpe`](examples/lattice/quiet_noisy.tpe), and
+[`examples/lattice/quiet_noisy_intervals.tpe`](examples/lattice/quiet_noisy_intervals.tpe)
+for the same step under `time-interval-lattice`, with running times in rational
 intervals.
 
 ### Semidirect products
@@ -1084,7 +1087,7 @@ In this category, a grade is generally a pair `(m, n)` whose second component is
 acted on by the first components of the grades before it:
 `(m, n) · (m', n') = (m · m', n ⊔ m ▷ n')`, where `m ▷ n'` is a grade-specific
 action of `m` on `n'`. The pairs are compared and joined componentwise. The
-`flow-levels` monoid from above is an example, as are:
+`flow-lattice` monoid from above is an example, as are:
 
 - `resource-levels`: triples `(t, [d1, d2], h)` bounding a resource held, such
   as open files, relative to its level at the start: the trough `t` is the
@@ -1545,7 +1548,7 @@ A `run` must establish every such condition: one without unknowns that the
 typechecker can neither derive nor refute rejects it, and one with unknowns
 must hold together with `Q` at a closed instance of the unknowns.
 
-Under the time grades, the security levels and their products, a condition in
+Under the time grades, the grade lattices and their products, a condition in
 the effect of a single continuation is always decided; under the trace grades
 it may not be. It is decided at finitely many witnesses of the effect, whose
 number is proportional to the sum of its constants, times their common

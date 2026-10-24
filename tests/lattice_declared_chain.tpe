@@ -1,0 +1,42 @@
+(* Run this test with the 'time-lower-bound-lattice' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound-lattice tests/lattice_declared_chain.tpe
+
+   A declared grade lattice, a chain of three: embargoed reports claimed while nothing
+   above their element has been touched since boxing. *)
+
+grade lattice Public < Internal < Secret
+
+operation ReadWiki : unit ~> string ! (1, Internal)
+operation ReadVault : unit ~> string ! (1, Secret)
+
+default ReadWiki () = delay 1; "wiki"
+default ReadVault () = delay 1; "vault"
+
+(* Accepted: reading the wiki touches Internal, the element of the box. *)
+let claim_after_wiki () =
+  box (2, Internal) "report" as r in
+  let w = perform ReadWiki () in
+  delay 1;
+  unbox r as y in
+  (y, w)
+
+(* Accepted: Internal is below Secret, so a box at Secret survives both
+   reads. *)
+let claim_secret () =
+  box (2, Secret) "dossier" as r in
+  let w = perform ReadWiki () in
+  let v = perform ReadVault () in
+  unbox r as y in
+  (y, w, v)
+
+(* Accepted: the unit (0, Public) is least. *)
+let claim_public () =
+  box (2, Public) "notice" as r in
+  delay 2;
+  unbox r as y in
+  y
+
+run claim_after_wiki ()
+run claim_secret ()
+run claim_public ()

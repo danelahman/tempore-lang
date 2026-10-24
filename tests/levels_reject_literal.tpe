@@ -1,7 +1,0 @@
-(* Run this test with the 'security-levels' grading monoid, e.g.
-
-     ./tempore --grades security-levels tests/levels_reject_literal.tpe
-
-   Rejected: an integer is no security level. *)
-
-let claim () = box 3 1

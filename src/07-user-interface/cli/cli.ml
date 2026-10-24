@@ -916,12 +916,12 @@ let emit_protocol config ~filename ~binding_name ~operations ~compound commands
    computation that does not reduce, or at a run-time error. *)
 let run_failure = 3
 
-let run_with (module G : Grades.Grade.S) levels config =
+let run_with (module G : Grades.Grade.S) lattice config =
   let module Backend =
     CliInterpreter.Make
       (Grades.GradeSystem.Declaring
          (struct
-           let levels = levels
+           let lattice = lattice
          end)
          (G)) in
   let module Loader = Loader.Loader (Backend) in
@@ -1123,8 +1123,8 @@ let main () =
   let config = parse_args_to_config () in
   match List.assoc_opt config.grades Grades.GradeRegistry.grade_modules with
   | Some _ -> (
-      (* The files read for their declaration of levels; a file that cannot be
-         read is reported when it is parsed. *)
+      (* The files read for their declaration of the grade lattice; a file that
+         cannot be read is reported when it is parsed. *)
       let sources =
         List.filter_map
           (fun filename ->
@@ -1136,7 +1136,7 @@ let main () =
           config.filenames
       in
       match Loader.grades_of_sources ~grades:config.grades sources with
-      | grade, levels -> run_with grade levels config
+      | grade, lattice -> run_with grade lattice config
       | exception Error.Error d ->
           Diagnostic.print ~source d Format.err_formatter;
           exit 1)

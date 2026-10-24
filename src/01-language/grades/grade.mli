@@ -4,7 +4,7 @@
     {!RationalTimeGrades}, {!TraceInclusionGrades}, {!TimedTraceGrades},
     {!RegularTraceGrade}, {!RegularTraceGradeDerivative},
     {!RegularTraceGradePlain}, {!RegularTraceGradeRational},
-    {!RegularTimedTraceGrades}, {!LevelGrades}, {!ResourceLevelGrades},
+    {!RegularTimedTraceGrades}, {!LatticeGrades}, {!ResourceLevelGrades},
     {!WindowedScheduleGrades}, {!ModeSwitchCostGrades}, {!ModeTimeGrades},
     {!CountGrades} and {!OperationSpacingGrades}, built with the constructions
     of {!GradeConstructions} and {!SummaryTerms}, and listed in

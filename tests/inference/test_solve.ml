@@ -51,7 +51,7 @@ let expectations lines =
 
 let file_verdicts ?packages path grades =
   let (module P) =
-    programs_of ?levels:(TestPrograms.levels_of_file path) grades
+    programs_of ?lattice:(TestPrograms.lattice_of_file path) grades
   in
   let start = Unix.gettimeofday () in
   let verdicts = P.file ?packages path in
@@ -139,19 +139,19 @@ let expected_rejections =
     ("tests/eternal_tyvars_reject_higher_order.tpe", [ 10 ]);
     ("tests/eternal_tyvars_reject_noneternal.tpe", [ 12 ]);
     ("tests/invalid_match_type.tpe", [ 4 ]);
-    ("tests/flow_levels_reject.tpe", [ 12; 17; 22; 30 ]);
+    ("tests/flow_lattice_reject.tpe", [ 12; 17; 22; 30 ]);
     ("tests/iterative_unbox.tpe", [ 4 ]);
     ("tests/unbox_annotated_signature_reject.tpe", [ 30; 36 ]);
     ("tests/unbox_annotation_reject.tpe", [ 4 ]);
     ("tests/unbox_nested_reject_lower.tpe", [ 10; 19 ]);
     ("tests/unbox_nested_reject_upper.tpe", [ 10; 19 ]);
     ("tests/less_than_function.tpe", [ 1 ]);
-    ("tests/levels_reject.tpe", [ 12 ]);
-    ("tests/levels_declared_chain_reject.tpe", [ 17; 24 ]);
-    ("tests/levels_declared_diamond_reject.tpe", [ 18; 22 ]);
-    ("tests/levels_time_interval_reject.tpe", [ 15; 24; 30; 38 ]);
-    ("tests/levels_time_lower_reject.tpe", [ 14; 21 ]);
-    ("tests/levels_time_upper_reject.tpe", [ 14; 21 ]);
+    ("tests/lattice_reject.tpe", [ 12 ]);
+    ("tests/lattice_declared_chain_reject.tpe", [ 17; 24 ]);
+    ("tests/lattice_declared_diamond_reject.tpe", [ 18; 22 ]);
+    ("tests/lattice_time_interval_reject.tpe", [ 15; 24; 30; 38 ]);
+    ("tests/lattice_time_lower_reject.tpe", [ 14; 21 ]);
+    ("tests/lattice_time_upper_reject.tpe", [ 14; 21 ]);
     ("tests/list_constructor_reject.tpe", [ 3 ]);
     ("tests/malformed_type_application.tpe", [ 4 ]);
     ("tests/mode_switch_costs_reject.tpe", [ 13; 16; 23; 28; 35 ]);

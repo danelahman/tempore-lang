@@ -789,7 +789,7 @@ it names none:
   File "delay_reject_fraction.tpe", line 8, characters 20-23:
   8 | let wait () = delay 0.5
                           ^^^
-  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `security-levels`, `time-interval-levels`, `flow-levels`, `mode-times` or `operation-spacing` grading monoids?
+  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `lattice`, `time-interval-lattice`, `flow-lattice`, `mode-times` or `operation-spacing` grading monoids?
   ======================================================================
   delay_reject_negative.tpe
   ======================================================================
@@ -1327,7 +1327,7 @@ it names none:
           ^
   Typing error: This argument has type `float` but the function expects `nat`
   ======================================================================
-  flow_levels.tpe
+  flow_lattice.tpe
   ======================================================================
   === Run 1 ===
   return ()
@@ -1350,47 +1350,47 @@ it names none:
   ]
   
   ======================================================================
-  flow_levels_reject.tpe
+  flow_lattice_reject.tpe
   ======================================================================
-  File "flow_levels_reject.tpe", lines 12-14, characters 18-16:
+  File "flow_lattice_reject.tpe", lines 12-14, characters 18-16:
   12 | let post_after () : unit ! (High, (Board, Low)) =
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(High, (Board, High))`, which does not match its annotated grade `(High, (Board, Low))`
     Note: the effect inequality `(High, (Board, High)) <= (High, (Board, Low))` does not hold
   
-  File "flow_levels_reject.tpe", lines 17-19, characters 16-15:
+  File "flow_lattice_reject.tpe", lines 17-19, characters 16-15:
   17 | let unlisted () : unit ! (Low, (Board, Low)) =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Low, (Audit, Low), (Board, Low))`, which does not match its annotated grade `(Low, (Board, Low))`
     Note: the effect inequality `(Low, (Audit, Low), (Board, Low)) <= (Low, (Board, Low))` does not hold
   
-  File "flow_levels_reject.tpe", lines 26-27, characters 2-3:
+  File "flow_lattice_reject.tpe", lines 26-27, characters 2-3:
   26 |   unbox x as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `x` is unboxed with grade `(High, (Board, High))` accumulated since it was bound, which is not below its box grade `(High, (Board, Low))`
-    File "flow_levels_reject.tpe", line 23, characters 32-33:
+    File "flow_lattice_reject.tpe", line 23, characters 32-33:
     23 |   box (High, (Board, Low)) 7 as x in
                                          ^
     `x` is bound here
-    File "flow_levels_reject.tpe", line 24, characters 10-31:
+    File "flow_lattice_reject.tpe", line 24, characters 10-31:
     24 |   let s = perform ReadSecret () in
                    ^^^^^^^^^^^^^^^^^^^^^
     grade `High` accumulates here (operation `ReadSecret`)
-    File "flow_levels_reject.tpe", line 25, characters 2-16:
+    File "flow_lattice_reject.tpe", line 25, characters 2-16:
     25 |   perform Post s;
            ^^^^^^^^^^^^^^
     grade `(Low, (Board, Low))` accumulates here (operation `Post`)
     Note: the resource inequality `(High, (Board, High)) <= (High, (Board, Low))` does not hold
   
-  File "flow_levels_reject.tpe", line 34, characters 31-49:
+  File "flow_lattice_reject.tpe", line 34, characters 31-49:
   34 |   | Log n k -> perform Post n; continue k with ()
                                       ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with grade `(Low, (Board, Low))` accumulated since it was bound, which is not below its box grade `(Low, (Audit, Low))`
-    File "flow_levels_reject.tpe", line 34, characters 10-11:
+    File "flow_lattice_reject.tpe", line 34, characters 10-11:
     34 |   | Log n k -> perform Post n; continue k with ()
                    ^
     `k` is bound here
-    File "flow_levels_reject.tpe", line 34, characters 15-29:
+    File "flow_lattice_reject.tpe", line 34, characters 15-29:
     34 |   | Log n k -> perform Post n; continue k with ()
                         ^^^^^^^^^^^^^^
     grade `(Low, (Board, Low))` accumulates here (operation `Post`)
@@ -1498,18 +1498,7 @@ it names none:
     the inequality goes through the type of `box_n_values` here
     Note: the resource inequality `0 >= 3` does not hold
   ======================================================================
-  less_than_function.tpe
-  ======================================================================
-  File "less_than_function.tpe", line 1, characters 17-18:
-  1 | run (fun x -> x) < (fun x -> 2 * x)
-                       ^
-  Typing error: Type `α → β ! ε₀` is not eternal, as required by the type of `(<)`
-    File "stdlib.tpe", line 2, characters 0-37:
-    2 | let ( < ) x y = __compare_lt__ (x, y)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    `(<)` is defined here
-  ======================================================================
-  levels.tpe
+  lattice.tpe
   ======================================================================
   === Run 1 ===
   return ("public", "report")
@@ -1530,7 +1519,7 @@ it names none:
   ]
   
   ======================================================================
-  levels_declared_chain.tpe
+  lattice_declared_chain.tpe
   ======================================================================
   === Run 1 ===
   return ("report", "wiki")
@@ -1556,37 +1545,37 @@ it names none:
   ]
   
   ======================================================================
-  levels_declared_chain_reject.tpe
+  lattice_declared_chain_reject.tpe
   ======================================================================
-  File "levels_declared_chain_reject.tpe", lines 20-21, characters 2-8:
+  File "lattice_declared_chain_reject.tpe", lines 20-21, characters 2-8:
   20 |   unbox r as y in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `(1, Secret)` accumulated since it was bound, which is not below its box grade `(1, Internal)`
-    File "levels_declared_chain_reject.tpe", line 18, characters 32-33:
+    File "lattice_declared_chain_reject.tpe", line 18, characters 32-33:
     18 |   box (1, Internal) "report" as r in
                                          ^
     `r` is bound here
-    File "levels_declared_chain_reject.tpe", line 19, characters 10-30:
+    File "lattice_declared_chain_reject.tpe", line 19, characters 10-30:
     19 |   let v = perform ReadVault () in
                    ^^^^^^^^^^^^^^^^^^^^
     grade `(1, Secret)` accumulates here (operation `ReadVault`)
     Note: the resource inequality `(1, Secret) ≾ (1, Internal)` does not hold
   
-  File "levels_declared_chain_reject.tpe", lines 27-28, characters 2-8:
+  File "lattice_declared_chain_reject.tpe", lines 27-28, characters 2-8:
   27 |   unbox r as y in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `(1, Internal)` accumulated since it was bound, which is not below its box grade `(1, Public)`
-    File "levels_declared_chain_reject.tpe", line 25, characters 30-31:
+    File "lattice_declared_chain_reject.tpe", line 25, characters 30-31:
     25 |   box (1, Public) "notice" as r in
                                        ^
     `r` is bound here
-    File "levels_declared_chain_reject.tpe", line 26, characters 10-29:
+    File "lattice_declared_chain_reject.tpe", line 26, characters 10-29:
     26 |   let w = perform ReadWiki () in
                    ^^^^^^^^^^^^^^^^^^^
     grade `(1, Internal)` accumulates here (operation `ReadWiki`)
     Note: the resource inequality `(1, Internal) ≾ (1, Public)` does not hold
   ======================================================================
-  levels_declared_diamond.tpe
+  lattice_declared_diamond.tpe
   ======================================================================
   === Run 1 ===
   return 3
@@ -1601,44 +1590,44 @@ it names none:
   State: []
   
   ======================================================================
-  levels_declared_diamond_reject.tpe
+  lattice_declared_diamond_reject.tpe
   ======================================================================
-  File "levels_declared_diamond_reject.tpe", line 18, characters 23-60:
+  File "lattice_declared_diamond_reject.tpe", line 18, characters 23-60:
   18 | let partner_as_team () : nat ! Team = perform ReadPartner ()
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `Partner`, which does not match its annotated grade `Team`
     Note: the effect inequality `Partner <= Team` does not hold
   
-  File "levels_declared_diamond_reject.tpe", lines 22-25, characters 20-22:
+  File "lattice_declared_diamond_reject.tpe", lines 22-25, characters 20-22:
   22 | let post_partner () : unit ! (Confidential, (Board, Partner)) =
                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Confidential, (Board, Confidential))`, which does not match its annotated grade `(Confidential, (Board, Partner))`
     Note: the effect inequality `(Confidential, (Board, Confidential)) <= (Confidential, (Board, Partner))` does not hold
   ======================================================================
-  levels_reject.tpe
+  lattice_reject.tpe
   ======================================================================
-  File "levels_reject.tpe", lines 15-16, characters 2-3:
+  File "lattice_reject.tpe", lines 15-16, characters 2-3:
   15 |   unbox r as y in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `High` accumulated since it was bound, which is not below its box grade `Low`
-    File "levels_reject.tpe", line 13, characters 22-23:
+    File "lattice_reject.tpe", line 13, characters 22-23:
     13 |   box Low "public" as r in
                                ^
     `r` is bound here
-    File "levels_reject.tpe", line 14, characters 2-23:
+    File "lattice_reject.tpe", line 14, characters 2-23:
     14 |   perform Send "secret";
            ^^^^^^^^^^^^^^^^^^^^^
     grade `High` accumulates here (operation `Send`)
     Note: the resource inequality `High <= Low` does not hold
   ======================================================================
-  levels_reject_literal.tpe
+  lattice_reject_literal.tpe
   ======================================================================
-  File "levels_reject_literal.tpe", line 7, characters 19-20:
+  File "lattice_reject_literal.tpe", line 7, characters 19-20:
   7 | let claim () = box 3 1
                          ^
-  Syntax error: In the `security-levels` grading monoid, grades are the levels `Low` and `High`, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound`, `traces-upper-bound-rational`, `traces-timed-lower-bound`, `traces-timed-upper-bound`, `traces-timed-interval`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound`, `traces-timed-rigid-upper-bound`, `traces-timed-rigid-interval`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `windowed-schedules`, `mode-switch-costs`, `mode-times`, `counts-upper-bound` or `operation-spacing` grading monoids?
+  Syntax error: In the `lattice` grading monoid, grades are the elements `Low` and `High` of the grade lattice, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound`, `traces-upper-bound-rational`, `traces-timed-lower-bound`, `traces-timed-upper-bound`, `traces-timed-interval`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound`, `traces-timed-rigid-upper-bound`, `traces-timed-rigid-interval`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-symbolic`, `regex-timed-rigid-upper-bound-symbolic`, `regex-timed-rigid-interval-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `windowed-schedules`, `mode-switch-costs`, `mode-times`, `counts-upper-bound` or `operation-spacing` grading monoids?
   ======================================================================
-  levels_time_interval.tpe
+  lattice_time_interval.tpe
   ======================================================================
   === Run 1 ===
   return 544
@@ -1671,61 +1660,61 @@ it names none:
   ]
   
   ======================================================================
-  levels_time_interval_reject.tpe
+  lattice_time_interval_reject.tpe
   ======================================================================
-  File "levels_time_interval_reject.tpe", lines 19-20, characters 2-3:
+  File "lattice_time_interval_reject.tpe", lines 19-20, characters 2-3:
   19 |   unbox s as x in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `s` is unboxed with grade `((0.5, 2.5], Noisy)` accumulated since it was bound, which is not below its box grade `([0.5, 2], Quiet)`
-    File "levels_time_interval_reject.tpe", line 16, characters 6-7:
+    File "lattice_time_interval_reject.tpe", line 16, characters 6-7:
     16 |   let s = perform StartTiltRead () in
                ^
     `s` is bound here
-    File "levels_time_interval_reject.tpe", line 17, characters 10-30:
+    File "lattice_time_interval_reject.tpe", line 17, characters 10-30:
     17 |   let v = perform ReadSpeed () in
                    ^^^^^^^^^^^^^^^^^^^^
     grade `([0.5, 1.5], Quiet)` accumulates here (operation `ReadSpeed`)
-    File "levels_time_interval_reject.tpe", line 18, characters 2-20:
+    File "lattice_time_interval_reject.tpe", line 18, characters 2-20:
     18 |   perform Transmit v;
            ^^^^^^^^^^^^^^^^^^
     grade `((0, 1], Noisy)` accumulates here (operation `Transmit`)
     Note: the resource inequality `((0.5, 2.5], Noisy) <= ([0.5, 2], Quiet)` does not hold
   
-  File "levels_time_interval_reject.tpe", lines 26-27, characters 2-3:
+  File "lattice_time_interval_reject.tpe", lines 26-27, characters 2-3:
   26 |   unbox s as x in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `s` is unboxed with the unit grade `([0, 0], Quiet)` accumulated since it was bound, which is not below its box grade `([0.5, 2], Quiet)`
-    File "levels_time_interval_reject.tpe", line 25, characters 6-7:
+    File "lattice_time_interval_reject.tpe", line 25, characters 6-7:
     25 |   let s = perform StartTiltRead () in
                ^
     `s` is bound here
     Note: the resource inequality `([0, 0], Quiet) <= ([0.5, 2], Quiet)` does not hold
   
-  File "levels_time_interval_reject.tpe", lines 34-35, characters 2-3:
+  File "lattice_time_interval_reject.tpe", lines 34-35, characters 2-3:
   34 |   unbox s as x in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `s` is unboxed with grade `([1, 3], Quiet)` accumulated since it was bound, which is not below its box grade `([0.5, 2], Quiet)`
-    File "levels_time_interval_reject.tpe", line 31, characters 6-7:
+    File "lattice_time_interval_reject.tpe", line 31, characters 6-7:
     31 |   let s = perform StartTiltRead () in
                ^
     `s` is bound here
-    File "levels_time_interval_reject.tpe", line 32, characters 10-30:
+    File "lattice_time_interval_reject.tpe", line 32, characters 10-30:
     32 |   let _ = perform ReadSpeed () in
                    ^^^^^^^^^^^^^^^^^^^^
     grade `([0.5, 1.5], Quiet)` accumulates here (operation `ReadSpeed`)
-    File "levels_time_interval_reject.tpe", line 33, characters 10-30:
+    File "lattice_time_interval_reject.tpe", line 33, characters 10-30:
     33 |   let _ = perform ReadSpeed () in
                    ^^^^^^^^^^^^^^^^^^^^
     grade `([0.5, 1.5], Quiet)` accumulates here (operation `ReadSpeed`)
     Note: the resource inequality `([1, 3], Quiet) <= ([0.5, 2], Quiet)` does not hold
   
-  File "levels_time_interval_reject.tpe", lines 38-40, characters 16-22:
+  File "lattice_time_interval_reject.tpe", lines 38-40, characters 16-22:
   38 | let open_end () : nat ! ((0.5, 1.6), Quiet) =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `((0.5, 1.6], Quiet)`, which does not match its annotated grade `((0.5, 1.6), Quiet)`
     Note: the effect inequality `((0.5, 1.6], Quiet) <= ((0.5, 1.6), Quiet)` does not hold
   ======================================================================
-  levels_time_lower.tpe
+  lattice_time_lower.tpe
   ======================================================================
   === Run 1 ===
   return "report"
@@ -1758,41 +1747,41 @@ it names none:
   ]
   
   ======================================================================
-  levels_time_lower_reject.tpe
+  lattice_time_lower_reject.tpe
   ======================================================================
-  File "levels_time_lower_reject.tpe", lines 17-18, characters 2-3:
+  File "lattice_time_lower_reject.tpe", lines 17-18, characters 2-3:
   17 |   unbox r as y in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `(2, Low)` accumulated since it was bound, which is not below its box grade `(3, Low)`
-    File "levels_time_lower_reject.tpe", line 15, characters 27-28:
+    File "lattice_time_lower_reject.tpe", line 15, characters 27-28:
     15 |   box (3, Low) "report" as r in
                                     ^
     `r` is bound here
-    File "levels_time_lower_reject.tpe", line 16, characters 2-9:
+    File "lattice_time_lower_reject.tpe", line 16, characters 2-9:
     16 |   delay 2;
            ^^^^^^^
     grade `(2, Low)` accumulates here (delay)
     Note: the resource inequality `(2, Low) ≾ (3, Low)` does not hold
   
-  File "levels_time_lower_reject.tpe", lines 25-26, characters 2-3:
+  File "lattice_time_lower_reject.tpe", lines 25-26, characters 2-3:
   25 |   unbox r as y in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `(3, High)` accumulated since it was bound, which is not below its box grade `(3, Low)`
-    File "levels_time_lower_reject.tpe", line 22, characters 27-28:
+    File "lattice_time_lower_reject.tpe", line 22, characters 27-28:
     22 |   box (3, Low) "report" as r in
                                     ^
     `r` is bound here
-    File "levels_time_lower_reject.tpe", line 23, characters 2-24:
+    File "lattice_time_lower_reject.tpe", line 23, characters 2-24:
     23 |   perform Publish "news";
            ^^^^^^^^^^^^^^^^^^^^^^
     grade `(1, High)` accumulates here (operation `Publish`)
-    File "levels_time_lower_reject.tpe", line 24, characters 2-9:
+    File "lattice_time_lower_reject.tpe", line 24, characters 2-9:
     24 |   delay 2;
            ^^^^^^^
     grade `(2, Low)` accumulates here (delay)
     Note: the resource inequality `(3, High) ≾ (3, Low)` does not hold
   ======================================================================
-  levels_time_upper.tpe
+  lattice_time_upper.tpe
   ======================================================================
   === Run 1 ===
   return "token"
@@ -1818,35 +1807,46 @@ it names none:
   ]
   
   ======================================================================
-  levels_time_upper_reject.tpe
+  lattice_time_upper_reject.tpe
   ======================================================================
-  File "levels_time_upper_reject.tpe", lines 17-18, characters 2-3:
+  File "lattice_time_upper_reject.tpe", lines 17-18, characters 2-3:
   17 |   unbox c as t in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `(6, Low)` accumulated since it was bound, which is not below its box grade `(5, Low)`
-    File "levels_time_upper_reject.tpe", line 15, characters 26-27:
+    File "lattice_time_upper_reject.tpe", line 15, characters 26-27:
     15 |   box (5, Low) "token" as c in
                                    ^
     `c` is bound here
-    File "levels_time_upper_reject.tpe", line 16, characters 2-9:
+    File "lattice_time_upper_reject.tpe", line 16, characters 2-9:
     16 |   delay 6;
            ^^^^^^^
     grade `(6, Low)` accumulates here (delay)
     Note: the resource inequality `(6, Low) <= (5, Low)` does not hold
   
-  File "levels_time_upper_reject.tpe", lines 24-25, characters 2-3:
+  File "lattice_time_upper_reject.tpe", lines 24-25, characters 2-3:
   24 |   unbox c as t in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(5, Low)`
-    File "levels_time_upper_reject.tpe", line 22, characters 26-27:
+    File "lattice_time_upper_reject.tpe", line 22, characters 26-27:
     22 |   box (5, Low) "token" as c in
                                    ^
     `c` is bound here
-    File "levels_time_upper_reject.tpe", line 23, characters 2-23:
+    File "lattice_time_upper_reject.tpe", line 23, characters 2-23:
     23 |   perform Leak "secret";
            ^^^^^^^^^^^^^^^^^^^^^
     grade `(1, High)` accumulates here (operation `Leak`)
     Note: the resource inequality `(1, High) <= (5, Low)` does not hold
+  ======================================================================
+  less_than_function.tpe
+  ======================================================================
+  File "less_than_function.tpe", line 1, characters 17-18:
+  1 | run (fun x -> x) < (fun x -> 2 * x)
+                       ^
+  Typing error: Type `α → β ! ε₀` is not eternal, as required by the type of `(<)`
+    File "stdlib.tpe", line 2, characters 0-37:
+    2 | let ( < ) x y = __compare_lt__ (x, y)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `(<)` is defined here
   ======================================================================
   lexer.tpe
   ======================================================================
@@ -2137,7 +2137,7 @@ it names none:
   File "literals_reject_component.tpe", line 8, characters 19-30:
   8 | let claim () = box (3, Medium) 1
                          ^^^^^^^^^^^
-  Syntax error: In the `time-lower-bound-levels` grading monoid, in the second component (`security-levels`), unknown level `Medium`; the levels are `Low` and `High`
+  Syntax error: In the `time-lower-bound-lattice` grading monoid, in the second component (`lattice`), unknown element `Medium` of the grade lattice; its elements are `Low` and `High`
   ======================================================================
   literals_reject_counts.tpe
   ======================================================================
@@ -2158,7 +2158,7 @@ it names none:
   File "literals_reject_flow.tpe", line 7, characters 19-54:
   7 | let claim () = box (High, (Board, Low), (Board, High)) 1
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Syntax error: In the `flow-levels` grading monoid, the output `Board` is listed twice
+  Syntax error: In the `flow-lattice` grading monoid, the output `Board` is listed twice
   ======================================================================
   literals_reject_fraction.tpe
   ======================================================================
@@ -2277,7 +2277,7 @@ it names none:
   File "literals_reject_name.tpe", line 3, characters 19-22:
   3 | let claim () = box Low 1
                          ^^^
-  Syntax error: In the `time-lower-bound` grading monoid, grades are plain integers, not names such as `Low`; did you mean to use one of the `security-levels` or `flow-levels` grading monoids?
+  Syntax error: In the `time-lower-bound` grading monoid, grades are plain integers, not names such as `Low`; did you mean to use one of the `lattice` or `flow-lattice` grading monoids?
   ======================================================================
   literals_reject_negative.tpe
   ======================================================================
@@ -3730,7 +3730,7 @@ it names none:
   ]
   
   ======================================================================
-  recursion_effect_levels.tpe
+  recursion_effect_lattice.tpe
   ======================================================================
   === Run 1 ===
   return 3
@@ -8662,12 +8662,12 @@ single-dash form of the help option is not accepted.
               expressions with interval letters; inclusion by partial derivatives with a stretch reader, breadth-first
           regex-timed-rigid-interval-rational-symbolic    Intervals (rational, symbolic)
               expressions with interval letters; inclusion by partial derivatives with a stretch reader, breadth-first
-        Security levels:
-          security-levels                                 Security levels
-          time-lower-bound-levels                         Embargoes
-          time-upper-bound-levels                         Expiring capabilities
-          time-interval-levels                            Timed levels
-          flow-levels                                     Flow-sensitive outputs
+        Grade lattices:
+          lattice                                         Grade lattice
+          time-lower-bound-lattice                        Embargoes
+          time-upper-bound-lattice                        Expiring capabilities
+          time-interval-lattice                           Timed lattice
+          flow-lattice                                    Flow-sensitive outputs
         Semidirect products:
           resource-levels                                 Resource levels
           windowed-schedules                              Windowed schedules

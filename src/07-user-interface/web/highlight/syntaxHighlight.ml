@@ -144,12 +144,25 @@ let tokens s =
         incr i
       done;
       let tok = String.sub s start (!i - start) in
-      (* [levels] is a keyword only where it opens a declaration of levels,
-         taken to be at the start of a line. *)
+      (* [grade lattice] is a keyword only where it opens a declaration of the
+         grade lattice, taken to be at the start of a line. *)
+      let line_start k = k = 0 || s.[k - 1] = '\n' in
+      let opens_declaration =
+        let first = "grade " and second = "lattice" in
+        let lf = String.length first and ls = String.length second in
+        let at k =
+          line_start k
+          && k + lf + ls <= n
+          && String.sub s k (lf + ls) = first ^ second
+          && not (k + lf + ls < n && is_ident_char s.[k + lf + ls])
+        in
+        (tok = "grade" && at start)
+        || (tok = "lattice" && start >= lf && at (start - lf))
+      in
       if
         List.mem tok keywords
         || (!brace_depth > 0 && List.mem tok brace_keywords)
-        || (tok = "levels" && (start = 0 || s.[start - 1] = '\n'))
+        || opens_declaration
       then begin
         emit start !i (Some "syn-kw");
         (match tok with

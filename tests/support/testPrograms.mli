@@ -7,14 +7,14 @@ val tpe_files : ?recursive:bool -> string -> string list
     within each directory. *)
 
 val grade_module :
-  ?levels:Grades.LevelLattice.t -> string -> (module Grades.Grade.S)
-(** [grade_module ?levels name] is the registered grade named [name], over the
-    lattice of levels [levels] if given and if it is built on levels.
+  ?lattice:Grades.GradeLattice.t -> string -> (module Grades.Grade.S)
+(** [grade_module ?lattice name] is the registered grade named [name], over the
+    grade lattice [lattice] if given and if it is built on a grade lattice.
     @raise Failure if there is none. *)
 
-val levels_of_file : string -> Grades.LevelLattice.t option
-(** [levels_of_file path] is the lattice of levels the file at [path] declares,
-    if it declares a lattice; the parser reports a malformed declaration. *)
+val lattice_of_file : string -> Grades.GradeLattice.t option
+(** [lattice_of_file path] is the grade lattice the file at [path] declares, if
+    it declares a lattice; the parser reports a malformed declaration. *)
 
 val packages :
   grades:string ->

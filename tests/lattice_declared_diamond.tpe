@@ -1,0 +1,37 @@
+(* Run this test with the 'flow-lattice' grading monoid, e.g.
+
+     ./tempore --grades flow-lattice tests/lattice_declared_diamond.tpe
+
+   A declared grade lattice, a diamond: Team and Partner are incomparable, and their
+   join is Confidential. *)
+
+grade lattice Public < Team < Confidential, Public < Partner < Confidential
+
+operation ReadTeam : unit ~> nat ! Team
+operation ReadPartner : unit ~> nat ! Partner
+operation Post : nat ~> unit ! (Public, (Board, Public))
+
+default ReadTeam () = 1
+default ReadPartner () = 2
+default Post n = ()
+
+(* Accepted: reading both touches the join of Team and Partner. *)
+let both () : nat ! Confidential =
+  let a = perform ReadTeam () in
+  let b = perform ReadPartner () in
+  a + b
+
+(* Accepted: a post after reading the team's data is written at Team. *)
+let post_team () : unit ! (Team, (Board, Team)) =
+  let a = perform ReadTeam () in
+  perform Post a
+
+(* Accepted: a post before any read is written at Public. *)
+let post_first () : unit ! (Partner, (Board, Public)) =
+  perform Post 0;
+  let _ = perform ReadPartner () in
+  ()
+
+run both ()
+run post_team ()
+run post_first ()

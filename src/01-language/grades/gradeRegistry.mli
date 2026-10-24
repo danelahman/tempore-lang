@@ -8,34 +8,34 @@ val grade_modules : (string * (module Grade.S)) list
 val default_name : string
 (** The name of the default grade, the first of {!grade_modules}. *)
 
-val accepting : ?levels:LevelLattice.t -> Grade.lit -> string list
-(** [accepting ?levels lit] lists the names of the grades shown {!Everywhere}
+val accepting : ?lattice:GradeLattice.t -> Grade.lit -> string list
+(** [accepting ?lattice lit] lists the names of the grades shown {!Everywhere}
     that understand the literal [lit] ({!Grade.S.accepts}), in the order of
-    {!grade_modules}. With a lattice [levels], only the grades built on levels
-    are considered, over it. *)
+    {!grade_modules}. With a grade lattice [lattice], only the grades built on a
+    grade lattice are considered, over it. *)
 
-val accepting_delay : ?levels:LevelLattice.t -> Grade.lit -> string list
-(** [accepting_delay ?levels lit] lists the names of the grades shown
+val accepting_delay : ?lattice:GradeLattice.t -> Grade.lit -> string list
+(** [accepting_delay ?lattice lit] lists the names of the grades shown
     {!Everywhere} whose delays read the literal [lit] ({!Delay.S.read}), in the
     order of {!grade_modules}, considered as by {!accepting}. *)
 
-val accepting_bounds : ?levels:LevelLattice.t -> Grade.lit -> string list
-(** [accepting_bounds ?levels lit] lists the names of the grades shown
+val accepting_bounds : ?lattice:GradeLattice.t -> Grade.lit -> string list
+(** [accepting_bounds ?lattice lit] lists the names of the grades shown
     {!Everywhere} that read running-time bounds ({!Grade.S.needs_op_bounds}) and
     whose delays read the literal [lit], in the order of {!grade_modules},
     considered as by {!accepting}. *)
 
-val over_levels : string -> LevelLattice.t -> (module Grade.S) option
-(** [over_levels name lattice] is the grade [name] of {!grade_modules} built
-    over the lattice of levels [lattice], if it is built on levels. *)
+val over_lattice : string -> GradeLattice.t -> (module Grade.S) option
+(** [over_lattice name lattice] is the grade [name] of {!grade_modules} built
+    over the grade lattice [lattice], if it is built on a grade lattice. *)
 
-val uses_levels : string -> bool
-(** [uses_levels name] is whether the grade [name] of {!grade_modules} is built
-    on levels. *)
+val uses_lattice : string -> bool
+(** [uses_lattice name] is whether the grade [name] of {!grade_modules} is built
+    on a grade lattice. *)
 
-val without_levels : string -> string
-(** [without_levels name] is the diagnostic of a declaration of levels under the
-    grade [name], which is not built on levels. *)
+val without_lattice : string -> string
+(** [without_lattice name] is the diagnostic of a declaration of a grade lattice
+    under the grade [name], which is not built on a grade lattice. *)
 
 (** Where a grade is offered. *)
 type visibility =

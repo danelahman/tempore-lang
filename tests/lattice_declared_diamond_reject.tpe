@@ -1,0 +1,25 @@
+(* Run this test with the 'flow-lattice' grading monoid, e.g.
+
+     ./tempore --grades flow-lattice tests/lattice_declared_diamond_reject.tpe
+
+   A declared grade lattice, a diamond: rejected annotations. *)
+
+grade lattice Public < Team < Confidential, Public < Partner < Confidential
+
+operation ReadTeam : unit ~> nat ! Team
+operation ReadPartner : unit ~> nat ! Partner
+operation Post : nat ~> unit ! (Public, (Board, Public))
+
+default ReadTeam () = 1
+default ReadPartner () = 2
+default Post n = ()
+
+(* Rejected: Partner is not below Team. *)
+let partner_as_team () : nat ! Team = perform ReadPartner ()
+
+(* Rejected: the post after both reads is written at Confidential, which is
+   not below Partner. *)
+let post_partner () : unit ! (Confidential, (Board, Partner)) =
+  let a = perform ReadTeam () in
+  let b = perform ReadPartner () in
+  perform Post (a + b)

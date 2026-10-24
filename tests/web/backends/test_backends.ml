@@ -616,9 +616,9 @@ let () =
       "unbox got";
     ]
 
-(* Under the security levels the delays are unit grades. *)
+(* Under the grade lattice the delays are unit grades. *)
 let () =
-  check_boxes "security-levels" "security-levels"
+  check_boxes "lattice" "lattice"
     {|operation Read : unit ~> nat ! Low
 default Read () = delay 1; 7
 

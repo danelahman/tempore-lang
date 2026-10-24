@@ -1,8 +1,8 @@
-(* Run this test with the 'time-lower-bound-levels' grading monoid, e.g.
+(* Run this test with the 'time-lower-bound-lattice' grading monoid, e.g.
 
-     ./tempore --grades time-lower-bound-levels \
+     ./tempore --grades time-lower-bound-lattice \
        tests/literals_reject_component.tpe
 
-   Rejected: Medium is no security level. *)
+   Rejected: Medium is no element of the grade lattice. *)
 
 let claim () = box (3, Medium) 1

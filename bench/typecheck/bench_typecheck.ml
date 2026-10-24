@@ -25,7 +25,7 @@ let in_child ~packages path grades =
       ignore (Unix.alarm time_limit);
       let (module P) =
         SolvePrograms.programs_of
-          ?levels:(TestPrograms.levels_of_file path)
+          ?lattice:(TestPrograms.lattice_of_file path)
           grades
       in
       ignore (P.definitions "");

@@ -2096,7 +2096,7 @@ let view_gallery_head ~selected query =
           ([
              class_ "example-gallery-search";
              attr "placeholder"
-               "Search examples, e.g. release, levels, handlers, regex";
+               "Search examples, e.g. release, lattice, handlers, regex";
              attr "aria-label" "Search examples";
              str_prop "value" query;
              oninput (fun query -> Model.SearchGallery query);

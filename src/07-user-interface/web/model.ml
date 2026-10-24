@@ -888,15 +888,15 @@ let rec make_run_state : type run_state.
   }
 
 (* The program of [edit_model] loaded under the grades [G], in a program
-   declaring the lattice of levels [levels], after the declarations [declared]:
+   declaring the grade lattice [lattice], after the declarations [declared]:
    the program loaded, or else the errors reported
    and what the check has found. *)
-let check_with (module G : Grades.Grade.S) levels edit_model declared =
+let check_with (module G : Grades.Grade.S) lattice edit_model declared =
   let module B =
     WebInterpreter.Make
       (Grades.GradeSystem.Declaring
          (struct
-           let levels = levels
+           let lattice = lattice
          end)
          (G)) in
   let module L = Loader.Loader (B) in
@@ -969,7 +969,7 @@ let failed declared errors =
   (errors, { definitions = []; links = []; accepted = None; declared })
 
 (* The program of [edit_model] checked under the grades selected, over the
-   levels the program declares, after the declarations [declared] of the
+   grade lattice the program declares, after the declarations [declared] of the
    selected backend; an exception raised meanwhile is reported as an error. *)
 let check_program edit_model declared =
   match
@@ -984,14 +984,14 @@ let check_program edit_model declared =
            ])
   | Some _ -> (
       try
-        let grades, levels =
+        let grades, lattice =
           Loader.grades_of_sources ~grades:edit_model.selected_grades
             (List.map
                (fun (d : BackendRegistry.source) -> (d.filename, d.text))
                declared
             @ [ ("", edit_model.unparsed_code) ])
         in
-        check_with grades levels edit_model declared
+        check_with grades lattice edit_model declared
       with exn -> Error (failed declared (errors_of_exception Checking exn)))
 
 (* The program of [edit_model] checked as by [check_program], the check of

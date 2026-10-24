@@ -149,9 +149,9 @@ Nested handlers: their continuations are not shown.
   Run 1 returned 7 at 4.
   
 
-Channels boxed at security levels, whose delays are unit grades.
+Channels boxed in the grade lattice Low < High, whose delays are unit grades.
 
-  $ ../tempore --grades security-levels --timeline ../examples/levels/security.tpe
+  $ ../tempore --grades lattice --timeline ../examples/lattice/security.tpe
   === Run 1 ===
   return "weather: sunny"
   State: [

@@ -12,9 +12,9 @@ module type S = sig
   (** The grade morphism [∣_∣]: monotone, and preserving the unit, the product,
       the top, joins and delays: [map (E.of_delay d) = R.of_delay d]. *)
 
-  val levels : LevelLattice.t option
-  (** The lattice of levels the program declares, over which the level grades
-      are built; [None] where it declares none. *)
+  val lattice : GradeLattice.t option
+  (** The grade lattice the program declares, over which the lattice grades are
+      built; [None] where it declares none. *)
 
   val unit_reflecting : bool
   (** Whether [map] reflects the order at the unit: [∣e∣ ≾ one] implies
@@ -33,27 +33,27 @@ module type S = sig
 end
 
 (** The grade system in which effects and resources are graded alike by [G],
-    [map] being the identity, in a program declaring the lattice of levels
-    [L.levels]. *)
+    [map] being the identity, in a program declaring the grade lattice
+    [L.lattice]. *)
 module Declaring
     (L : sig
-      val levels : LevelLattice.t option
+      val lattice : GradeLattice.t option
     end)
     (G : Grade.S) : S with module R = G and module E = G = struct
   module R = G
   module E = G
 
   let map c = c
-  let levels = L.levels
+  let lattice = L.lattice
   let unit_reflecting = true
   let witnesses ~degree bounds rcs ecs = G.witnesses ~degree bounds (rcs @ ecs)
 end
 
 (** The grade system in which effects and resources are graded alike by [G],
-    [map] being the identity, in a program declaring no levels. *)
+    [map] being the identity, in a program declaring no grade lattice. *)
 module Identity (G : Grade.S) : S with module R = G and module E = G =
   Declaring
     (struct
-      let levels = None
+      let lattice = None
     end)
     (G)

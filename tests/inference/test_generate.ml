@@ -48,7 +48,7 @@ let malformed =
     "shadow_type.tpe";
     "time_reject_within.tpe";
     "rational_time_intervals_reject_within.tpe";
-    "levels_reject_literal.tpe";
+    "lattice_reject_literal.tpe";
     "literals_reject_complement.tpe";
     "literals_reject_component.tpe";
     "literals_reject_counts.tpe";
@@ -119,7 +119,7 @@ let malformed =
 
 module Program
     (L : sig
-      val levels : Grades.LevelLattice.t option
+      val lattice : Grades.GradeLattice.t option
     end)
     (G : Grade.S) =
 struct
@@ -243,12 +243,12 @@ end
 let check_file ?packages path grades =
   let name = Filename.basename path in
   let expect_errors = List.mem name malformed in
-  let levels = TestPrograms.levels_of_file path in
-  let (module G) = TestPrograms.grade_module ?levels grades in
+  let lattice = TestPrograms.lattice_of_file path in
+  let (module G) = TestPrograms.grade_module ?lattice grades in
   let module P =
     Program
       (struct
-        let levels = levels
+        let lattice = lattice
       end)
       (G)
   in

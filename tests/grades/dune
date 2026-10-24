@@ -1,4 +1,4 @@
-; Unit tests of the grades: the security levels, the products of grades, the
+; Unit tests of the grades: the grade lattices, the products of grades, the
 ; literals of every grade, the four implementations of the regular trace grade,
 ; by automata and by three kinds of derivatives, the regular trace grades of
 ; timed operations with their closures, the sets of delays, the timed regular
