@@ -205,9 +205,9 @@ tau'` the grade of `delay (tau + tau')`
 
 `tau` is a non-negative integer or rational fraction, depending on the
 grade. The grades whose names end in `-rational` or `-rational-symbolic`,
-`security-levels`, `taint` and `flow-levels` have the non-negative rationals as
-delays and accept any, such as `delay 1/3` or `delay 0.25`; the other monoids
-count whole time steps and accept only integers.
+`security-levels` and `flow-levels` have the non-negative rationals as delays
+and accept any, such as `delay 1/3` or `delay 0.25`; the other monoids count
+whole time steps and accept only integers.
 See [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
 
 ## Grading monoids
@@ -994,16 +994,6 @@ In this category, we have the following grading monoids:
 
       Variable `t` is unboxed with grade `(1, High)` accumulated since it was
       bound, which is not below its box grade `(5, Low)`
-
-- `taint`: the two-point lattice `Untainted < Tainted`, for taint tracking: a
-  computation at `Tainted` may have processed untrusted input. It is
-  `security-levels` with the levels renamed.
-
-- `time-upper-bound-taint`: pairs `(n, l)`, at most `n` ticks and nothing above
-  taint level `l`; `(5, Untainted)` is a reading usable for five ticks unless
-  untrusted input is processed. This is a direct product of the time upper
-  bounds and taint grades; see
-  [`examples/levels/taint.tpe`](examples/levels/taint.tpe).
 
 - `flow-levels`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above `l` touched
   and each output `Sᵢ` written at most at the level `lᵢ` touched before it; `l`

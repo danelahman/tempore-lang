@@ -539,16 +539,6 @@ let entries =
       "A time upper bound paired with a security level: at most n time steps, \
        touching nothing above the level.";
     entry
-      (module LevelGrades.Taint)
-      security "Taint"
-      "The two-point lattice Untainted < Tainted; a box is out of reach once a \
-       computation that may have processed untrusted input has run.";
-    entry
-      (module LevelGrades.TimeUpperBoundTaint)
-      security "Expiring untainted capabilities"
-      "A time upper bound paired with a taint level: at most n time steps, \
-       touching nothing above the level.";
-    entry
       (module LevelGrades.FlowLevels)
       security "Flow-sensitive outputs"
       "A security level paired with the level at which each output is written; \

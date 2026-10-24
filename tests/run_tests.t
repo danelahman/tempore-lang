@@ -789,7 +789,7 @@ it names none:
   File "delay_reject_fraction.tpe", line 8, characters 20-23:
   8 | let wait () = delay 0.5
                           ^^^
-  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `security-levels`, `taint`, `flow-levels`, `mode-times` or `event-separation` grading monoids?
+  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `security-levels`, `flow-levels`, `mode-times` or `event-separation` grading monoids?
   ======================================================================
   delay_reject_negative.tpe
   ======================================================================
@@ -5034,61 +5034,6 @@ it names none:
               ^^^^^^^^^
   Syntax error: Unknown name `undefined`
   ======================================================================
-  taint_reject_literal.tpe
-  ======================================================================
-  File "taint_reject_literal.tpe", line 7, characters 19-22:
-  7 | let claim () = box Low 1
-                         ^^^
-  Syntax error: In the `taint` grading monoid, unknown level `Low`; the levels are `Untainted` and `Tainted`; did you mean to use one of the `security-levels` or `flow-levels` grading monoids?
-  ======================================================================
-  taint_time_upper.tpe
-  ======================================================================
-  === Run 1 ===
-  return 7
-  State: [
-    { resource_0 ↦ 7 ! (5, Untainted) },
-    (1, Untainted),
-    (3, Untainted)
-  ]
-  
-  === Run 2 ===
-  return 7
-  State: [
-    { resource_0 ↦ 7 ! (5, Tainted) },
-    (1, Untainted)
-  ]
-  
-  ======================================================================
-  taint_time_upper_reject.tpe
-  ======================================================================
-  File "taint_time_upper_reject.tpe", lines 17-18, characters 2-3:
-  17 |   unbox r as v in
-         ^^^^^^^^^^^^^^^
-  Typing error: Variable `r` is unboxed with grade `(6, Untainted)` accumulated since it was bound, which is not below its box grade `(5, Untainted)`
-    File "taint_time_upper_reject.tpe", line 15, characters 26-27:
-    15 |   box (5, Untainted) 7 as r in
-                                   ^
-    `r` is bound here
-    File "taint_time_upper_reject.tpe", line 16, characters 2-9:
-    16 |   delay 6;
-           ^^^^^^^
-    grade `(6, Untainted)` accumulates here (delay)
-    Note: the resource inequality `(6, Untainted) <= (5, Untainted)` does not hold
-  
-  File "taint_time_upper_reject.tpe", lines 24-25, characters 2-3:
-  24 |   unbox r as v in
-         ^^^^^^^^^^^^^^^
-  Typing error: Variable `r` is unboxed with grade `(1, Tainted)` accumulated since it was bound, which is not below its box grade `(5, Untainted)`
-    File "taint_time_upper_reject.tpe", line 22, characters 25-26:
-    22 |   box (5,Untainted) 7 as r in
-                                  ^
-    `r` is bound here
-    File "taint_time_upper_reject.tpe", line 23, characters 10-28:
-    23 |   let _ = perform Receive () in
-                   ^^^^^^^^^^^^^^^^^^
-    grade `(1, Tainted)` accumulates here (operation `Receive`)
-    Note: the resource inequality `(1, Tainted) <= (5, Untainted)` does not hold
-  ======================================================================
   termination.tpe
   ======================================================================
   === Run 1 ===
@@ -8549,8 +8494,6 @@ single-dash form of the help option is not accepted.
           security-levels                                 Levels
           time-lower-bound-levels                         Embargoes
           time-upper-bound-levels                         Expiring capabilities
-          taint                                           Taint
-          time-upper-bound-taint                          Expiring untainted capabilities
           flow-levels                                     Flow-sensitive outputs
         Semidirect products:
           resource-levels                                 Resource levels

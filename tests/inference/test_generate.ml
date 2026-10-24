@@ -49,7 +49,6 @@ let malformed =
     "time_reject_within.tpe";
     "rational_time_intervals_reject_within.tpe";
     "levels_reject_literal.tpe";
-    "taint_reject_literal.tpe";
     "literals_reject_complement.tpe";
     "literals_reject_component.tpe";
     "literals_reject_counts.tpe";
