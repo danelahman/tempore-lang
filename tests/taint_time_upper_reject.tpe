@@ -1,0 +1,25 @@
+(* Run this test with the 'time-upper-bound-taint' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound-taint \
+       tests/taint_time_upper_reject.tpe
+
+   Time upper bounds paired with taint levels: rejected uses of an expiring
+   reading. *)
+
+operation Receive : unit ~> nat ! (1, Tainted)
+
+default Receive () = delay 1; 0
+
+(* Rejected: used after six ticks, once the reading has expired. *)
+let use_expired () =
+  box (5, Untainted) 7 as r in
+  delay 6;
+  unbox r as v in
+  v
+
+(* Rejected: used in time, but after untrusted input was processed. *)
+let use_after_receive () =
+  box (5,Untainted) 7 as r in
+  let _ = perform Receive () in
+  unbox r as v in
+  v

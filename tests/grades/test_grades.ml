@@ -294,6 +294,8 @@ let mode_switch_costs =
 let mode_times = (module Grades.ModeTimeGrades.ModeTimes : Grade.S)
 let time_lower_levels = (module TimeLevels : Grade.S)
 let time_upper_levels = (module UpperLevels : Grade.S)
+let taint = (module LevelGrades.Taint : Grade.S)
+let time_upper_taint = (module LevelGrades.TimeUpperBoundTaint : Grade.S)
 
 let literals =
   let open Grade in
@@ -1067,6 +1069,17 @@ let literals =
     rejects "second component" time_upper_levels (lit_of_pair 3 "Medium")
       "in the second component (`security-levels`), unknown level";
     rejects "integer" time_lower_levels (Int 3) "grades are pairs";
+    reads "taint level" taint (Name "Tainted") "Tainted";
+    reads "top" taint Top "Tainted";
+    rejects "security level" taint (Name "Low")
+      "unknown level `Low`; the levels are `Untainted` and `Tainted`";
+    rejects "integer" taint (Int 0)
+      "grades are the levels `Untainted` and `Tainted`, not plain integers";
+    reads "pair" time_upper_taint (lit_of_pair 5 "Untainted") "(5, Untainted)";
+    reads "top" time_upper_taint Top "(∞, Tainted)";
+    rejects "second component" time_upper_taint (lit_of_pair 3 "High")
+      "in the second component (`taint`), unknown level `High`; the levels are \
+       `Untainted` and `Tainted`";
     rejects "triple" time_lower_levels
       (Tuple [ Int 3; Name "Low"; Int 1 ])
       "not tuples";
@@ -1130,6 +1143,13 @@ let registry =
     expect "registry: grades reading a pair of a time and a level" show_names
       ~expected:[ "time-lower-bound-levels"; "time-upper-bound-levels" ]
       (GradeRegistry.accepting (lit_of_pair 3 "High"));
+    expect "registry: grades reading a taint level" show_names
+      ~expected:[ "taint" ]
+      (GradeRegistry.accepting (Grade.Name "Tainted"));
+    expect "registry: grades reading a pair of a time and a taint level"
+      show_names
+      ~expected:[ "time-upper-bound-taint" ]
+      (GradeRegistry.accepting (lit_of_pair 3 "Untainted"));
     expect "registry: grades reading an open interval" show_names
       ~expected:
         [
@@ -1271,6 +1291,7 @@ let registry =
           "regex-timed-rigid-upper-bound-rational-symbolic";
           "regex-timed-rigid-interval-rational-symbolic";
           "security-levels";
+          "taint";
           "flow-levels";
           "mode-times";
           "event-separation";
@@ -1792,8 +1813,8 @@ type family =
   | Regex
   | Rational_regex
   | Rational_regex_timed
-  | Levels
-  | Timed_levels
+  | Levels of (string * string)
+  | Timed_levels of (string * string)
   | Flow
   | Resources
   | Schedules
@@ -1802,12 +1823,20 @@ type family =
   | Counts
   | Separation
 
+(* The names of the two levels, below and above, of the security levels and of
+   the taint levels. *)
+let security_names = ("Low", "High")
+let taint_names = ("Untainted", "Tainted")
+
 (* [family name] is the family of the registered grade [name], if known. *)
 let family name =
   let prefix p = String.starts_with ~prefix:p name in
   match name with
-  | "security-levels" -> Some Levels
-  | "time-lower-bound-levels" | "time-upper-bound-levels" -> Some Timed_levels
+  | "security-levels" -> Some (Levels security_names)
+  | "taint" -> Some (Levels taint_names)
+  | "time-lower-bound-levels" | "time-upper-bound-levels" ->
+      Some (Timed_levels security_names)
+  | "time-upper-bound-taint" -> Some (Timed_levels taint_names)
   | "flow-levels" -> Some Flow
   | "resource-levels" -> Some Resources
   | "windowed-schedules" -> Some Schedules
@@ -2019,14 +2048,14 @@ let cover =
           span (Braces (Tick 0)) Inf;
         ]
       else []
-  | Levels -> [ level "Low"; level "High" ]
-  | Timed_levels ->
+  | Levels (low, high) -> [ level low; level high ]
+  | Timed_levels (low, high) ->
       [
-        pair (Int 3) (level "High");
-        pair (Int 1) (level "Low");
-        pair Inf (level "Low");
+        pair (Int 3) (level high);
+        pair (Int 1) (level low);
+        pair Inf (level low);
         pair (Int 2) Top;
-        pair Top (level "Low");
+        pair Top (level low);
       ]
   | Flow ->
       [
@@ -2210,7 +2239,8 @@ let random family st =
     | 2 -> Seq (fractional (depth - 1), fractional (depth - 1))
     | _ -> Union (fractional (depth - 1), fractional (depth - 1))
   in
-  let level () = Name (pick st [ "Low"; "High" ]) in
+  let level_of (low, high) = Name (pick st [ low; high ]) in
+  let level () = level_of security_names in
   let entries names component =
     match List.filter (fun _ -> Random.State.bool st) names with
     | [] -> component ()
@@ -2249,8 +2279,9 @@ let random family st =
   | Rational_regex_timed ->
       if int 4 > 0 then Braces (timed 2)
       else closed (Braces (timed 2)) (Braces (timed 2))
-  | Levels -> level ()
-  | Timed_levels -> pair (pick st [ Int (int 5); Inf; Top ]) (level ())
+  | Levels names -> level_of names
+  | Timed_levels names ->
+      pair (pick st [ Int (int 5); Inf; Top ]) (level_of names)
   | Flow -> (
       match
         List.filter_map

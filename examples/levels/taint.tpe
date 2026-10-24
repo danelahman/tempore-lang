@@ -1,0 +1,58 @@
+(* A sensor reading acted on within five ticks, before any untrusted input.
+
+   Run this example with the 'time-upper-bound-taint' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound-taint examples/levels/taint.tpe
+
+   Grades (n, l): at most n ticks (time steps), touching nothing above level l
+     - Unit (0, Untainted): no time spent, no untrusted input processed
+     - Top (∞, Tainted): unbounded time, whatever input is processed
+     - Product: addition and join, componentwise *)
+
+type reading = Reading of nat
+
+(* Reading the sensor takes at most a tick and yields a reading that is usable
+   for five. *)
+operation Sense : unit ~> [(5, Untainted)] reading ! (1, Untainted)
+default Sense () = delay 1; box (5, Untainted) (Reading 3)
+
+(* Reading the wheel speed takes at most a tick. *)
+operation ReadSpeed : unit ~> nat ! (1, Untainted)
+default ReadSpeed () = delay 1; 0
+
+(* Receiving a message over the radio takes at most a tick and processes
+   untrusted input. *)
+operation Receive : unit ~> nat ! (1, Tainted)
+default Receive () = delay 1; 0
+
+(* Driving takes at most two ticks. *)
+operation Drive : nat ~> unit ! (2, Untainted)
+default Drive _ = delay 2
+
+(* Correctly accepted by the typechecker: the speed is read and the reading
+   acted on within its five ticks, with no untrusted input in between. *)
+let act_in_time () =
+  let r = perform Sense () in
+  let _ = perform ReadSpeed () in
+  unbox r as reading in
+  match reading with Reading v -> perform Drive v
+
+(* Correctly rejected by the typechecker: a message received after the
+   reading revokes it:
+
+     Typing error: Variable `r` is unboxed with grade `(1, Tainted)`
+       accumulated since it was bound, which is not below its box grade
+       `(5, Untainted)`
+       ...
+       Note: the resource inequality `(1, Tainted) <= (5, Untainted)` does
+       not hold
+*)
+(*
+let act_after_receive () =
+  let r = perform Sense () in
+  let _ = perform Receive () in
+  unbox r as reading in
+  match reading with Reading v -> perform Drive v
+*)
+
+run act_in_time ()

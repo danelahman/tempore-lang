@@ -147,6 +147,7 @@ let expected_rejections =
     ("tests/levels_reject.tpe", [ 12 ]);
     ("tests/levels_time_lower_reject.tpe", [ 14; 21 ]);
     ("tests/levels_time_upper_reject.tpe", [ 14; 21 ]);
+    ("tests/taint_time_upper_reject.tpe", [ 14; 21 ]);
     ("tests/list_constructor_reject.tpe", [ 3 ]);
     ("tests/malformed_type_application.tpe", [ 4 ]);
     ("tests/mode_switch_costs_reject.tpe", [ 13; 16; 23; 28; 35 ]);

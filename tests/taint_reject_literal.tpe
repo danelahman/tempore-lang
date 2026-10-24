@@ -1,0 +1,7 @@
+(* Run this test with the 'taint' grading monoid, e.g.
+
+     ./tempore --grades taint tests/taint_reject_literal.tpe
+
+   Rejected: the taint levels are Untainted and Tainted, not Low. *)
+
+let claim () = box Low 1
