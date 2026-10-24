@@ -6,19 +6,19 @@ let rec tpe_files ?(recursive = true) dir =
       else if Filename.check_suffix name ".tpe" then [ path ]
       else [])
 
-let grade_module ?levels name =
+let grade_module ?lattice name =
   match
-    ( Option.bind levels (Grades.GradeRegistry.over_levels name),
+    ( Option.bind lattice (Grades.GradeRegistry.over_lattice name),
       List.assoc_opt name Grades.GradeRegistry.grade_modules )
   with
   | Some g, _ | None, Some g -> g
   | None, None -> failwith ("unknown grades " ^ name)
 
-let levels_of_file path =
+let lattice_of_file path =
   let text = In_channel.with_open_text path In_channel.input_all in
-  match Parser.LevelsDeclaration.scan ~filename:path text with
+  match Parser.LatticeDeclaration.scan ~filename:path text with
   | Some (at, chains) -> (
-      try Some (Grades.LevelLattice.of_chains ~at chains)
+      try Some (Grades.GradeLattice.of_chains ~at chains)
       with Utils.Error.Error _ -> None)
   | None -> None
 

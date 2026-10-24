@@ -78,7 +78,7 @@
         },
         {
           "name": "keyword.other.tempore",
-          "match": "^levels\\b"
+          "match": "^grade\\s+lattice\\b"
         },
         {
           "name": "keyword.other.tempore",

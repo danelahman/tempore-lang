@@ -58,7 +58,7 @@ module Suite (G : Grade.S) = struct
   let show_eps = X.Eps.to_string
   let unit_is_top = G.equal bounds G.one G.top
 
-  (* Whether delays are graded by the unit, as for the security levels. *)
+  (* Whether delays are graded by the unit, as for the grade lattice. *)
   let ticks_are_unit = G.equal bounds (delay 1) G.one
 
   (* [same name expected actual] compares resource expressions syntactically. *)

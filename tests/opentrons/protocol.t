@@ -145,9 +145,9 @@ regex-timed-rigid-interval-rational-symbolic, a time unit given in seconds.
   comment: Tempore run 1 returns ()
 
 The ddPCR example, the time bound of each operation's grade under
-time-upper-bound-levels its upper bound.
+time-upper-bound-lattice its upper bound.
 
-  $ ../../tempore --grades time-upper-bound-levels --emit-opentrons contamination.py \
+  $ ../../tempore --grades time-upper-bound-lattice --emit-opentrons contamination.py \
   >   --bind $examples/contamination_bindings.py --time-unit minutes \
   >   --api-level 2.29 $examples/contamination.tpe
   Wrote _opentrons/protocols/contamination.py
@@ -474,7 +474,7 @@ The rejected variants of the examples.
   Typing error: Variable `warm` is unboxed with grade `{idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
   Typing error: The resource inequality `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol} <= {AddEthanol; idle [0.5, 1.5]}` does not hold
   Typing error: Variable `soaking` is unboxed with grade `{AddEthanol; MagnetOff; idle 0.5}` accumulated since it was bound, which is not below its box grade `{AddEthanol; idle [0.5, 1.5]}`
-  $ ../../tempore --grades time-upper-bound-levels --typecheck-only $examples/contamination_reject.tpe 2>&1 | grep 'Typing error'
+  $ ../../tempore --grades time-upper-bound-lattice --typecheck-only $examples/contamination_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `article_tip` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(∞, Low)`
   $ for name in reagents staggered beads stopread; do
   >   ../../tempore --grades time-interval --typecheck-only $examples/${name}_reject.tpe 2>&1 | grep 'Typing error'

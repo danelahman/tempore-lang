@@ -223,11 +223,11 @@ blinker, whose state is the unit; slow fits a period of 13.
 Under grades that do not bound durations, the function of a periodic task is
 not checked against its period, whose overruns only the monitor detects:
 
-  $ printf 'let tick (n : nat) = n + 1\nlet zero () = 0\n' > levels.tpe
+  $ printf 'let tick (n : nat) = n + 1\nlet zero () = 0\n' > lattice.tpe
   $ printf '{ "board": "esp32-devkit", "tasks": [ { "function": "tick", "kind": "periodic", "period": 10, "initial": "zero" } ] }\n' > m.json
-  $ ../../tempore --grades security-levels --emit-arduino levels --device m.json levels.tpe | tail -1
-  Wrote _arduino/projects/levels/host/tempore_world.h
-  $ grep -A1 'The periodic task' _arduino/projects/levels/src/main.cpp
+  $ ../../tempore --grades lattice --emit-arduino lattice --device m.json lattice.tpe | tail -1
+  Wrote _arduino/projects/lattice/host/tempore_world.h
+  $ grep -A1 'The periodic task' _arduino/projects/lattice/src/main.cpp
   // The periodic task tick, of period 10000 us; its grades bound no durations, so its steps are checked against the period by the monitor only.
   static tempore_task_monitor tempore_task0_monitor("tick", 10000);
 

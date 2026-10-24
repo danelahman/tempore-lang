@@ -1,0 +1,42 @@
+(* Run this test with the 'lattice' grading monoid, e.g.
+
+     ./tempore --grades lattice tests/lattice.tpe
+
+   A grade lattice: a computation's grade is the highest element it touches,
+   and a box with element l may be unboxed only while nothing above l has been
+   touched since boxing. *)
+
+operation Send : string ~> unit ! High
+operation Read : unit ~> string ! Low
+
+default Send s = ()
+default Read () = "report"
+
+(* Accepted: reading touches nothing above Low. *)
+let read_then_claim () =
+  box Low "public" as r in
+  let s = perform Read () in
+  unbox r as y in
+  (y, s)
+
+(* Accepted: a High box may be claimed after anything. *)
+let send_then_claim_high () =
+  box High "secret" as r in
+  perform Send "message";
+  unbox r as y in
+  y
+
+(* Accepted: ticks touch no element. *)
+let delay_then_claim () =
+  box Low "public" as r in
+  delay 5;
+  unbox r as y in
+  y
+
+(* The grade of a branch is the join of its arms. *)
+let branch b =
+  if b then perform Send "message" else (let _ = perform Read () in ())
+
+run read_then_claim ()
+run send_then_claim_high ()
+run delay_then_claim ()

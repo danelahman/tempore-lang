@@ -1,4 +1,4 @@
-(* Unit tests of the laws of the delays, the security-level grade, the product
+(* Unit tests of the laws of the delays, the lattice grade, the product
    construction and its counterexamples, the witnesses of closed conditions,
    the interpretation of literals by the grades of
    [GradeRegistry.grade_modules], the laws and the declared flags of these
@@ -12,7 +12,7 @@ module RationalTimeGrades = Grades.RationalTimeGrades
 module Rational = Grades.Rational
 module TimedTraceGrades = Grades.TimedTraceGrades
 module TraceInclusionGrades = Grades.TraceInclusionGrades
-module LevelGrades = Grades.LevelGrades
+module LatticeGrades = Grades.LatticeGrades
 module GradeConstructions = Grades.GradeConstructions
 module GradeRegistry = Grades.GradeRegistry
 open LawChecks
@@ -52,54 +52,52 @@ let rejects name (module G : Grade.S) lit fragment =
         (contains reason fragment)
         ("the reason '" ^ reason ^ "' does not mention '" ^ fragment ^ "'")
 
-let levels =
-  let module L = LevelGrades.SecurityLevels in
+let lattice =
+  let module L = LatticeGrades.Lattice in
   let low = L.of_lit (Grade.Name "Low")
   and high = L.of_lit (Grade.Name "High") in
   let show = L.show in
   [
-    check "levels: Low below High" (L.leq bounds low high) "Low ≾ High";
-    check "levels: High not below Low"
+    check "lattice: Low below High" (L.leq bounds low high) "Low ≾ High";
+    check "lattice: High not below Low"
       (not (L.leq bounds high low))
       "High ≾ Low";
-    check "levels: reflexive" (L.leq bounds high high) "High ≾ High";
-    expect "levels: join" show ~expected:high (L.join low high);
-    expect "levels: join of Low" show ~expected:low (L.join low low);
-    expect "levels: product is the join" show ~expected:high (L.mul high low);
-    expect "levels: unit" show ~expected:low L.one;
-    expect "levels: top" show ~expected:high L.top;
-    expect "levels: delays touch no level" show ~expected:low
+    check "lattice: reflexive" (L.leq bounds high high) "High ≾ High";
+    expect "lattice: join" show ~expected:high (L.join low high);
+    expect "lattice: join of Low" show ~expected:low (L.join low low);
+    expect "lattice: product is the join" show ~expected:high (L.mul high low);
+    expect "lattice: unit" show ~expected:low L.one;
+    expect "lattice: top" show ~expected:high L.top;
+    expect "lattice: delays touch no element" show ~expected:low
       (L.of_delay (Rational.of_int 5));
-    expect "levels: no delay is the unit" show ~expected:L.one
+    expect "lattice: no delay is the unit" show ~expected:L.one
       (L.of_delay Rational.zero);
-    expect "levels: time shadow" show ~expected:low
+    expect "lattice: time shadow" show ~expected:low
       (L.of_bounds Rational.(Grade.Closed (of_int 1), Grade.Closed (of_int 2)));
-    check "levels: equal" (L.equal bounds high high) "High = High";
-    expect "levels: unit least" show_bool ~expected:true L.unit_least;
-    expect "levels: commutative" show_bool ~expected:true L.commutative;
-    expect "levels: no running-time bounds" show_bool ~expected:false
+    check "lattice: equal" (L.equal bounds high high) "High = High";
+    expect "lattice: unit least" show_bool ~expected:true L.unit_least;
+    expect "lattice: commutative" show_bool ~expected:true L.commutative;
+    expect "lattice: no running-time bounds" show_bool ~expected:false
       L.needs_op_bounds;
-    expect "levels: atomic" show_bool ~expected:true (L.is_atomic "Send" high);
-    expect "levels: no events" show_names ~expected:[] (L.events high);
+    expect "lattice: atomic" show_bool ~expected:true (L.is_atomic "Send" high);
+    expect "lattice: no events" show_names ~expected:[] (L.events high);
   ]
 
-module TimeLevels = LevelGrades.TimeLowerBoundLevels
-module UpperLevels = LevelGrades.TimeUpperBoundLevels
+module TimeLattice = LatticeGrades.TimeLowerBoundLattice
+module UpperLattice = LatticeGrades.TimeUpperBoundLattice
 
-(* The levels over the whole-step delays of the trace grades. *)
-module NatLevels = LevelGrades.Make (Grades.Delay.Nat)
+(* The grade lattice over the whole-step delays of the trace grades. *)
+module NatLattice = LatticeGrades.Make (Grades.Delay.Nat)
 
-module TraceLevels =
-  GradeConstructions.Product
-    (TimedTraceGrades.UpperBound)
-    (NatLevels.SecurityLevels)
+module TraceLattice =
+  GradeConstructions.Product (TimedTraceGrades.UpperBound) (NatLattice.Lattice)
 
-module RegexLevels =
+module RegexLattice =
   GradeConstructions.Product
     (Grades.RegularTraceGradeDerivative)
-    (NatLevels.SecurityLevels)
+    (NatLattice.Lattice)
 
-let lit_of_pair n level = Grade.Tuple [ Grade.Int n; Grade.Name level ]
+let lit_of_pair n element = Grade.Tuple [ Grade.Int n; Grade.Name element ]
 
 (* [span l h] is the interval literal from [l] to [h], an endpoint [⊤] below
    or [∞] above standing for an infinite one. *)
@@ -111,31 +109,31 @@ let span l h =
 (* Counterexamples: in the component where the order fails, with the other
    component of the lesser grade, and none from grades that offer none. *)
 let counterexamples =
-  let regex r level =
-    RegexLevels.of_lit (Grade.Tuple [ Grade.Braces r; Grade.Name level ])
+  let regex r element =
+    RegexLattice.of_lit (Grade.Tuple [ Grade.Braces r; Grade.Name element ])
   in
   let read = Grade.Letter "Read" and write = Grade.Letter "Write" in
-  let show = function Some e -> RegexLevels.show e | None -> "none" in
-  let time n level = TimeLevels.of_lit (lit_of_pair n level) in
+  let show = function Some e -> RegexLattice.show e | None -> "none" in
+  let time n element = TimeLattice.of_lit (lit_of_pair n element) in
   [
     expect "counterexample: in the first component" Fun.id
       ~expected:"({Write}, Low)"
       (show
-         (RegexLevels.counterexample bounds
+         (RegexLattice.counterexample bounds
             (regex (Grade.Union (read, write)) "Low")
             (regex read "High")));
     expect "counterexample: none from the second component" Fun.id
       ~expected:"none"
       (show
-         (RegexLevels.counterexample bounds (regex read "High")
+         (RegexLattice.counterexample bounds (regex read "High")
             (regex (Grade.Union (read, write)) "Low")));
     expect "counterexample: none where the order holds" Fun.id ~expected:"none"
       (show
-         (RegexLevels.counterexample bounds (regex read "Low")
+         (RegexLattice.counterexample bounds (regex read "Low")
             (regex (Grade.Union (read, write)) "High")));
-    check "counterexample: none from time and levels"
+    check "counterexample: none from time and elements"
       (Option.is_none
-         (TimeLevels.counterexample bounds (time 2 "High") (time 3 "Low")))
+         (TimeLattice.counterexample bounds (time 2 "High") (time 3 "Low")))
       "";
   ]
 
@@ -143,15 +141,15 @@ let counterexamples =
    order fails in the second component alone, and none where it holds or where
    it fails in a first component that offers none. *)
 let semidirect_counterexamples =
-  let flow level sink sink_level =
-    LevelGrades.FlowLevels.of_lit
+  let flow element sink sink_element =
+    LatticeGrades.FlowLattice.of_lit
       (Grade.Tuple
          [
-           Grade.Name level;
-           Grade.Tuple [ Grade.Name sink; Grade.Name sink_level ];
+           Grade.Name element;
+           Grade.Tuple [ Grade.Name sink; Grade.Name sink_element ];
          ])
   in
-  let module F = LevelGrades.FlowLevels in
+  let module F = LatticeGrades.FlowLattice in
   let show = function Some e -> F.show e | None -> "none" in
   let low_high = flow "Low" "Board" "High" in
   [
@@ -170,10 +168,10 @@ let semidirect_counterexamples =
   ]
 
 let products =
-  let p n level = TimeLevels.of_lit (lit_of_pair n level) in
-  let show = TimeLevels.show in
-  let traces r level =
-    TraceLevels.of_lit (Grade.Tuple [ Grade.Braces r; level ])
+  let p n element = TimeLattice.of_lit (lit_of_pair n element) in
+  let show = TimeLattice.show in
+  let traces r element =
+    TraceLattice.of_lit (Grade.Tuple [ Grade.Braces r; element ])
   in
   let send = Grade.Letter "Send" in
   let send_top = traces send Grade.Top in
@@ -182,63 +180,63 @@ let products =
     traces (Grade.Seq (send, Grade.Tick 1)) (Grade.Name "Low")
   in
   [
-    expect "product: name" Fun.id ~expected:"time-lower-bound-levels"
-      TimeLevels.name;
+    expect "product: name" Fun.id ~expected:"time-lower-bound-lattice"
+      TimeLattice.name;
     expect "product: generic name" Fun.id
-      ~expected:"traces-timed-upper-bound×security-levels" TraceLevels.name;
+      ~expected:"traces-timed-upper-bound×lattice" TraceLattice.name;
     check "product: at least as long and as low"
-      (TimeLevels.leq bounds (p 3 "Low") (p 2 "High"))
+      (TimeLattice.leq bounds (p 3 "Low") (p 2 "High"))
       "(3, Low) ≾ (2, High)";
     check "product: too short"
-      (not (TimeLevels.leq bounds (p 2 "Low") (p 3 "Low")))
+      (not (TimeLattice.leq bounds (p 2 "Low") (p 3 "Low")))
       "(2, Low) ≾ (3, Low)";
     check "product: too high"
-      (not (TimeLevels.leq bounds (p 3 "High") (p 3 "Low")))
+      (not (TimeLattice.leq bounds (p 3 "High") (p 3 "Low")))
       "(3, High) ≾ (3, Low)";
     expect "product: join" Fun.id ~expected:"(3, High)"
-      (show (TimeLevels.join (p 3 "Low") (p 5 "High")));
+      (show (TimeLattice.join (p 3 "Low") (p 5 "High")));
     expect "product: product" Fun.id ~expected:"(8, High)"
-      (show (TimeLevels.mul (p 3 "Low") (p 5 "High")));
-    expect "product: unit" Fun.id ~expected:"(0, Low)" (show TimeLevels.one);
-    expect "product: top" Fun.id ~expected:"(0, High)" (show TimeLevels.top);
+      (show (TimeLattice.mul (p 3 "Low") (p 5 "High")));
+    expect "product: unit" Fun.id ~expected:"(0, Low)" (show TimeLattice.one);
+    expect "product: top" Fun.id ~expected:"(0, High)" (show TimeLattice.top);
     expect "product: ticks" Fun.id ~expected:"(4, Low)"
-      (show (TimeLevels.of_delay 4));
+      (show (TimeLattice.of_delay 4));
     expect "product: time shadow" Fun.id ~expected:"(1, Low)"
-      (show (TimeLevels.of_bounds (Grade.Closed 1, Grade.Closed 2)));
+      (show (TimeLattice.of_bounds (Grade.Closed 1, Grade.Closed 2)));
     check "product: equal"
-      (TimeLevels.equal bounds (p 3 "Low")
-         (TimeLevels.of_lit (lit_of_pair 3 "Low")))
+      (TimeLattice.equal bounds (p 3 "Low")
+         (TimeLattice.of_lit (lit_of_pair 3 "Low")))
       "(3, Low) = (3, Low)";
     expect "product: unit least iff in both" show_bool ~expected:false
-      TimeLevels.unit_least;
+      TimeLattice.unit_least;
     expect "product: unit least in both" show_bool ~expected:true
-      UpperLevels.unit_least;
+      UpperLattice.unit_least;
     expect "product: commutative in both" show_bool ~expected:true
-      TimeLevels.commutative;
+      TimeLattice.commutative;
     expect "product: commutative iff in both" show_bool ~expected:false
-      TraceLevels.commutative;
+      TraceLattice.commutative;
     expect "product: mixed order symbols" Fun.id ~expected:"≾"
-      TimeLevels.leq_symbol;
+      TimeLattice.leq_symbol;
     expect "product: shared order symbol" Fun.id ~expected:"<="
-      UpperLevels.leq_symbol;
+      UpperLattice.leq_symbol;
     expect "product: running-time bounds from either component" show_bool
-      ~expected:true TraceLevels.needs_op_bounds;
+      ~expected:true TraceLattice.needs_op_bounds;
     expect "product: no running-time bounds in neither" show_bool
-      ~expected:false TimeLevels.needs_op_bounds;
+      ~expected:false TimeLattice.needs_op_bounds;
     expect "product: events of either component" show_names ~expected:[ "Send" ]
-      (TraceLevels.events send_top);
+      (TraceLattice.events send_top);
     expect "product: atomic in both" show_bool ~expected:true
-      (TraceLevels.is_atomic "Send" send_low);
+      (TraceLattice.is_atomic "Send" send_low);
     expect "product: atomic iff in both" show_bool ~expected:false
-      (TraceLevels.is_atomic "Send" send_then_tick);
+      (TraceLattice.is_atomic "Send" send_then_tick);
     expect "product: duration bounds"
       (function
         | Some (lo, hi) -> Grade.show_interval Rational.show lo hi
         | None -> "None")
       ~expected:
         (Some Rational.(Grade.Closed (of_int 1), Grade.Closed (of_int 2)))
-      (TraceLevels.duration_bounds bounds send_low);
-    expect "product: level component" Fun.id ~expected:"(3, High)"
+      (TraceLattice.duration_bounds bounds send_low);
+    expect "product: element component" Fun.id ~expected:"(3, High)"
       (show (p 3 "High"));
   ]
 
@@ -278,7 +276,7 @@ let rational_regex_timed_upper =
 let rational_regex_timed_interval =
   (module Grades.RegularTimedTraceGradesRational.Interval : Grade.S)
 
-let security_levels = (module LevelGrades.SecurityLevels : Grade.S)
+let lattice_grade = (module LatticeGrades.Lattice : Grade.S)
 
 let resource_levels =
   (module Grades.ResourceLevelGrades.ResourceLevels : Grade.S)
@@ -286,15 +284,15 @@ let resource_levels =
 let windowed_schedules =
   (module Grades.WindowedScheduleGrades.WindowedSchedules : Grade.S)
 
-let flow_levels = (module LevelGrades.FlowLevels : Grade.S)
+let flow_lattice = (module LatticeGrades.FlowLattice : Grade.S)
 let counts_upper = (module Grades.CountGrades.UpperBound : Grade.S)
 
 let mode_switch_costs =
   (module Grades.ModeSwitchCostGrades.ModeSwitchCosts : Grade.S)
 
 let mode_times = (module Grades.ModeTimeGrades.ModeTimes : Grade.S)
-let time_lower_levels = (module TimeLevels : Grade.S)
-let time_upper_levels = (module UpperLevels : Grade.S)
+let time_lower_lattice = (module TimeLattice : Grade.S)
+let time_upper_lattice = (module UpperLattice : Grade.S)
 
 let literals =
   let open Grade in
@@ -576,9 +574,9 @@ let literals =
     rejects "no durations" windowed_schedules
       (Braces (Inter (Tick 1, Tick 2)))
       "is empty";
-    rejects "level" windowed_schedules (Name "Low") "not names such as `Low`";
-    reads "level" flow_levels (Name "High") "High";
-    reads "outputs" flow_levels
+    rejects "element" windowed_schedules (Name "Low") "not names such as `Low`";
+    reads "element" flow_lattice (Name "High") "High";
+    reads "outputs" flow_lattice
       (Tuple
          [
            Name "High";
@@ -586,8 +584,8 @@ let literals =
            Tuple [ Name "Audit"; Name "High" ];
          ])
       "(High, (Audit, High), (Board, Low))";
-    reads "top" flow_levels Top "⊤";
-    reads "other outputs" flow_levels
+    reads "top" flow_lattice Top "⊤";
+    reads "other outputs" flow_lattice
       (Tuple
          [
            Name "High";
@@ -595,7 +593,7 @@ let literals =
            Tuple [ Name "Board"; Name "High" ];
          ])
       "(High, (Board, High), (_, Low))";
-    rejects "sink listed twice" flow_levels
+    rejects "sink listed twice" flow_lattice
       (Tuple
          [
            Name "High";
@@ -603,13 +601,13 @@ let literals =
            Tuple [ Name "Board"; Name "High" ];
          ])
       "listed twice";
-    rejects "unknown level of an output" flow_levels
+    rejects "unknown element of an output" flow_lattice
       (Tuple [ Name "Low"; Tuple [ Name "Board"; Name "Medium" ] ])
-      "unknown level `Medium`";
-    rejects "output without a level" flow_levels
+      "unknown element `Medium`";
+    rejects "output without an element" flow_lattice
       (Tuple [ Name "Low"; Name "Board" ])
       "outputs are pairs";
-    rejects "integer" flow_levels (Int 3) "tuples `(l, (Sink, l1), ...)`";
+    rejects "integer" flow_lattice (Int 3) "tuples `(l, (Sink, l1), ...)`";
     reads "count" counts_upper (Tuple [ Name "Send"; Int 3 ]) "(Send, 3)";
     reads "counts" counts_upper
       (Tuple [ Tuple [ Name "Send"; Int 3 ]; Tuple [ Name "Auth"; Int 1 ] ])
@@ -622,7 +620,7 @@ let literals =
     rejects "negative count" counts_upper
       (Tuple [ Name "Send"; Int (-1) ])
       "in the entry of `Send`, grades must be non-negative";
-    rejects "level" counts_upper (Name "Low") "not names such as `Low`";
+    rejects "element" counts_upper (Name "Low") "not names such as `Low`";
     reads "cost in every mode" mode_switch_costs (Int 3) "3";
     reads "transition" mode_switch_costs
       (Tuple [ Name "Off"; Name "On"; Int 2 ])
@@ -822,7 +820,7 @@ let literals =
     rejects "another mode not named after a mode named" mode_times
       (Tuple [ Name "On"; Name "≠" ])
       "only an entry from `_` ends in `≠`";
-    rejects "level" mode_times (Name "Low") "not names such as `Low`";
+    rejects "element" mode_times (Name "Low") "not names such as `Low`";
     rejects "times in the modes above the total" mode_times
       (Tuple
          [
@@ -1051,24 +1049,24 @@ let literals =
     reads "adjacent delays merged" rational_inclusion_upper
       (Braces (seq (Frac (Rational.make 1 2)) (Frac (Rational.make 1 2))))
       "{1}";
-    reads "Low" security_levels (Name "Low") "Low";
-    reads "High" security_levels (Name "High") "High";
-    reads "top" security_levels Top "High";
-    rejects "unknown level" security_levels (Name "Medium")
-      "unknown level `Medium`";
-    rejects "integer" security_levels (Int 0) "not plain integers";
-    reads "pair" time_lower_levels (lit_of_pair 3 "High") "(3, High)";
-    reads "top" time_lower_levels Top "(0, High)";
-    reads "component tops" time_lower_levels (Tuple [ Top; Top ]) "(0, High)";
-    reads "pair" time_upper_levels (Tuple [ Inf; Name "Low" ]) "(∞, Low)";
-    reads "top" time_upper_levels Top "(∞, High)";
-    rejects "first component" time_lower_levels
+    reads "Low" lattice_grade (Name "Low") "Low";
+    reads "High" lattice_grade (Name "High") "High";
+    reads "top" lattice_grade Top "High";
+    rejects "unknown element" lattice_grade (Name "Medium")
+      "unknown element `Medium`";
+    rejects "integer" lattice_grade (Int 0) "not plain integers";
+    reads "pair" time_lower_lattice (lit_of_pair 3 "High") "(3, High)";
+    reads "top" time_lower_lattice Top "(0, High)";
+    reads "component tops" time_lower_lattice (Tuple [ Top; Top ]) "(0, High)";
+    reads "pair" time_upper_lattice (Tuple [ Inf; Name "Low" ]) "(∞, Low)";
+    reads "top" time_upper_lattice Top "(∞, High)";
+    rejects "first component" time_lower_lattice
       (Tuple [ Name "Low"; Name "Low" ])
       "in the first component (`time-lower-bound`)";
-    rejects "second component" time_upper_levels (lit_of_pair 3 "Medium")
-      "in the second component (`security-levels`), unknown level";
-    rejects "integer" time_lower_levels (Int 3) "grades are pairs";
-    rejects "triple" time_lower_levels
+    rejects "second component" time_upper_lattice (lit_of_pair 3 "Medium")
+      "in the second component (`lattice`), unknown element";
+    rejects "integer" time_lower_lattice (Int 3) "grades are pairs";
+    rejects "triple" time_lower_lattice
       (Tuple [ Int 3; Name "Low"; Int 1 ])
       "not tuples";
   ]
@@ -1125,11 +1123,11 @@ let registry =
     expect "registry: the default comes first" Fun.id
       ~expected:"time-lower-bound"
       (fst (List.hd GradeRegistry.grade_modules));
-    expect "registry: grades reading a level" show_names
-      ~expected:[ "security-levels"; "flow-levels" ]
+    expect "registry: grades reading an element" show_names
+      ~expected:[ "lattice"; "flow-lattice" ]
       (GradeRegistry.accepting (Grade.Name "High"));
-    expect "registry: grades reading a pair of a time and a level" show_names
-      ~expected:[ "time-lower-bound-levels"; "time-upper-bound-levels" ]
+    expect "registry: grades reading a pair of a time and an element" show_names
+      ~expected:[ "time-lower-bound-lattice"; "time-upper-bound-lattice" ]
       (GradeRegistry.accepting (lit_of_pair 3 "High"));
     expect "registry: grades reading an open interval" show_names
       ~expected:
@@ -1271,9 +1269,9 @@ let registry =
           "regex-timed-rigid-lower-bound-rational-symbolic";
           "regex-timed-rigid-upper-bound-rational-symbolic";
           "regex-timed-rigid-interval-rational-symbolic";
-          "security-levels";
-          "time-interval-levels";
-          "flow-levels";
+          "lattice";
+          "time-interval-lattice";
+          "flow-lattice";
           "mode-times";
           "operation-spacing";
         ]
@@ -1501,55 +1499,58 @@ module Interval_conditions =
       let values = List.map TimeGrades.Interval.of_lit (intervals 40)
     end)
 
-module Levels_conditions =
+module Lattice_conditions =
   Conditions
-    (TimeLevels)
+    (TimeLattice)
     (struct
-      let level st = if Random.State.bool st then "Low" else "High"
+      let element st = if Random.State.bool st then "Low" else "High"
 
       let constant st =
-        TimeLevels.of_lit (lit_of_pair (Random.State.int st 5) (level st))
+        TimeLattice.of_lit (lit_of_pair (Random.State.int st 5) (element st))
 
       let values =
         List.concat_map
           (fun n ->
             [
-              TimeLevels.of_lit (lit_of_pair n "Low");
-              TimeLevels.of_lit (lit_of_pair n "High");
+              TimeLattice.of_lit (lit_of_pair n "Low");
+              TimeLattice.of_lit (lit_of_pair n "High");
             ])
           (up_to 60)
     end)
 
-module Flow = LevelGrades.FlowLevels
+module Flow = LatticeGrades.FlowLattice
 
-(* The levels [Low] and [High] of the default lattice. *)
-let levels_low_high =
-  LevelGrades.(
-    List.map SecurityLevels.of_lit [ Grade.Name "Low"; Grade.Name "High" ])
+(* The elements [Low] and [High] of the default lattice. *)
+let elements_low_high =
+  LatticeGrades.(
+    List.map Lattice.of_lit [ Grade.Name "Low"; Grade.Name "High" ])
 
-(* The flow-sensitive grades over the sinks [sinks], each written at a level or
-   not at all, and the top. *)
+(* The flow-sensitive grades over the sinks [sinks], each written at an element
+   or not at all, and the top. *)
 let flow_grades sinks =
   let outputs =
     List.fold_left
       (fun outputs sink ->
         List.concat_map
           (fun ws ->
-            ws :: List.map (fun level -> ws @ [ (sink, level) ]) levels_low_high)
+            ws
+            :: List.map
+                 (fun element -> ws @ [ (sink, element) ])
+                 elements_low_high)
           outputs)
       [ [] ] sinks
   in
   Flow.top
   :: List.concat_map
-       (fun level ->
+       (fun element ->
          List.map
            (fun ws ->
-             ( level,
+             ( element,
                GradeConstructions.Indexed.of_list
-                 ~compare:LevelGrades.WrittenAt.compare ~others:None
+                 ~compare:LatticeGrades.WrittenAt.compare ~others:None
                  (List.map (fun (s, l) -> (s, Some l)) ws) ))
            outputs)
-       levels_low_high
+       elements_low_high
 
 module Flow_conditions =
   Conditions
@@ -1708,7 +1709,7 @@ let witnesses =
     Lower_conditions.complete ~count:2000;
     Upper_conditions.complete ~count:2000;
     Interval_conditions.complete ~count:1000;
-    Levels_conditions.complete ~count:1000;
+    Lattice_conditions.complete ~count:1000;
     Flow_conditions.complete ~count:3000;
     Rational_lower_conditions.complete ~count:1000;
     Rational_upper_conditions.complete ~count:1000;
@@ -1728,7 +1729,7 @@ let witnesses =
             (RationalTimeGrades.UpperBound.witnesses ~degree:1 bounds
                Rational_upper_conditions.(constants lhs @ constants rhs))))
       "1·j <= 1 ⊔ j·j·j";
-    check "flow-levels: a failure at an unnamed sink shows at a witness"
+    check "flow-lattice: a failure at an unnamed sink shows at a witness"
       (not
          (Flow_conditions.at_witnesses
             (Flow_conditions.Rigid, Const (Flow.of_lit (Grade.Name "High")))))
@@ -1738,11 +1739,11 @@ let witnesses =
     expect "witnesses: rational time grades complete" Fun.id
       ~expected:"complete"
       (completeness rational_interval);
-    expect "witnesses: levels complete" Fun.id ~expected:"complete"
-      (completeness (module LevelGrades.SecurityLevels));
+    expect "witnesses: elements complete" Fun.id ~expected:"complete"
+      (completeness (module LatticeGrades.Lattice));
     expect "witnesses: product of complete grades complete" Fun.id
       ~expected:"complete"
-      (completeness (module UpperLevels));
+      (completeness (module UpperLattice));
     expect "witnesses: traces partial" Fun.id ~expected:"partial"
       (completeness traces_upper);
     expect "witnesses: rational traces partial" Fun.id ~expected:"partial"
@@ -1751,12 +1752,12 @@ let witnesses =
       (completeness inclusion_upper);
     expect "witnesses: product with a partial grade partial" Fun.id
       ~expected:"partial"
-      (completeness (module TraceLevels));
+      (completeness (module TraceLattice));
     expect "witnesses: resource levels partial" Fun.id ~expected:"partial"
       (completeness resource_levels);
     expect "witnesses: windowed schedules partial" Fun.id ~expected:"partial"
       (completeness windowed_schedules);
-    expect "witnesses: flow-levels complete" Fun.id ~expected:"complete"
+    expect "witnesses: flow-lattice complete" Fun.id ~expected:"complete"
       (completeness (module Flow));
     expect "witnesses: counts complete" Fun.id ~expected:"complete"
       (completeness counts_upper);
@@ -1796,9 +1797,9 @@ type family =
   | Regex
   | Rational_regex
   | Rational_regex_timed
-  | Levels
-  | Timed_levels
-  | Interval_levels
+  | Lattice
+  | Timed_lattice
+  | Interval_lattice
   | Flow
   | Resources
   | Schedules
@@ -1811,10 +1812,11 @@ type family =
 let family name =
   let prefix p = String.starts_with ~prefix:p name in
   match name with
-  | "security-levels" -> Some Levels
-  | "time-lower-bound-levels" | "time-upper-bound-levels" -> Some Timed_levels
-  | "time-interval-levels" -> Some Interval_levels
-  | "flow-levels" -> Some Flow
+  | "lattice" -> Some Lattice
+  | "time-lower-bound-lattice" | "time-upper-bound-lattice" ->
+      Some Timed_lattice
+  | "time-interval-lattice" -> Some Interval_lattice
+  | "flow-lattice" -> Some Flow
   | "resource-levels" -> Some Resources
   | "windowed-schedules" -> Some Schedules
   | "mode-switch-costs" -> Some Modes
@@ -1849,8 +1851,8 @@ let letter_c = Grade.Letter "C"
    trace grades without running times, sets of traces of which some include
    others; for the trace and regular grades, the operations of [running_times],
    delays, unions, sequences and, for the regular grades, repetitions, the
-   catch-all letter, intersections and complements; the two levels; pairs of
-   times and levels; levels with outputs at named sinks and at the others;
+   catch-all letter, intersections and complements; the two elements; pairs of
+   times and elements; elements with outputs at named sinks and at the others;
    releases, acquisitions, ranges of net changes, explicit and unbounded troughs
    and the resources not named; durations with the times of named and other
    operations; partial operations, changes of mode, traces stuck at a cost,
@@ -1860,7 +1862,7 @@ let letter_c = Grade.Letter "C"
    duration. *)
 let cover =
   let open Grade in
-  let level l = Name l in
+  let element l = Name l in
   function
   | Time ->
       [
@@ -2025,42 +2027,42 @@ let cover =
           span (Braces (Tick 0)) Inf;
         ]
       else []
-  | Levels -> [ level "Low"; level "High" ]
-  | Timed_levels ->
+  | Lattice -> [ element "Low"; element "High" ]
+  | Timed_lattice ->
       [
-        pair (Int 3) (level "High");
-        pair (Int 1) (level "Low");
-        pair Inf (level "Low");
+        pair (Int 3) (element "High");
+        pair (Int 1) (element "Low");
+        pair Inf (element "Low");
         pair (Int 2) Top;
-        pair Top (level "Low");
+        pair Top (element "Low");
       ]
-  | Interval_levels ->
+  | Interval_lattice ->
       [
-        pair (span (Int 0) (Int 0)) (level "Low");
-        pair (span (rat 1 2) (Int 2)) (level "Low");
-        pair (Interval (Open (Int 0), Closed (rat 1 10))) (level "High");
-        pair (Interval (Open (rat 1 2), Open (rat 5 3))) (level "Low");
-        pair (span (Int 1) Inf) (level "High");
+        pair (span (Int 0) (Int 0)) (element "Low");
+        pair (span (rat 1 2) (Int 2)) (element "Low");
+        pair (Interval (Open (Int 0), Closed (rat 1 10))) (element "High");
+        pair (Interval (Open (rat 1 2), Open (rat 5 3))) (element "Low");
+        pair (span (Int 1) Inf) (element "High");
         pair (Interval (Open (rat 1 3), Unbounded)) Top;
-        pair Top (level "Low");
+        pair Top (element "Low");
       ]
   | Flow ->
       [
-        level "High";
-        Tuple [ level "Low"; entry "Board" [ level "Low" ] ];
+        element "High";
+        Tuple [ element "Low"; entry "Board" [ element "Low" ] ];
         Tuple
           [
-            level "Low";
-            entry "Board" [ level "High" ];
-            entry "_" [ level "Low" ];
+            element "Low";
+            entry "Board" [ element "High" ];
+            entry "_" [ element "Low" ];
           ];
         Tuple
           [
-            level "High";
-            entry "Audit" [ level "High" ];
-            entry "Board" [ level "Low" ];
+            element "High";
+            entry "Audit" [ element "High" ];
+            entry "Board" [ element "Low" ];
           ];
-        Tuple [ level "Low"; entry "_" [ level "High" ] ];
+        Tuple [ element "Low"; entry "_" [ element "High" ] ];
       ]
   | Resources ->
       [
@@ -2226,7 +2228,7 @@ let random family st =
     | 2 -> Seq (fractional (depth - 1), fractional (depth - 1))
     | _ -> Union (fractional (depth - 1), fractional (depth - 1))
   in
-  let level () = Name (pick st [ "Low"; "High" ]) in
+  let element () = Name (pick st [ "Low"; "High" ]) in
   let entries names component =
     match List.filter (fun _ -> Random.State.bool st) names with
     | [] -> component ()
@@ -2265,23 +2267,23 @@ let random family st =
   | Rational_regex_timed ->
       if int 4 > 0 then Braces (timed 2)
       else closed (Braces (timed 2)) (Braces (timed 2))
-  | Levels -> level ()
-  | Timed_levels -> pair (pick st [ Int (int 5); Inf; Top ]) (level ())
-  | Interval_levels ->
+  | Lattice -> element ()
+  | Timed_lattice -> pair (pick st [ Int (int 5); Inf; Top ]) (element ())
+  | Interval_lattice ->
       let number () = rat (int 9) (1 + int 3) in
       let end_ a = if Random.State.bool st then Open a else Closed a in
       let hi = if int 4 = 0 then Unbounded else end_ (number ()) in
-      pair (Interval (end_ (number ()), hi)) (level ())
+      pair (Interval (end_ (number ()), hi)) (element ())
   | Flow -> (
       match
         List.filter_map
           (fun sink ->
-            if Random.State.bool st then Some (entry sink [ level () ])
+            if Random.State.bool st then Some (entry sink [ element () ])
             else None)
           [ "Audit"; "Board"; "_" ]
       with
-      | [] -> level ()
-      | outputs -> Tuple (level () :: outputs))
+      | [] -> element ()
+      | outputs -> Tuple (element () :: outputs))
   | Resources -> (
       let lower () = pick st [ Top; Int (int 3 - 2) ] in
       let change () =
@@ -3693,12 +3695,12 @@ let resource_construction_laws =
 (* Finite grades, on all their elements                                *)
 (* ------------------------------------------------------------------ *)
 
-module Levels = LevelGrades.SecurityLevels
+module Lattice = LatticeGrades.Lattice
 
-let written_levels = None :: List.map Option.some levels_low_high
+let written_elements = None :: List.map Option.some elements_low_high
 
 (* The outputs to the sinks [Audit] and [Board] and the other sinks, each
-   unwritten or written at a level: every element over these sinks. *)
+   unwritten or written at an element: every element over these sinks. *)
 let all_outputs =
   List.concat_map
     (fun others ->
@@ -3706,51 +3708,53 @@ let all_outputs =
         (fun audit ->
           List.map
             (fun board ->
-              Indexed.of_list ~compare:LevelGrades.WrittenAt.compare ~others
+              Indexed.of_list ~compare:LatticeGrades.WrittenAt.compare ~others
                 [ ("Audit", audit); ("Board", board) ])
-            written_levels)
-        written_levels)
-    written_levels
+            written_elements)
+        written_elements)
+    written_elements
 
-let all_flow_levels =
+let all_flow_lattice =
   List.concat_map
-    (fun level -> List.map (fun outputs -> (level, outputs)) all_outputs)
-    levels_low_high
+    (fun element -> List.map (fun outputs -> (element, outputs)) all_outputs)
+    elements_low_high
 
 let finite_laws =
-  let levels = levels_low_high in
+  let elements = elements_low_high in
   let raise =
     action_of_components
-      (module Levels)
-      (module LevelGrades.Outputs)
-      LevelGrades.Raise.act bounds
+      (module Lattice)
+      (module LatticeGrades.Outputs)
+      LatticeGrades.Raise.act bounds
   in
   let context = "all elements" in
   let flow_context = "all elements over the sinks Audit, Board and _" in
-  let width = List.length all_flow_levels in
-  order_laws ~width:2 (module Levels) ~context bounds levels
-  @ algebra_laws ~width:2 (module Levels) ~context bounds levels
-  @ declared_laws (module Levels) ~context bounds levels
-  @ semilattice_laws ~width:3 (module LevelGrades.WrittenAt) written_levels
+  let width = List.length all_flow_lattice in
+  order_laws ~width:2 (module Lattice) ~context bounds elements
+  @ algebra_laws ~width:2 (module Lattice) ~context bounds elements
+  @ declared_laws (module Lattice) ~context bounds elements
+  @ semilattice_laws ~width:3 (module LatticeGrades.WrittenAt) written_elements
   @ semilattice_laws ~width:(List.length all_outputs)
-      (module LevelGrades.Outputs)
+      (module LatticeGrades.Outputs)
       all_outputs
-  @ order_laws ~width (module Flow) ~context:flow_context bounds all_flow_levels
+  @ order_laws ~width
+      (module Flow)
+      ~context:flow_context bounds all_flow_lattice
   @ algebra_laws ~width
       (module Flow)
-      ~context:flow_context bounds all_flow_levels
-  @ declared_laws (module Flow) ~context:flow_context bounds all_flow_levels
-  @ action_laws raise levels all_outputs
-  @ semidirect_laws (module Flow) raise bounds all_flow_levels
+      ~context:flow_context bounds all_flow_lattice
+  @ declared_laws (module Flow) ~context:flow_context bounds all_flow_lattice
+  @ action_laws raise elements all_outputs
+  @ semidirect_laws (module Flow) raise bounds all_flow_lattice
 
-(* The lattice of levels declared by [chains]. *)
+(* The grade lattice declared by [chains]. *)
 let declared_lattice chains =
   let pos = { Utils.Location.line = 1; column = 1; offset = 0 } in
   let at = { Utils.Location.filename = ""; start = pos; stop = pos } in
-  Grades.LevelLattice.of_chains ~at
+  Grades.GradeLattice.of_chains ~at
     (List.map (List.map (fun it -> { Utils.Location.it; at })) chains)
 
-(* A diamond and a chain of three levels. *)
+(* A diamond and a chain of three elements. *)
 let declared_lattices =
   [
     ( "the diamond Public < Team < Confidential, Public < Partner < Confidential",
@@ -3763,15 +3767,15 @@ let declared_lattices =
       declared_lattice [ [ "Public"; "Internal"; "Secret" ] ] );
   ]
 
-(* The laws of the grades of the registry built on levels, over the declared
-   lattice [lattice] described by [label], on samples read from literals, and
-   the laws of the components and the action of the flow-sensitive levels on
-   all elements over the sink [Board] and the others. *)
-let declared_level_laws (label, lattice) =
-  let module LevelLattice = Grades.LevelLattice in
-  let levels = LevelLattice.elements lattice in
-  let names = List.map (LevelLattice.label lattice) levels in
-  let level name = Grade.Name name in
+(* The laws of the grades of the registry built on a grade lattice, over the
+   declared lattice [lattice] described by [label], on samples read from
+   literals, and the laws of the components and the action of the
+   flow-sensitive grades on all elements over the sink [Board] and the others. *)
+let declared_laws_over (label, lattice) =
+  let module GradeLattice = Grades.GradeLattice in
+  let elements = GradeLattice.elements lattice in
+  let names = List.map (GradeLattice.label lattice) elements in
+  let element name = Grade.Name name in
   let context = "the samples over " ^ label in
   let laws (module G : Grade.S) lits =
     let samples = List.map G.of_lit lits in
@@ -3780,17 +3784,18 @@ let declared_level_laws (label, lattice) =
     @ algebra_laws ~width (module G) ~context bounds samples
     @ declared_laws (module G) ~context bounds samples
   in
-  let grade name = Option.get (GradeRegistry.over_levels name lattice) in
+  let grade name = Option.get (GradeRegistry.over_lattice name lattice) in
   let timed =
     List.concat_map
-      (fun n -> List.map (fun l -> Grade.Tuple [ Grade.Int n; level l ]) names)
+      (fun n ->
+        List.map (fun l -> Grade.Tuple [ Grade.Int n; element l ]) names)
       [ 0; 1; 3 ]
   in
   let intervals =
     let open Grade in
     let r n d = rational_lit (Rational.make n d) in
     List.concat_map
-      (fun i -> List.map (fun l -> Tuple [ i; level l ]) names)
+      (fun i -> List.map (fun l -> Tuple [ i; element l ]) names)
       [
         Interval (Closed (Int 0), Closed (Int 0));
         Interval (Open (Int 0), Closed (r 1 10));
@@ -3799,24 +3804,24 @@ let declared_level_laws (label, lattice) =
         Interval (Closed (Int 1), Unbounded);
       ]
   in
-  let written sink l = Grade.Tuple [ Grade.Name sink; level l ] in
+  let written sink l = Grade.Tuple [ Grade.Name sink; element l ] in
   let flows =
     List.concat_map
       (fun l ->
-        level l
+        element l
         :: List.concat_map
              (fun w ->
                [
-                 Grade.Tuple [ level l; written "Board" w ];
-                 Grade.Tuple [ level l; written "Audit" w; written "Board" l ];
+                 Grade.Tuple [ element l; written "Board" w ];
+                 Grade.Tuple [ element l; written "Audit" w; written "Board" l ];
                ])
              names)
       names
   in
-  let module V = LevelGrades.Over (struct
+  let module V = LatticeGrades.Over (struct
     let lattice = lattice
   end) in
-  let written_levels = None :: List.map Option.some levels in
+  let written_elements = None :: List.map Option.some elements in
   let outputs =
     List.concat_map
       (fun others ->
@@ -3824,61 +3829,61 @@ let declared_level_laws (label, lattice) =
           (fun board ->
             Indexed.of_list ~compare:V.WrittenAt.compare ~others
               [ ("Board", board) ])
-          written_levels)
-      written_levels
+          written_elements)
+      written_elements
   in
   let all_flows =
-    List.concat_map (fun l -> List.map (fun o -> (l, o)) outputs) levels
+    List.concat_map (fun l -> List.map (fun o -> (l, o)) outputs) elements
   in
   let raise =
     action_of_components
-      (module V.SecurityLevels)
+      (module V.Lattice)
       (module V.Outputs)
       V.Raise.act bounds
   in
-  laws (grade "security-levels") (Grade.Top :: List.map level names)
-  @ laws (grade "time-lower-bound-levels") timed
-  @ laws (grade "time-upper-bound-levels") timed
-  @ laws (grade "time-interval-levels") (Grade.Top :: intervals)
-  @ laws (grade "flow-levels") (Grade.Top :: flows)
+  laws (grade "lattice") (Grade.Top :: List.map element names)
+  @ laws (grade "time-lower-bound-lattice") timed
+  @ laws (grade "time-upper-bound-lattice") timed
+  @ laws (grade "time-interval-lattice") (Grade.Top :: intervals)
+  @ laws (grade "flow-lattice") (Grade.Top :: flows)
   @ semilattice_laws
-      ~width:(List.length written_levels)
+      ~width:(List.length written_elements)
       (module V.WrittenAt)
-      written_levels
+      written_elements
   @ semilattice_laws ~width:(List.length outputs) (module V.Outputs) outputs
-  @ action_laws raise levels outputs
-  @ semidirect_laws (module V.FlowLevels) raise bounds all_flows
+  @ action_laws raise elements outputs
+  @ semidirect_laws (module V.FlowLattice) raise bounds all_flows
 
-let declared_levels_laws = List.concat_map declared_level_laws declared_lattices
+let declared_lattice_laws = List.concat_map declared_laws_over declared_lattices
 
 (* The order, the joins, the numbering, the equality and the descriptions of
    declared lattices. *)
-let declared_levels_structure =
-  let module L = Grades.LevelLattice in
+let declared_lattice_structure =
+  let module L = Grades.GradeLattice in
   let diamond = snd (List.hd declared_lattices) in
   let chain = snd (List.nth declared_lattices 1) in
-  let level name = Option.get (L.index diamond name) in
+  let element name = Option.get (L.index diamond name) in
   let show = L.label diamond in
   let all = L.elements diamond in
   [
-    expect "declared levels: join of Team and Partner" Fun.id
+    expect "declared lattice: join of Team and Partner" Fun.id
       ~expected:"Confidential"
-      (show (L.join diamond (level "Team") (level "Partner")));
-    check "declared levels: Team and Partner are incomparable"
-      ((not (L.leq diamond (level "Team") (level "Partner")))
-      && not (L.leq diamond (level "Partner") (level "Team")))
+      (show (L.join diamond (element "Team") (element "Partner")));
+    check "declared lattice: Team and Partner are incomparable"
+      ((not (L.leq diamond (element "Team") (element "Partner")))
+      && not (L.leq diamond (element "Partner") (element "Team")))
       "comparable";
-    expect "declared levels: least" Fun.id ~expected:"Public"
+    expect "declared lattice: least" Fun.id ~expected:"Public"
       (show (L.bottom diamond));
-    expect "declared levels: greatest" Fun.id ~expected:"Confidential"
+    expect "declared lattice: greatest" Fun.id ~expected:"Confidential"
       (show (L.top diamond));
-    check "declared levels: the numbering extends the order"
+    check "declared lattice: the numbering extends the order"
       (List.for_all
          (fun i ->
            List.for_all (fun j -> (not (L.leq diamond i j)) || i <= j) all)
          all)
       "not a linear extension";
-    check "declared levels: equal however the chains are ordered"
+    check "declared lattice: equal however the chains are ordered"
       (L.equal diamond
          (declared_lattice
             [
@@ -3886,20 +3891,20 @@ let declared_levels_structure =
               [ "Public"; "Team"; "Confidential" ];
             ]))
       "not equal";
-    check "declared levels: Low < High is the default"
+    check "declared lattice: Low < High is the default"
       (L.equal L.default (declared_lattice [ [ "Low"; "High" ] ]))
       "not equal";
-    check "declared levels: a diamond is not a chain"
+    check "declared lattice: a diamond is not a chain"
       (not (L.equal diamond chain))
       "equal";
-    expect "declared levels: few levels listed" Fun.id
-      ~expected:"the levels are `Public`, `Internal` and `Secret`"
-      (L.levels_are chain);
-    expect "declared levels: many levels summarised" Fun.id
-      ~expected:"the 5 levels range from `P` to `T`"
-      (L.levels_are (declared_lattice [ [ "P"; "Q"; "R"; "S"; "T" ] ]));
-    expect "declared levels: one level" Fun.id ~expected:"the level `Only`"
-      (L.the_levels (declared_lattice [ [ "Only" ] ]));
+    expect "declared lattice: few elements listed" Fun.id
+      ~expected:"its elements are `Public`, `Internal` and `Secret`"
+      (L.its_elements chain);
+    expect "declared lattice: many elements summarised" Fun.id
+      ~expected:"its 5 elements range from `P` to `T`"
+      (L.its_elements (declared_lattice [ [ "P"; "Q"; "R"; "S"; "T" ] ]));
+    expect "declared lattice: one element" Fun.id ~expected:"the element `Only`"
+      (L.the_elements (declared_lattice [ [ "Only" ] ]));
   ]
 
 (* The laws of the instances of the delays. *)
@@ -4007,12 +4012,12 @@ let duration_bounds =
       (Some (closed 1, Grade.Unbounded));
     durations "traces-timed-upper-bound, the top" traces_upper Grade.Top
       (Some (closed 0, Grade.Unbounded));
-    durations "time-upper-bound-levels, the time component"
-      (module UpperLevels : Grade.S)
+    durations "time-upper-bound-lattice, the time component"
+      (module UpperLattice : Grade.S)
       (lit_of_pair 5 "High")
       (Some (closed 0, closed 5));
-    durations "security-levels, none"
-      (module LevelGrades.SecurityLevels : Grade.S)
+    durations "lattice, none"
+      (module LatticeGrades.Lattice : Grade.S)
       (Grade.Name "High") None;
     expect "duration bounds: intersection of a product's components" show
       ~expected:(Some (closed 3, closed 5))
@@ -4021,25 +4026,25 @@ let duration_bounds =
          (Some (closed 0, closed 5)));
   ]
 
-(* The flow levels print [⊤] for the top alone. *)
+(* The flow-sensitive grades print [⊤] for the top alone. *)
 let flow_tops =
-  let module F = LevelGrades.FlowLevels in
+  let module F = LatticeGrades.FlowLattice in
   [
-    expect "flow-levels: the top prints as ⊤" Fun.id ~expected:"⊤"
+    expect "flow-lattice: the top prints as ⊤" Fun.id ~expected:"⊤"
       (F.show F.top);
-    check "flow-levels: a low level with every sink written is not ⊤"
-      (F.show (LevelGrades.SecurityLevels.one, LevelGrades.Outputs.top) <> "⊤")
-      (F.show (LevelGrades.SecurityLevels.one, LevelGrades.Outputs.top));
+    check "flow-lattice: a low element with every sink written is not ⊤"
+      (F.show (LatticeGrades.Lattice.one, LatticeGrades.Outputs.top) <> "⊤")
+      (F.show (LatticeGrades.Lattice.one, LatticeGrades.Outputs.top));
   ]
 
 let () =
   let checks =
-    delay_laws @ levels @ products @ counterexamples
+    delay_laws @ lattice @ products @ counterexamples
     @ semidirect_counterexamples @ witnesses @ literals @ negative_delays @ tops
     @ registry @ registered_laws @ registered_repetitions @ fractional_laws
     @ inclusion_laws @ indexed @ mode_laws @ resource_laws @ interval_read_back
     @ schedule_laws @ resource_construction_laws @ finite_laws
-    @ declared_levels_laws @ declared_levels_structure @ ranges @ flow_tops
+    @ declared_lattice_laws @ declared_lattice_structure @ ranges @ flow_tops
     @ duration_bounds @ mode_time_laws @ interval_letter_laws
     @ interval_letter_overflow
   in

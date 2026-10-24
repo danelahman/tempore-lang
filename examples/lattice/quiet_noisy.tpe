@@ -1,0 +1,67 @@
+(* A robot step whose tilt conversion completes only while the robot is quiet.
+
+   Run this example with the 'time-upper-bound-lattice' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound-lattice \
+       examples/lattice/quiet_noisy.tpe
+
+   Grades (n, l): at most n ticks, touching nothing above l
+     - Unit (0, Quiet): no time spent, no motor or radio used
+     - Top (∞, Noisy): unbounded time, whatever is used
+     - Product: addition and join, componentwise *)
+
+(* The grade lattice: driving the motors and transmitting disturb the tilt sensor. *)
+grade lattice Quiet < Noisy
+
+type sample = Conversion of int
+type reading = Tilt of float
+
+(* Starting a conversion takes a tick; it is to be collected within five
+   ticks, during which nothing noisy happens. *)
+operation StartTiltRead : unit ~> [(5, Quiet)] sample ! (1, Quiet)
+default StartTiltRead () = delay 1; box (5, Quiet) (Conversion 544i)
+
+operation CollectTilt : sample ~> reading ! (1, Quiet)
+
+default CollectTilt (Conversion raw) =
+  delay 1;
+  Tilt ((float_of_int raw -. 512.) /. 64.)
+
+operation ReadSpeed : unit ~> int * int ! (1, Quiet)
+default ReadSpeed () = delay 1; (12i, 10i)
+
+operation Drive : float * float ~> unit ! (1, Noisy)
+default Drive (left, right) = delay 1; ()
+
+operation Transmit : float ~> unit ! (1, Noisy)
+default Transmit angle = delay 1; ()
+
+(* Correctly accepted by the typechecker: the speeds are read during the
+   conversion, which is collected before the motors are driven and the tilt is
+   transmitted. *)
+let step () : float ! (5, Noisy) =
+  let s = perform StartTiltRead () in
+  let left, right = perform ReadSpeed () in
+  unbox s as conversion in
+  let (Tilt angle) = perform CollectTilt conversion in
+  perform Drive (float_of_int left -. angle, float_of_int right -. angle);
+  perform Transmit angle;
+  angle
+
+(* Correctly rejected by the typechecker: transmitting during the conversion
+   disturbs it:
+
+     Typing error: Variable `s` is unboxed with grade `(1, Noisy)` accumulated
+       since it was bound, which is not below its box grade `(5, Quiet)`
+       ...
+*)
+(*
+let step_transmitting () =
+  let s = perform StartTiltRead () in
+  perform Transmit 0.;
+  unbox s as conversion in
+  let (Tilt angle) = perform CollectTilt conversion in
+  angle
+*)
+
+run step ()

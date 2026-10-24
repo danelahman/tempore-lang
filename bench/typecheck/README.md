@@ -29,10 +29,10 @@ The slowest 20 files:
 | examples/arduino/steps/steps.tpe | operation-spacing | 0.08 |
 | examples/arduino/bala2/balance.tpe | time-interval-rational | 0.05 |
 | examples/opentrons/washes.tpe | regex-timed-interval-symbolic | 0.03 |
-| examples/levels/staged_release.tpe | time-lower-bound-levels | 0.03 |
+| examples/lattice/staged_release.tpe | time-lower-bound-lattice | 0.03 |
 | examples/opentrons/purification.tpe | regex-timed-interval-rational-symbolic | 0.02 |
 | examples/opentrons/purification_reject.tpe | regex-timed-interval-rational-symbolic | 0.01 |
-| examples/opentrons/contamination.tpe | time-upper-bound-levels | 0.01 |
+| examples/opentrons/contamination.tpe | time-upper-bound-lattice | 0.01 |
 | examples/regular_timed_ops/upper_bounds_rational.tpe | regex-timed-upper-bound-rational-symbolic | 0.01 |
 | examples/opentrons/cleanup.tpe | regex-timed-interval-symbolic | 0.01 |
 | examples/traces_timed_ops/upper_bounds.tpe | traces-timed-upper-bound | 0.01 |

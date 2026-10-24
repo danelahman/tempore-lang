@@ -41,7 +41,7 @@ end
 
 (** The grade of a lattice [L] over the delays [D]: [mul] and [join] are both
     the join of [L], [one] its bottom, [top] its top and [leq] its order. A
-    delay touches no level of the lattice, so [of_delay] is constantly the
+    delay touches no element of the lattice, so [of_delay] is constantly the
     bottom, and so is [of_bounds]. The unit is least and [mul] commutes. No
     operation needs running-time bounds, every grade is atomic, and no
     counterexample is offered. The witnesses are all the elements, and complete.

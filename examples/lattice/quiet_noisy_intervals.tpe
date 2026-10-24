@@ -1,0 +1,91 @@
+(* A robot step whose tilt conversion is collected within a time window, while
+   the robot is quiet.
+
+   Run this example with the 'time-interval-lattice' grading monoid, e.g.
+
+     ./tempore --grades time-interval-lattice \
+       examples/lattice/quiet_noisy_intervals.tpe
+
+   Grades (i, l): a time within the interval i, touching nothing above l
+     - Unit ([0, 0], Quiet): no time spent, no motor or radio used
+     - Top ([0, ∞), Noisy): any time, whatever is used
+     - Product: Minkowski sum of the intervals and join of the elements *)
+
+(* The grade lattice: driving the motors and transmitting disturb the tilt sensor. *)
+grade lattice Quiet < Noisy
+
+type sample = Conversion of int
+type reading = Tilt of float
+
+(* Starting a conversion takes at most 0.1 time units; it is to be collected
+   between 0.5 and 2 time units later, during which nothing noisy happens. *)
+operation StartTiltRead : unit ~> [([0.5, 2.0], Quiet)] sample
+  ! ((0.0, 0.1], Quiet)
+
+default StartTiltRead () =
+  delay 0.04;
+  box ([0.5, 2.0], Quiet) (Conversion 544i)
+
+operation CollectTilt : sample ~> reading ! ((0.0, 0.1], Quiet)
+
+default CollectTilt (Conversion raw) =
+  delay 0.06;
+  Tilt ((float_of_int raw -. 512.) /. 64.)
+
+operation ReadSpeed : unit ~> int * int ! ([0.5, 1.5], Quiet)
+default ReadSpeed () = delay 0.8; (12i, 10i)
+
+operation Drive : float * float ~> unit ! ((0.0, 0.5], Noisy)
+default Drive (left, right) = delay 0.3; ()
+
+operation Transmit : float ~> unit ! ((0.0, 1.0], Noisy)
+default Transmit angle = delay 0.45; ()
+
+(* Correctly accepted by the typechecker: the speeds are read during the
+   conversion, [0.5, 1.5] within [0.5, 2.0], which is then collected before
+   the motors are driven and the tilt is transmitted. The step takes the
+   Minkowski sum (0.5, 3.2] of the five intervals and touches Noisy. *)
+let step () : float ! ((0.5, 3.2], Noisy) =
+  let s = perform StartTiltRead () in
+  let left, right = perform ReadSpeed () in
+  unbox s as conversion in
+  let (Tilt angle) = perform CollectTilt conversion in
+  perform Drive (float_of_int left -. angle, float_of_int right -. angle);
+  perform Transmit angle;
+  angle
+
+(* Correctly rejected by the typechecker: transmitting during the conversion
+   disturbs it:
+
+     Typing error: Variable `s` is unboxed with grade `((0.5, 2.5], Noisy)`
+       accumulated since it was bound, which is not below its box grade
+       `([0.5, 2], Quiet)`
+       ...
+*)
+(*
+let step_transmitting () =
+  let s = perform StartTiltRead () in
+  let left, right = perform ReadSpeed () in
+  perform Transmit 0.;
+  unbox s as conversion in
+  let (Tilt angle) = perform CollectTilt conversion in
+  angle
+*)
+
+(* Correctly rejected by the typechecker: collecting immediately after starting
+   the conversion is too early:
+
+     Typing error: Variable `s` is unboxed with the unit grade
+       `([0, 0], Quiet)` accumulated since it was bound, which is not below
+       its box grade `([0.5, 2], Quiet)`
+       ...
+*)
+(*
+let step_too_early () =
+  let s = perform StartTiltRead () in
+  unbox s as conversion in
+  let (Tilt angle) = perform CollectTilt conversion in
+  angle
+*)
+
+run step ()

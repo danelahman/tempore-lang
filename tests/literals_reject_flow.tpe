@@ -1,6 +1,6 @@
-(* Run this test with the 'flow-levels' grading monoid, e.g.
+(* Run this test with the 'flow-lattice' grading monoid, e.g.
 
-     ./tempore --grades flow-levels tests/literals_reject_flow.tpe
+     ./tempore --grades flow-lattice tests/literals_reject_flow.tpe
 
    Rejected: a sink is listed twice. *)
 

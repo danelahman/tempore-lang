@@ -1,0 +1,16 @@
+(* Run this test with the 'lattice' grading monoid, e.g.
+
+     ./tempore --grades lattice tests/lattice_reject.tpe
+
+   Rejected: a value boxed at Low cannot be claimed once Send has raised the
+   grade to High. *)
+
+operation Send : string ~> unit ! High
+
+default Send s = ()
+
+let send_then_claim () =
+  box Low "public" as r in
+  perform Send "secret";
+  unbox r as y in
+  y

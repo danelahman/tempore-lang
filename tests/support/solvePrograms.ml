@@ -16,7 +16,7 @@ type command_verdict = { line : int; kind : string; ok : bool; detail : string }
 
 module Programs
     (L : sig
-      val levels : Grades.LevelLattice.t option
+      val lattice : Grades.GradeLattice.t option
     end)
     (G : Grade.S) =
 struct
@@ -177,18 +177,18 @@ module type PROGRAMS = sig
   val definitions : string -> (string * bool * string) list
 end
 
-(* The programs of each grade and lattice of levels, the standard library
+(* The programs of each grade and grade lattice, the standard library
    loaded once. *)
 let programs_of =
   let table = Hashtbl.create 8 in
-  fun ?levels grades ->
-    let key = (grades, Option.map Grades.LevelLattice.declaration levels) in
+  fun ?lattice grades ->
+    let key = (grades, Option.map Grades.GradeLattice.declaration lattice) in
     match Hashtbl.find_opt table key with
     | Some p -> p
     | None ->
-        let (module G) = TestPrograms.grade_module ?levels grades in
+        let (module G) = TestPrograms.grade_module ?lattice grades in
         let module L = struct
-          let levels = levels
+          let lattice = lattice
         end in
         let p = (module Programs (L) (G) : PROGRAMS) in
         Hashtbl.add table key p;

@@ -184,7 +184,7 @@ each is a minute.
   - the eluates are transferred after 2 to 5 minutes of settling, waiting
     only.
 - [`contamination.tpe`](../../../examples/opentrons/contamination.tpe): a
-  ddPCR plate set-up under `time-upper-bound-levels`, whose master mix is
+  ddPCR plate set-up under `time-upper-bound-lattice`, whose master mix is
   boxed `(30, High)` and unboxed for each dispensing. The typechecker
   proves, under the declared running times of the operations:
   - a tip is used only while it has touched nothing contaminated since it

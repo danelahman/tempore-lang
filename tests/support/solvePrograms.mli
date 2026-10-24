@@ -17,7 +17,7 @@ module type PROGRAMS = sig
       for each command of [source], after the standard library. *)
 end
 
-val programs_of : ?levels:Grades.LevelLattice.t -> string -> (module PROGRAMS)
-(** [programs_of ?levels grades] is the programs of the grades named [grades],
-    over the lattice of levels [levels] if given, the standard library loaded
-    once. *)
+val programs_of : ?lattice:Grades.GradeLattice.t -> string -> (module PROGRAMS)
+(** [programs_of ?lattice grades] is the programs of the grades named [grades],
+    over the grade lattice [lattice] if given, the standard library loaded once.
+*)

@@ -1,11 +1,11 @@
 (* A ddPCR plate set-up on the Opentrons Flex, keeping clean tips from the test article.
 
-   Run this example with the 'time-upper-bound-levels' grading monoid, e.g.
+   Run this example with the 'time-upper-bound-lattice' grading monoid, e.g.
 
-     ./tempore --grades time-upper-bound-levels \
+     ./tempore --grades time-upper-bound-lattice \
        examples/opentrons/contamination.tpe
 
-   Grades (n, l): at most n minutes, touching nothing above level l,
+   Grades (n, l): at most n minutes, touching nothing above l,
    Low being clean and High contaminated
      - Unit (0, Low): no time spent, nothing contaminated touched
      - Top (∞, High): unbounded time, whatever is touched
@@ -24,7 +24,7 @@
    operations performed by the functions of 'contamination_bindings.py', is
    written by
 
-     ./tempore --grades time-upper-bound-levels \
+     ./tempore --grades time-upper-bound-lattice \
        --emit-opentrons contamination.py \
        --bind examples/opentrons/contamination_bindings.py \
        --time-unit minutes \
@@ -34,8 +34,8 @@
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
    The target opentrons-contamination-simulate of 'make' runs this command.
 
-   The level of an operation is High if its tip touches the test article,
-   and Low otherwise. A tip is boxed at level Low: it may enter a clean
+   The lattice component of an operation is High if its tip touches the test
+   article, and Low otherwise. A tip is boxed at Low: it may enter a clean
    reagent only while nothing contaminated has been touched since it was
    picked up. Its type is not eternal, so it cannot be kept unboxed past an
    operation: a tip used for several operations is the same boxed tip,

@@ -1,0 +1,7 @@
+(* Run this test with the 'lattice' grading monoid, e.g.
+
+     ./tempore --grades lattice tests/lattice_reject_literal.tpe
+
+   Rejected: an integer is no element of the grade lattice. *)
+
+let claim () = box 3 1

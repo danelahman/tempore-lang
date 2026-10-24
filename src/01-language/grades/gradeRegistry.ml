@@ -18,13 +18,13 @@ type group = { label : string; short : string; grades : (string * info) list }
 
 (* One registered grade: its module, named by [Grade.S.name], grouped and
    described for the web selector and the CLI's [--help], and, if it is built
-   on levels, built over any lattice of levels. The single list
+   on a grade lattice, built over any grade lattice. The single list
    [entries] is the source of truth that [grade_modules], [groups] and
    [accepting] are all read off. *)
 type entry = {
   name : string;
   grade : (module Grade.S);
-  over_levels : (LevelLattice.t -> (module Grade.S)) option;
+  over_lattice : (GradeLattice.t -> (module Grade.S)) option;
   group : string * string;
   info : info;
 }
@@ -44,17 +44,17 @@ let traces_timed_rigid =
 let regex_timed_rigid =
   ("Regular expressions of timed operations, rigid", "Regex (timed ops, rigid)")
 
-let security = ("Security levels", "Security")
+let lattices = ("Grade lattices", "Lattices")
 let semidirect = ("Semidirect products", "Semidirect")
 let counts = ("Operation counts", "Counts")
 let spacing = ("Spacing of timed operations", "Spacing (timed ops)")
 
-let entry ?(visibility = Everywhere) ?implementation ?over_levels
+let entry ?(visibility = Everywhere) ?implementation ?over_lattice
     (module G : Grade.S) group title description =
   {
     name = G.name;
     grade = (module G : Grade.S);
-    over_levels;
+    over_lattice;
     group;
     info = { title; description; visibility; implementation };
   }
@@ -527,55 +527,57 @@ let entries =
       (module IntervalGrades.RegexRational.Interval)
       regex_timed_rigid "Intervals (rational, symbolic)" rigid_interval_rational;
     entry
-      ~over_levels:(fun lattice ->
-        let module V = LevelGrades.Over (struct
+      ~over_lattice:(fun lattice ->
+        let module V = LatticeGrades.Over (struct
           let lattice = lattice
         end) in
-        (module V.SecurityLevels : Grade.S))
-      (module LevelGrades.SecurityLevels)
-      security "Security levels"
-      "A security lattice, Low < High unless the program declares its own; a \
-       box is out of reach once a higher level has been touched.";
+        (module V.Lattice : Grade.S))
+      (module LatticeGrades.Lattice)
+      lattices "Grade lattice"
+      "A finite lattice of grades, Low < High unless the program declares its \
+       own; a computation's grade is the highest element reached, and a box is \
+       out of reach once a higher element has been reached.";
     entry
-      ~over_levels:(fun lattice ->
-        let module V = LevelGrades.Over (struct
+      ~over_lattice:(fun lattice ->
+        let module V = LatticeGrades.Over (struct
           let lattice = lattice
         end) in
-        (module V.TimeLowerBoundLevels : Grade.S))
-      (module LevelGrades.TimeLowerBoundLevels)
-      security "Embargoes"
-      "A time lower bound paired with a security level: at least n time steps, \
-       touching nothing above the level.";
+        (module V.TimeLowerBoundLattice : Grade.S))
+      (module LatticeGrades.TimeLowerBoundLattice)
+      lattices "Embargoes"
+      "A time lower bound paired with an element of the grade lattice: at \
+       least n time steps, touching nothing above the element.";
     entry
-      ~over_levels:(fun lattice ->
-        let module V = LevelGrades.Over (struct
+      ~over_lattice:(fun lattice ->
+        let module V = LatticeGrades.Over (struct
           let lattice = lattice
         end) in
-        (module V.TimeUpperBoundLevels : Grade.S))
-      (module LevelGrades.TimeUpperBoundLevels)
-      security "Expiring capabilities"
-      "A time upper bound paired with a security level: at most n time steps, \
-       touching nothing above the level.";
+        (module V.TimeUpperBoundLattice : Grade.S))
+      (module LatticeGrades.TimeUpperBoundLattice)
+      lattices "Expiring capabilities"
+      "A time upper bound paired with an element of the grade lattice: at most \
+       n time steps, touching nothing above the element.";
     entry
-      ~over_levels:(fun lattice ->
-        let module V = LevelGrades.Over (struct
+      ~over_lattice:(fun lattice ->
+        let module V = LatticeGrades.Over (struct
           let lattice = lattice
         end) in
-        (module V.TimeIntervalLevels : Grade.S))
-      (module LevelGrades.TimeIntervalLevels)
-      security "Timed levels"
-      "A rational time interval paired with a security level: a time within \
-       the interval, touching nothing above the level.";
+        (module V.TimeIntervalLattice : Grade.S))
+      (module LatticeGrades.TimeIntervalLattice)
+      lattices "Timed lattice"
+      "A rational time interval paired with an element of the grade lattice: a \
+       time within the interval, touching nothing above the element.";
     entry
-      ~over_levels:(fun lattice ->
-        let module V = LevelGrades.Over (struct
+      ~over_lattice:(fun lattice ->
+        let module V = LatticeGrades.Over (struct
           let lattice = lattice
         end) in
-        (module V.FlowLevels : Grade.S))
-      (module LevelGrades.FlowLevels)
-      security "Flow-sensitive outputs"
-      "A security level paired with the level at which each output is written; \
-       later outputs are raised to the level touched before them.";
+        (module V.FlowLattice : Grade.S))
+      (module LatticeGrades.FlowLattice)
+      lattices "Flow-sensitive outputs"
+      "An element of the grade lattice paired with the element at which each \
+       output is written; later outputs are raised to the element reached \
+       before them.";
     entry
       (module ResourceLevelGrades.ResourceLevels)
       semidirect "Resource levels"
@@ -617,49 +619,49 @@ let grade_modules = List.map (fun e -> (e.name, e.grade)) entries
 let default_name = fst (List.hd grade_modules)
 
 (* The grades shown [Everywhere], each the name and the module of an entry:
-   with a lattice of levels [levels], those built on levels, over it. *)
-let offered levels =
+   with a grade lattice [lattice], those built on a grade lattice, over it. *)
+let offered lattice =
   List.filter_map
     (fun e ->
-      match (levels, e.over_levels) with
+      match (lattice, e.over_lattice) with
       | _ when e.info.visibility <> Everywhere -> None
       | None, _ -> Some (e.name, e.grade)
       | Some lattice, Some over -> Some (e.name, over lattice)
       | Some _, None -> None)
     entries
 
-let accepting ?levels lit =
+let accepting ?lattice lit =
   List.filter_map
     (fun (name, (module G : Grade.S)) ->
       if G.accepts lit then Some name else None)
-    (offered levels)
+    (offered lattice)
 
-let accepting_delay ?levels lit =
+let accepting_delay ?lattice lit =
   List.filter_map
     (fun (name, (module G : Grade.S)) ->
       Option.map (fun _ -> name) (G.Delay.read lit))
-    (offered levels)
+    (offered lattice)
 
-let accepting_bounds ?levels lit =
+let accepting_bounds ?lattice lit =
   List.filter_map
     (fun (name, (module G : Grade.S)) ->
       match G.Delay.read lit with
       | Some _ when G.needs_op_bounds -> Some name
       | Some _ | None -> None)
-    (offered levels)
+    (offered lattice)
 
 let find name = List.find_opt (fun e -> String.equal e.name name) entries
 
-let over_levels name lattice =
+let over_lattice name lattice =
   Option.bind (find name) (fun e ->
-      Option.map (fun over -> over lattice) e.over_levels)
+      Option.map (fun over -> over lattice) e.over_lattice)
 
-let uses_levels name =
-  match find name with Some { over_levels = Some _; _ } -> true | _ -> false
+let uses_lattice name =
+  match find name with Some { over_lattice = Some _; _ } -> true | _ -> false
 
-let without_levels name =
+let without_lattice name =
   Printf.sprintf
-    "The `%s` grading monoid is not built on levels, which therefore cannot be \
+    "The `%s` grading monoid is not built on a grade lattice, so none can be \
      declared"
     name
 
