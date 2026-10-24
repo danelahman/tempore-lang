@@ -53,33 +53,34 @@ let rejects name (module G : Grade.S) lit fragment =
         ("the reason '" ^ reason ^ "' does not mention '" ^ fragment ^ "'")
 
 let levels =
-  let open LevelGrades in
-  let module L = SecurityLevels in
+  let module L = LevelGrades.SecurityLevels in
+  let low = L.of_lit (Grade.Name "Low")
+  and high = L.of_lit (Grade.Name "High") in
   let show = L.show in
   [
-    check "levels: Low below High" (L.leq bounds Low High) "Low ≾ High";
+    check "levels: Low below High" (L.leq bounds low high) "Low ≾ High";
     check "levels: High not below Low"
-      (not (L.leq bounds High Low))
+      (not (L.leq bounds high low))
       "High ≾ Low";
-    check "levels: reflexive" (L.leq bounds High High) "High ≾ High";
-    expect "levels: join" show ~expected:High (L.join Low High);
-    expect "levels: join of Low" show ~expected:Low (L.join Low Low);
-    expect "levels: product is the join" show ~expected:High (L.mul High Low);
-    expect "levels: unit" show ~expected:Low L.one;
-    expect "levels: top" show ~expected:High L.top;
-    expect "levels: delays touch no level" show ~expected:Low
+    check "levels: reflexive" (L.leq bounds high high) "High ≾ High";
+    expect "levels: join" show ~expected:high (L.join low high);
+    expect "levels: join of Low" show ~expected:low (L.join low low);
+    expect "levels: product is the join" show ~expected:high (L.mul high low);
+    expect "levels: unit" show ~expected:low L.one;
+    expect "levels: top" show ~expected:high L.top;
+    expect "levels: delays touch no level" show ~expected:low
       (L.of_delay (Rational.of_int 5));
     expect "levels: no delay is the unit" show ~expected:L.one
       (L.of_delay Rational.zero);
-    expect "levels: time shadow" show ~expected:Low
+    expect "levels: time shadow" show ~expected:low
       (L.of_bounds Rational.(Grade.Closed (of_int 1), Grade.Closed (of_int 2)));
-    check "levels: equal" (L.equal bounds High High) "High = High";
+    check "levels: equal" (L.equal bounds high high) "High = High";
     expect "levels: unit least" show_bool ~expected:true L.unit_least;
     expect "levels: commutative" show_bool ~expected:true L.commutative;
     expect "levels: no running-time bounds" show_bool ~expected:false
       L.needs_op_bounds;
-    expect "levels: atomic" show_bool ~expected:true (L.is_atomic "Send" High);
-    expect "levels: no events" show_names ~expected:[] (L.events High);
+    expect "levels: atomic" show_bool ~expected:true (L.is_atomic "Send" high);
+    expect "levels: no events" show_names ~expected:[] (L.events high);
   ]
 
 module TimeLevels = LevelGrades.TimeLowerBoundLevels
@@ -1520,6 +1521,11 @@ module Levels_conditions =
 
 module Flow = LevelGrades.FlowLevels
 
+(* The levels [Low] and [High] of the default lattice. *)
+let levels_low_high =
+  LevelGrades.(
+    List.map SecurityLevels.of_lit [ Grade.Name "Low"; Grade.Name "High" ])
+
 (* The flow-sensitive grades over the sinks [sinks], each written at a level or
    not at all, and the top. *)
 let flow_grades sinks =
@@ -1528,10 +1534,7 @@ let flow_grades sinks =
       (fun outputs sink ->
         List.concat_map
           (fun ws ->
-            ws
-            :: List.map
-                 (fun level -> ws @ [ (sink, level) ])
-                 [ LevelGrades.Low; High ])
+            ws :: List.map (fun level -> ws @ [ (sink, level) ]) levels_low_high)
           outputs)
       [ [] ] sinks
   in
@@ -1545,7 +1548,7 @@ let flow_grades sinks =
                  ~compare:LevelGrades.WrittenAt.compare ~others:None
                  (List.map (fun (s, l) -> (s, Some l)) ws) ))
            outputs)
-       [ LevelGrades.Low; High ]
+       levels_low_high
 
 module Flow_conditions =
   Conditions
@@ -3674,7 +3677,7 @@ let resource_construction_laws =
 
 module Levels = LevelGrades.SecurityLevels
 
-let written_levels = [ None; Some LevelGrades.Low; Some LevelGrades.High ]
+let written_levels = None :: List.map Option.some levels_low_high
 
 (* The outputs to the sinks [Audit] and [Board] and the other sinks, each
    unwritten or written at a level: every element over these sinks. *)
@@ -3694,10 +3697,10 @@ let all_outputs =
 let all_flow_levels =
   List.concat_map
     (fun level -> List.map (fun outputs -> (level, outputs)) all_outputs)
-    [ LevelGrades.Low; High ]
+    levels_low_high
 
 let finite_laws =
-  let levels = [ LevelGrades.Low; High ] in
+  let levels = levels_low_high in
   let raise =
     action_of_components
       (module Levels)
@@ -3721,6 +3724,151 @@ let finite_laws =
   @ declared_laws (module Flow) ~context:flow_context bounds all_flow_levels
   @ action_laws raise levels all_outputs
   @ semidirect_laws (module Flow) raise bounds all_flow_levels
+
+(* The lattice of levels declared by [chains]. *)
+let declared_lattice chains =
+  let pos = { Utils.Location.line = 1; column = 1; offset = 0 } in
+  let at = { Utils.Location.filename = ""; start = pos; stop = pos } in
+  Grades.LevelLattice.of_chains ~at
+    (List.map (List.map (fun it -> { Utils.Location.it; at })) chains)
+
+(* A diamond and a chain of three levels. *)
+let declared_lattices =
+  [
+    ( "the diamond Public < Team < Confidential, Public < Partner < Confidential",
+      declared_lattice
+        [
+          [ "Public"; "Team"; "Confidential" ];
+          [ "Public"; "Partner"; "Confidential" ];
+        ] );
+    ( "the chain Public < Internal < Secret",
+      declared_lattice [ [ "Public"; "Internal"; "Secret" ] ] );
+  ]
+
+(* The laws of the grades of the registry built on levels, over the declared
+   lattice [lattice] described by [label], on samples read from literals, and
+   the laws of the components and the action of the flow-sensitive levels on
+   all elements over the sink [Board] and the others. *)
+let declared_level_laws (label, lattice) =
+  let module LevelLattice = Grades.LevelLattice in
+  let levels = LevelLattice.elements lattice in
+  let names = List.map (LevelLattice.label lattice) levels in
+  let level name = Grade.Name name in
+  let context = "the samples over " ^ label in
+  let laws (module G : Grade.S) lits =
+    let samples = List.map G.of_lit lits in
+    let width = List.length samples in
+    order_laws ~width (module G) ~context bounds samples
+    @ algebra_laws ~width (module G) ~context bounds samples
+    @ declared_laws (module G) ~context bounds samples
+  in
+  let grade name = Option.get (GradeRegistry.over_levels name lattice) in
+  let timed =
+    List.concat_map
+      (fun n -> List.map (fun l -> Grade.Tuple [ Grade.Int n; level l ]) names)
+      [ 0; 1; 3 ]
+  in
+  let written sink l = Grade.Tuple [ Grade.Name sink; level l ] in
+  let flows =
+    List.concat_map
+      (fun l ->
+        level l
+        :: List.concat_map
+             (fun w ->
+               [
+                 Grade.Tuple [ level l; written "Board" w ];
+                 Grade.Tuple [ level l; written "Audit" w; written "Board" l ];
+               ])
+             names)
+      names
+  in
+  let module V = LevelGrades.Over (struct
+    let lattice = lattice
+  end) in
+  let written_levels = None :: List.map Option.some levels in
+  let outputs =
+    List.concat_map
+      (fun others ->
+        List.map
+          (fun board ->
+            Indexed.of_list ~compare:V.WrittenAt.compare ~others
+              [ ("Board", board) ])
+          written_levels)
+      written_levels
+  in
+  let all_flows =
+    List.concat_map (fun l -> List.map (fun o -> (l, o)) outputs) levels
+  in
+  let raise =
+    action_of_components
+      (module V.SecurityLevels)
+      (module V.Outputs)
+      V.Raise.act bounds
+  in
+  laws (grade "security-levels") (Grade.Top :: List.map level names)
+  @ laws (grade "time-lower-bound-levels") timed
+  @ laws (grade "time-upper-bound-levels") timed
+  @ laws (grade "flow-levels") (Grade.Top :: flows)
+  @ semilattice_laws
+      ~width:(List.length written_levels)
+      (module V.WrittenAt)
+      written_levels
+  @ semilattice_laws ~width:(List.length outputs) (module V.Outputs) outputs
+  @ action_laws raise levels outputs
+  @ semidirect_laws (module V.FlowLevels) raise bounds all_flows
+
+let declared_levels_laws = List.concat_map declared_level_laws declared_lattices
+
+(* The order, the joins, the numbering, the equality and the descriptions of
+   declared lattices. *)
+let declared_levels_structure =
+  let module L = Grades.LevelLattice in
+  let diamond = snd (List.hd declared_lattices) in
+  let chain = snd (List.nth declared_lattices 1) in
+  let level name = Option.get (L.index diamond name) in
+  let show = L.label diamond in
+  let all = L.elements diamond in
+  [
+    expect "declared levels: join of Team and Partner" Fun.id
+      ~expected:"Confidential"
+      (show (L.join diamond (level "Team") (level "Partner")));
+    check "declared levels: Team and Partner are incomparable"
+      ((not (L.leq diamond (level "Team") (level "Partner")))
+      && not (L.leq diamond (level "Partner") (level "Team")))
+      "comparable";
+    expect "declared levels: least" Fun.id ~expected:"Public"
+      (show (L.bottom diamond));
+    expect "declared levels: greatest" Fun.id ~expected:"Confidential"
+      (show (L.top diamond));
+    check "declared levels: the numbering extends the order"
+      (List.for_all
+         (fun i ->
+           List.for_all (fun j -> (not (L.leq diamond i j)) || i <= j) all)
+         all)
+      "not a linear extension";
+    check "declared levels: equal however the chains are ordered"
+      (L.equal diamond
+         (declared_lattice
+            [
+              [ "Public"; "Partner"; "Confidential" ];
+              [ "Public"; "Team"; "Confidential" ];
+            ]))
+      "not equal";
+    check "declared levels: Low < High is the default"
+      (L.equal L.default (declared_lattice [ [ "Low"; "High" ] ]))
+      "not equal";
+    check "declared levels: a diamond is not a chain"
+      (not (L.equal diamond chain))
+      "equal";
+    expect "declared levels: few levels listed" Fun.id
+      ~expected:"the levels are `Public`, `Internal` and `Secret`"
+      (L.levels_are chain);
+    expect "declared levels: many levels summarised" Fun.id
+      ~expected:"the 5 levels range from `P` to `T`"
+      (L.levels_are (declared_lattice [ [ "P"; "Q"; "R"; "S"; "T" ] ]));
+    expect "declared levels: one level" Fun.id ~expected:"the level `Only`"
+      (L.the_levels (declared_lattice [ [ "Only" ] ]));
+  ]
 
 (* The laws of the instances of the delays. *)
 let delay_laws =
@@ -3848,8 +3996,8 @@ let flow_tops =
     expect "flow-levels: the top prints as ⊤" Fun.id ~expected:"⊤"
       (F.show F.top);
     check "flow-levels: a low level with every sink written is not ⊤"
-      (F.show (LevelGrades.Low, LevelGrades.Outputs.top) <> "⊤")
-      (F.show (LevelGrades.Low, LevelGrades.Outputs.top));
+      (F.show (LevelGrades.SecurityLevels.one, LevelGrades.Outputs.top) <> "⊤")
+      (F.show (LevelGrades.SecurityLevels.one, LevelGrades.Outputs.top));
   ]
 
 let () =
@@ -3858,8 +4006,9 @@ let () =
     @ semidirect_counterexamples @ witnesses @ literals @ negative_delays @ tops
     @ registry @ registered_laws @ registered_repetitions @ fractional_laws
     @ inclusion_laws @ indexed @ mode_laws @ resource_laws @ interval_read_back
-    @ schedule_laws @ resource_construction_laws @ finite_laws @ ranges
-    @ flow_tops @ duration_bounds @ mode_time_laws @ interval_letter_laws
+    @ schedule_laws @ resource_construction_laws @ finite_laws
+    @ declared_levels_laws @ declared_levels_structure @ ranges @ flow_tops
+    @ duration_bounds @ mode_time_laws @ interval_letter_laws
     @ interval_letter_overflow
   in
   let failures = List.filter (fun c -> not c.passed) checks in

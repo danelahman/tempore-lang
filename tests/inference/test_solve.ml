@@ -50,7 +50,9 @@ let expectations lines =
 (* ------------------------------------------------------------------ *)
 
 let file_verdicts ?packages path grades =
-  let (module P) = programs_of grades in
+  let (module P) =
+    programs_of ?levels:(TestPrograms.levels_of_file path) grades
+  in
   let start = Unix.gettimeofday () in
   let verdicts = P.file ?packages path in
   (verdicts, Unix.gettimeofday () -. start)
@@ -145,6 +147,8 @@ let expected_rejections =
     ("tests/unbox_nested_reject_upper.tpe", [ 10; 19 ]);
     ("tests/less_than_function.tpe", [ 1 ]);
     ("tests/levels_reject.tpe", [ 12 ]);
+    ("tests/levels_declared_chain_reject.tpe", [ 17; 24 ]);
+    ("tests/levels_declared_diamond_reject.tpe", [ 18; 22 ]);
     ("tests/levels_time_lower_reject.tpe", [ 14; 21 ]);
     ("tests/levels_time_upper_reject.tpe", [ 14; 21 ]);
     ("tests/list_constructor_reject.tpe", [ 3 ]);

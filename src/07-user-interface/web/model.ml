@@ -887,11 +887,18 @@ let rec make_run_state : type run_state.
     observer;
   }
 
-(* The program of [edit_model] loaded under the grades [G] after the
-   declarations [declared]: the program loaded, or else the errors reported
+(* The program of [edit_model] loaded under the grades [G], in a program
+   declaring the lattice of levels [levels], after the declarations [declared]:
+   the program loaded, or else the errors reported
    and what the check has found. *)
-let check_with (module G : Grades.Grade.S) edit_model declared =
-  let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
+let check_with (module G : Grades.Grade.S) levels edit_model declared =
+  let module B =
+    WebInterpreter.Make
+      (Grades.GradeSystem.Declaring
+         (struct
+           let levels = levels
+         end)
+         (G)) in
   let module L = Loader.Loader (B) in
   (* The standard library is loaded as a source of its own, so that an editor
      location is a location in what the user typed. *)
@@ -961,9 +968,9 @@ let check_with (module G : Grades.Grade.S) edit_model declared =
 let failed declared errors =
   (errors, { definitions = []; links = []; accepted = None; declared })
 
-(* The program of [edit_model] checked under the grades selected after the
-   declarations [declared] of the selected backend; an exception raised
-   meanwhile is reported as an error. *)
+(* The program of [edit_model] checked under the grades selected, over the
+   levels the program declares, after the declarations [declared] of the
+   selected backend; an exception raised meanwhile is reported as an error. *)
 let check_program edit_model declared =
   match
     List.assoc_opt edit_model.selected_grades Grades.GradeRegistry.grade_modules
@@ -975,8 +982,16 @@ let check_program edit_model declared =
              fatal
                (Printf.sprintf "Unknown grades `%s`" edit_model.selected_grades);
            ])
-  | Some grades -> (
-      try check_with grades edit_model declared
+  | Some _ -> (
+      try
+        let grades, levels =
+          Loader.grades_of_sources ~grades:edit_model.selected_grades
+            (List.map
+               (fun (d : BackendRegistry.source) -> (d.filename, d.text))
+               declared
+            @ [ ("", edit_model.unparsed_code) ])
+        in
+        check_with grades levels edit_model declared
       with exn -> Error (failed declared (errors_of_exception Checking exn)))
 
 (* The program of [edit_model] checked as by [check_program], the check of

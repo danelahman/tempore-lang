@@ -144,9 +144,12 @@ let tokens s =
         incr i
       done;
       let tok = String.sub s start (!i - start) in
+      (* [levels] is a keyword only where it opens a declaration of levels,
+         taken to be at the start of a line. *)
       if
         List.mem tok keywords
         || (!brace_depth > 0 && List.mem tok brace_keywords)
+        || (tok = "levels" && (start = 0 || s.[start - 1] = '\n'))
       then begin
         emit start !i (Some "syn-kw");
         (match tok with

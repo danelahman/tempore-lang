@@ -78,6 +78,10 @@
         },
         {
           "name": "keyword.other.tempore",
+          "match": "^levels\\b"
+        },
+        {
+          "name": "keyword.other.tempore",
           "match": "\\b(let|in|and|rec|fun|function|as|of|type|noneternal|operation|handler|box|unbox|delay|begin|end|if|then|else|match|with|run|handle|perform|continue|within|default)\\b"
         },
         {

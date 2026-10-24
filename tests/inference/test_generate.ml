@@ -117,8 +117,13 @@ let malformed =
 (* Generation over whole programs                                      *)
 (* ------------------------------------------------------------------ *)
 
-module Program (G : Grade.S) = struct
-  module GS = GradeSystem.Identity (G)
+module Program
+    (L : sig
+      val levels : Grades.LevelLattice.t option
+    end)
+    (G : Grade.S) =
+struct
+  module GS = GradeSystem.Declaring (L) (G)
   module X = Inference.GradeExp.Make (GS)
   module C = Inference.Constraint.Make (X)
   module Gen = Inference.Generate.Make (C)
@@ -238,8 +243,15 @@ end
 let check_file ?packages path grades =
   let name = Filename.basename path in
   let expect_errors = List.mem name malformed in
-  let (module G) = TestPrograms.grade_module grades in
-  let module P = Program (G) in
+  let levels = TestPrograms.levels_of_file path in
+  let (module G) = TestPrograms.grade_module ?levels grades in
+  let module P =
+    Program
+      (struct
+        let levels = levels
+      end)
+      (G)
+  in
   match P.file ?packages path ~expect_errors with
   | rejected ->
       if expect_errors && not rejected then

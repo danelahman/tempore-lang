@@ -943,7 +943,8 @@ procedures of their own.
 In this category, we have the following grading monoids:
 
 - `security-levels`: the levels are given by the simple security lattice
-  `Low < High`; a computation's grade is the highest level it touches, and
+  `Low < High`, unless the program declares its own (see
+  [Declaring levels](#declaring-levels)); a computation's grade is the highest level it touches, and
   delays touch none. A box at `Low` is out of reach once an operation of grade
   `High` has run.
 
@@ -1030,6 +1031,44 @@ See
 [`examples/levels/time_lower.tpe`](examples/levels/time_lower.tpe),
 [`examples/levels/time_upper.tpe`](examples/levels/time_upper.tpe)
 and [`examples/levels/flow.tpe`](examples/levels/flow.tpe).
+
+#### Declaring levels
+
+A program may declare its own finite lattice of levels in place of `Low < High`,
+which all four grading monoids above then use. The declaration opens a file,
+after its header comment:
+
+```
+levels Quiet < Noisy
+
+levels Public < Team < Confidential,
+       Public < Partner < Confidential
+```
+
+Each chain `L1 < L2 < ...` gives covering edges, and the order is their
+reflexive-transitive closure. The labels must form a lattice: no label repeated
+in a chain, no cycle, a least label, and a least upper bound for every two
+labels. The files of one run share one declaration, which a file may repeat;
+a differing one is an error, as is a declaration under a grading monoid not
+built on levels. Elsewhere `levels` remains an ordinary name.
+
+For example, a robot whose tilt conversion must complete while the motors and
+the radio are idle declares
+
+```
+levels Quiet < Noisy
+
+operation StartTiltRead : unit ~> [(5, Quiet)] sample ! (1, Quiet)
+operation Transmit : float ~> unit ! (1, Noisy)
+```
+
+under `time-upper-bound-levels`; transmitting before the conversion is
+collected is rejected:
+
+    Variable `s` is unboxed with grade `(1, Noisy)` accumulated since it was
+    bound, which is not below its box grade `(5, Quiet)`
+
+See [`examples/levels/quiet_noisy.tpe`](examples/levels/quiet_noisy.tpe).
 
 ### Semidirect products
 

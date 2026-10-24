@@ -116,6 +116,25 @@ let with_running_times (type e) (module E : Grades.Grade.S with type t = e)
 
 let stdlib_filename = "stdlib.tpe"
 
+let grades_of_sources ~grades sources =
+  match
+    List.find_map
+      (fun (filename, text) -> Parser.LevelsDeclaration.scan ~filename text)
+      sources
+  with
+  | None -> (
+      match List.assoc_opt grades Grades.GradeRegistry.grade_modules with
+      | Some grade -> (grade, None)
+      | None ->
+          invalid_arg ("Loader.grades_of_sources: unknown grades " ^ grades))
+  | Some (at, chains) -> (
+      let lattice = Grades.LevelLattice.of_chains ~at chains in
+      match Grades.GradeRegistry.over_levels grades lattice with
+      | Some grade -> (grade, Some lattice)
+      | None ->
+          Error.syntax ~loc:at "%s" (Grades.GradeRegistry.without_levels grades)
+      )
+
 module Loader (Backend : Backend.S) = struct
   module D = Desugarer.Make (Backend.Grades)
   module TC = Typechecker.Make (Backend.Grades)

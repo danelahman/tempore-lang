@@ -34,7 +34,7 @@
     try of_lit lit with
     | Grade.Invalid_literal (lit, reason) ->
       Error.syntax ~loc "In the `%s` grading monoid, %s%s" name reason
-        (suggestion (Grades.GradeRegistry.accepting lit))
+        (suggestion (Grades.GradeRegistry.accepting ?levels:GS.levels lit))
     | Error.Error ({ Diagnostic.primary = None; _ } as d) ->
       raise (Error.Error { d with Diagnostic.primary = Some loc })
 
@@ -47,7 +47,7 @@
     | None ->
         Error.syntax ~loc "In the `%s` grading monoid, %s%s" GS.R.name
           (GS.R.Delay.rejection lit)
-          (suggestion (Grades.GradeRegistry.accepting_delay lit))
+          (suggestion (Grades.GradeRegistry.accepting_delay ?levels:GS.levels lit))
 
   (* [running_time_bound ~loc q] is the running-time bound [q] if the delays of
      the grade system read it or its effect grades read no running-time bounds;
@@ -63,7 +63,7 @@
           "In the `%s` grading monoid, running-time bounds are delays, and %s%s"
           GS.E.name
           (GS.E.Delay.rejection lit)
-          (suggestion (Grades.GradeRegistry.accepting_bounds lit))
+          (suggestion (Grades.GradeRegistry.accepting_bounds ?levels:GS.levels lit))
 
   (* [open_running_time ~loc lo hi] is the running-time bounds at [loc] from
      [lo] to [hi], an end open: a syntax error if the interval is empty. Where
@@ -84,6 +84,26 @@
               GS.E.name
               (Grade.show_interval Rational.show lo hi)
         | None -> (lo', hi'))
+
+  (* [declare_levels ~loc chains] checks the declaration of levels [chains] at
+     [loc] against the grade system: its grades are built on levels, over the
+     same lattice, that of an earlier declaration or else [Low < High]. *)
+  let declare_levels ~loc chains =
+    let declared = Grades.LevelLattice.of_chains ~at:loc chains in
+    if not (Grades.GradeRegistry.uses_levels GS.R.name) then
+      Error.syntax ~loc "%s" (Grades.GradeRegistry.without_levels GS.R.name);
+    let levels = Option.value GS.levels ~default:Grades.LevelLattice.default in
+    if not (Grades.LevelLattice.equal declared levels) then
+      Error.error ~loc
+        ~labels:
+          (Option.fold ~none:[]
+             ~some:(fun span ->
+               [ { Diagnostic.span; text = "the levels of the program are declared here" } ])
+             (Grades.LevelLattice.declared_at levels))
+        Diagnostic.Syntax
+        "The levels `%s` differ from the levels `%s` of the program"
+        (Grades.LevelLattice.declaration declared)
+        (Grades.LevelLattice.declaration levels)
 
   (* [small ~loc what n] is the number [n] as an OCaml [int]; a syntax error
      at [loc] naming [what] if [n] does not fit one. *)
@@ -245,10 +265,35 @@
 (* A program is a sequence of commands up to the end of the file, with no
    terminator after the last. *)
 commands:
+  | levels_declaration cmds = command_list
+     { cmds }
+  | cmds = command_list
+     { cmds }
+
+command_list:
   | EOF
      { [] }
-  | cmd = command cmds = commands
+  | cmd = command cmds = command_list
      { cmd :: cmds }
+
+(* The declaration of the lattice of levels, [levels] followed by chains of
+   covering edges separated by commas, before every other command of a file:
+   [levels] is a keyword only there. *)
+levels_declaration:
+  | keyword = mark_position(LNAME) chains = separated_nonempty_list(COMMA, level_chain)
+    { if keyword.it <> "levels" then
+        Error.syntax ~loc:keyword.at
+          "Expected a declaration, not the name `%s`" keyword.it;
+      declare_levels ~loc:(location $loc) chains }
+
+level_chain:
+  | level = mark_position(UNAME)
+    { [ level ] }
+  | level = mark_position(UNAME) op = mark_position(INFIXOP0) chain = level_chain
+    { if op.it <> "<" then
+        Error.syntax ~loc:op.at
+          "Levels are ordered by `<` in a declaration of levels, not `%s`" op.it;
+      level :: chain }
 
 (* Things that can be defined on toplevel. *)
 command: mark_position(plain_command) { $1 }

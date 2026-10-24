@@ -23,7 +23,11 @@ let in_child ~packages path grades =
   | 0 ->
       Unix.close input;
       ignore (Unix.alarm time_limit);
-      let (module P) = SolvePrograms.programs_of grades in
+      let (module P) =
+        SolvePrograms.programs_of
+          ?levels:(TestPrograms.levels_of_file path)
+          grades
+      in
       ignore (P.definitions "");
       let start = now () in
       let verdicts = P.file ~packages path in
