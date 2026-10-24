@@ -1,9 +1,9 @@
 (* A step counter on the M5Stack CoreS3 Lite: the accelerometer calibrated
    from 50 samples and read at least every 50 ms, steps counted 250 ms apart
 
-   Run this example with the 'event-separation' grading monoid, e.g.
+   Run this example with the 'operation-spacing' grading monoid, e.g.
 
-     ./tempore --grades event-separation \
+     ./tempore --grades operation-spacing \
        --package m5-imu \
        --package m5-display \
        --package m5-touch \

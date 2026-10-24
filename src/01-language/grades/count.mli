@@ -1,6 +1,6 @@
 (** Intervals of natural numbers, [[m, n]] or [\[m, ∞)]: the counts of a bounded
     repetition [r^C] of the regular expressions of grades, and the numbers of
-    occurrences of the event-separation grades. *)
+    occurrences of the operation-spacing grades. *)
 
 type t = { least : int; most : int option }
 (** The numbers from [least] to [most], [most] being [None] where unbounded.

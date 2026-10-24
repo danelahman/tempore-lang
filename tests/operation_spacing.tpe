@@ -1,8 +1,8 @@
-(* Run this test with the 'event-separation' grading monoid, e.g.
+(* Run this test with the 'operation-spacing' grading monoid, e.g.
 
-     ./tempore --grades event-separation tests/event_separation.tpe
+     ./tempore --grades operation-spacing tests/operation_spacing.tpe
 
-   Event separation: the times between consecutive occurrences of an
+   Operation spacing: the times between consecutive occurrences of an
    operation, at most and at least. *)
 
 operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]

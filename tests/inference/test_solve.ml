@@ -241,9 +241,9 @@ let expected_rejections =
     ("tests/traces_reject_unknown_event.tpe", [ 11 ]);
     ("tests/traces_rigid_upper_reject.tpe", [ 27 ]);
     ("tests/windowed_schedules_reject.tpe", [ 11; 16; 21; 29; 36 ]);
-    ("tests/event_separation_reject.tpe", [ 18; 29; 40; 49; 58 ]);
-    ("tests/event_separation_reject_runs.tpe", [ 20; 27; 33 ]);
-    ("tests/event_separation_reject_unknown.tpe", [ 11 ]);
+    ("tests/operation_spacing_reject.tpe", [ 18; 29; 40; 49; 58 ]);
+    ("tests/operation_spacing_reject_runs.tpe", [ 20; 27; 33 ]);
+    ("tests/operation_spacing_reject_unknown.tpe", [ 11 ]);
   ]
 
 (* The files whose typechecking took over 2 s, reported but not failed:

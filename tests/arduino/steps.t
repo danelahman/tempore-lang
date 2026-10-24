@@ -1,6 +1,6 @@
 The step counter of examples/arduino/steps on the M5Stack CoreS3 Lite, with
-the packages m5-imu, m5-display, m5-touch and m5-speaker, under the event
-separation: its run by the interpreter, its rejected variants, its project
+the packages m5-imu, m5-display, m5-touch and m5-speaker, under operation
+spacing: its run by the interpreter, its rejected variants, its project
 and its host simulation over the motions of its host model.
 
   $ app=../../examples/arduino/steps

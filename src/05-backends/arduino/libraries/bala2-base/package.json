@@ -9,7 +9,7 @@
     "regex-timed-rigid-lower-bound-rational-symbolic": "bala2_base_timed_ops.tpe",
     "regex-timed-rigid-upper-bound-rational-symbolic": "bala2_base_timed_ops.tpe",
     "regex-timed-rigid-interval-rational-symbolic": "bala2_base_timed_ops.tpe",
-    "event-separation": "bala2_base_timed_ops.tpe",
+    "operation-spacing": "bala2_base_timed_ops.tpe",
     "counts-upper-bound": "bala2_base_counts.tpe"
   },
   "requires": ["i2c"],

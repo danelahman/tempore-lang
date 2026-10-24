@@ -1,8 +1,8 @@
 (* A bead binding on the Opentrons Flex: the beads resuspended every 2 to 5 minutes.
 
-   Run this example with the 'event-separation' grading monoid, e.g.
+   Run this example with the 'operation-spacing' grading monoid, e.g.
 
-     ./tempore --grades event-separation examples/opentrons/binding.tpe
+     ./tempore --grades operation-spacing examples/opentrons/binding.tpe
 
    Grades (X, lead, gaps, tail): the times before the first X, between the
    starts of consecutive Xs and from the start of the last X to the end;
@@ -16,7 +16,7 @@
    operations performed by the functions of 'binding_bindings.py', is written
    by
 
-     ./tempore --grades event-separation \
+     ./tempore --grades operation-spacing \
        --emit-opentrons binding.py \
        --bind examples/opentrons/binding_bindings.py \
        --time-unit minutes \

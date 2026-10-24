@@ -1,4 +1,4 @@
-(** The event-separation grade, ["event-separation"]: how often each operation
+(** The operation-spacing grade, ["operation-spacing"]: how often each operation
     recurs, bounding the time between the occurrences of an operation, at most
     and at least, as the minimum and maximum distance functions of event streams
     (K. Richter, "Compositional Scheduling Analysis Using Standard Event

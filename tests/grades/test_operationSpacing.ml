@@ -1,4 +1,4 @@
-(* Unit and property tests of the event-separation grade: the laws on random
+(* Unit and property tests of the operation-spacing grade: the laws on random
    terms over the operations [A], [B] and [C] under random running-time
    bounds; the summaries of random concrete computations of a term against its
    evaluation, computed directly from the computation; the acceptance of a
@@ -9,7 +9,7 @@
 module Grade = Grades.Grade
 module Rational = Grades.Rational
 module I = Grades.DurationIntervals
-module E = Grades.EventSeparationGrades
+module E = Grades.OperationSpacingGrades
 module Indexed = Grades.GradeConstructions.Indexed
 open LawChecks
 
@@ -249,7 +249,7 @@ let oracle =
       let c = random_term ~specs:false st 4 in
       let s = E.Terms.evaluate bounds c in
       let steps = concrete bounds st c in
-      check "event-separation: a computation lies within its evaluation"
+      check "operation-spacing: a computation lies within its evaluation"
         (List.for_all
            (fun name -> within name steps (Indexed.at s.entries name) s.total)
            ("D" :: names))
@@ -289,13 +289,13 @@ let exact_specifications =
             (fun name -> within name steps (Indexed.at s.entries name) s.total)
             ("D" :: names) ))
   in
-  check "event-separation: specifications accept and reject computations"
+  check "operation-spacing: specifications accept and reject computations"
     (List.exists (fun (_, _, _, e) -> e) cases
     && List.exists (fun (_, _, _, e) -> not e) cases)
     ""
   :: List.map
        (fun (spec, steps, verdict, expected) ->
-         check "event-separation: a specification accepts exactly by the gaps"
+         check "operation-spacing: a specification accepts exactly by the gaps"
            (verdict = expected)
            (E.show spec ^ " on " ^ show_steps steps))
        cases
@@ -334,7 +334,7 @@ let read_back =
   let st = Random.State.make [| 19 |] in
   List.init 300 (fun _ ->
       let c = random_literal_grade st in
-      check "event-separation: a printed literal reads back"
+      check "operation-spacing: a printed literal reads back"
         (match Reader.parse (E.show c) with
         | Ok c' -> E.compare c c' = 0
         | Error _ -> false)
@@ -370,61 +370,61 @@ let parse text =
 
 let holds name text text' =
   check
-    ("event-separation: " ^ name)
+    ("operation-spacing: " ^ name)
     (E.leq bounds (parse text) (parse text'))
     (text ^ " <= " ^ text')
 
 let fails name text text' =
   check
-    ("event-separation: " ^ name)
+    ("operation-spacing: " ^ name)
     (not (E.leq bounds (parse text) (parse text')))
     (text ^ " not <= " ^ text')
 
 let rejected name text fragment =
   match Reader.parse text with
-  | Ok c -> check ("event-separation: " ^ name) false ("read as " ^ E.show c)
+  | Ok c -> check ("operation-spacing: " ^ name) false ("read as " ^ E.show c)
   | Error reason ->
       let n = String.length reason and k = String.length fragment in
       let rec from i =
         i + k <= n && (String.sub reason i k = fragment || from (i + 1))
       in
-      check ("event-separation: " ^ name) (from 0) reason
+      check ("operation-spacing: " ^ name) (from 0) reason
 
 let vacuous name text expected =
   expect
-    ("event-separation: " ^ name)
+    ("operation-spacing: " ^ name)
     Fun.id ~expected
     (Option.value ~default:"none" (E.vacuous bounds (parse text)))
 
 let inhabited name text =
-  check ("event-separation: " ^ name) (E.inhabited bounds (parse text)) text
+  check ("operation-spacing: " ^ name) (E.inhabited bounds (parse text)) text
 
 let invariant = "(Beat, [0, 0], [0, 5], [0, 5])"
 let short = "(Beat, [0, 5])"
 
 let examples =
   [
-    check "event-separation: the invariant squared below it"
+    check "operation-spacing: the invariant squared below it"
       (E.leq bounds
          (E.mul (parse invariant) (parse invariant))
          (parse invariant))
       invariant;
-    check "event-separation: the short form not closed under sequencing"
+    check "operation-spacing: the short form not closed under sequencing"
       (not (E.leq bounds (E.mul (parse short) (parse short)) (parse short)))
       short;
     holds "a body within the invariant" "{Beat; Work}" invariant;
-    check "event-separation: a fast body keeps the invariant"
+    check "operation-spacing: a fast body keeps the invariant"
       (E.leq bounds
          (E.mul (parse "{Beat; Work}") (parse invariant))
          (parse invariant))
       "{Beat; Work}";
-    check "event-separation: a slow body breaks the invariant"
+    check "operation-spacing: a slow body breaks the invariant"
       (not
          (E.leq bounds
             (E.mul (parse "{Beat; Work; Work}") (parse invariant))
             (parse invariant)))
       "{Beat; Work; Work}";
-    check "event-separation: a short form fails as an invariant"
+    check "operation-spacing: a short form fails as an invariant"
       (not
          (E.leq bounds
             (E.mul (parse "{Beat; Work}") (parse short))
@@ -469,7 +469,7 @@ let examples =
     fails "counts add under sequencing"
       "(1, Beep, [0, 1], [0, 1]) · (1, Beep, [0, 1], [0, 1])"
       "(1, Beep, [0, 1], [0, 2])";
-    check "event-separation: too many occurrences are not inhabited"
+    check "operation-spacing: too many occurrences are not inhabited"
       (not
          (E.inhabited bounds
             (parse "((3, Beep, [0, 1], [1, 2], [0, 1]), [0, 1])")))
@@ -479,25 +479,25 @@ let examples =
     rejected "a fractional count" "(1.5, Beep, [0, 1])" "natural numbers";
     rejected "a count of six components" "(1, Beep, 0, 1, 2, 3)"
       "lists one interval";
-    expect "event-separation: printing a count" Fun.id
+    expect "operation-spacing: printing a count" Fun.id
       ~expected:"((1, Beep, [1, 2], [0, 0.5]), ([2, 3], Work, [0, 5]), [0, 20])"
       (E.show
          (parse "((1, Beep, [1, 2], [0, 0.5]), ([2, 3], Work, [0, 5]), [0, 20])"));
-    expect "event-separation: printing an unbounded count" Fun.id
+    expect "operation-spacing: printing an unbounded count" Fun.id
       ~expected:"([2, ∞), Beep, [0, 1], [1, 2], [0, 1])"
       (E.show (parse "([2, ∞), Beep, [0, 1], [1, 2], [0, 1])"));
-    expect "event-separation: an unconstrained count not printed" Fun.id
+    expect "operation-spacing: an unconstrained count not printed" Fun.id
       ~expected:"(Beep, [0, 2])"
       (E.show (parse "([0, ∞), Beep, [0, 2])"));
-    expect "event-separation: the durations of a sequence" Fun.id
+    expect "operation-spacing: the durations of a sequence" Fun.id
       ~expected:"[3.1, 5.5]"
       (Option.fold ~none:"none" ~some:I.show
          (E.duration_bounds bounds (parse "{Beat; Work; 2}")));
-    check "event-separation: contradictory components are not inhabited"
+    check "operation-spacing: contradictory components are not inhabited"
       (not
          (E.inhabited bounds (parse "((Beat, [0, 0], [1, 2], [3, 4]), [0, 1])")))
       "";
-    check "event-separation: a specification is inhabited"
+    check "operation-spacing: a specification is inhabited"
       (E.inhabited bounds (parse "((Beat, [0, 5]), [10, 20])"))
       "";
     vacuous "entries forcing different totals"
@@ -536,17 +536,17 @@ let examples =
       "((1, Beat, [0, 3], [1, 1]), (1, Beep, [1, 3], [1, 1]), [3, 4])";
     inhabited "names interleaved at once, over-approximated"
       "((1, Beat, [0, 0], [1, 1]), (1, Beep, [0, 0], [1, 1]))";
-    check "event-separation: an occurrence is atomic"
+    check "operation-spacing: an occurrence is atomic"
       (E.is_atomic "Beat" (parse "{Beat}")
       && not (E.is_atomic "Beat" (parse "{Beat; 1}")))
       "";
-    expect "event-separation: events" (String.concat ", ")
+    expect "operation-spacing: events" (String.concat ", ")
       ~expected:[ "Beat"; "Beep"; "Work" ]
       (E.events (parse "{Beat; Work} · ((Beep, [0, 1]), [0, 9])"));
-    expect "event-separation: printing a product" Fun.id
+    expect "operation-spacing: printing a product" Fun.id
       ~expected:"{Beat; 2} · (Beat, [0, 0], [0, 5], [0, 5])"
       (E.show (E.mul (parse "{Beat; 2}") (parse invariant)));
-    expect "event-separation: the counterexample of a slow body" Fun.id
+    expect "operation-spacing: the counterexample of a slow body" Fun.id
       ~expected:
         "⟨Beat: active ([0, 0], [0, 6.5], [0, 6.5]); Work: active ([2, ∞), \
          [0.1, 0.5], [0, ∞), [0, ∞)); _: silent [2.1, ∞), active ([2.1, ∞), \
@@ -570,9 +570,9 @@ let examples =
        E.of_lit
          (Grade.Braces (Grade.Seq (Grade.Letter "Beat", Grade.Tick (-1))))
      with
-    | c -> check "event-separation: a negative delay" false (E.show c)
+    | c -> check "operation-spacing: a negative delay" false (E.show c)
     | exception Grade.Invalid_literal (_, reason) ->
-        check "event-separation: a negative delay"
+        check "operation-spacing: a negative delay"
           (reason = "delays are non-negative, not -1")
           reason);
   ]

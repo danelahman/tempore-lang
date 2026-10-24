@@ -209,7 +209,7 @@ each is a minute.
     beads have been on the magnet at least 3 minutes;
   - the elution buffer is added 2 to 3 minutes after the last ethanol wash.
 - [`binding.tpe`](../../../examples/opentrons/binding.tpe): a bead binding
-  whose beads are mixed every 2 to 5 minutes, under `event-separation`. The
+  whose beads are mixed every 2 to 5 minutes, under `operation-spacing`. The
   typechecker proves, under the declared running times of the operations:
   - the beads are first mixed 1 to 2 minutes after the binding starts;
   - consecutive mixes start 2 to 5 minutes apart;

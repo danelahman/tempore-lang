@@ -242,8 +242,8 @@ endpoint and a parenthesis excludes it, as in `[1, 4]`, `(1, 4)`, `[1, 4)`,
   of the upper end when durations decide it. Under the rigid grades some exact
   word must lie in both ends, so a consistent grade may still have no
   computation, as `[{≥2 & A}, {A}]` with `A within [1, 3]`.
-- A literal of `event-separation` or `mode-times` that describes no run is
-  rejected likewise (see [Event separation](#event-separation) and
+- A literal of `operation-spacing` or `mode-times` that describes no run is
+  rejected likewise (see [Operation spacing](#operation-spacing) and
   `mode-times` under [Semidirect products](#semidirect-products)).
 
 Each monoid accepts the literals it understands; any other literal is a syntax
@@ -1280,13 +1280,14 @@ sends would be rejected, as they make four:
 
 See [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
 
-### Event separation
+### Operation spacing
 
-In `event-separation`, a grade bounds how often each operation recurs: the
+In `operation-spacing`, a grade bounds how often each operation recurs: the
 time between the starts of consecutive calls of an operation `X`, at most and
-at least, as for heartbeats, sampling rates and rate limits. Delays are
-rational, and an operation occurs at its start and takes a time within its
-`within` bounds; its grade is `{X}`.
+at least, as for heartbeats, sampling rates and rate limits. It bounds the
+spacing between consecutive operations, generalising minimum and maximum
+inter-arrival times. Delays are rational, and an operation occurs at its start
+and takes a time within its `within` bounds; its grade is `{X}`.
 
 For each operation, a computation either performs no `X`, taking some time, or
 has a lead before the first `X`, gaps between consecutive `X`s and a tail after
@@ -1330,7 +1331,7 @@ would be rejected, as a gap may then be 6.5.
 Counts add under sequencing, so they suit bounded stretches, such as a box held
 over exactly one new reading, and not loop invariants, which carry no count.
 Unlike `counts-upper-bound`, which bounds the numbers of calls from above,
-`event-separation` bounds counts together with the times before, between and
+`operation-spacing` bounds counts together with the times before, between and
 after the occurrences. See
 [`examples/opentrons/binding.tpe`](examples/opentrons/binding.tpe) and
 [`examples/arduino/steps/steps.tpe`](examples/arduino/steps/steps.tpe).

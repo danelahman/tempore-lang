@@ -47,7 +47,7 @@ let regex_timed_rigid =
 let security = ("Security levels", "Security")
 let semidirect = ("Semidirect products", "Semidirect")
 let counts = ("Operation counts", "Counts")
-let separation = ("Separation of timed operations", "Separation (timed ops)")
+let spacing = ("Spacing of timed operations", "Spacing (timed ops)")
 
 let entry ?(visibility = Everywhere) ?implementation ?over_levels
     (module G : Grade.S) group title description =
@@ -606,8 +606,8 @@ let entries =
       "At most n calls of each operation, by name, such as ((Auth, 1), (Send, \
        3)); delays count nothing.";
     entry
-      (module EventSeparationGrades)
-      separation "Event separation"
+      (module OperationSpacingGrades)
+      spacing "Operation spacing"
       "How often an operation recurs: the time between consecutive \
        occurrences, at most and at least, such as (Beat, [0, 20]); operations \
        take their running times, occurring at their start.";

@@ -26,7 +26,7 @@ The slowest 20 files:
 | examples/arduino/fall/fall.tpe | regex-timed-interval-rational-symbolic | 0.31 |
 | examples/arduino/level/level.tpe | regex-timed-interval-rational-symbolic | 0.14 |
 | examples/arduino/wheels/wheels.tpe | regex-timed-interval-rational-symbolic | 0.12 |
-| examples/arduino/steps/steps.tpe | event-separation | 0.08 |
+| examples/arduino/steps/steps.tpe | operation-spacing | 0.08 |
 | examples/arduino/bala2/balance.tpe | time-interval-rational | 0.05 |
 | examples/opentrons/washes.tpe | regex-timed-interval-symbolic | 0.03 |
 | examples/levels/staged_release.tpe | time-lower-bound-levels | 0.03 |
