@@ -1,7 +1,7 @@
-(* Run this test with the 'event-separation' grading monoid, e.g.
+(* Run this test with the 'operation-spacing' grading monoid, e.g.
 
-     ./tempore --grades event-separation \
-       tests/event_separation_reject_unknown.tpe
+     ./tempore --grades operation-spacing \
+       tests/operation_spacing_reject_unknown.tpe
 
    Rejected: a specification names an operation that is not declared. *)
 

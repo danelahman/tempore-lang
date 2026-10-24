@@ -81,7 +81,7 @@ by all of them, such as the tilt filters of `m5-imu`. Every package is
 declared under `time-interval-rational`, under the regular expressions of
 timed operations over rational delays (`regex-timed-*-rational-symbolic`),
 their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
-`event-separation`, with running-time bounds in milliseconds, and under
+`operation-spacing`, with running-time bounds in milliseconds, and under
 `counts-upper-bound`, each call counting once.
 
 ### The packages
@@ -167,7 +167,7 @@ closed intervals in the time unit of the declarations:
 For the board of a manifest, these bounds replace those of the declarations
 under every grade system that bounds durations: the interval grade of the
 operation under `time-interval-rational`, and its `within` bounds under the
-regular expressions of timed operations and `event-separation`.
+regular expressions of timed operations and `operation-spacing`.
 
 - The program is typed, and the monitors are generated, under the bounds of
   its board.
@@ -765,7 +765,7 @@ port variable `PORT_M5STACK_CORES3_RADIO`.
   - the raised alarm shows and sounds after every twenty polls of the screen
     50 ms apart, until a tap stops it.
 - [`steps`](../../../examples/arduino/steps/steps.tpe): a step counter, under
-  `event-separation`, which reads the unit at least every 50 ms and proves the
+  `operation-spacing`, which reads the unit at least every 50 ms and proves the
   counts at least 250 ms apart; under `-DSTEPS_RECORD` it records its
   readings ([Recording the step counter](#recording-the-step-counter)). The
   typechecker proves, under the declared running times of the operations:

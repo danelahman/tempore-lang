@@ -311,7 +311,7 @@ module Terms = SummaryTerms.Make (Summary)
 include Terms
 module Delay = Delay.Rational
 
-let name = "event-separation"
+let name = "operation-spacing"
 let leq_symbol = "<="
 let unit_least = false
 let plus _ = None
@@ -346,7 +346,7 @@ let of_braces lit r =
     | Repeat (r, ({ most = Some _; _ } as c)) -> go (unrolled r c)
     | Any | Star _ | Repeat _ | Inter _ | Compl _ ->
         invalid_lit lit
-          "the brace literals of event separation are sequences `;`, unions \
+          "the brace literals of operation spacing are sequences `;`, unions \
            `|` and finite counts `^n`, `^[m, n]` of operation names and \
            delays, without `*`, `^[m, ∞)`, `&`, `~` and `_`"
   in
@@ -506,7 +506,7 @@ let of_lit lit =
       of_specification lit components
   | Name name ->
       invalid_lit lit
-        "the occurrence of an operation is written `{%s}`, and its separation \
+        "the occurrence of an operation is written `{%s}`, and its spacing \
          `(%s, [s, t])`"
         name name
   | lit ->
@@ -657,4 +657,4 @@ let rec show c =
                  match view c with Join _ -> "(" ^ show c ^ ")" | _ -> show c))
            (groups cs))
   | Join cs, None -> String.concat " ⊔ " (List.map show cs)
-  | Op _, None -> invalid_arg "EventSeparationGrades.show"
+  | Op _, None -> invalid_arg "OperationSpacingGrades.show"

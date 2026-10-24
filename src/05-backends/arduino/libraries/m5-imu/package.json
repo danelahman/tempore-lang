@@ -9,7 +9,7 @@
     "regex-timed-rigid-lower-bound-rational-symbolic": "m5_imu_timed_ops.tpe",
     "regex-timed-rigid-upper-bound-rational-symbolic": "m5_imu_rigid_upper.tpe",
     "regex-timed-rigid-interval-rational-symbolic": "m5_imu_rigid.tpe",
-    "event-separation": "m5_imu_timed_ops.tpe",
+    "operation-spacing": "m5_imu_timed_ops.tpe",
     "counts-upper-bound": "m5_imu_counts.tpe"
   },
   "requires": ["m5unified", "imu"],

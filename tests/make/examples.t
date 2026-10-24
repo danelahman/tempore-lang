@@ -697,7 +697,7 @@ and to erase them through the script of its fragment:
   python3 -I scripts/steps-recording.py capture --port /dev/cu.usbmodem101 --wait 60
   python3 -I scripts/steps-recording.py erase --port /dev/cu.usbmodem101 --wait 60
   $ dry arduino-steps-record STEPS_RECORD=60
-  PLATFORMIO_BUILD_FLAGS="-DSTEPS_RECORD=60" ./tempore --grades event-separation --emit-arduino steps-record --device examples/arduino/steps/steps.device.json --monitor warn --upload --port /dev/cu.usbmodem101 --capture 30 examples/arduino/steps/steps.tpe
+  PLATFORMIO_BUILD_FLAGS="-DSTEPS_RECORD=60" ./tempore --grades operation-spacing --emit-arduino steps-record --device examples/arduino/steps/steps.device.json --monitor warn --upload --port /dev/cu.usbmodem101 --capture 30 examples/arduino/steps/steps.tpe
   $ dry arduino-tilt-build SIMULATE=5
   ./tempore --grades time-interval-rational --emit-arduino tilt --device examples/arduino/tilt/tilt.device.json --monitor abort --build examples/arduino/tilt/tilt.tpe
   $ dry arduino-tilt-simulate SIMULATE=5

@@ -6,9 +6,10 @@
     {!RegularTraceGradePlain}, {!RegularTraceGradeRational},
     {!RegularTimedTraceGrades}, {!LevelGrades}, {!ResourceLevelGrades},
     {!WindowedScheduleGrades}, {!ModeSwitchCostGrades}, {!ModeTimeGrades},
-    {!CountGrades} and {!EventSeparationGrades}, built with the constructions of
-    {!GradeConstructions} and {!SummaryTerms}, and listed in {!GradeRegistry};
-    the regular trace grades are implementations of the same grade.
+    {!CountGrades} and {!OperationSpacingGrades}, built with the constructions
+    of {!GradeConstructions} and {!SummaryTerms}, and listed in
+    {!GradeRegistry}; the regular trace grades are implementations of the same
+    grade.
 
     {2 Laws}
 

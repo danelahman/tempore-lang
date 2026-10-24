@@ -1,8 +1,8 @@
 (* As the bead binding example, with the wash plate filled too late.
 
-   Run this example with the 'event-separation' grading monoid, e.g.
+   Run this example with the 'operation-spacing' grading monoid, e.g.
 
-     ./tempore --grades event-separation examples/opentrons/binding_reject.tpe
+     ./tempore --grades operation-spacing examples/opentrons/binding_reject.tpe
 
    Grades (X, lead, gaps, tail): the times before the first X, between the
    starts of consecutive Xs and from the start of the last X to the end;

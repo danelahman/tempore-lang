@@ -1,9 +1,9 @@
-(* Run this test with the 'event-separation' grading monoid, e.g.
+(* Run this test with the 'operation-spacing' grading monoid, e.g.
 
-     ./tempore --grades event-separation \
-       tests/event_separation_reject_runs.tpe
+     ./tempore --grades operation-spacing \
+       tests/operation_spacing_reject_runs.tpe
 
-   Event separation: grades that admit no run, each entry describing the same
+   Operation spacing: grades that admit no run, each entry describing the same
    run and its total duration. *)
 
 operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]

@@ -8,7 +8,7 @@
     "regex-timed-rigid-lower-bound-rational-symbolic": "esp_now_link_timed_ops.tpe",
     "regex-timed-rigid-upper-bound-rational-symbolic": "esp_now_link_timed_ops.tpe",
     "regex-timed-rigid-interval-rational-symbolic": "esp_now_link_timed_ops.tpe",
-    "event-separation": "esp_now_link_timed_ops.tpe",
+    "operation-spacing": "esp_now_link_timed_ops.tpe",
     "counts-upper-bound": "esp_now_link_counts.tpe"
   },
   "sources": ["esp_now_link.cpp", "esp_now_link.h"],
