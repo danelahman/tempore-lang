@@ -149,6 +149,7 @@ let expected_rejections =
     ("tests/levels_reject.tpe", [ 12 ]);
     ("tests/levels_declared_chain_reject.tpe", [ 17; 24 ]);
     ("tests/levels_declared_diamond_reject.tpe", [ 18; 22 ]);
+    ("tests/levels_time_interval_reject.tpe", [ 15; 24; 30; 38 ]);
     ("tests/levels_time_lower_reject.tpe", [ 14; 21 ]);
     ("tests/levels_time_upper_reject.tpe", [ 14; 21 ]);
     ("tests/list_constructor_reject.tpe", [ 3 ]);

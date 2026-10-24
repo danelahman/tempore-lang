@@ -996,6 +996,11 @@ In this category, we have the following grading monoids:
       Variable `t` is unboxed with grade `(1, High)` accumulated since it was
       bound, which is not below its box grade `(5, Low)`
 
+- `time-interval-levels`: pairs `(i, l)`, a time within the rational interval
+  `i` and nothing above security level `l`, as in `((0, 0.1], Low)`; the direct
+  product of `time-interval-rational` and the security levels, adding the
+  intervals by the Minkowski sum.
+
 - `flow-levels`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above `l` touched
   and each output `Sᵢ` written at most at the level `lᵢ` touched before it; `l`
   alone writes no output, and an entry `(_, l')` bounds every output not listed.
@@ -1035,7 +1040,7 @@ and [`examples/levels/flow.tpe`](examples/levels/flow.tpe).
 #### Declaring levels
 
 A program may declare its own finite lattice of levels in place of `Low < High`,
-which all four grading monoids above then use. The declaration opens a file,
+which all five grading monoids above then use. The declaration opens a file,
 after its header comment:
 
 ```
@@ -1068,7 +1073,10 @@ collected is rejected:
     Variable `s` is unboxed with grade `(1, Noisy)` accumulated since it was
     bound, which is not below its box grade `(5, Quiet)`
 
-See [`examples/levels/quiet_noisy.tpe`](examples/levels/quiet_noisy.tpe).
+See [`examples/levels/quiet_noisy.tpe`](examples/levels/quiet_noisy.tpe), and
+[`examples/levels/quiet_noisy_intervals.tpe`](examples/levels/quiet_noisy_intervals.tpe)
+for the same step under `time-interval-levels`, with running times in rational
+intervals.
 
 ### Semidirect products
 

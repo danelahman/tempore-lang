@@ -105,6 +105,7 @@ Security levels | Expiring capabilities | time-upper-bound-levels | levels/time_
 Security levels | Flow-sensitive outputs | flow-levels | levels/flow.tpe | A report whose public post must come before the vault is read, each output graded by the level touched before it.
 Security levels | Staged release | time-lower-bound-levels | levels/staged_release.tpe | A staged release whose approval of each stage is used only after its hosts have been observed, and only if nothing untrusted was touched since the approval.
 Security levels | Declared levels | time-upper-bound-levels | levels/quiet_noisy.tpe | A robot step over the declared levels Quiet < Noisy, whose tilt conversion is collected within five ticks and before the motors or the radio are used.
+Security levels | Declared levels with intervals | time-interval-levels | levels/quiet_noisy_intervals.tpe | A robot step over the declared levels Quiet < Noisy, whose tilt conversion is collected between 0.5 and 2 time units after it starts and before the motors or the radio are used.
 
 group | Semidirect products | Semidirect | Grades whose second component is shifted by the first.
 Semidirect products | Resource levels | resource-levels | semidirect/resource_levels.tpe | File copies, uploads and log rotations graded by the trough, the net change and the peak of the files and connections they hold.

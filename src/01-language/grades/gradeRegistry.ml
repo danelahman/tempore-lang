@@ -561,6 +561,16 @@ let entries =
         let module V = LevelGrades.Over (struct
           let lattice = lattice
         end) in
+        (module V.TimeIntervalLevels : Grade.S))
+      (module LevelGrades.TimeIntervalLevels)
+      security "Timed levels"
+      "A rational time interval paired with a security level: a time within \
+       the interval, touching nothing above the level.";
+    entry
+      ~over_levels:(fun lattice ->
+        let module V = LevelGrades.Over (struct
+          let lattice = lattice
+        end) in
         (module V.FlowLevels : Grade.S))
       (module LevelGrades.FlowLevels)
       security "Flow-sensitive outputs"

@@ -65,6 +65,15 @@ module type S = sig
       with type t = TimeGrades.UpperBound.t * level
        and type Delay.t = Delay.Nat.t
 
+  (** The product of [time-interval-rational] and [security-levels],
+      ["time-interval-levels"]: [(i, ℓ)] is "taking a time in the rational
+      interval [i], touching nothing above [ℓ]". The product adds the intervals
+      (the Minkowski sum) and joins the levels; a delay [d] is [([d, d], ⊥)]. *)
+  module TimeIntervalLevels :
+    Grade.S
+      with type t = RationalTimeGrades.Interval.t * level
+       and type Delay.t = Delay.Rational.t
+
   (** The flow-sensitive levels, ["flow-levels"]: the semidirect product
       {!GradeConstructions.SemiDirect} [(SecurityLevels) (Outputs) (Raise)].
       [(l, W)] is "touches nothing above [l], and writes each sink at most at
