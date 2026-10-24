@@ -36,6 +36,23 @@ val with_running_times :
       operation bounds durations but is not that of its bounds, or if the delays
       of [E] do not read a bound. *)
 
+val grades_of_sources :
+  grades:string ->
+  (string * string) list ->
+  (module Grades.Grade.S) * Grades.LevelLattice.t option
+(** [grades_of_sources ~grades sources] is the grade [grades] of
+    {!Grades.GradeRegistry.grade_modules} for the program made of [sources],
+    each a file name and a text, with the lattice of levels the program
+    declares: that of the first declaration of levels among [sources], over
+    which a grade built on levels is built
+    ({!Grades.GradeRegistry.over_levels}), and [None] if there is none. The
+    parser checks that every other declaration declares the same lattice.
+
+    @raise Utils.Error.Error
+      if the first declaration is not a lattice
+      ({!Grades.LevelLattice.of_chains}) or if the grade is not built on levels.
+    @raise Invalid_argument if the grade is unknown. *)
+
 val stdlib_filename : string
 (** The file name the standard library's locations are reported under, since it
     is loaded from a string rather than from a file. *)

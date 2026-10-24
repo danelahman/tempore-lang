@@ -11,7 +11,7 @@
 (library
  (name testPrograms)
  (modules testPrograms)
- (libraries grades testSupport arduinoBackend))
+ (libraries utils grades parser testSupport arduinoBackend))
 
 (library
  (name solvePrograms)

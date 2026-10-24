@@ -916,8 +916,14 @@ let emit_protocol config ~filename ~binding_name ~operations ~compound commands
    computation that does not reduce, or at a run-time error. *)
 let run_failure = 3
 
-let run_with (module G : Grades.Grade.S) config =
-  let module Backend = CliInterpreter.Make (Grades.GradeSystem.Identity (G)) in
+let run_with (module G : Grades.Grade.S) levels config =
+  let module Backend =
+    CliInterpreter.Make
+      (Grades.GradeSystem.Declaring
+         (struct
+           let levels = levels
+         end)
+         (G)) in
   let module Loader = Loader.Loader (Backend) in
   (* The timeline of the run [run_num], as a table. *)
   let print_timeline timeline run_num =
@@ -1116,7 +1122,24 @@ let run_with (module G : Grades.Grade.S) config =
 let main () =
   let config = parse_args_to_config () in
   match List.assoc_opt config.grades Grades.GradeRegistry.grade_modules with
-  | Some grade -> run_with grade config
+  | Some _ -> (
+      (* The files read for their declaration of levels; a file that cannot be
+         read is reported when it is parsed. *)
+      let sources =
+        List.filter_map
+          (fun filename ->
+            Option.map
+              (fun text -> (filename, text))
+              (try
+                 Some (In_channel.with_open_text filename In_channel.input_all)
+               with Sys_error _ -> None))
+          config.filenames
+      in
+      match Loader.grades_of_sources ~grades:config.grades sources with
+      | grade, levels -> run_with grade levels config
+      | exception Error.Error d ->
+          Diagnostic.print ~source d Format.err_formatter;
+          exit 1)
   | None ->
       Printf.eprintf "Unknown grades `%s`. Accepted: %s\n" config.grades
         (String.concat ", "

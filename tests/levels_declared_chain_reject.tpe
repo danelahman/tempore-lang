@@ -1,0 +1,28 @@
+(* Run this test with the 'time-lower-bound-levels' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound-levels \
+       tests/levels_declared_chain_reject.tpe
+
+   Declared levels, a chain of three: rejected claims of embargoed reports. *)
+
+levels Public < Internal < Secret
+
+operation ReadWiki : unit ~> string ! (1, Internal)
+operation ReadVault : unit ~> string ! (1, Secret)
+
+default ReadWiki () = delay 1; "wiki"
+default ReadVault () = delay 1; "vault"
+
+(* Rejected: reading the vault touches Secret, above Internal. *)
+let claim_after_vault () =
+  box (1, Internal) "report" as r in
+  let v = perform ReadVault () in
+  unbox r as y in
+  (y, v)
+
+(* Rejected: reading the wiki touches Internal, above Public. *)
+let claim_public_after_wiki () =
+  box (1, Public) "notice" as r in
+  let w = perform ReadWiki () in
+  unbox r as y in
+  (y, w)

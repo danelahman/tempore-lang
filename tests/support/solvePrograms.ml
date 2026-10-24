@@ -14,8 +14,13 @@ let verbose = Array.exists (( = ) "-v") Sys.argv
 type command_verdict = { line : int; kind : string; ok : bool; detail : string }
 (** The verdict of the solver on one command. *)
 
-module Programs (G : Grade.S) = struct
-  module GS = GradeSystem.Identity (G)
+module Programs
+    (L : sig
+      val levels : Grades.LevelLattice.t option
+    end)
+    (G : Grade.S) =
+struct
+  module GS = GradeSystem.Declaring (L) (G)
   module X = Inference.GradeExp.Make (GS)
   module C = Inference.Constraint.Make (X)
   module Gen = Inference.Generate.Make (C)
@@ -172,14 +177,19 @@ module type PROGRAMS = sig
   val definitions : string -> (string * bool * string) list
 end
 
-(* The programs of each grade, the standard library loaded once. *)
+(* The programs of each grade and lattice of levels, the standard library
+   loaded once. *)
 let programs_of =
   let table = Hashtbl.create 8 in
-  fun grades ->
-    match Hashtbl.find_opt table grades with
+  fun ?levels grades ->
+    let key = (grades, Option.map Grades.LevelLattice.declaration levels) in
+    match Hashtbl.find_opt table key with
     | Some p -> p
     | None ->
-        let (module G) = TestPrograms.grade_module grades in
-        let p = (module Programs (G) : PROGRAMS) in
-        Hashtbl.add table grades p;
+        let (module G) = TestPrograms.grade_module ?levels grades in
+        let module L = struct
+          let levels = levels
+        end in
+        let p = (module Programs (L) (G) : PROGRAMS) in
+        Hashtbl.add table key p;
         p

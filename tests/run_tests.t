@@ -1659,6 +1659,91 @@ it names none:
   ]
   
   ======================================================================
+  levels_declared_chain.tpe
+  ======================================================================
+  === Run 1 ===
+  return ("report", "wiki")
+  State: [
+    { resource_0 ↦ "report" ! (2, Internal) },
+    (1, Public),
+    (1, Public)
+  ]
+  
+  === Run 2 ===
+  return ("dossier", "wiki", "vault")
+  State: [
+    { resource_0 ↦ "dossier" ! (2, Secret) },
+    (1, Public),
+    (1, Public)
+  ]
+  
+  === Run 3 ===
+  return "notice"
+  State: [
+    { resource_0 ↦ "notice" ! (2, Public) },
+    (2, Public)
+  ]
+  
+  ======================================================================
+  levels_declared_chain_reject.tpe
+  ======================================================================
+  File "levels_declared_chain_reject.tpe", lines 20-21, characters 2-8:
+  20 |   unbox r as y in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed with grade `(1, Secret)` accumulated since it was bound, which is not below its box grade `(1, Internal)`
+    File "levels_declared_chain_reject.tpe", line 18, characters 32-33:
+    18 |   box (1, Internal) "report" as r in
+                                         ^
+    `r` is bound here
+    File "levels_declared_chain_reject.tpe", line 19, characters 10-30:
+    19 |   let v = perform ReadVault () in
+                   ^^^^^^^^^^^^^^^^^^^^
+    grade `(1, Secret)` accumulates here (operation `ReadVault`)
+    Note: the resource inequality `(1, Secret) ≾ (1, Internal)` does not hold
+  
+  File "levels_declared_chain_reject.tpe", lines 27-28, characters 2-8:
+  27 |   unbox r as y in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed with grade `(1, Internal)` accumulated since it was bound, which is not below its box grade `(1, Public)`
+    File "levels_declared_chain_reject.tpe", line 25, characters 30-31:
+    25 |   box (1, Public) "notice" as r in
+                                       ^
+    `r` is bound here
+    File "levels_declared_chain_reject.tpe", line 26, characters 10-29:
+    26 |   let w = perform ReadWiki () in
+                   ^^^^^^^^^^^^^^^^^^^
+    grade `(1, Internal)` accumulates here (operation `ReadWiki`)
+    Note: the resource inequality `(1, Internal) ≾ (1, Public)` does not hold
+  ======================================================================
+  levels_declared_diamond.tpe
+  ======================================================================
+  === Run 1 ===
+  return 3
+  State: []
+  
+  === Run 2 ===
+  return ()
+  State: []
+  
+  === Run 3 ===
+  return ()
+  State: []
+  
+  ======================================================================
+  levels_declared_diamond_reject.tpe
+  ======================================================================
+  File "levels_declared_diamond_reject.tpe", line 18, characters 23-60:
+  18 | let partner_as_team () : nat ! Team = perform ReadPartner ()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `Partner`, which does not match its annotated grade `Team`
+    Note: the effect inequality `Partner <= Team` does not hold
+  
+  File "levels_declared_diamond_reject.tpe", lines 22-25, characters 20-22:
+  22 | let post_partner () : unit ! (Confidential, (Board, Partner)) =
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(Confidential, (Board, Confidential))`, which does not match its annotated grade `(Confidential, (Board, Partner))`
+    Note: the effect inequality `(Confidential, (Board, Confidential)) <= (Confidential, (Board, Partner))` does not hold
+  ======================================================================
   levels_reject.tpe
   ======================================================================
   File "levels_reject.tpe", lines 15-16, characters 2-3:
