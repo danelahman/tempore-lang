@@ -123,8 +123,32 @@ Command-line options:
   operations take the running-time bounds of the packages on that board;
 - `--help` lists the options and the available grading monoids.
 
-The [`examples/`](examples/) directory holds example programs grouped according
-to their topics.
+The [`examples/`](examples/) directory holds example programs grouped by
+topic and backend, each opening with the command that runs it. A reading
+order, one example per concept:
+
+1. [`introduction/sensor_reading.tpe`](examples/introduction/sensor_reading.tpe):
+   boxes, time grades, operations and handlers;
+2. [`introduction/stale_calibration.tpe`](examples/introduction/stale_calibration.tpe):
+   grades as regular languages of traces;
+3. [`basics/eternal_types.tpe`](examples/basics/eternal_types.tpe): which
+   values survive a wait;
+4. [`handlers/lower_bound.tpe`](examples/handlers/lower_bound.tpe) and
+   [`handlers/upper_bound.tpe`](examples/handlers/upper_bound.tpe): the
+   continuation as a boxed resource;
+5. [`traces_timed_ops/3d_printing.tpe`](examples/traces_timed_ops/3d_printing.tpe):
+   traces of operations with running times;
+6. [`regular/upper_bounds.tpe`](examples/regular/upper_bounds.tpe) and
+   [`regular_timed_ops/intervals_rational.tpe`](examples/regular_timed_ops/intervals_rational.tpe):
+   protocols and windows as regular expressions;
+7. [`regular_timed_rigid/upper_bounds_rational.tpe`](examples/regular_timed_rigid/upper_bounds_rational.tpe):
+   operations demanded in order;
+8. [`lattice/time_upper.tpe`](examples/lattice/time_upper.tpe): a product
+   of time with a grade lattice.
+
+The web interface's gallery lists these and the other examples of each
+concept; the remaining files under `examples/` vary them over the further
+grading monoids of the sections below, which link them.
 
 ### Web interface
 
@@ -371,7 +395,8 @@ The grading monoids are:
 
 - `traces-timed-lower-bound`: the traces a computation must *cover*; an
   operation performed counts as `lo` ticks towards a demanded duration. `{0}` is
-  the top.
+  the top. A lower bound demands a minimum, so a computation may perform more
+  than the trace it covers lists.
 
 - `traces-timed-upper-bound`: the traces a computation is *allowed*; a duration
   pays for operations at their `hi`. `{0}` is least and `⊤` the top.
@@ -641,7 +666,9 @@ its traces (upper bounds, an operation taking `hi`) or that cover one of them
 
 - `regex-timed-upper-bound-symbolic`: the allowance order; `{0}` is least and
   `⊤` the top.
-- `regex-timed-lower-bound-symbolic`: the coverage order; `{0}` is the top.
+- `regex-timed-lower-bound-symbolic`: the coverage order; `{0}` is the top,
+  and so is every grade containing the empty trace, such as
+  `{(Bake; Inspect)*}`, which every trace covers.
 - `regex-timed-interval-symbolic`: closed intervals `[{...}, {...}]` of a lower
   and an upper bound, compared componentwise, with the forms and abbreviations
   of `traces-timed-interval`; the top is `[{0}, ∞)`.
@@ -1037,7 +1064,9 @@ See
 [`examples/lattice/security.tpe`](examples/lattice/security.tpe),
 [`examples/lattice/time_lower.tpe`](examples/lattice/time_lower.tpe),
 [`examples/lattice/time_upper.tpe`](examples/lattice/time_upper.tpe)
-and [`examples/lattice/flow.tpe`](examples/lattice/flow.tpe).
+and [`examples/lattice/flow.tpe`](examples/lattice/flow.tpe), and, as a
+larger programme under `time-lower-bound-lattice`,
+[`examples/lattice/staged_release.tpe`](examples/lattice/staged_release.tpe).
 
 #### Declaring the grade lattice
 
