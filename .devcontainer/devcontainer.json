@@ -1,0 +1,30 @@
+// The development container of Tempore (see Dockerfile). The build
+// directories _build, _arduino and _opentrons are volumes of the container,
+// apart from those of the host, since their binaries and virtual environments
+// are specific to the platform.
+{
+  "name": "Tempore",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "dev",
+  "mounts": [
+    "source=tempore-build,target=${containerWorkspaceFolder}/_build,type=volume",
+    "source=tempore-arduino,target=${containerWorkspaceFolder}/_arduino,type=volume",
+    "source=tempore-opentrons,target=${containerWorkspaceFolder}/_opentrons,type=volume"
+  ],
+  "postCreateCommand": "sudo chown dev:dev _build _arduino _opentrons && make",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ocamllabs.ocaml-platform"
+      ],
+      "settings": {
+        "ocaml.sandbox": {
+          "kind": "global"
+        }
+      }
+    }
+  }
+}

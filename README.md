@@ -81,6 +81,18 @@ kept):
 
     make clean
 
+#### Development container
+
+[`.devcontainer/`](.devcontainer/) holds a development container with OCaml
+5.5, the opam dependencies, ocamlformat, the OCaml language server, a C++
+compiler, Node.js and Python, so that every test runs. In VS Code, with the Dev
+Containers extension and Docker, run **Dev Containers: Reopen in Container**;
+the first start builds the image and the language. `_build`, `_arduino` and
+`_opentrons` are volumes of the container, separate from those of the host.
+`make arduino-deps` and `make opentrons-deps` work inside it; uploading to a
+board needs its USB port, which Docker Desktop does not pass to a container on
+macOS or Windows, so uploads are made from the host.
+
 ### Command line
 
     ./tempore file1.tpe file2.tpe ...
