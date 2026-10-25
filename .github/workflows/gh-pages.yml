@@ -9,6 +9,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      # The dune cache stores the results of every rule, the tests included,
+      # so that a test whose dependencies are unchanged is restored.
+      DUNE_CACHE: enabled
     steps:
       - uses: actions/checkout@v4
 
@@ -17,8 +21,32 @@ jobs:
         with:
           ocaml-compiler: "5.5"
 
+      # The opam switch with the dependencies installed, keyed by the
+      # compiler and the opam file.
+      - name: Locate the opam switch
+        run: |
+          echo "OPAM_SWITCH_DIR=$(opam var prefix)" >> "$GITHUB_ENV"
+          echo "OCAML_VERSION=$(opam exec -- ocamlc -version)" >> "$GITHUB_ENV"
+          echo "IMAGE_OS=$ImageOS" >> "$GITHUB_ENV"
+
+      - name: Cache the opam dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.OPAM_SWITCH_DIR }}
+          key: opam-deps-${{ runner.os }}-${{ runner.arch }}-${{ env.IMAGE_OS }}-${{ env.OCAML_VERSION }}-${{ hashFiles('tempore.opam') }}
+
       - name: Install Opam packages
         run: opam install --deps-only --with-dev-setup .
+
+      # The dune cache of the latest run, restored by prefix and saved anew
+      # under the commit.
+      - name: Cache the dune build
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/dune
+          key: dune-${{ runner.os }}-${{ runner.arch }}-${{ env.OCAML_VERSION }}-${{ github.sha }}
+          restore-keys: |
+            dune-${{ runner.os }}-${{ runner.arch }}-${{ env.OCAML_VERSION }}-
 
       - name: Check formatting
         run: opam exec -- make check-format
@@ -33,6 +61,10 @@ jobs:
       # web/, replacing the bundle of the development build.
       - name: Release build
         run: opam exec -- make release
+
+      # The dune cache is bounded before it is saved.
+      - name: Trim the dune cache
+        run: opam exec -- dune cache trim --size=1GB
 
       - name: Deploy
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
