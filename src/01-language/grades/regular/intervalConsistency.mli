@@ -60,6 +60,17 @@ val id : world -> int
 (** An item of a run: an operation with its running time, or a strict wait. *)
 type item = Op of string * Rational.t | Wait of Rational.t
 
+val consistent :
+  whole:bool ->
+  world ->
+  lower:IntervalClosure.graph ->
+  upper:IntervalClosure.graph ->
+  bool
+(** [consistent ~whole world ~lower ~upper] is whether some run fits a word of
+    the lower bound of the automaton [lower] and a word of the upper bound of
+    [upper], over whole time steps if [whole]: the reachability search alone,
+    without reading off a run. *)
+
 val witness :
   whole:bool ->
   world ->

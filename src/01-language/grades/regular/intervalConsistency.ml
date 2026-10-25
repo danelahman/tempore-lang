@@ -478,20 +478,23 @@ let greatest cuts =
       | _ -> acc)
     (Rational.of_int 1) cuts
 
-let witness ~whole world ~lower ~upper =
+let context ~whole world ~lower ~upper =
   let times = Array.to_list world.lo @ Array.to_list world.hi in
   let constant (g : IntervalClosure.graph) =
     greatest (Array.to_list g.cut @ times)
   in
-  let ctx =
-    {
-      world;
-      positive =
-        (if whole then At_least (Finite (Rational.of_int 1, true))
-         else At_least (Finite (Rational.zero, false)));
-      sides =
-        [| { graph = lower; lower = true }; { graph = upper; lower = false } |];
-      constants = [| Rational.zero; constant lower; constant upper |];
-    }
-  in
-  Option.map (run world) (search ctx)
+  {
+    world;
+    positive =
+      (if whole then At_least (Finite (Rational.of_int 1, true))
+       else At_least (Finite (Rational.zero, false)));
+    sides =
+      [| { graph = lower; lower = true }; { graph = upper; lower = false } |];
+    constants = [| Rational.zero; constant lower; constant upper |];
+  }
+
+let consistent ~whole world ~lower ~upper =
+  Option.is_some (search (context ~whole world ~lower ~upper))
+
+let witness ~whole world ~lower ~upper =
+  Option.map (run world) (search (context ~whole world ~lower ~upper))

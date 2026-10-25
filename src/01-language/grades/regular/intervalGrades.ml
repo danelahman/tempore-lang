@@ -327,26 +327,35 @@ module Make (D : DELAYS) (N : NAMES) = struct
            (fun (n, _) (n', _) -> String.compare n n')
            (List.map (fun n -> (n, ends n)) names @ others))
 
-    let witnesses_found = Hashtbl.create 64
+    let interval_world bounds (l, u) =
+      joint_world bounds
+        (List.sort_uniq String.compare (I.Lower.names l @ I.Upper.names u))
 
     (* [witness bounds (l, u)] is a run fitting a word of [l] and a word of
        [u] at the running times of [bounds], if there is one
        ({!IntervalConsistency}). *)
     let witness bounds (l, u) =
-      let world =
-        joint_world bounds
-          (List.sort_uniq String.compare (I.Lower.names l @ I.Upper.names u))
-      in
+      IntervalConsistency.witness ~whole:D.whole
+        (interval_world bounds (l, u))
+        ~lower:(CL.graph l) ~upper:(CU.graph u)
+
+    let consistency_found = Hashtbl.create 64
+
+    (* [consistent bounds (l, u)] is whether some run fits a word of [l] and a
+       word of [u] at the running times of [bounds], decided without reading
+       off the run. *)
+    let consistent bounds (l, u) =
+      let world = interval_world bounds (l, u) in
       let key = (IntervalConsistency.id world, I.Lower.id l, I.Upper.id u) in
-      match Hashtbl.find_opt witnesses_found key with
-      | Some w -> w
+      match Hashtbl.find_opt consistency_found key with
+      | Some c -> c
       | None ->
-          let w =
-            IntervalConsistency.witness ~whole:D.whole world ~lower:(CL.graph l)
-              ~upper:(CU.graph u)
+          let c =
+            IntervalConsistency.consistent ~whole:D.whole world
+              ~lower:(CL.graph l) ~upper:(CU.graph u)
           in
-          Hashtbl.add witnesses_found key w;
-          w
+          Hashtbl.add consistency_found key c;
+          c
 
     (* [too_long bounds (l, u)] is the reason no run meets both ends if the
        words of [l] last longer than those of [u]: the least duration of [l],
@@ -381,8 +390,7 @@ module Make (D : DELAYS) (N : NAMES) = struct
         match too_long bounds (l, u) with
         | Some reason -> Some (no_common_run (Some reason))
         | None ->
-            if Option.is_some (witness bounds (l, u)) then None
-            else Some (no_common_run None)
+            if consistent bounds (l, u) then None else Some (no_common_run None)
 
     let vacuous bounds (l, u) =
       match Lower.vacuous bounds l with
