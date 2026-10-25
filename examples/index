@@ -2,6 +2,11 @@
 # src/07-user-interface/web/gen_examples/gen_examples.ml to generate the
 # module Examples_tpe (see src/07-user-interface/web/dune).
 #
+# The gallery is a selection: one example per concept, from the simplest to
+# the most advanced. The examples under examples/ not listed here vary the
+# listed ones over further grading monoids, and are run by tests/examples.t
+# with the others.
+#
 # One example per non-blank, non-comment line, five fields separated by ' | ',
 # optionally followed by a sixth and a seventh:
 #
@@ -59,67 +64,44 @@ group | Introduction | Introduction | Boxes graded first by the time since boxin
 Introduction | Sensor reading | time-interval-rational | introduction/sensor_reading.tpe | A sensor reading in a box graded with a time interval, usable only once its scan is complete and while it is current, with operations taking time and a handler implementing the scan.
 Introduction | Stale calibration | regex-upper-bound-rational-symbolic | introduction/stale_calibration.tpe | A sensor calibration in a box graded with a regular expression, usable only if every reconfiguration since calibrating was followed by a self-test.
 
+group | Time grades | Time | Boxes usable after, before or within a duration, whole or fractional.
+Time grades | Medication schedule | time-interval-rational | time/intervals_rational.tpe | A medication schedule in hours, whose doses and reports are due within intervals with fractional endpoints, open or closed.
+Time grades | Resin printing | time-lower-bound | time/3d_printing.tpe | The stages of a resin print, each boxed for the ticks it has to cool, banked by the printing and curing of the others.
+
+group | Eternal types | Eternal | Values kept across time must have eternal types; a constraint on a type variable becomes a qualifier of the scheme.
+Eternal types | Eternal and non-eternal types | time-upper-bound | basics/eternal_types.tpe | Base and algebraic types survive a wait, functions and declared non-eternal types do not, and a polymorphic definition keeps the constraint on its type variable.
+
 group | Effect handlers | Handlers | Operations handled by clauses that respect their grades.
 Effect handlers | Lower bounds | time-lower-bound | handlers/lower_bound.tpe | An operation case may resume its continuation once it has waited for at least the operation's grade.
 Effect handlers | Upper bounds | time-upper-bound | handlers/upper_bound.tpe | An operation case may resume its continuation at any point up to the operation's grade, or not at all.
 Effect handlers | Nested | time-lower-bound | handlers/nested.tpe | Nested handlers each resume their own continuation, quantifying over one rigid effect per level of nesting.
-Effect handlers | Nested (rejected) | time-lower-bound | handlers/nested_reject.tpe | The nested-handlers example with one inner continuation left unresumed, correctly rejected.
-Effect handlers | 3D printing: with effect handlers | time-lower-bound | handlers/3d_printing.tpe | The 3D-printing pipeline with each stage an operation, handled by clauses that respect its timing.
 
-group | Time grades | Time | Boxes usable after, before or within a duration, whole or fractional.
-Time grades | Upper bounds | time-upper-bound | time/upper_bounds.tpe | A box may be unboxed at any point up to its upper-bound grade.
-Time grades | Intervals | time-interval | time/intervals.tpe | A box grade pairs a lower and an upper time bound, unboxable only within that interval.
-Time grades | Intervals (rational) | time-interval-rational | time/intervals_rational.tpe | A medication schedule in hours, whose doses and reports are due within intervals with fractional endpoints.
-Time grades | 3D printing: time bounds | time-lower-bound | time/3d_printing.tpe | The stages of a 3D print, boxed at the lower time bounds each stage demands.
+group | Traces | Traces | Finite sets of traces of operations and delays, exact or with running times.
+Traces | Door controller | traces-upper-bound | traces/upper_bounds.tpe | A door controller whose visits are graded by the exact traces they may exhibit, a delay paying for no operation.
+Traces | 3D printing | traces-timed-interval | traces_timed_ops/3d_printing.tpe | A print pipeline graded by a lower and an upper bound on its traces, operations counted at their running-time bounds, with eternality constraints on the parts kept across it.
 
-group | Traces | Traces | Finite sets of traces of operations and delays, compared by inclusion.
-Traces | Upper bounds | traces-upper-bound | traces/upper_bounds.tpe | A door controller whose visits are graded by the exact traces they may exhibit, a delay paying for no operation.
-Traces | Upper bounds (rational) | traces-upper-bound-rational | traces/upper_bounds_rational.tpe | A heart-rate monitor timed in fractions of a second, whose cycles are graded by the exact traces they may exhibit.
+group | Regular expressions | Regex | Regular languages of traces of operations and delays, with and without running times.
+Regular expressions | File session | regex-upper-bound-symbolic | regular/upper_bounds.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
+Regular expressions | Sensor station | regex-timed-upper-bound-symbolic | regular_timed_ops/upper_bounds.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper running-time bounds.
+Regular expressions | Weather station | regex-timed-interval-rational-symbolic | regular_timed_ops/intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds, one open, and whose windows are regular lower and upper bounds with intervals of durations.
+Regular expressions | Mail session | regex-timed-upper-bound-symbolic | regular_timed_ops/mail_session.tpe | A mail session whose retrieval and flagging loops are graded by Kleene stars of traces, with operations taking their declared running times.
 
-group | Traces of timed operations | Traces (timed ops) | Finite sets of traces whose operations take time.
-Traces of timed operations | Lower bounds | traces-timed-lower-bound | traces_timed_ops/lower_bounds.tpe | A 3D-printing pipeline whose operations must be covered by the traces a box demands, delays banking towards them.
-Traces of timed operations | Upper bounds | traces-timed-upper-bound | traces_timed_ops/upper_bounds.tpe | The same pipeline under the allowance order, where a duration pays for operations at their upper running-time bounds.
-Traces of timed operations | Intervals | traces-timed-interval | traces_timed_ops/intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
-Traces of timed operations | 3D printing: with trace grades | traces-timed-interval | traces_timed_ops/3d_printing.tpe | The full pipeline graded by the traces of operations it may exhibit, running-time bounds included.
-Traces of timed operations | Intervals (rational) | traces-timed-interval-rational | traces_timed_ops/intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds and whose windows are traces with fractional durations.
-
-group | Regular expressions | Regex | Regular languages of traces of operations and delays.
-Regular expressions | Upper bounds (symbolic) | regex-upper-bound-symbolic | regular/upper_bounds.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
-Regular expressions | Upper bounds (rational, symbolic) | regex-upper-bound-rational-symbolic | regular/upper_bounds_rational.tpe | A heart-rate monitor graded by regular languages of operations and rational delays, with intervals of delays and complements.
-
-group | Regular expressions of timed operations | Regex (timed ops) | Regular languages of traces whose operations take time.
-Regular expressions of timed operations | Lower bounds (symbolic) | regex-timed-lower-bound-symbolic | regular_timed_ops/lower_bounds.tpe | A coating line graded by regular lower bounds whose ticks are banked by operations at their lower running-time bounds.
-Regular expressions of timed operations | Upper bounds (symbolic) | regex-timed-upper-bound-symbolic | regular_timed_ops/upper_bounds.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper running-time bounds.
-Regular expressions of timed operations | Intervals (symbolic) | regex-timed-interval-symbolic | regular_timed_ops/intervals.tpe | The coating line graded by pairs of a regular lower and a regular upper bound, compared componentwise.
-Regular expressions of timed operations | Intervals (rational, symbolic) | regex-timed-interval-rational-symbolic | regular_timed_ops/intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds, one open, and whose windows are regular lower and upper bounds with intervals of durations.
-Regular expressions of timed operations | Mail session | regex-timed-upper-bound-symbolic | regular_timed_ops/mail_session.tpe | A mail session whose retrieval and flagging loops are graded by Kleene stars of traces, with operations taking their declared running times.
-
-group | Regular expressions of timed operations, rigid | Regex (timed ops, rigid) | Regular languages of traces whose operations are demanded in order, other operations bought within their delays.
-Regular expressions of timed operations, rigid | Upper bounds (rational, symbolic) | regex-timed-rigid-upper-bound-rational-symbolic | regular_timed_rigid/upper_bounds_rational.tpe | A reaction timer in milliseconds whose start signal, time stamp and loop of polls are bounded by rigid regular upper bounds, a redraw bought only within a delay that pays for it.
-Regular expressions of timed operations, rigid | Intervals (rational, symbolic) | regex-timed-rigid-interval-rational-symbolic | regular_timed_rigid/intervals_rational.tpe | A reaction window in milliseconds demanding at least three polls and allowing nothing but polls at most 2.5 milliseconds apart.
+group | Rigid order | Rigid | Regular languages whose operations are demanded in order, other operations bought within their delays.
+Rigid order | Reaction timer | regex-timed-rigid-upper-bound-rational-symbolic | regular_timed_rigid/upper_bounds_rational.tpe | A reaction timer in milliseconds whose start signal, time stamp and loop of polls are bounded by rigid regular upper bounds, a redraw bought only within a delay that pays for it.
 
 group | Grade lattices | Lattices | Elements of a grade lattice reached, alone or with time bounds and outputs.
 Grade lattices | Security levels | lattice | lattice/security.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
-Grade lattices | Embargoes | time-lower-bound-lattice | lattice/time_lower.tpe | A box paired with a time lower bound and an element of the grade lattice: an embargo with a taint check.
 Grade lattices | Expiring capabilities | time-upper-bound-lattice | lattice/time_upper.tpe | A box paired with a time upper bound and an element of the grade lattice: a capability that expires and can be revoked by a taint.
 Grade lattices | Flow-sensitive outputs | flow-lattice | lattice/flow.tpe | A report whose public post must come before the vault is read, each output graded by the element reached before it.
-Grade lattices | Staged release | time-lower-bound-lattice | lattice/staged_release.tpe | A staged release whose approval of each stage is used only after its hosts have been observed, and only if nothing untrusted was touched since the approval.
 Grade lattices | Declared lattice | time-upper-bound-lattice | lattice/quiet_noisy.tpe | A robot step over the declared grade lattice Quiet < Noisy, whose tilt conversion is collected within five ticks and before the motors or the radio are used.
-Grade lattices | Declared lattice with intervals | time-interval-lattice | lattice/quiet_noisy_intervals.tpe | A robot step over the declared grade lattice Quiet < Noisy, whose tilt conversion is collected between 0.5 and 2 time units after it starts and before the motors or the radio are used.
 
-group | Semidirect products | Semidirect | Grades whose second component is shifted by the first.
-Semidirect products | Resource levels | resource-levels | semidirect/resource_levels.tpe | File copies, uploads and log rotations graded by the trough, the net change and the peak of the files and connections they hold.
-Semidirect products | Windowed schedules | windowed-schedules | semidirect/windowed_schedules.tpe | A sensor node whose transmissions are graded by the ticks of its frames at which they happen.
-Semidirect products | Mode-switch costs | mode-switch-costs | semidirect/mode_switch_costs.tpe | A sensor node whose energy costs depend on whether its radio is on, as max-plus matrices over the modes.
-
-group | Operation counts | Counts | How often each operation is called.
-Operation counts | Upper bounds | counts-upper-bound | counts/rate_limits.tpe | A client whose logins and requests are checked against rate limits on each operation.
+group | Other monoids | Other | Grades beyond time and traces: the levels of resources held, and the counts of operations.
+Other monoids | Resource levels | resource-levels | semidirect/resource_levels.tpe | File copies, uploads and log rotations graded by the trough, the net change and the peak of the files and connections they hold.
+Other monoids | Rate limits | counts-upper-bound | counts/rate_limits.tpe | A client whose logins and requests are checked against rate limits on each operation.
 
 group | BALA2 | BALA2 | The self-balancing robot with an M5Stack Gray core (ESP32, MPU6886 inertial unit) on a base with two motors and encoders, programmed through the board profile m5stack-gray, and m5stack-gray-radio with its radio running.
 BALA2 | Balancing robot | time-interval-rational | arduino/bala2/balance.tpe | The M5Stack BALA2 balancing robot, whose 5 ms control step uses each reading of the inertial unit within 2 ms and whose supervision starts the balancing only within 10 minutes of a calibration. | arduino | manifest=arduino/bala2/balance.device.json bindings=arduino/bala2/bindings.cpp
-BALA2 | Balancing robot with regexes | regex-timed-rigid-interval-rational-symbolic | arduino/bala2-regex/balance_regex.tpe | The M5Stack BALA2 under timed regular expressions: each motor command uses a reading of the inertial unit only if nothing came between, and the supervision stops, calibrates, starts and drives in order. | arduino | manifest=arduino/bala2-regex/balance_regex.device.json bindings=arduino/bala2/bindings.cpp
 BALA2 | Remote-controlled robot | regex-timed-rigid-interval-rational-symbolic | arduino/bala2-radio-robot/robot.tpe | The M5Stack BALA2 driven over ESP-NOW by a controller, applying each message before the next reception and within 150 ms, starting the balancing only on a calibration at most 10 minutes old with no move since and on a tilt read in its start window, in sessions of StartBalancing, moves and StopBalancing. | arduino | manifest=arduino/bala2-radio-robot/robot.device.json bindings=arduino/bala2/bindings.cpp
-BALA2 | Wheel check | regex-timed-rigid-interval-rational-symbolic | arduino/wheels/wheels.tpe | The M5Stack BALA2 on a stand, measuring the speeds of its wheels over a window of 100 to 101 ms after the drive command, and a spin-up profile from evenly spaced samples. | arduino | manifest=arduino/wheels/wheels.device.json bindings=arduino/wheels/bindings.cpp
 
 group | CoreS3 Lite | CoreS3 Lite | The M5Stack CoreS3 Lite (ESP32-S3, BMI270 inertial unit, display), programmed through the board profile m5stack-cores3.
 CoreS3 Lite | Tilt display | time-interval-rational | arduino/tilt/tilt.tpe | A tilt display on the M5Stack CoreS3 Lite whose 20 ms step fits its period and whose display shows the tilt within one period of reading it. | arduino | manifest=arduino/tilt/tilt.device.json bindings=arduino/tilt/bindings.cpp
@@ -133,13 +115,10 @@ CoreS3 Lite | BALA2 controller | regex-timed-rigid-interval-rational-symbolic | 
 
 group | Opentrons protocols | Opentrons | Laboratory protocols compiled to Opentrons Python, their operations performed by binding functions.
 Opentrons protocols | ELISA | time-interval | opentrons/elisa.tpe | An enzyme-linked immunosorbent assay (ELISA) whose coated plate incubates before washing, whose diluted antibody is used within 20 minutes and whose development is stopped within a window. | opentrons | binding=opentrons/elisa_bindings.py time-unit=minutes
-Opentrons protocols | Ethanol washes | regex-timed-rigid-interval-rational-symbolic | opentrons/washes.tpe | A bead clean-up with any number of ethanol washes, each with a fresh tip, a strict binding and air-dry, and no liquid removed with the plate off the magnet. | opentrons | binding=opentrons/washes_bindings.py time-unit=minutes
-Opentrons protocols | Contamination | time-upper-bound-lattice | opentrons/contamination.tpe | A ddPCR plate set-up whose clean tips may enter a clean reagent only while nothing contaminated has been touched since they were picked up, and whose boxed master mix is dispensed within 30 minutes of its preparation. | opentrons | binding=opentrons/contamination_bindings.py time-unit=minutes
 Opentrons protocols | Reagent windows | time-interval | opentrons/reagents.tpe | A tagmentation whose thawed reagents are boxes usable within 30 minutes, passed to a helper polymorphic in the window. | opentrons | binding=opentrons/reagents_bindings.py time-unit=minutes
-Opentrons protocols | Enzyme out of the cold | mode-times | opentrons/enzyme.tpe | A reaction set-up on the cold block whose enzyme mix spends at most 30 minutes out of it in total over its rounds of dispensing. | opentrons | binding=opentrons/enzyme_bindings.py time-unit=minutes
 Opentrons protocols | Staggered columns | time-interval | opentrons/staggered.tpe | A fixation of the columns of a plate at staggered times, each column's box passed through a recursion and rinsed within its window. | opentrons | binding=opentrons/staggered_bindings.py time-unit=minutes
-Opentrons protocols | Settling and drying | time-interval | opentrons/beads.tpe | A bead clean-up whose beads on the magnet open once settled and whose air-dried beads open only within the drying window. | opentrons | binding=opentrons/beads_bindings.py time-unit=minutes
+Opentrons protocols | Contamination | time-upper-bound-lattice | opentrons/contamination.tpe | A ddPCR plate set-up whose clean tips may enter a clean reagent only while nothing contaminated has been touched since they were picked up, and whose boxed master mix is dispensed within 30 minutes of its preparation. | opentrons | binding=opentrons/contamination_bindings.py time-unit=minutes
 Opentrons protocols | Bead binding | operation-spacing | opentrons/binding.tpe | A bead binding whose beads are resuspended by a mix every 2 to 5 minutes, the wash plate filled between two mixes. | opentrons | binding=opentrons/binding_bindings.py time-unit=minutes
-Opentrons protocols | Stop and read | time-interval | opentrons/stopread.tpe | A stop and read whose stopped plates are boxes read within 30 minutes, passed from a handler's case to its continuation. | opentrons | binding=opentrons/stopread_bindings.py time-unit=minutes
+Opentrons protocols | Enzyme out of the cold | mode-times | opentrons/enzyme.tpe | A reaction set-up on the cold block whose enzyme mix spends at most 30 minutes out of it in total over its rounds of dispensing. | opentrons | binding=opentrons/enzyme_bindings.py time-unit=minutes
+Opentrons protocols | Ethanol washes | regex-timed-rigid-interval-rational-symbolic | opentrons/washes.tpe | A bead clean-up with any number of ethanol washes, each with a fresh tip, a strict binding and air-dry, and no liquid removed with the plate off the magnet. | opentrons | binding=opentrons/washes_bindings.py time-unit=minutes
 Opentrons protocols | Bead clean-up with compound steps | regex-timed-rigid-interval-rational-symbolic | opentrons/cleanup.tpe | A bead clean-up whose binding, ethanol washes and elution are compound operations, performed by a handler through the atomic operations of the robot. | opentrons | binding=opentrons/cleanup_bindings.py time-unit=minutes
-Opentrons protocols | Stages of a purification | regex-timed-rigid-interval-rational-symbolic | opentrons/purification.tpe | A bead purification whose steps pass the beads from box to box, each with the window of the next step, within a box bounding the time of the samples at room temperature. | opentrons | binding=opentrons/purification_bindings.py time-unit=minutes
