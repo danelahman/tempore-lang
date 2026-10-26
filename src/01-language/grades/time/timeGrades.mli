@@ -4,13 +4,16 @@
     Their literals are the delays, [∞] for no upper bound, the intervals
     [[n, m]] between two delays and [\[n, ∞)] from a delay on, each finite
     endpoint closed or open, e.g. [(n, m\]] or [(n, ∞)], a pair [(n, m)] being
-    the open interval, and [⊤] (ASCII [top]) for the greatest grade.
+    the open interval, and [⊤] (ASCII [top]) for the greatest grade. A lower
+    bound is written as a delay or as an interval unbounded above, an upper
+    bound as a delay, [∞] or an interval from a closed [0].
 
     The witnesses of a closed condition are those the delays supply for its
     finite constants, with [∞] for the upper bounds, and for the intervals the
     lower-bound witnesses paired with [∞] and [0] paired with the upper-bound
     ones, all closed. They are complete for a condition in one rigid when those
-    of the delays are. *)
+    of the delays are, the rigid and the constants ranging over grades with open
+    or closed ends. *)
 
 (** The presentation of the time grades over a kind of delays. *)
 module type NAMES = sig
@@ -33,12 +36,20 @@ end
     rejected as such where its absolute value is a delay. *)
 module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) : sig
   module LowerBound : Grade.S with type Delay.t = D.t
-  (** Lower bounds, ["time-lower-bound" ^ N.suffix]: [n] is "at least [n]",
-      ordered by [≥], so the unit [0] is the top. *)
+  (** Lower bounds, ["time-lower-bound" ^ N.suffix]: [n] and [\[n, ∞)] are "at
+      least [n]", [(n, ∞)] "more than [n]"; ordered by the inclusion of the
+      durations they admit, so the unit [0] is the top. The product adds the
+      bounds, the sum being open iff a summand is, and the join is the weaker
+      bound. A closed bound is printed as [n], an open one as [(n, ∞)]. *)
 
   module UpperBound : Grade.S with type Delay.t = D.t
-  (** Upper bounds, ["time-upper-bound" ^ N.suffix]: [n] is "at most [n]", with
-      [∞] imposing no bound, ordered by [≤]; [∞] is the top. *)
+  (** Upper bounds, ["time-upper-bound" ^ N.suffix]: [n] and [[0, n]] are "at
+      most [n]", [\[0, n)] "less than [n]" for a positive [n], and [∞] and
+      [\[0, ∞)] impose no bound; ordered by the inclusion of the durations they
+      admit, so the unit [0] is least and [∞] the top. The product adds the
+      bounds, the sum being open iff a summand is, and the join is the weaker
+      bound. A closed bound is printed as [n] or [∞], an open one as [\[0, n)].
+  *)
 
   module Interval : Grade.S with type Delay.t = D.t
   (** Intervals, ["time-interval" ^ N.suffix]: [[n, m]] is "between [n] and
@@ -56,11 +67,14 @@ end
 
 module LowerBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Lower bounds, ["time-lower-bound"]: [n] is "at least [n] time steps",
-    ordered by [≥], so the unit [0] is the top. *)
+    ordered by [≥], so the unit [0] is the top. An open end abbreviates a closed
+    one, [(n, ∞)] being [n + 1], and a grade is printed closed. *)
 
 module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Upper bounds, ["time-upper-bound"]: [n] is "at most [n] time steps", with
-    [∞] imposing no bound, ordered by [≤]; [∞] is the top. *)
+    [∞] imposing no bound, ordered by [≤]; [∞] is the top. An open end
+    abbreviates a closed one, [\[0, n)] being [n - 1] for a positive [n], and a
+    grade is printed closed. *)
 
 module Interval : Grade.S with type Delay.t = Delay.Nat.t
 (** Intervals, ["time-interval"]: [[n, m]] is "between [n] and [m] time steps",

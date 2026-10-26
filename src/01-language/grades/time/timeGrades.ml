@@ -37,168 +37,293 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     | None ->
         invalid_lit lit "grades are %s, not %s" expected (describe_lit lit)
 
+  (** [is_closed b] is whether the finite end [b] is attained. *)
+  let is_closed = function Closed _ -> true | Open _ | Unbounded -> false
+
+  (* The ends of an interval of delays: a lower end is a delay with a flag for
+     whether the interval contains it, an upper end a delay or [∞] with such a
+     flag, [∞] never contained. The ends are compared as cuts: a closed lower
+     end [d] is below the open one, which is below any greater delay; a closed
+     upper end [d] is above the open one. Over delays with a least positive
+     one, [N.step], every end is closed. *)
+
+  (** [lower_end (d, closed)] is the lower end [d], attained iff [closed], an
+      open one replaced by the closed one [N.step] above it if [N.step] is a
+      delay. *)
+  let lower_end (d, closed) =
+    match N.step with
+    | Some step when not closed -> (D.add d step, true)
+    | _ -> (d, closed)
+
+  (** [upper_end (m, closed)] is the upper end [m], attained iff [closed], an
+      open finite one replaced by the closed one [N.step] below it if [N.step]
+      is a delay. *)
+  let upper_end (m, closed) =
+    match (N.step, m) with
+    | Some step, Ext.Fin m when not closed -> (Ext.Fin (D.monus m step), true)
+    | _ -> (m, closed)
+
+  (** [interval_ends lit lo hi] is the pair of the lower and the upper end of
+      the interval literal [lit] from [lo] to [hi], normalised by {!lower_end}
+      and {!upper_end}.
+
+      @raise Invalid_literal
+        if an endpoint is not a delay or the interval is empty. *)
+  let interval_ends lit lo hi =
+    match lo with
+    | Unbounded -> invalid_lit lit "interval endpoints must be non-negative"
+    | Closed l | Open l -> (
+        let upper =
+          match hi with
+          | Unbounded -> Some (false, Ext.Inf)
+          | Closed r | Open r ->
+              Option.map (fun (s, m) -> (s, Ext.Fin m)) (signed r)
+        in
+        match (signed l, upper) with
+        | Some (true, _), Some _ ->
+            invalid_lit lit "interval endpoints must be non-negative"
+        | Some (false, n), Some (false, m) when Ext.leq (Ext.Fin n) m ->
+            if Ext.leq m (Ext.Fin n) && not (is_closed lo && is_closed hi) then
+              invalid_lit lit
+                "interval endpoints must satisfy n < m at an open endpoint"
+            else
+              let ((n, _) as lower) = lower_end (n, is_closed lo)
+              and ((m, _) as upper) = upper_end (m, is_closed hi) in
+              if Ext.leq (Ext.Fin n) m then (lower, upper)
+              else invalid_lit lit "the interval contains no integer"
+        | Some _, Some _ ->
+            invalid_lit lit "interval endpoints must satisfy n <= m"
+        | _ -> invalid_lit lit "interval endpoints are %s" N.numbers)
+
+  (* A lower bound is the lower end of an interval unbounded above. *)
   module LowerBound = struct
-    type t = D.t
+    type t = { lo : D.t; lo_closed : bool }
 
     module Delay = D
 
     let name = "time-lower-bound" ^ N.suffix
-    let one = D.zero
-    let mul = D.add
-    let leq _bounds n m = D.leq m n
+
+    (** [at_least d] is the closed lower bound [d]. *)
+    let at_least lo = { lo; lo_closed = true }
+
+    let one = at_least D.zero
+
+    let mul c d =
+      { lo = D.add c.lo d.lo; lo_closed = c.lo_closed && d.lo_closed }
+
+    (** [cut_leq c d] decides whether the end of [c] is below that of [d] as a
+        cut. *)
+    let cut_leq c d =
+      D.leq c.lo d.lo
+      && ((not (D.leq d.lo c.lo)) || c.lo_closed || not d.lo_closed)
+
+    let leq _bounds c d = cut_leq d c
     let leq_symbol = ">="
-    let top = D.zero
-    let join = D.min
-    let equal _bounds = D.equal
-    let is_top _bounds n = D.equal top n
-    let compare = D.compare
-    let hash = D.hash
+    let top = one
+    let join c d = if cut_leq c d then c else d
+
+    let compare c d =
+      match D.compare c.lo d.lo with
+      | 0 -> Bool.compare c.lo_closed d.lo_closed
+      | k -> k
+
+    let equal _bounds c d = compare c d = 0
+    let is_top bounds = equal bounds top
+    let hash c = Hashing.combine (D.hash c.lo) (Bool.to_int c.lo_closed)
     let counterexample _bounds _ _ = None
     let unit_least = false
 
-    (* Every lower bound is its own closure: [n + n >= n]. *)
-    let plus n = Some n
+    (* Every lower bound is its own closure: [c · c ≾ c]. *)
+    let plus c = Some c
     let commutative = true
     let needs_op_bounds = false
     let duration_ends = Grade.Both_ends
     let events _ = []
-    let duration_bounds _bounds n = Some (Closed (D.to_rational n), Unbounded)
+
+    (** [end_bound c] is the end of the durations of [c]. *)
+    let end_bound c =
+      let q = D.to_rational c.lo in
+      if c.lo_closed then Closed q else Open q
+
+    let duration_bounds _bounds c = Some (end_bound c, Unbounded)
     let vacuous _bounds _ = None
     let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
 
-    let of_lit = function
+    let of_lit lit =
+      match open_pair lit with
       | Top -> top
-      | lit -> duration_of_lit ("plain " ^ N.numbers) lit
+      | Interval (lo, hi) -> (
+          match interval_ends lit lo hi with
+          | (lo, lo_closed), (Ext.Inf, _) -> { lo; lo_closed }
+          | _ ->
+              invalid_lit lit
+                "lower bounds are unbounded above, written `n`, `[n, ∞)` or \
+                 `(n, ∞)`")
+      | lit -> at_least (duration_of_lit ("plain " ^ N.numbers) lit)
 
     let accepts = reads_lit of_lit
-    let of_delay d = d
-    let of_bounds b = fst (hull b)
+    let of_delay = at_least
+
+    let of_bounds (lo, _) =
+      let lo, lo_closed = lower_end (end_value lo, is_closed lo) in
+      { lo; lo_closed }
+
     let is_atomic _name _ = true
-    let show = D.show
-    let witnesses ~degree _bounds cs = D.witnesses ~degree cs
+    let show c = if c.lo_closed then D.show c.lo else "(" ^ D.show c.lo ^ ", ∞)"
+
+    (* The ends are compared, multiplied and joined as cuts, so the closed
+       witnesses of the delays suffice: an open end [(q] acts as the limit of
+       the closed ones [\[x] as [x] decreases to [q], so an ordering that fails
+       at an open end fails at [q] itself or at the closed ends of the cell of
+       the delay witnesses next to [q], where both sides are affine. *)
+    let witnesses ~degree _bounds cs =
+      let ds, completeness =
+        D.witnesses ~degree (List.map (fun c -> c.lo) cs)
+      in
+      (List.map at_least ds, completeness)
   end
 
+  (* An upper bound is the upper end of an interval from a closed [0]. *)
   module UpperBound = struct
-    type t = Ext.t
+    type t = { hi : Ext.t; hi_closed : bool }
 
     module Delay = D
 
     let name = "time-upper-bound" ^ N.suffix
-    let one = Ext.Fin D.zero
-    let mul = Ext.add
-    let leq _bounds = Ext.leq
+
+    (** [at_most m] is the upper bound [m], closed unless [m] is [∞]. *)
+    let at_most hi = { hi; hi_closed = not (Ext.equal hi Ext.Inf) }
+
+    let one = at_most (Ext.Fin D.zero)
+
+    let mul c d =
+      { hi = Ext.add c.hi d.hi; hi_closed = c.hi_closed && d.hi_closed }
+
+    (** [cut_leq c d] decides whether the end of [c] is below that of [d] as a
+        cut. *)
+    let cut_leq c d =
+      Ext.leq c.hi d.hi
+      && ((not (Ext.leq d.hi c.hi)) || d.hi_closed || not c.hi_closed)
+
+    let leq _bounds = cut_leq
     let leq_symbol = "<="
-    let top = Ext.Inf
-    let join = Ext.max
-    let equal _bounds = Ext.equal
-    let is_top _bounds = Ext.equal top
-    let compare = Ext.compare
-    let hash = Ext.hash
+    let top = at_most Ext.Inf
+    let join c d = if cut_leq c d then d else c
+
+    let compare c d =
+      match Ext.compare c.hi d.hi with
+      | 0 -> Bool.compare c.hi_closed d.hi_closed
+      | k -> k
+
+    let equal _bounds c d = compare c d = 0
+    let is_top bounds = equal bounds top
+    let hash c = Hashing.combine (Ext.hash c.hi) (Bool.to_int c.hi_closed)
     let counterexample _bounds _ _ = None
     let unit_least = true
 
     (* The closure of a positive bound is [∞], that of [0] itself. *)
-    let plus n = Some (if Ext.equal n one then one else Ext.Inf)
+    let plus c = Some (if compare c one = 0 then one else top)
     let commutative = true
     let needs_op_bounds = false
     let duration_ends = Grade.Both_ends
     let events _ = []
 
-    let duration_bounds _bounds = function
-      | Ext.Fin n -> Some (Closed Rational.zero, Closed (D.to_rational n))
-      | Ext.Inf -> Some (Closed Rational.zero, Unbounded)
+    (** [end_bound c] is the end of the durations of [c]. *)
+    let end_bound c =
+      match c.hi with
+      | Ext.Fin m ->
+          let q = D.to_rational m in
+          if c.hi_closed then Closed q else Open q
+      | Ext.Inf -> Unbounded
 
+    let duration_bounds _bounds c = Some (Closed Rational.zero, end_bound c)
     let vacuous _bounds _ = None
     let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
 
-    let of_lit = function
+    let of_lit lit =
+      match open_pair lit with
       | Top | Inf -> top
-      | lit -> Ext.Fin (duration_of_lit ("plain " ^ N.numbers ^ " or `∞`") lit)
+      | Interval (lo, hi) -> (
+          match interval_ends lit lo hi with
+          | (lo, true), (hi, hi_closed) when D.equal lo D.zero ->
+              { hi; hi_closed }
+          | _ ->
+              invalid_lit lit
+                "upper bounds start at a closed 0, written `n`, `[0, n]`, `[0, \
+                 n)` or `∞`")
+      | lit ->
+          at_most
+            (Ext.Fin (duration_of_lit ("plain " ^ N.numbers ^ " or `∞`") lit))
 
     let accepts = reads_lit of_lit
-    let of_delay d = Ext.Fin d
-    let of_bounds b = Ext.Fin (snd (hull b))
+    let of_delay d = at_most (Ext.Fin d)
+
+    let of_bounds (_, hi) =
+      let hi, hi_closed = upper_end (Ext.Fin (end_value hi), is_closed hi) in
+      { hi; hi_closed }
+
     let is_atomic _name _ = true
-    let show = Ext.show
+
+    let show c =
+      match c.hi with
+      | Ext.Fin m when not c.hi_closed -> "[0, " ^ D.show m ^ ")"
+      | hi -> Ext.show hi
 
     (* A piece of an expression with an infinite constant is constantly [∞],
        so the witnesses of the finite constants decide the finite rigids, and
-       [∞] the infinite one. *)
+       [∞] the infinite one. The closed witnesses suffice: an open end [q)]
+       acts as the limit of the closed ones [x\]] as [x] increases to [q], so
+       an ordering that fails at an open end fails at [q] itself or at the
+       closed ends of the cell of the delay witnesses next to [q], where both
+       sides are affine. *)
     let witnesses ~degree _bounds cs =
       let finite, completeness =
-        D.witnesses ~degree (List.filter_map Ext.to_fin cs)
+        D.witnesses ~degree (List.filter_map (fun c -> Ext.to_fin c.hi) cs)
       in
-      (List.map (fun n -> Ext.Fin n) finite @ [ top ], completeness)
+      (List.map (fun n -> at_most (Ext.Fin n)) finite @ [ top ], completeness)
   end
 
-  (* An interval is a pair of endpoints, each a delay, or [∞] above, with a
-     flag for whether the interval contains it; [∞] is never contained. The
-     endpoints are compared as cuts: a closed lower endpoint [d] is below the
-     open one, which is below any greater delay; a closed upper endpoint [d] is
-     above the open one. Over delays with a least positive one, [N.step], every
-     endpoint is closed. *)
+  (* An interval is a pair of a lower and an upper end, compared, multiplied
+     and joined separately. *)
   module Interval = struct
-    type t = { lo : D.t; lo_closed : bool; hi : Ext.t; hi_closed : bool }
+    type t = { lower : LowerBound.t; upper : UpperBound.t }
 
     module Delay = D
 
     let name = "time-interval" ^ N.suffix
-
-    (** [closed lo hi] is the closed interval from [lo] to [hi]. *)
-    let closed lo hi =
-      { lo; lo_closed = true; hi; hi_closed = not (Ext.equal hi Ext.Inf) }
-
-    let one = closed D.zero (Ext.Fin D.zero)
+    let one = { lower = LowerBound.one; upper = UpperBound.one }
 
     (* The sum of two intervals, their Minkowski sum: an endpoint of the sum is
        open iff one of those it sums is. *)
     let mul c d =
       {
-        lo = D.add c.lo d.lo;
-        lo_closed = c.lo_closed && d.lo_closed;
-        hi = Ext.add c.hi d.hi;
-        hi_closed = c.hi_closed && d.hi_closed;
+        lower = LowerBound.mul c.lower d.lower;
+        upper = UpperBound.mul c.upper d.upper;
       }
 
-    (** [lower_leq c d] decides whether the lower endpoint of [c] is below that
-        of [d] as a cut. *)
-    let lower_leq c d =
-      D.leq c.lo d.lo
-      && ((not (D.leq d.lo c.lo)) || c.lo_closed || not d.lo_closed)
+    let leq bounds c d =
+      LowerBound.leq bounds c.lower d.lower
+      && UpperBound.leq bounds c.upper d.upper
 
-    (** [upper_leq c d] decides whether the upper endpoint of [c] is below that
-        of [d] as a cut. *)
-    let upper_leq c d =
-      Ext.leq c.hi d.hi
-      && ((not (Ext.leq d.hi c.hi)) || d.hi_closed || not c.hi_closed)
-
-    let leq _bounds c d = lower_leq d c && upper_leq c d
     let leq_symbol = "<="
-    let top = closed D.zero Ext.Inf
+    let top = { lower = LowerBound.top; upper = UpperBound.top }
 
     let join c d =
-      let l = if lower_leq c d then c else d in
-      let u = if upper_leq c d then d else c in
-      { lo = l.lo; lo_closed = l.lo_closed; hi = u.hi; hi_closed = u.hi_closed }
+      {
+        lower = LowerBound.join c.lower d.lower;
+        upper = UpperBound.join c.upper d.upper;
+      }
 
     let compare c d =
-      match D.compare c.lo d.lo with
-      | 0 -> (
-          match Bool.compare c.lo_closed d.lo_closed with
-          | 0 -> (
-              match Ext.compare c.hi d.hi with
-              | 0 -> Bool.compare c.hi_closed d.hi_closed
-              | k -> k)
-          | k -> k)
+      match LowerBound.compare c.lower d.lower with
+      | 0 -> UpperBound.compare c.upper d.upper
       | k -> k
 
     let equal _bounds c d = compare c d = 0
     let is_top bounds = equal bounds top
 
     let hash c =
-      Hashing.combine
-        (Hashing.combine (D.hash c.lo) (Bool.to_int c.lo_closed))
-        (Hashing.combine (Ext.hash c.hi) (Bool.to_int c.hi_closed))
+      Hashing.combine (LowerBound.hash c.lower) (UpperBound.hash c.upper)
 
     let counterexample _bounds _ _ = None
     let unit_least = false
@@ -206,8 +331,9 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     (* An interval with a positive upper endpoint closes to the same lower
        endpoint and no upper one; the unit is its own closure. *)
     let plus c =
-      if Ext.equal c.hi (Ext.Fin D.zero) then Some c
-      else Some { c with hi = Ext.Inf; hi_closed = false }
+      Some
+        (if UpperBound.compare c.upper UpperBound.one = 0 then c
+         else { c with upper = UpperBound.top })
 
     let commutative = true
     let needs_op_bounds = false
@@ -215,102 +341,48 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let events _ = []
 
     let duration_bounds _bounds c =
-      let at closed d = if closed then Closed d else Open d in
-      Some
-        ( at c.lo_closed (D.to_rational c.lo),
-          match c.hi with
-          | Ext.Fin m -> at c.hi_closed (D.to_rational m)
-          | Ext.Inf -> Unbounded )
+      Some (LowerBound.end_bound c.lower, UpperBound.end_bound c.upper)
 
     let vacuous _bounds _ = None
     let inhabited bounds rho = Grade.inhabited_of vacuous bounds rho
 
-    (** [interval lit lo hi] is the interval of the literal [lit] from [lo] to
-        [hi], each a delay or [∞] with a flag for whether it is contained, and
-        an open endpoint replaced by the closed one [N.step] away if [N.step] is
-        a delay.
-
-        @raise Invalid_literal if the interval is empty. *)
-    let interval lit (lo, lo_closed) (hi, hi_closed) =
-      let lo, lo_closed =
-        match N.step with
-        | Some step when not lo_closed -> (D.add lo step, true)
-        | _ -> (lo, lo_closed)
-      in
-      let hi, hi_closed =
-        match (N.step, hi) with
-        | Some step, Ext.Fin m when not hi_closed ->
-            (Ext.Fin (D.monus m step), true)
-        | _ -> (hi, hi_closed)
-      in
-      if Ext.leq (Ext.Fin lo) hi then { lo; lo_closed; hi; hi_closed }
-      else invalid_lit lit "the interval contains no integer"
-
     let of_lit lit =
       match open_pair lit with
       | Top -> top
-      | Interval (Unbounded, _) ->
-          invalid_lit lit "interval endpoints must be non-negative"
-      | Interval (((Closed l | Open l) as lo), hi) -> (
-          let upper =
-            match hi with
-            | Unbounded -> Some (false, Ext.Inf)
-            | Closed r | Open r ->
-                Option.map (fun (s, m) -> (s, Ext.Fin m)) (signed r)
-          in
-          let closed = function Closed _ -> true | _ -> false in
-          match (signed l, upper) with
-          | Some (true, _), Some _ ->
-              invalid_lit lit "interval endpoints must be non-negative"
-          | Some (false, n), Some (false, m) when Ext.leq (Ext.Fin n) m ->
-              if Ext.leq m (Ext.Fin n) && not (closed lo && closed hi) then
-                invalid_lit lit
-                  "interval endpoints must satisfy n < m at an open endpoint"
-              else interval lit (n, closed lo) (m, closed hi)
-          | Some _, Some _ ->
-              invalid_lit lit "interval endpoints must satisfy n <= m"
-          | _ -> invalid_lit lit "interval endpoints are %s" N.numbers)
+      | Interval (lo, hi) ->
+          let (lo, lo_closed), (hi, hi_closed) = interval_ends lit lo hi in
+          { lower = { lo; lo_closed }; upper = { hi; hi_closed } }
       | _ ->
           invalid_lit lit "grades are intervals %s, not %s" interval_forms
             (describe_lit lit)
 
     let accepts = reads_lit of_lit
-    let of_delay d = closed d (Ext.Fin d)
 
-    let of_bounds (lo, hi) =
-      let closed_end = function Closed _ -> true | _ -> false in
-      {
-        lo = end_value lo;
-        lo_closed = closed_end lo;
-        hi = Ext.Fin (end_value hi);
-        hi_closed = closed_end hi;
-      }
+    let of_delay d =
+      { lower = LowerBound.of_delay d; upper = UpperBound.of_delay d }
+
+    let of_bounds b =
+      { lower = LowerBound.of_bounds b; upper = UpperBound.of_bounds b }
 
     let is_atomic _name _ = true
 
-    let show c =
-      (if c.lo_closed then "[" else "(")
-      ^ D.show c.lo ^ ", " ^ Ext.show c.hi
-      ^ if c.hi_closed then "]" else ")"
+    let show { lower; upper } =
+      (if lower.lo_closed then "[" else "(")
+      ^ D.show lower.lo ^ ", " ^ Ext.show upper.hi
+      ^ if upper.hi_closed then "]" else ")"
 
-    (* The endpoints are compared, multiplied and joined separately, so an
-       ordering fails iff it fails at the lower endpoints, at the lower-bound
-       witnesses paired with [∞], or at the upper ones, at [0] paired with the
-       upper-bound witnesses. The closed witnesses suffice: an open endpoint
-       [(q] acts as the limit of the closed ones [\[x] as [x] decreases to [q],
-       and [q)] as that of [x\]] as [x] increases to [q], so an ordering that
-       fails at an open endpoint fails at [q] itself or at the closed endpoints
-       of the cell of the delay witnesses next to [q], where both sides are
-       affine. *)
+    (* An ordering fails iff it fails at the lower endpoints, at the
+       lower-bound witnesses paired with [∞], or at the upper ones, at [0]
+       paired with the upper-bound witnesses. *)
     let witnesses ~degree bounds cs =
       let lower, lower_completeness =
-        LowerBound.witnesses ~degree bounds (List.map (fun c -> c.lo) cs)
+        LowerBound.witnesses ~degree bounds (List.map (fun c -> c.lower) cs)
       in
       let upper, upper_completeness =
-        UpperBound.witnesses ~degree bounds (List.map (fun c -> c.hi) cs)
+        UpperBound.witnesses ~degree bounds (List.map (fun c -> c.upper) cs)
       in
-      ( List.map (fun n -> closed n Ext.Inf) lower
-        @ List.map (fun m -> closed D.zero m) upper,
+      ( List.map (fun lower -> { lower; upper = UpperBound.top }) lower
+        @ List.map (fun upper -> { lower = LowerBound.one; upper }) upper,
         match (lower_completeness, upper_completeness) with
         | Grade.Complete, Grade.Complete -> Grade.Complete
         | Grade.Partial, _ | _, Grade.Partial -> Grade.Partial )

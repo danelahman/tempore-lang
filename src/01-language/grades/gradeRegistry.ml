@@ -353,10 +353,14 @@ let entries =
   [
     entry
       (module TimeGrades.LowerBound)
-      time "Lower bounds" "At least n time steps; the unit 0 is greatest.";
+      time "Lower bounds"
+      "At least n time steps, also written [n, ∞); (n, ∞) is n + 1; the unit 0 \
+       is greatest.";
     entry
       (module TimeGrades.UpperBound)
-      time "Upper bounds" "At most n time steps; the unit 0 is least.";
+      time "Upper bounds"
+      "At most n time steps, also written [0, n]; [0, n) is n - 1; the unit 0 \
+       is least.";
     entry
       (module TimeGrades.Interval)
       time "Intervals"
@@ -365,13 +369,13 @@ let entries =
     entry
       (module RationalTimeGrades.LowerBound)
       time "Lower bounds (rational)"
-      "At least q time units, q a non-negative rational; the unit 0 is \
-       greatest.";
+      "At least q time units, also written [q, ∞), or more than q, written (q, \
+       ∞), q a non-negative rational; the unit 0 is greatest.";
     entry
       (module RationalTimeGrades.UpperBound)
       time "Upper bounds (rational)"
-      "At most q time units, q a non-negative rational or ∞; the unit 0 is \
-       least.";
+      "At most q time units, also written [0, q], or less than q, written [0, \
+       q), q a non-negative rational or ∞; the unit 0 is least.";
     entry
       (module RationalTimeGrades.Interval)
       time "Intervals (rational)"

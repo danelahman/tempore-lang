@@ -324,7 +324,7 @@ let literals =
       "must satisfy n <= m";
     rejects "pair, rational" rational_upper
       (Tuple [ Int 1; Int 2 ])
-      "grades are plain numbers or `∞`, not pairs";
+      "upper bounds start at a closed 0";
     rejects "negative interval endpoint" time_interval
       (Interval (Closed (Int (-1)), Closed (Int 5)))
       "must be non-negative";
@@ -364,6 +364,68 @@ let literals =
     rejects "empty half-open interval, rational" rational_interval
       (Interval (Open (Int 1), Closed (Int 1)))
       "n < m at an open endpoint";
+    reads "lower bound, closed" rational_lower
+      (Interval (Closed (Rat (Rational.make 1 3)), Unbounded))
+      "1/3";
+    reads "lower bound, open" rational_lower
+      (Interval (Open (Rat (Rational.make 1 2)), Unbounded))
+      "(0.5, ∞)";
+    reads "lower bound, pair" rational_lower (Tuple [ Int 1; Inf ]) "(1, ∞)";
+    reads "lower bound, open at 0" rational_lower
+      (Interval (Open (Int 0), Unbounded))
+      "(0, ∞)";
+    rejects "lower bound, bounded above" rational_lower
+      (Interval (Closed (Int 1), Closed (Int 2)))
+      "lower bounds are unbounded above";
+    rejects "lower bound, negative" rational_lower
+      (Interval (Open (Int (-1)), Unbounded))
+      "must be non-negative";
+    reads "upper bound, closed" rational_upper
+      (Interval (Closed (Int 0), Closed (Rat (Rational.make 3 2))))
+      "1.5";
+    reads "upper bound, open" rational_upper
+      (Interval (Closed (Int 0), Open (Int 2)))
+      "[0, 2)";
+    reads "upper bound, open at a fraction" rational_upper
+      (Interval (Closed (Int 0), Open (Rat (Rational.make 1 3))))
+      "[0, 1/3)";
+    reads "upper bound, unbounded" rational_upper
+      (Interval (Closed (Int 0), Unbounded))
+      "∞";
+    rejects "upper bound, open at 0" rational_upper
+      (Interval (Closed (Int 0), Open (Int 0)))
+      "n < m at an open endpoint";
+    rejects "upper bound, open below" rational_upper
+      (Interval (Open (Int 0), Closed (Int 2)))
+      "upper bounds start at a closed 0";
+    rejects "upper bound, positive lower end" rational_upper
+      (Interval (Closed (Int 1), Open (Int 2)))
+      "upper bounds start at a closed 0";
+    reads "lower bound, closed" time_lower
+      (Interval (Closed (Int 2), Unbounded))
+      "2";
+    reads "lower bound, open" time_lower
+      (Interval (Open (Int 2), Unbounded))
+      "3";
+    reads "lower bound, pair" time_lower (Tuple [ Int 0; Inf ]) "1";
+    reads "upper bound, closed" time_upper
+      (Interval (Closed (Int 0), Closed (Int 3)))
+      "3";
+    reads "upper bound, open" time_upper
+      (Interval (Closed (Int 0), Open (Int 3)))
+      "2";
+    reads "upper bound, open at 1" time_upper
+      (Interval (Closed (Int 0), Open (Int 1)))
+      "0";
+    reads "upper bound, unbounded" time_upper
+      (Interval (Closed (Int 0), Unbounded))
+      "∞";
+    rejects "upper bound, open at 0" time_upper
+      (Interval (Closed (Int 0), Open (Int 0)))
+      "n < m at an open endpoint";
+    rejects "upper bound, open below" time_upper
+      (Interval (Open (Int 0), Closed (Int 3)))
+      "upper bounds start at a closed 0";
     reads "release" resource_levels (Tuple [ Int (-1); Int 0 ]) "(-1, 0)";
     reads "unbounded peak" resource_levels (Tuple [ Int (-3); Inf ]) "(-3, ∞)";
     reads "top" resource_levels Top "(∞, ∞)";
@@ -888,7 +950,7 @@ let literals =
     reads "integer" time_lower (Int 3) "3";
     reads "top" time_lower Top "0";
     rejects "infinity" time_lower Inf "not `∞`";
-    rejects "pair" time_lower (Tuple [ Int 1; Int 5 ]) "not pairs";
+    rejects "pair" time_lower (Tuple [ Int 1; Int 5 ]) "unbounded above";
     reads "infinity" time_upper Inf "∞";
     reads "top" time_upper Top "∞";
     rejects "name" time_upper (Name "Low") "not names such as `Low`";
@@ -1132,7 +1194,9 @@ let registry =
     expect "registry: grades reading an open interval" show_names
       ~expected:
         [
+          "time-lower-bound";
           "time-interval";
+          "time-lower-bound-rational";
           "time-interval-rational";
           "traces-timed-interval";
           "traces-timed-interval-rational";
@@ -1170,7 +1234,9 @@ let registry =
     expect "registry: grades reading a pair of a number and `∞`" show_names
       ~expected:
         [
+          "time-lower-bound";
           "time-interval";
+          "time-lower-bound-rational";
           "time-interval-rational";
           "traces-timed-interval";
           "traces-timed-rigid-interval";
@@ -1572,16 +1638,42 @@ let rational_values =
 let random_rational st =
   Rational.make (Random.State.int st 8) (1 + Random.State.int st 4)
 
-let rational_lit st = Grade.rational_lit (random_rational st)
+(* The rational lower bound [q], closed, or open where [lo_open] holds. *)
+let lower_of ?(lo_open = false) q =
+  let lo = Grade.rational_lit q in
+  RationalTimeGrades.LowerBound.of_lit
+    (Grade.Interval
+       ((if lo_open then Grade.Open lo else Grade.Closed lo), Grade.Unbounded))
+
+(* The rational upper bound [q], closed, or open where [hi_open] holds and [q]
+   is positive. *)
+let upper_of ?(hi_open = false) q =
+  let hi = Grade.rational_lit q in
+  RationalTimeGrades.UpperBound.of_lit
+    (Grade.Interval
+       ( Grade.Closed (Grade.Int 0),
+         if hi_open && Rational.sign q > 0 then Grade.Open hi
+         else Grade.Closed hi ))
+
+(* The lower and the upper bounds at the rationals with denominators up to 6
+   in [[0, 6]], closed and open. *)
+let coarse_rationals =
+  List.filter
+    (fun q ->
+      Rational.compare q (Rational.of_int 6) <= 0
+      && 6 mod Rational.denominator q = 0)
+    rational_values
 
 module Rational_lower_conditions =
   Conditions
     (RationalTimeGrades.LowerBound)
     (struct
-      let constant st = RationalTimeGrades.LowerBound.of_lit (rational_lit st)
+      let constant st =
+        lower_of ~lo_open:(Random.State.bool st) (random_rational st)
 
       let values =
         List.map RationalTimeGrades.LowerBound.of_delay rational_values
+        @ List.map (lower_of ~lo_open:true) coarse_rationals
     end)
 
 module Rational_upper_conditions =
@@ -1589,12 +1681,15 @@ module Rational_upper_conditions =
     (RationalTimeGrades.UpperBound)
     (struct
       let constant st =
-        RationalTimeGrades.UpperBound.of_lit
-          (if Random.State.int st 8 = 0 then Grade.Inf else rational_lit st)
+        if Random.State.int st 8 = 0 then
+          RationalTimeGrades.UpperBound.of_lit Grade.Inf
+        else upper_of ~hi_open:(Random.State.bool st) (random_rational st)
 
       let values =
         RationalTimeGrades.UpperBound.top
         :: List.map RationalTimeGrades.UpperBound.of_delay rational_values
+        @ List.map (upper_of ~hi_open:true)
+            (List.filter (fun q -> Rational.sign q > 0) coarse_rationals)
     end)
 
 (* The rational interval from [q] to [r], [r] possibly [∞], closed at its
@@ -1884,6 +1979,9 @@ let cover =
         Interval (Open (rat 1 3), Unbounded);
         Tuple [ rat 1 3; Int 2 ];
         Tuple [ Int 1; Inf ];
+        Interval (Closed (Int 0), Open (Int 2));
+        Interval (Closed (Int 0), Open (rat 5 3));
+        Interval (Closed (Int 0), Closed (rat 1 2));
       ]
   | Traces ->
       [
@@ -3532,6 +3630,51 @@ let interval_read_back =
       | _ -> [])
     GradeRegistry.grade_modules
 
+(* The time grades on their samples: the printed grades read back as the same
+   representations, and the order is the inclusion of the durations. *)
+let time_grade_laws =
+  let attained = function Grade.Closed _ -> true | _ -> false in
+  let lower_within lo lo' =
+    let c = Rational.compare (Grade.end_value lo') (Grade.end_value lo) in
+    c < 0 || (c = 0 && (attained lo' || not (attained lo)))
+  in
+  let upper_within hi hi' =
+    match (hi, hi') with
+    | _, Grade.Unbounded -> true
+    | Grade.Unbounded, _ -> false
+    | _ ->
+        let c = Rational.compare (Grade.end_value hi) (Grade.end_value hi') in
+        c < 0 || (c = 0 && (attained hi' || not (attained hi)))
+  in
+  List.concat_map
+    (fun (name, (module G : Grade.S)) ->
+      match family name with
+      | Some Time ->
+          let module R = Reader (G) in
+          let samples = samples (module G) Time in
+          let durations c = Option.get (G.duration_bounds running_times c) in
+          let included (x, y) =
+            let lo, hi = durations x and lo', hi' = durations y in
+            lower_within lo lo' && upper_within hi hi'
+          in
+          let reads_back x =
+            match R.parse (G.show x) with
+            | Ok x' -> G.compare x x' = 0
+            | Error _ -> false
+          in
+          [
+            all
+              (name ^ ": printed grades read back as the same representations")
+              G.show reads_back samples;
+            all
+              (name ^ ": the order is the inclusion of the durations")
+              (fun (x, y) -> G.show x ^ ", " ^ G.show y)
+              (fun (x, y) -> G.leq running_times x y = included (x, y))
+              (pairs samples);
+          ]
+      | _ -> [])
+    GradeRegistry.grade_modules
+
 (* ------------------------------------------------------------------ *)
 (* Constructions                                                       *)
 (* ------------------------------------------------------------------ *)
@@ -4043,7 +4186,7 @@ let () =
     @ semidirect_counterexamples @ witnesses @ literals @ negative_delays @ tops
     @ registry @ registered_laws @ registered_repetitions @ fractional_laws
     @ inclusion_laws @ indexed @ mode_laws @ resource_laws @ interval_read_back
-    @ schedule_laws @ resource_construction_laws @ finite_laws
+    @ time_grade_laws @ schedule_laws @ resource_construction_laws @ finite_laws
     @ declared_lattice_laws @ declared_lattice_structure @ ranges @ flow_tops
     @ duration_bounds @ mode_time_laws @ interval_letter_laws
     @ interval_letter_overflow
