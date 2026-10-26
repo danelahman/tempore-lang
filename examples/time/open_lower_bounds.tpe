@@ -1,0 +1,38 @@
+(* A second dose, due strictly more than four hours after the first.
+
+   Run this example with the 'time-lower-bound-rational' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound-rational \
+       examples/time/open_lower_bounds.tpe
+
+   Grades q or (q, ∞): at least q hours, or more than q hours
+     - Unit 0: no time needed
+     - Top 0: no time needed; the unit is the top
+     - Product: addition, a bound open if either bound added is *)
+
+type dose = Dose of nat
+
+(* Correctly accepted by the typechecker: the second dose is released more
+   than four hours after the first, and is taken after 4.5 hours. *)
+let second_dose () =
+  box (4, ∞) (Dose 2) as d in
+  delay 4.5;
+  unbox d as x in
+  x
+
+(* Correctly rejected by the typechecker: exactly four hours is not more than
+   four:
+
+     Typing error: Variable `d` is unboxed with grade `4` accumulated since it
+       was bound, which is not below its box grade `(4, ∞)`
+       Note: the resource inequality `4 >= (4, ∞)` does not hold
+*)
+(*
+let early_dose () =
+  box (4, ∞) (Dose 2) as d in
+  delay 4;
+  unbox d as x in
+  x
+*)
+
+run second_dose ()

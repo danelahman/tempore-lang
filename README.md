@@ -293,10 +293,12 @@ In this category, a grade bounds the number of time steps, or ticks, a
 computation takes.
 
 - `time-lower-bound`: `n` is at least `n` ticks; ordered by `>=`, so `0` is
-  the top.
+  the top. It also reads `[n, ∞)`, and an open end abbreviates a closed one,
+  `(n, ∞)` being `n + 1`.
 
 - `time-upper-bound`: `n` is at most `n` ticks, `∞` (ASCII `inf`) no bound;
-  ordered by `<=`, so `0` is least and `∞` the top.
+  ordered by `<=`, so `0` is least and `∞` the top. It also reads `[0, n]` and
+  `[0, ∞)`, and an open end abbreviates a closed one, `[0, n)` being `n - 1`.
 
   For example, with `Read` taking at most two ticks,
 
@@ -327,6 +329,12 @@ See
 
 The rational variants `time-lower-bound-rational`, `time-upper-bound-rational`
 and `time-interval-rational` measure time by non-negative rationals.
+
+The rational lower and upper bounds may be open too: `(q, ∞)` is more than `q`
+units and `[0, q)` less than `q`, while `[q, ∞)` and `[0, q]` are the closed
+bounds `q`. Under `time-lower-bound-rational`, `box (1, ∞) v` may be unboxed
+after `delay 1.5` but not after `delay 1`; see
+[`examples/time/open_lower_bounds.tpe`](examples/time/open_lower_bounds.tpe).
 
 The intervals of the grade `time-interval-rational` may be open or half-open:
 `box (4, 6] v` may be unboxed strictly after four units and at most six. A sum
