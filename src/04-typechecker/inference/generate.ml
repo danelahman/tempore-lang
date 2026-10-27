@@ -1181,7 +1181,7 @@ module Make (C : Constraint.S) = struct
            generate_computation env' body (expect body_ty because)
              (expect body_eps because)))
 
-  (* A handler value of type [α ! ε_in ⇒ β ! ε_out]: the return clause under
+  (* A handler value of type [α ! ε_in ⇛ β ! ε_out]: the return clause under
      the lock [⟨∣ε_in∣⟩], each clause under [∀ε'']. *)
   and handler env at (ret_pat, ret_body) op_cases expected =
     let@ input_ty = exists_ty in
@@ -1448,7 +1448,7 @@ module Make (C : Constraint.S) = struct
         leq_expected at (Eps.mul op_grade eps') eps;
       ]
 
-  (* [handle c with h]: [c : α ! ε₁], [h : α ! ε₁ ⇒ γ ! ε₂], [γ] below the
+  (* [handle c with h]: [c : α ! ε₁], [h : α ! ε₁ ⇛ γ ! ε₂], [γ] below the
      expected type and [ε₁ · ε₂] below the expected effect. *)
   and handle env at c' h ty eps =
     let@ input_ty = exists_ty in

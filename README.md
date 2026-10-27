@@ -1580,7 +1580,8 @@ Under `time-upper-bound`, the standard library's `compose f g x = f (g x)` has
 
 where `g` takes no time, since the non-eternal `f` is used after it: the
 qualifier `∣ε₁∣ ≾ 0` on the effect `ε₁` of `g` admits only the least value
-`0`, which the scheme substitutes; an effect of the unit is not printed.
+`0`, which the scheme substitutes. An effect of the unit is not printed on a
+function arrow, but is printed on both sides of a handler type `A ! ε ⇛ B ! ε′`.
 
 Under `time-lower-bound`, with `operation Op : unit ~> unit ! 1`, the handler
 
@@ -1588,7 +1589,7 @@ Under `time-lower-bound`, with `operation Op : unit ~> unit ! 1`, the handler
 
 has
 
-    ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 1 ∧ (∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op) ⇒ (unit → α ! ε₀) → (β ! ε₁ ⇒ β)
+    ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 1 ∧ (∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op) ⇒ (unit → α ! ε₀) → (β ! ε₁ ⇛ β ! 0)
 
 where `R`, `∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op`, states that for every effect `ε_Op`
 of `k` the case, `f` followed by `k`, takes at least the time of `Op` followed

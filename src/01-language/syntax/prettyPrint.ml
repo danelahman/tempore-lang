@@ -147,10 +147,9 @@ let rec print_ty ?max_level grades ty_print_param ty ppf =
       print ~at_level:2 "[%t]%t" (grades.rho rho) (aux ~max_level:2 ty)
   | TyHandler (CompTy (ty1, eps1), CompTy (ty2, eps2)) ->
       let computation ty eps ppf =
-        if grades.pure eps then aux ~max_level:3 ty ppf
-        else Format.fprintf ppf "%t ! %t" (aux ~max_level:3 ty) (grades.eps eps)
+        Format.fprintf ppf "%t ! %t" (aux ~max_level:3 ty) (grades.eps eps)
       in
-      print ~at_level:4 "%t ⇒ %t" (computation ty1 eps1) (computation ty2 eps2)
+      print ~at_level:4 "%t ⇛ %t" (computation ty1 eps1) (computation ty2 eps2)
 
 and arrow_parts grades ty_print_param ty =
   let print ?max_level = print_ty ?max_level grades ty_print_param in
