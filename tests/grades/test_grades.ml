@@ -3172,6 +3172,139 @@ let interval_letter_overflow =
   @ checks (module G.RegexRational.Interval) interval
   @ checks (module G.TracesRational.Interval) interval
 
+(* The running times [(0, 1]] of [A] and [[1, 2)] of [B]. *)
+let star_running_times =
+  {
+    Grade.running_time =
+      (fun o ->
+        if o = "A" then
+          (Grade.Open (Rational.of_int 0), Grade.Closed (Rational.of_int 1))
+        else (Grade.Closed (Rational.of_int 1), Grade.Open (Rational.of_int 2)));
+    operations = [ "A"; "B" ];
+  }
+
+(* The rigid orders over the rationals with open ends and star (suggested by
+   the formalisation), at {!star_running_times}. Open ends add up:
+   [idle <1; (<1 & A)] has the word of a wait [5/6] and an [A] of [1/3], of
+   duration [7/6], and [m] stretches [(<1 & A)] have words of every duration
+   below [m]; over whole steps [<1] is [0], and both orders hold. An unbounded
+   stretch is below the star of a bounded one, but below no word of it. The
+   star-free cases hold of the finite traces likewise. *)
+let interval_letter_star =
+  let module G = Grades.IntervalGrades in
+  let checks (type a) (module M : Grade.S with type t = a) cases =
+    let module P = Reader (M) in
+    let lit text =
+      match P.parse text with
+      | Ok rho -> rho
+      | Error e -> failwith (M.name ^ ": " ^ text ^ ": " ^ e)
+    in
+    List.map
+      (fun (x, y, expected) ->
+        expect
+          (M.name ^ ": " ^ x ^ " <= " ^ y)
+          show_bool ~expected
+          (M.leq star_running_times (lit x) (lit y)))
+      cases
+  in
+  let stretches m = String.concat "; " (List.init m (fun _ -> "(<1 & A)")) in
+  let repeated =
+    List.concat_map
+      (fun m ->
+        [
+          ("{" ^ stretches m ^ "}", Printf.sprintf "{(≤%d & A)}" (m - 1), false);
+          ("{" ^ stretches m ^ "}", Printf.sprintf "{(<%d & A)}" m, true);
+        ])
+      [ 2; 3; 4 ]
+  in
+  let star_free =
+    [
+      ("{idle <1; (<1 & A)}", "{(≤1 & A)}", false);
+      ("{idle <1; (<1 & A)}", "{(<2 & A)}", true);
+    ]
+    @ repeated
+  in
+  let with_star =
+    [
+      ("{idle <1; (<1 & A)}", "{(≤1 & A)*}", true);
+      ("{idle <1; (<1 & A)}", "{(<1 & A)*}", true);
+      ("{" ^ stretches 2 ^ "}", "{(<1 & A)*}", true);
+      ("{" ^ stretches 3 ^ "}", "{(<1 & A)*}", true);
+      ("{(≤∞ & (A | B))}", "{(<2 & (A | B))*}", true);
+      ("{(≤∞ & (A | B))}", "{(<2 & (A | B))}", false);
+      ("{(≤∞ & (A | B))}", "{(<2 & A)*}", false);
+      ("{(≤∞ & (A | B))}", "{(A | B)*}", false);
+      ("{(<2 & (A | B))*}", "{(≤∞ & (A | B))}", true);
+      ("{(A | B)*}", "{(<2 & (A | B))*}", true);
+      ("{(<2 & (A | B))*}", "{(A | B)*}", false);
+      ("{(A; idle <1)*}", "{((≤1 & A); idle ≤1)*}", true);
+      ("{(A; idle <1)*}", "{(≤1 & A)*}", true);
+      ("{(A; idle <1)*}", "{A*}", false);
+    ]
+  in
+  let whole =
+    [
+      ("{idle <1; (<1 & A)}", "{(≤1 & A)}", true);
+      ("{" ^ stretches 2 ^ "}", "{(≤1 & A)}", true);
+    ]
+  in
+  checks (module G.RegexRational.Upper) (star_free @ with_star)
+  @ checks (module G.TracesRational.Upper) star_free
+  @ checks (module G.Regex.Upper) whole
+
+(* The rigid orders over the rationals with star against the verdicts of an
+   independent reference decision over the rationals, computed offline on
+   random pairs of expressions and their perturbations
+   ([interval_letter_star_reference.tsv]), at {!star_running_times}. *)
+let interval_letter_star_reference =
+  let module G = Grades.IntervalGrades in
+  let decide (type a) (module M : Grade.S with type t = a) x y =
+    let module P = Reader (M) in
+    match (P.parse x, P.parse y) with
+    | Ok x, Ok y -> Ok (M.leq star_running_times x y)
+    | Error e, _ | _, Error e -> Error e
+  in
+  let rows =
+    In_channel.with_open_text "interval_letter_star_reference.tsv"
+      In_channel.input_lines
+    |> List.filter (fun line -> line <> "" && line.[0] <> '#')
+  in
+  let disagreements, accepted =
+    List.fold_left
+      (fun (disagreements, accepted) line ->
+        match String.split_on_char '\t' line with
+        | [ side; x; y; verdict ] ->
+            let expected = bool_of_string verdict in
+            let verdict =
+              if side = "u" then decide (module G.RegexRational.Upper) x y
+              else decide (module G.RegexRational.Lower) x y
+            in
+            if verdict = Ok expected then
+              (disagreements, if expected then accepted + 1 else accepted)
+            else ((side, x, y, expected, verdict) :: disagreements, accepted)
+        | _ -> failwith ("interval_letter_star_reference.tsv: " ^ line))
+      ([], 0) rows
+  in
+  let name =
+    Printf.sprintf
+      "rigid rational orders with star against the reference (%d of %d \
+       accepted)"
+      accepted (List.length rows)
+  in
+  match List.rev disagreements with
+  | [] -> [ check name true "" ]
+  | (side, x, y, expected, verdict) :: _ ->
+      [
+        check name false
+          (Printf.sprintf
+             "%d disagreements, e.g. %s: %s <= %s: reference %b, %s"
+             (List.length disagreements)
+             side x y expected
+             (match verdict with
+             | Ok v -> string_of_bool v
+             | Error e -> "error: " ^ e));
+      ]
+
 (* The laws of the mode-switch costs on grades over the modes [Off], [On] and
    [Idle], the modes not named and [Stuck]: changes of mode, operations
    performed only in some modes, traces stuck at a cost, entries of the modes
@@ -4189,7 +4322,8 @@ let () =
     @ time_grade_laws @ schedule_laws @ resource_construction_laws @ finite_laws
     @ declared_lattice_laws @ declared_lattice_structure @ ranges @ flow_tops
     @ duration_bounds @ mode_time_laws @ interval_letter_laws
-    @ interval_letter_overflow
+    @ interval_letter_overflow @ interval_letter_star
+    @ interval_letter_star_reference
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

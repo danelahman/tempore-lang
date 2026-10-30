@@ -19,6 +19,7 @@
 (test
  (name test_grades)
  (modules test_grades)
+ (deps interval_letter_star_reference.tsv)
  (libraries utils language grades lawChecks parser sugaredAst zarith))
 
 (test
