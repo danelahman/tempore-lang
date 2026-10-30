@@ -214,15 +214,20 @@ module Make (C : Inference.Constraint.S) = struct
       ->
         let t = Option.map (ty_code p) ty in
         (reason.at, instance_eternal t var inner, ineq_notes p f)
-    | Reason.Unboxed { var; locks; _ }, Rho_tag ->
+    | Reason.Unboxed { var; annotated; locks; _ }, Rho_tag ->
         let total = shown_rho f (accumulated_grade locks) (fst f.instance) in
         let f = at_accumulated p f total in
         let unit_word = if is_unit_rho p total then "the unit " else "" in
+        let box_grade =
+          if annotated then Printf.sprintf "the box grade %s of its annotation"
+          else Printf.sprintf "its box grade %s"
+        in
         let message =
           Printf.sprintf
             "%s is unboxed with %sgrade %s accumulated since it was bound, \
-             which is not below its box grade %s"
-            (subject var) unit_word (rho_code p total) (g s2)
+             which is not below %s"
+            (subject var) unit_word (rho_code p total)
+            (box_grade (g s2))
         in
         (reason.at, message, ineq_notes p f)
     | Reason.Continuation_grade { op; _ }, _ when not (List.is_empty rs) ->

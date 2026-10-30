@@ -1,0 +1,18 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound \
+       tests/unbox_annotation_narrowed_upper.tpe
+
+   Correctly accepted by the typechecker, under 'time-upper-bound': a box of 3
+   ticks annotated at 2, and at 3 and then 2, is unboxed at the annotated grade
+   2, after 2 ticks. *)
+
+run
+  box 3 () as x in
+  delay 2;
+  unbox (x : [2]unit) as y in y
+
+run
+  box 3 () as x in
+  delay 2;
+  unbox ((x : [3]unit) : [2]unit) as y in y

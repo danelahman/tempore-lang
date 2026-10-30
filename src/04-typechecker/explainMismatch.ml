@@ -293,11 +293,13 @@ struct
         ( func_at,
           Printf.sprintf "This expression has type %s and cannot be applied" o
         )
-    | Reason.Unboxed { var; _ }, [] ->
+    | Reason.Unboxed { var; annotated; _ }, [] ->
         ( at,
           Printf.sprintf
-            "%s has type %s, which is not a boxed type, and cannot be unboxed"
-            (subject var) non_box )
+            "%s %s type %s, which is not a boxed type, and cannot be unboxed"
+            (subject var)
+            (if annotated then "is annotated with" else "has")
+            non_box )
     | Reason.Handle_with, [] ->
         (at, Printf.sprintf "This expression has type %s and is not a handler" o)
     | _ -> (

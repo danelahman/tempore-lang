@@ -58,7 +58,8 @@ type ('rho, 'eps) why =
   | Boxed_value
   | Unboxed of {
       var : Ast.variable;
-      bound_at : Location.t option;
+      bound_at : Location.t;
+      annotated : bool;
       locks : 'rho lock list;
     }
   | Use_under_locks of {
@@ -303,7 +304,8 @@ and equal_why equal_rho equal_eps why why' =
   | Variant_argument lbl, Variant_argument lbl' -> Ast.Label.equal lbl lbl'
   | Unboxed u, Unboxed u' ->
       equal_variable u.var u'.var
-      && Option.equal Location.equal u.bound_at u'.bound_at
+      && Location.equal u.bound_at u'.bound_at
+      && Bool.equal u.annotated u'.annotated
       && locks u.locks u'.locks
   | Use_under_locks u, Use_under_locks u' ->
       equal_variable u.var u'.var

@@ -159,8 +159,8 @@ struct
     match reason.why with
     | Reason.Use_under_locks { var; bound_at; locks } ->
         in_span_order (binding_labels var (Some bound_at) @ lock_labels p locks)
-    | Reason.Unboxed { var; bound_at; locks } ->
-        in_span_order (binding_labels var bound_at @ lock_labels p locks)
+    | Reason.Unboxed { var; bound_at; locks; _ } ->
+        in_span_order (binding_labels var (Some bound_at) @ lock_labels p locks)
     | Reason.Op_case_capture { var; bound_at; clause; locks } ->
         in_span_order
           (declared_label clause.op clause.signature_at

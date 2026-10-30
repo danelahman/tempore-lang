@@ -23,6 +23,7 @@ let malformed =
     "alias_cyclic_reject_through_alias.tpe";
     "annotation_type_variables_reject.tpe";
     "annotation_type_variables_reject_operation.tpe";
+    "error_unbox_global.tpe";
     "error_unbox_nonvariable.tpe";
     "error_variant_arity.tpe";
     "default_reject_duplicate.tpe";

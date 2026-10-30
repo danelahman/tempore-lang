@@ -88,12 +88,14 @@ type ('rho, 'eps) why =
   | Boxed_value  (** at = the [box]; the payload's type is boxed *)
   | Unboxed of {
       var : Ast.variable;
-      bound_at : Location.t option;
+      bound_at : Location.t;
+      annotated : bool;
       locks : 'rho lock list;
     }
-      (** at = the [unbox]; the variable's type is a box whose grade covers the
-          grade accumulated since its binding, that of [locks], the locks since
-          the binding, oldest first *)
+      (** at = the [unbox]; the variable's type, or its outermost annotation
+          when [annotated], is a box whose grade covers the grade accumulated
+          since its binding, that of [locks], the locks since the binding,
+          oldest first *)
   | Use_under_locks of {
       var : Ast.variable;
       bound_at : Location.t;

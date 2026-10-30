@@ -129,6 +129,7 @@ let expected_rejections =
     ("tests/exhaustiveness_reject_string.tpe", [ 3 ]);
     ("tests/error_earliest_failure.tpe", [ 11 ]);
     ("tests/error_handler_case.tpe", [ 7 ]);
+    ("tests/error_unbox_global.tpe", [ 7 ]);
     ("tests/error_unbox_nonvariable.tpe", [ 7 ]);
     ("tests/error_use_after_delay.tpe", [ 15 ]);
     ("tests/error_variant_arity.tpe", [ 12; 14; 16; 20 ]);
@@ -142,7 +143,9 @@ let expected_rejections =
     ("tests/flow_lattice_reject.tpe", [ 12; 17; 22; 30 ]);
     ("tests/iterative_unbox.tpe", [ 4 ]);
     ("tests/unbox_annotated_signature_reject.tpe", [ 30; 36 ]);
-    ("tests/unbox_annotation_reject.tpe", [ 4 ]);
+    ("tests/unbox_annotation_narrowed_reject_lower.tpe", [ 9; 16; 24 ]);
+    ("tests/unbox_annotation_narrowed_reject_upper.tpe", [ 9; 16; 23 ]);
+    ("tests/unbox_annotation_reject.tpe", [ 4; 12 ]);
     ("tests/unbox_nested_reject_lower.tpe", [ 10; 19 ]);
     ("tests/unbox_nested_reject_upper.tpe", [ 10; 19 ]);
     ("tests/less_than_function.tpe", [ 1 ]);

@@ -1,0 +1,7 @@
+(* Correctly rejected by the typechecker: unboxing reads off the grade
+   accumulated since the box was bound, so the unboxed variable must be bound
+   locally. A top-level definition is not, and its type is never a box. *)
+
+let one = 1
+
+run unbox one as v in v

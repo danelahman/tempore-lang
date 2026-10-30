@@ -1,0 +1,18 @@
+(* Run this test with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound \
+       tests/unbox_annotation_narrowed_lower.tpe
+
+   Correctly accepted by the typechecker, under 'time-lower-bound': a box
+   available after 3 ticks annotated at 4, and at 3 and then 4, is unboxed at
+   the annotated grade 4, after 4 ticks. *)
+
+run
+  box 3 () as x in
+  delay 4;
+  unbox (x : [4]unit) as y in y
+
+run
+  box 3 () as x in
+  delay 4;
+  unbox ((x : [3]unit) : [4]unit) as y in y

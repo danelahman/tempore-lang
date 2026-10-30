@@ -869,6 +869,13 @@ it names none:
                  ^
     `nat` was inferred here
   ======================================================================
+  error_unbox_global.tpe
+  ======================================================================
+  File "error_unbox_global.tpe", line 7, characters 10-13:
+  7 | run unbox one as v in v
+                ^^^
+  Typing error: Only a locally bound variable can be unboxed, not the top-level definition `one`
+  ======================================================================
   error_unbox_nonvariable.tpe
   ======================================================================
   File "error_unbox_nonvariable.tpe", line 7, characters 10-12:
@@ -6314,12 +6321,136 @@ it names none:
   ]
   
   ======================================================================
+  unbox_annotation_narrowed_lower.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    { resource_0 ↦ () ! 3 },
+    4
+  ]
+  
+  === Run 2 ===
+  return ()
+  State: [
+    { resource_0 ↦ () ! 3 },
+    4
+  ]
+  
+  ======================================================================
+  unbox_annotation_narrowed_reject_lower.tpe
+  ======================================================================
+  File "unbox_annotation_narrowed_reject_lower.tpe", line 12, characters 2-31:
+  12 |   unbox (x : [4]unit) as y in y
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `3` accumulated since it was bound, which is not below the box grade `4` of its annotation
+    File "unbox_annotation_narrowed_reject_lower.tpe", line 10, characters 14-15:
+    10 |   box 3 () as x in
+                       ^
+    `x` is bound here
+    File "unbox_annotation_narrowed_reject_lower.tpe", line 11, characters 2-9:
+    11 |   delay 3;
+           ^^^^^^^
+    grade `3` accumulates here (delay)
+    Note: the resource inequality `3 >= 4` does not hold
+  
+  File "unbox_annotation_narrowed_reject_lower.tpe", line 19, characters 2-43:
+  19 |   unbox ((x : [3]unit) : [4]unit) as y in y
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `3` accumulated since it was bound, which is not below the box grade `4` of its annotation
+    File "unbox_annotation_narrowed_reject_lower.tpe", line 17, characters 14-15:
+    17 |   box 3 () as x in
+                       ^
+    `x` is bound here
+    File "unbox_annotation_narrowed_reject_lower.tpe", line 18, characters 2-9:
+    18 |   delay 3;
+           ^^^^^^^
+    grade `3` accumulates here (delay)
+    Note: the resource inequality `3 >= 4` does not hold
+  
+  File "unbox_annotation_narrowed_reject_lower.tpe", line 27, characters 8-21:
+  27 |   unbox (x : [2]unit) as y in y
+               ^^^^^^^^^^^^^
+  Typing error: This expression has type `[3]unit` but is annotated with `[2]unit`
+    Note: the resource inequality `2 >= 3` does not hold
+  ======================================================================
+  unbox_annotation_narrowed_reject_upper.tpe
+  ======================================================================
+  File "unbox_annotation_narrowed_reject_upper.tpe", line 12, characters 2-31:
+  12 |   unbox (x : [2]unit) as y in y
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `3` accumulated since it was bound, which is not below the box grade `2` of its annotation
+    File "unbox_annotation_narrowed_reject_upper.tpe", line 10, characters 14-15:
+    10 |   box 3 () as x in
+                       ^
+    `x` is bound here
+    File "unbox_annotation_narrowed_reject_upper.tpe", line 11, characters 2-9:
+    11 |   delay 3;
+           ^^^^^^^
+    grade `3` accumulates here (delay)
+    Note: the resource inequality `3 <= 2` does not hold
+  
+  File "unbox_annotation_narrowed_reject_upper.tpe", line 19, characters 2-43:
+  19 |   unbox ((x : [3]unit) : [2]unit) as y in y
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `3` accumulated since it was bound, which is not below the box grade `2` of its annotation
+    File "unbox_annotation_narrowed_reject_upper.tpe", line 17, characters 14-15:
+    17 |   box 3 () as x in
+                       ^
+    `x` is bound here
+    File "unbox_annotation_narrowed_reject_upper.tpe", line 18, characters 2-9:
+    18 |   delay 3;
+           ^^^^^^^
+    grade `3` accumulates here (delay)
+    Note: the resource inequality `3 <= 2` does not hold
+  
+  File "unbox_annotation_narrowed_reject_upper.tpe", line 26, characters 8-21:
+  26 |   unbox (x : [4]unit) as y in y
+               ^^^^^^^^^^^^^
+  Typing error: This expression has type `[3]unit` but is annotated with `[4]unit`
+    Note: the resource inequality `4 <= 3` does not hold
+  ======================================================================
+  unbox_annotation_narrowed_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    { resource_0 ↦ () ! 3 },
+    2
+  ]
+  
+  === Run 2 ===
+  return ()
+  State: [
+    { resource_0 ↦ () ! 3 },
+    2
+  ]
+  
+  ======================================================================
   unbox_annotation_reject.tpe
   ======================================================================
-  File "unbox_annotation_reject.tpe", line 8, characters 8-21:
+  File "unbox_annotation_reject.tpe", line 8, characters 2-40:
   8 |   unbox (boxed : nat) as (l, r) in l + r
-              ^^^^^^^^^^^^^
-  Typing error: This expression has type `[_](nat × nat)` but is annotated with `nat`
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `boxed` is annotated with type `nat`, which is not a boxed type, and cannot be unboxed
+    File "unbox_annotation_reject.tpe", line 6, characters 13-18:
+    6 |   box 5 x as boxed in
+                     ^^^^^
+    `boxed` is bound here
+    File "unbox_annotation_reject.tpe", line 7, characters 2-9:
+    7 |   delay 5;
+          ^^^^^^^
+    grade `5` accumulates here (delay)
+  
+  File "unbox_annotation_reject.tpe", line 16, characters 8-24:
+  16 |   unbox (boxed : [5]nat) as v in v
+               ^^^^^^^^^^^^^^^^
+  Typing error: This expression has type `nat × nat` but is annotated with `nat`
+    File "unbox_annotation_reject.tpe", line 13, characters 10-16:
+    13 |   let x = (1, 2) in
+                   ^^^^^^
+    `nat × nat` was inferred here
+    Note: while matching `[5](nat × nat)` against `[5]nat`
   ======================================================================
   unbox_nested.tpe
   ======================================================================

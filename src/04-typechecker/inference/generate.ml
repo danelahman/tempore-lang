@@ -707,13 +707,6 @@ module Make (C : Constraint.S) = struct
     in
     find [] env.context
 
-  (* The locks of the whole context, oldest first. *)
-  let all_locks env =
-    List.fold_left
-      (fun locks -> function
-        | Lock e -> e :: locks | Bound _ | Persistent _ -> locks)
-      [] env.context
-
   (* The grade accumulated by locks, oldest first: the product of their
      grades, the unit for none. *)
   let accumulated_grade = function
@@ -1371,11 +1364,12 @@ module Make (C : Constraint.S) = struct
          (expect (Ast.TyBox (rho, payload_ty)) because)
          (fun env' -> generate_computation env' c' ty eps))
 
-  (* [unbox x as p in c], of a variable only: its type is a box [[r] α] whose
-     grade covers the grade accumulated since its binding, the pattern against
+  (* [unbox (⋯(x : A₁)⋯ : Aₙ) as p in c], of a local variable under [n ≥ 0]
+     annotations: each annotation is a supertype of the type inside it, from
+     the type of [x] to [Aₙ]; the outermost type is a box [[r] α] whose grade
+     covers the grade accumulated since the binding of [x], the pattern against
      [α]; [r] and [α] are the components of the type where it is a box
-     ({!box_of}). An annotation [(x : A)] requires the type of [x] to be a subtype of
-     [A]; the box unboxed is that of [x]. *)
+     ({!box_of}). *)
   and unbox env at e pat c' ty eps =
     let rec find_var (e : expression) =
       match e.Ast.it with
@@ -1386,18 +1380,18 @@ module Make (C : Constraint.S) = struct
       | _ -> Error.typing ~loc:e.Ast.at "Only a variable can be unboxed"
     in
     let x, var_at, anns = find_var e in
-    let var_ty, bound_at, locks, instance =
+    let var_ty, bound_at, locks =
       match lookup ~loc:var_at env x with
-      | Local { ty; bound_at; locks } -> (ty, Some bound_at, locks, C.True)
-      | Persistent_local { ty; bound_at } -> (ty, Some bound_at, [], C.True)
-      | Global { scheme; defined_at } ->
-          let ty, qualifier = C.instantiate scheme in
-          ( ty,
-            defined_at,
-            all_locks env,
-            instance_of var_at x defined_at qualifier )
+      | Local { ty; bound_at; locks } -> (ty, bound_at, locks)
+      | Persistent_local { ty; bound_at } -> (ty, bound_at, [])
+      | Global _ ->
+          Error.typing ~loc:var_at
+            "Only a locally bound variable can be unboxed, not the top-level \
+             definition `%s`"
+            (Ast.Variable.string_of x)
     in
-    let _, annotations =
+    let annotated = not (List.is_empty anns) in
+    let outer_ty, annotations =
       List.fold_right
         (fun (inner_at, ann_at, ann) (inner_ty, atoms) ->
           let ann = open_ty env ann in
@@ -1408,9 +1402,9 @@ module Make (C : Constraint.S) = struct
         anns (var_ty, [])
     in
     let because =
-      Reason.because at (Reason.Unboxed { var = x; bound_at; locks })
+      Reason.because at (Reason.Unboxed { var = x; bound_at; annotated; locks })
     in
-    let@ rho, payload_ty, shape = box_of because var_ty in
+    let@ rho, payload_ty, shape = box_of because outer_ty in
     C.conj_all
       (annotations
       @ [
@@ -1419,9 +1413,8 @@ module Make (C : Constraint.S) = struct
           with_pattern env pat
             (expect payload_ty
                (Reason.because pat.Ast.at
-                  (Reason.Unboxed { var = x; bound_at; locks })))
+                  (Reason.Unboxed { var = x; bound_at; annotated; locks })))
             (fun env' -> generate_computation env' c' ty eps);
-          instance;
         ])
 
   (* [perform op e]: the continuation under the lock [⟨∣op∣⟩], the effect

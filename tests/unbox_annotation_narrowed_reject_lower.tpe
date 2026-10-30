@@ -1,0 +1,27 @@
+(* Run this test with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound \
+       tests/unbox_annotation_narrowed_reject_lower.tpe *)
+
+(* Correctly rejected by the typechecker, under 'time-lower-bound': a box
+   available after 3 ticks annotated at 4 is unboxed at the annotated grade 4,
+   not at 3, so not after 3 ticks. *)
+run
+  box 3 () as x in
+  delay 3;
+  unbox (x : [4]unit) as y in y
+
+(* Correctly rejected by the typechecker: as above, the outermost of two
+   annotations giving the grade. *)
+run
+  box 3 () as x in
+  delay 3;
+  unbox ((x : [3]unit) : [4]unit) as y in y
+
+(* Correctly rejected by the typechecker: an annotation is a supertype of the
+   type inside it, and a box available after 3 ticks is not one available
+   after 2. *)
+run
+  box 3 () as x in
+  delay 3;
+  unbox (x : [2]unit) as y in y
