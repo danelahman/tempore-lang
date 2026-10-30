@@ -1,0 +1,18 @@
+(* Run this test with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound \
+       tests/handler_input_contravariant_lower.tpe
+
+   Correctly accepted by the typechecker, under 'time-lower-bound': a handler
+   type is contravariant in its input effect. The handler h, of input effect 1
+   as it also handles a computation of 1 tick, handles a computation of 5
+   ticks at the input effect 5, a sub-grade of 1, after which y, available
+   after 5 ticks, is unboxed. *)
+
+run
+  let h = handler | x -> x in
+  box 5 7 as y in
+  let a = handle (delay 5; 1) with h in
+  unbox y as v in
+  let b = handle (delay 1; 2) with h in
+  a + b + v

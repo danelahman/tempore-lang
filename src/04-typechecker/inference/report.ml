@@ -75,7 +75,7 @@ module Make (C : Constraint.S) = struct
     | Ast.TyArrow (ty, cty) -> in_ty u (flip sign) ty ++ in_comp_ty u sign cty
     | Ast.TyBox (rho, ty) -> at (flip sign) (in_rho u rho) ++ in_ty u sign ty
     | Ast.TyHandler (cty, cty') ->
-        invariant (in_comp_ty u sign cty) ++ in_comp_ty u sign cty'
+        in_comp_ty u (flip sign) cty ++ in_comp_ty u sign cty'
 
   and in_comp_ty u sign (Ast.CompTy (ty, eps)) =
     in_ty u sign ty ++ at sign (in_eps u eps)

@@ -1403,6 +1403,33 @@ it names none:
     grade `(Low, (Board, Low))` accumulates here (operation `Post`)
     Note: the resource inequality `(Low, (Board, Low)) <= (Low, (Audit, Low))` does not hold
   ======================================================================
+  handler_input_contravariant_lower.tpe
+  ======================================================================
+  === Run 1 ===
+  return 10
+  State: [
+    { resource_0 ↦ 7 ! 5 },
+    5,
+    1
+  ]
+  
+  ======================================================================
+  handler_input_contravariant_reject_lower.tpe
+  ======================================================================
+  File "handler_input_contravariant_reject_lower.tpe", line 12, characters 25-46:
+  12 |   let h = handler | x -> unbox y as v in x + v in
+                                ^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `y` is unboxed with grade `1` accumulated since it was bound, which is not below its box grade `3`
+    File "handler_input_contravariant_reject_lower.tpe", line 11, characters 13-14:
+    11 |   box 3 7 as y in
+                      ^
+    `y` is bound here
+    File "handler_input_contravariant_reject_lower.tpe", line 12, characters 10-46:
+    12 |   let h = handler | x -> unbox y as v in x + v in
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `1` accumulates here (the handled computation)
+    Note: the resource inequality `1 >= 3` does not hold
+  ======================================================================
   handler_return_omitted.tpe
   ======================================================================
   === Run 1 ===

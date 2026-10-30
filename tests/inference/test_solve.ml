@@ -141,6 +141,7 @@ let expected_rejections =
     ("tests/eternal_tyvars_reject_noneternal.tpe", [ 12 ]);
     ("tests/invalid_match_type.tpe", [ 4 ]);
     ("tests/flow_lattice_reject.tpe", [ 12; 17; 22; 30 ]);
+    ("tests/handler_input_contravariant_reject_lower.tpe", [ 10 ]);
     ("tests/iterative_unbox.tpe", [ 4 ]);
     ("tests/unbox_annotated_signature_reject.tpe", [ 30; 36 ]);
     ("tests/unbox_annotation_narrowed_reject_lower.tpe", [ 9; 16; 24 ]);
@@ -432,7 +433,7 @@ module Small (G : Grade.S) = struct
                [ Reason.Box_content; Reason.Effect ]))
       (solved "decomposition" constr)
 
-  (* Handler types: the input invariant, the output covariant. *)
+  (* Handler types: the input contravariant, the output covariant. *)
   let handler_decomposition () =
     let a = ty_var () and b = ty_var () and c = ty_var () and d = ty_var () in
     let e1 = eps_var () and e2 = eps_var () and e3 = eps_var () in
@@ -453,10 +454,12 @@ module Small (G : Grade.S) = struct
       (fun (s : S.solution) ->
         let h = s.hyps in
         expect "handler decomposition"
-          (has_sub h a c input && has_sub h c a input && has_sub h b d output
+          (has_sub h c a input
+          && (not (has_sub h a c input))
+          && has_sub h b d output
           && (not (has_sub h d b output))
-          && has_eps h (X.Eps.var e1) (X.Eps.var e3) (at_effect input)
           && has_eps h (X.Eps.var e3) (X.Eps.var e1) (at_effect input)
+          && (not (has_eps h (X.Eps.var e1) (X.Eps.var e3) (at_effect input)))
           && has_eps h (X.Eps.var e2) (X.Eps.var e4) (at_effect output)))
       (solved "handler decomposition" constr)
 

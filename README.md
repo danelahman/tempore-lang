@@ -1643,11 +1643,13 @@ let branch c = if c then delay 1 else delay 2
 `apply slow` is accepted, `unit → nat ! 1` being a subtype of
 `unit → nat ! 2`, and `branch` has the type `bool → unit ! 2`. A box type is
 contravariant in its grade: under `time-lower-bound`, a `[2]nat` is accepted
-where a `[3]nat` is expected, but a `[4]nat` is not.
+where a `[3]nat` is expected, but a `[4]nat` is not. A handler type
+`A ! ε ⇛ B ! ε′` is contravariant in its input `A ! ε` and covariant in its
+output `B ! ε′`.
 
 Limits:
 
-- type-constructor arguments and handler inputs are compared by equality: a
+- type-constructor arguments are compared by equality: a
   `(unit -> nat ! 1) list` is not accepted where a `(unit -> nat ! 2) list` is
   expected, although `[slow]` has the scheme
   `∀ ε₀. 1 ≾ ε₀ ⇒ (unit → nat ! ε₀) list` and is accepted at both;

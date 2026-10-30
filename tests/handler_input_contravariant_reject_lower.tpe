@@ -1,0 +1,13 @@
+(* Run this test with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound \
+       tests/handler_input_contravariant_reject_lower.tpe *)
+
+(* Correctly rejected by the typechecker, under 'time-lower-bound': the return
+   case of h unboxes y, available after 3 ticks, so the input effect of h is
+   a sub-grade of 3, and a computation of 1 tick, whose effect 1 is not, cannot
+   be handled by it. *)
+run
+  box 3 7 as y in
+  let h = handler | x -> unbox y as v in x + v in
+  handle (delay 1; 1) with h

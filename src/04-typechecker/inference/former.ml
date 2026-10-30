@@ -56,8 +56,8 @@ let decompose f g =
   | Handler ((t, eps), (t', delta)), Handler ((u, eps'), (u', delta')) ->
       Some
         [
-          Ty (Invariant, Ast.HandlerInput, t, u);
-          Eps (Invariant, Some Ast.HandlerInput, eps, eps');
+          Ty (Contravariant, Ast.HandlerInput, t, u);
+          Eps (Contravariant, Some Ast.HandlerInput, eps, eps');
           Ty (Covariant, Ast.HandlerOutput, t', u');
           Eps (Covariant, Some Ast.HandlerOutput, delta, delta');
         ]

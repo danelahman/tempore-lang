@@ -13,8 +13,9 @@
     Subtyping between types of the same shape decomposes as recorded in
     {!Constraint}: function domains contravariantly, box grades contravariantly,
     computation effects covariantly, tuples componentwise, type-application
-    arguments and handler inputs as equations, handler outputs covariantly,
-    constants by equality. An application of an alias is unfolded first.
+    arguments as equations, handler inputs contravariantly, handler outputs
+    covariantly, constants by equality. An application of an alias is unfolded
+    first.
 
     A type reduces to the type unknowns its eternality depends on, or is never
     eternal: an arrow, a box, a handler and a type declared [noneternal] never

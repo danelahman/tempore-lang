@@ -55,8 +55,8 @@ val decompose :
     - applications of one name and arity: the arguments, invariant (step
       [TypeArgument i]);
     - handlers [(A ! ε ⇛ B ! δ)] and [(A' ! ε' ⇛ B' ! δ')]: [A] and [A']
-      invariant (step [HandlerInput]) and [ε] and [ε'] invariant, [B] and [B']
-      covariant (step [HandlerOutput]) and [δ] and [δ'] covariant.
+      contravariant (step [HandlerInput]) and [ε] and [ε'] contravariant, [B]
+      and [B'] covariant (step [HandlerOutput]) and [δ] and [δ'] covariant.
 
     Components and arguments are counted from 1. A type unknown decomposes with
     nothing, and an application of an alias is decomposed as it stands. *)
