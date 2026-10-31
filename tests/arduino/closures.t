@@ -54,9 +54,9 @@ timed operations. Boxes and unboxing generate no code, so the type
 closure has the environment of the variable x:
 
   $ cat > staged.tpe <<'TPE'
-  > operation A : unit ~> nat ! {A} within [1, 2]
-  > operation B : unit ~> unit ! {B} within [1, 2]
-  > operation C : unit ~> unit ! {C} within [1, 2]
+  > operation A : unit -> nat ! {A} within [1, 2]
+  > operation B : unit -> unit ! {B} within [1, 2]
+  > operation C : unit -> unit ! {C} within [1, 2]
   > 
   > type staged = [{B}](unit -> [{C}]nat)
   > 

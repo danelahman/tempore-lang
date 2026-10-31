@@ -5,7 +5,7 @@
    A loop whose rounds each touch High has the invariant effect
    High. *)
 
-operation Send : nat ~> unit ! High
+operation Send : nat -> unit ! High
 
 default Send x = ()
 

@@ -5,13 +5,13 @@
    Operation spacing: the times between consecutive occurrences of an
    operation, at most and at least. *)
 
-operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]
+operation Beat : unit -> unit ! {Beat} within [0.1, 0.5]
 default Beat () = delay 0.2
 
-operation Work : unit ~> unit ! {Work} within [1, 3]
+operation Work : unit -> unit ! {Work} within [1, 3]
 default Work () = delay 2
 
-operation Beep : unit ~> unit ! {Beep} within [0.1, 0.5]
+operation Beep : unit -> unit ! {Beep} within [0.1, 0.5]
 default Beep () = delay 0.1
 
 (* Accepted: a heartbeat at least every 5 time units. The loop starts with a

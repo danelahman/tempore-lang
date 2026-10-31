@@ -2,12 +2,12 @@
    after an underscore, two underscores and one, and a name ending in
    _monitor. Time is in milliseconds, under the grades time-interval-rational. *)
 
-operation Show' : nat ~> unit ! [0, 1]
-operation Show_p : nat ~> unit ! [0, 1]
-operation A__b : nat ~> unit ! [0, 1]
-operation A_b : nat ~> unit ! [0, 1]
-operation Count : nat ~> unit ! [0, 1]
-operation Count_monitor : nat ~> unit ! [0, 1]
+operation Show' : nat -> unit ! [0, 1]
+operation Show_p : nat -> unit ! [0, 1]
+operation A__b : nat -> unit ! [0, 1]
+operation A_b : nat -> unit ! [0, 1]
+operation Count : nat -> unit ! [0, 1]
+operation Count_monitor : nat -> unit ! [0, 1]
 
 let start () = 0
 

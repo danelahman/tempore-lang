@@ -13,18 +13,18 @@
 type token = Token of string
 
 (* The operations of a file protocol. *)
-operation Open : unit ~> unit ! {Open}
-operation Read : unit ~> nat ! {Read}
-operation Write : nat ~> unit ! {Write}
-operation Close : unit ~> unit ! {Close}
+operation Open : unit -> unit ! {Open}
+operation Read : unit -> nat ! {Read}
+operation Write : nat -> unit ! {Write}
+operation Close : unit -> unit ! {Close}
 
 (* A session: open, any number of reads and writes, close. *)
-operation Session : unit ~> nat ! {Open; (Read | Write)*; Close}
+operation Session : unit -> nat ! {Open; (Read | Write)*; Close}
 
 (* The operations of an authenticated service. *)
-operation Auth : unit ~> unit ! {Auth}
-operation Fetch : unit ~> unit ! {Fetch}
-operation Revoke : unit ~> unit ! {Revoke}
+operation Auth : unit -> unit ! {Auth}
+operation Fetch : unit -> unit ! {Fetch}
+operation Revoke : unit -> unit ! {Revoke}
 
 (* Correctly accepted by the typechecker: two copies within one session
    follow the protocol. *)
@@ -208,9 +208,9 @@ let maybe_write (b : bool) : nat ! {Open; Read*; Close} =
    normalised expression, and the inclusions the typechecker decides explore
    only the derivatives along one trace: the program takes about 0.04 s. *)
 (*
-operation A : unit ~> unit ! {A}
-operation B : unit ~> unit ! {B}
-operation C : unit ~> unit ! {C}
+operation A : unit -> unit ! {A}
+operation B : unit -> unit ! {B}
+operation C : unit -> unit ! {C}
 run
   box {~(_*; A; _; _; _; _; _; _; _; _; _; _; _; _)
        & ~(_*; B; _; _; _; _; _; _; _; _; _; _; _; _)} 42 as x in

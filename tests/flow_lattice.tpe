@@ -5,9 +5,9 @@
    Flow-sensitive outputs: the element touched, and the element at which each output
    is written. *)
 
-operation ReadSecret : unit ~> nat ! High
-operation Post : nat ~> unit ! (Low, (Board, Low))
-operation Log : nat ~> unit ! (Low, (Audit, Low))
+operation ReadSecret : unit -> nat ! High
+operation Post : nat -> unit ! (Low, (Board, Low))
+operation Log : nat -> unit ! (Low, (Audit, Low))
 
 default ReadSecret () = 42
 default Post n = ()

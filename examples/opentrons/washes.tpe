@@ -46,32 +46,32 @@ type eluates = string
 
 (* Mixing the beads into the samples takes one to two minutes. The plate is
    moved onto and off the magnetic block in at most a minute. *)
-operation AddBeads : unit ~> unit ! {AddBeads} within [1, 2]
+operation AddBeads : unit -> unit ! {AddBeads} within [1, 2]
 default AddBeads () = delay 2
 
-operation MagnetOn : unit ~> unit ! {MagnetOn} within (0, 1]
+operation MagnetOn : unit -> unit ! {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1
 
-operation MagnetOff : unit ~> unit ! {MagnetOff} within (0, 1]
+operation MagnetOff : unit -> unit ! {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1
 
 (* Removing the supernatant from the beads, an ethanol wash of the beads,
    which adds and removes the ethanol, the elution of the DNA from the beads,
    which returns the eluates, and the transfer of the eluates each take one
    to two minutes; changing the tip at most one. *)
-operation RemoveLiquid : beads ~> unit ! {RemoveLiquid} within [1, 2]
+operation RemoveLiquid : beads -> unit ! {RemoveLiquid} within [1, 2]
 default RemoveLiquid beads = delay 2
 
-operation Wash : beads ~> unit ! {Wash} within [1, 2]
+operation Wash : beads -> unit ! {Wash} within [1, 2]
 default Wash beads = delay 1
 
-operation ChangeTip : unit ~> unit ! {ChangeTip} within (0, 1]
+operation ChangeTip : unit -> unit ! {ChangeTip} within (0, 1]
 default ChangeTip () = delay 1
 
-operation EluteDNA : beads ~> eluates ! {EluteDNA} within [1, 2]
+operation EluteDNA : beads -> eluates ! {EluteDNA} within [1, 2]
 default EluteDNA beads = delay 1; "eluates"
 
-operation Transfer : eluates ~> unit ! {Transfer} within [1, 2]
+operation Transfer : eluates -> unit ! {Transfer} within [1, 2]
 default Transfer eluates = delay 2
 
 (* Each of n ethanol washes is followed by a fresh tip and nothing else. *)

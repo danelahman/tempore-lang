@@ -9,8 +9,8 @@
 
 type token = Token of string
 
-operation Read : unit ~> nat ! {Read} within [1, 1]
-operation Log : unit ~> unit ! {Log} within [1, 1]
+operation Read : unit -> nat ! {Read} within [1, 1]
+operation Log : unit -> unit ! {Log} within [1, 1]
 
 (* A log of one step fits a period of two to four steps beside a wait of
    two. *)

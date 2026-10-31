@@ -6,13 +6,13 @@
    Operation spacing: grades that admit no run, each entry describing the same
    run and its total duration. *)
 
-operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]
+operation Beat : unit -> unit ! {Beat} within [0.1, 0.5]
 default Beat () = delay 0.2
 
-operation Work : unit ~> unit ! {Work} within [1, 3]
+operation Work : unit -> unit ! {Work} within [1, 3]
 default Work () = delay 2
 
-operation Beep : unit ~> unit ! {Beep} within [0.1, 0.5]
+operation Beep : unit -> unit ! {Beep} within [0.1, 0.5]
 default Beep () = delay 0.1
 
 (* Rejected: the entry of `Beat` gives a total duration of 11, that of `Beep`

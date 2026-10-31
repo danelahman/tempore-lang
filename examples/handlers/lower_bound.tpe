@@ -10,9 +10,9 @@
      - Product: addition *)
 
 (* Reading the state takes 71 ticks. *)
-operation Get : unit ~> nat ! 71
+operation Get : unit -> nat ! 71
 (* Writing it takes 2. *)
-operation Set : nat ~> unit ! 2
+operation Set : nat -> unit ! 2
 
 (* Correctly accepted by the typechecker: the 'Get' clause delays exactly the
    71 ticks of the operation and the 'Set' clause forwards it at its own cost

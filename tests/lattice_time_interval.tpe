@@ -8,9 +8,9 @@
 
 grade lattice Quiet < Noisy
 
-operation StartTiltRead : unit ~> [([0.5,2.0],Quiet)]nat ! ((0.0,0.1],Quiet)
-operation ReadSpeed : unit ~> nat ! ( [0.5 , 1.5] , Quiet )
-operation Transmit : nat ~> unit ! ((0, 1], Noisy)
+operation StartTiltRead : unit -> [([0.5,2.0],Quiet)]nat ! ((0.0,0.1],Quiet)
+operation ReadSpeed : unit -> nat ! ( [0.5 , 1.5] , Quiet )
+operation Transmit : nat -> unit ! ((0, 1], Noisy)
 
 default StartTiltRead () = delay 1/20; box ([0.5, 2.0], Quiet) 544
 default ReadSpeed () = delay 0.75; 12

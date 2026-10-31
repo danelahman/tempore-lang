@@ -7,9 +7,9 @@
 
 grade lattice Public < Team < Confidential, Public < Partner < Confidential
 
-operation ReadTeam : unit ~> nat ! Team
-operation ReadPartner : unit ~> nat ! Partner
-operation Post : nat ~> unit ! (Public, (Board, Public))
+operation ReadTeam : unit -> nat ! Team
+operation ReadPartner : unit -> nat ! Partner
+operation Post : nat -> unit ! (Public, (Board, Public))
 
 default ReadTeam () = 1
 default ReadPartner () = 2

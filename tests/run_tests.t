@@ -251,7 +251,7 @@ it names none:
   annotation_type_variables_reject_operation.tpe
   ======================================================================
   File "annotation_type_variables_reject_operation.tpe", line 6, characters 17-19:
-  6 | operation Send : 'b ~> unit ! 1
+  6 | operation Send : 'b -> unit ! 1
                        ^^
   Syntax error: Unknown name `b`
   ======================================================================
@@ -352,7 +352,7 @@ it names none:
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `abort` is defined here
     File "continuation_discard_abort_reject_lower.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit ! 1
+    5 | operation Op : unit -> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "continuation_discard_abort_reject_lower.tpe", line 9, characters 39-40:
@@ -368,7 +368,7 @@ it names none:
                                   ^^^^^^^^^^^^^^^^^^^^^
   Typing error: For every grade `ε_Op` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε_Op`, but its grade `5` does not
     File "continuation_discard_delay_reject_lower.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit ! 1
+    5 | operation Op : unit -> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "continuation_discard_delay_reject_lower.tpe", line 11, characters 33-34:
@@ -384,7 +384,7 @@ it names none:
                                   ^^^^^^^^^^^
   Typing error: For every grade `ε_Op` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε_Op`, but its grade `0` does not
     File "continuation_discard_reject_lower.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit ! 1
+    5 | operation Op : unit -> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "continuation_discard_reject_lower.tpe", line 10, characters 32-33:
@@ -409,7 +409,7 @@ it names none:
                                               ^
   Typing error: Variable `g` has type `[1](unit → α ! ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op`: the case runs with a grade the handler does not fix
     File "continuation_escape_reject.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit ! 1
+    5 | operation Op : unit -> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "continuation_escape_reject.tpe", line 11, characters 6-7:
@@ -440,7 +440,7 @@ it names none:
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: For every grade `ε_Op2` the continuation `k'` may have, the case for `Op2` must have a grade matching `3 · ε_Op2`, but its grade `3` does not
     File "continuation_nested_discard_reject_lower.tpe", line 6, characters 0-32:
-    6 | operation Op2 : unit ~> unit ! 3
+    6 | operation Op2 : unit -> unit ! 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op2` is declared here
     File "continuation_nested_discard_reject_lower.tpe", line 21, characters 19-21:
@@ -456,7 +456,7 @@ it names none:
                               ^
   Typing error: Variable `g` has type `[1](unit → α ! ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op1`: the case runs with a grade the handler does not fix
     File "continuation_nested_escape_reject.tpe", line 6, characters 0-32:
-    6 | operation Op1 : unit ~> unit ! 1
+    6 | operation Op1 : unit -> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op1` is declared here
     File "continuation_nested_escape_reject.tpe", line 14, characters 6-7:
@@ -668,7 +668,7 @@ it names none:
       ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Get` has grade `2`, which does not match the declared grade `3` of `Get`
     File "default_reject_bounds.tpe", line 5, characters 0-32:
-    5 | operation Get : unit ~> unit ! 3
+    5 | operation Get : unit -> unit ! 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Get` is declared here
     Note: the effect inequality `2 >= 3` does not hold
@@ -746,7 +746,7 @@ it names none:
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Get` returns `string` but `Get` returns `nat`
     File "default_reject_type.tpe", line 5, characters 0-31:
-    5 | operation Get : unit ~> nat ! 3
+    5 | operation Get : unit -> nat ! 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Get` is declared here
   ======================================================================
@@ -757,7 +757,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The conditions of this default implementation could not be established: `ε₀ <= 3` and `1 · ε₀ · ε₀ <= ε₀`
     File "default_reject_unestablished.tpe", line 13, characters 0-31:
-    13 | operation Op : unit ~> unit ! 3
+    13 | operation Op : unit -> unit ! 3
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "default_reject_unestablished.tpe", lines 10-11, characters 0-59:
@@ -861,7 +861,7 @@ it names none:
           ^^^^^^^^^^^^^^^^
   Typing error: The case for `Op` returns `string` but the return clause returns `nat`
     File "error_handler_case.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit ! 1
+    5 | operation Op : unit -> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "error_handler_case.tpe", line 8, characters 9-10:
@@ -1076,7 +1076,7 @@ it names none:
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `h` is defined here
     File "eternal_tyvars_reject_handler.tpe", line 6, characters 0-31:
-    6 | operation Op : unit ~> unit ! 1
+    6 | operation Op : unit -> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "eternal_tyvars_reject_handler.tpe", line 10, characters 6-7:
@@ -2303,7 +2303,7 @@ it names none:
   literals_reject_mode_times_operation.tpe
   ======================================================================
   File "literals_reject_mode_times_operation.tpe", line 7, characters 33-61:
-  7 | operation Round : unit ~> unit ! ({Take; Return}, Cold, Cold) within [2, 3]
+  7 | operation Round : unit -> unit ! ({Take; Return}, Cold, Cold) within [2, 3]
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: In the `mode-times` grading monoid, an operation is written `{X}` of a single operation `X`, not `{Take; Return}`
   ======================================================================
@@ -2422,14 +2422,14 @@ it names none:
   literals_reject_within_empty.tpe
   ======================================================================
   File "literals_reject_within_empty.tpe", line 9, characters 46-52:
-  9 | operation Send : unit ~> unit ! {Send} within [2, 2)
+  9 | operation Send : unit -> unit ! {Send} within [2, 2)
                                                     ^^^^^^
   Syntax error: Interval endpoints must satisfy n < m at an open endpoint
   ======================================================================
   literals_reject_within_no_step.tpe
   ======================================================================
   File "literals_reject_within_no_step.tpe", line 9, characters 46-52:
-  9 | operation Send : unit ~> unit ! {Send} within (1, 2)
+  9 | operation Send : unit -> unit ! {Send} within (1, 2)
                                                     ^^^^^^
   Syntax error: In the `traces-timed-upper-bound` grading monoid, the interval `(1, 2)` contains no whole number of time steps
   ======================================================================
@@ -2639,7 +2639,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `On` has grade `0`, which does not match the declared grade `(Off, On, 1)` of `On`
     File "mode_switch_costs_reject.tpe", line 7, characters 0-42:
-    7 | operation On : unit ~> unit ! (Off, On, 1)
+    7 | operation On : unit -> unit ! (Off, On, 1)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `On` is declared here
     Note: the effect inequality `0 <= (Off, On, 1)` does not hold
@@ -2987,7 +2987,7 @@ it names none:
   operation_reject_datatype.tpe
   ======================================================================
   File "operation_reject_datatype.tpe", line 5, characters 0-40:
-  5 | operation Op : callback list ~> unit ! 1
+  5 | operation Op : callback list -> unit ! 1
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The operation `Op` has a parameter type containing a function type through the definition of `callback`; operation parameter and result types must be ground
     Note: a function or handler in an operation's parameter or result lets a handler build non-terminating programs without recursion
@@ -2995,7 +2995,7 @@ it names none:
   operation_reject_higher_order.tpe
   ======================================================================
   File "operation_reject_higher_order.tpe", line 8, characters 0-45:
-  8 | operation Op : unit ~> (unit -> unit ! 0) ! 0
+  8 | operation Op : unit -> (unit -> unit ! 0) ! 0
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The operation `Op` has a result type containing a function type; operation parameter and result types must be ground
     Note: a function or handler in an operation's parameter or result lets a handler build non-terminating programs without recursion
@@ -3462,7 +3462,7 @@ it names none:
   rational_time_intervals_reject_within.tpe
   ======================================================================
   File "rational_time_intervals_reject_within.tpe", line 10, characters 0-60:
-  10 | operation Dose : unit ~> unit ! [0.5, 1.5] within [1/2, 3/2]
+  10 | operation Dose : unit -> unit ! [0.5, 1.5] within [1/2, 3/2]
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `time-interval-rational` grading monoid, which does not use them
   ======================================================================
@@ -3486,7 +3486,7 @@ it names none:
                                   ^^^^^^^^^^^^^^^^^^^^^
   Typing error: For every grade `ε_Op` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε_Op`, but its grade `5` does not
     File "rational_time_lower_reject.tpe", line 6, characters 0-31:
-    6 | operation Op : unit ~> unit ! 1
+    6 | operation Op : unit -> unit ! 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "rational_time_lower_reject.tpe", line 11, characters 33-34:
@@ -3602,7 +3602,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` takes a duration in `[2, 2]`, which is not within the running-time bounds `[1, 2)` of `Send`
     File "rational_traces_intervals_default_open_reject.tpe", line 12, characters 0-62:
-    12 | operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 2)
+    12 | operation Send : unit -> unit ! [{Send}, {Send}] within [1, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
   
@@ -3611,7 +3611,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` takes a duration in `[1, 1]`, which is not within the running-time bounds `(1, 2]` of `Beep`
     File "rational_traces_intervals_default_open_reject.tpe", line 13, characters 0-62:
-    13 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
+    13 | operation Beep : unit -> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
   ======================================================================
@@ -3623,7 +3623,7 @@ it names none:
   Typing error: The grade `[{0.75; Sample}, {0.5; Sample}]` admits no run: no run meets both its lower and its upper end
   
   File "rational_traces_intervals_no_common_run_reject.tpe", line 25, characters 32-54:
-  25 | operation Slow : unit ~> unit ! [{5/2}, {Sample; 1/2}]
+  25 | operation Slow : unit -> unit ! [{5/2}, {Sample; 1/2}]
                                        ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{2.5}, {Sample; 0.5}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2.5 and its upper end at most 1.5
   ======================================================================
@@ -4067,7 +4067,7 @@ it names none:
   regex_timed_compound_named_later_reject.tpe
   ======================================================================
   File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
-  10 | operation Two : unit ~> unit ! {Fetch; Later}
+  10 | operation Two : unit -> unit ! {Fetch; Later}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Later` in the grade of operation `Two`
   ======================================================================
@@ -4092,7 +4092,7 @@ it names none:
   Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
-  24 | operation Slow : unit ~> unit ! [{4; Fetch*}, {Store; 1}]
+  24 | operation Slow : unit -> unit ! [{4; Fetch*}, {Store; 1}]
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
   ======================================================================
@@ -4134,7 +4134,7 @@ it names none:
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
-  24 | operation Other : unit ~> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
+  24 | operation Other : unit -> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
@@ -4223,7 +4223,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` has grade `[{2}, {2}]`, which does not match the declared grade `[{1}, {[0, 2)}]` of `Send`
     File "regex_timed_rational_interval_default_open_reject.tpe", line 11, characters 0-62:
-    11 | operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 2)
+    11 | operation Send : unit -> unit ! [{Send}, {Send}] within [1, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
     Note: the effect inequality `[{2}, {2}] <= [{1}, {[0, 2)}]` does not hold
@@ -4233,7 +4233,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
     File "regex_timed_rational_interval_default_open_reject.tpe", line 12, characters 0-62:
-    12 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
+    12 | operation Beep : unit -> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
@@ -4246,7 +4246,7 @@ it names none:
   Typing error: The grade `[{(2, 3)}, {[0, 2]}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_rational_interval_no_common_run_reject.tpe", line 24, characters 32-54:
-  24 | operation Slow : unit ~> unit ! [{5/2}, {Sample; 1/2}]
+  24 | operation Slow : unit -> unit ! [{5/2}, {Sample; 1/2}]
                                        ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{2.5}, {Sample; 0.5}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2.5 and its upper end at most 2
   ======================================================================
@@ -4257,7 +4257,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
     File "regex_timed_rational_interval_open_reject.tpe", line 10, characters 0-62:
-    10 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
+    10 | operation Beep : unit -> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
@@ -4399,7 +4399,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{2}`, which does not match the declared grade `{[0, 2)}` of `Beep`
     File "regex_timed_rational_upper_open_reject.tpe", line 12, characters 0-54:
-    12 | operation Beep : unit ~> unit ! {Beep} within [1/2, 2)
+    12 | operation Beep : unit -> unit ! {Beep} within [1/2, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{2} <= {[0, 2)}` does not hold
@@ -4507,7 +4507,7 @@ it names none:
   Typing error: The grade `[{idle ≥2; Read; ≥0}, {idle ≤1; Read; ≤5}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_rigid_interval_inconsistent_reject.tpe", line 47, characters 33-62:
-  47 | operation Other : unit ~> unit ! [{Write}, {Read; Read; Read}]
+  47 | operation Other : unit -> unit ! [{Write}, {Read; Read; Read}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Write}, {Read^3}]` admits no run: no run meets both its lower and its upper end
   ======================================================================
@@ -4737,7 +4737,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
     File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
-    12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
+    12 | operation Beep : unit -> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
@@ -4888,7 +4888,7 @@ it names none:
   regular_reject_bounds.tpe
   ======================================================================
   File "regular_reject_bounds.tpe", line 9, characters 0-52:
-  9 | operation Send : unit ~> unit ! {Send} within [1, 2]
+  9 | operation Send : unit -> unit ! {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-symbolic` grading monoid, which does not use them
   ======================================================================
@@ -5039,7 +5039,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Close` has grade `(0, 0)`, which does not match the declared grade `(-1, 0)` of `Close`
     File "resource_levels_reject.tpe", line 10, characters 0-40:
-    10 | operation Close : file ~> unit ! (-1, 0)
+    10 | operation Close : file -> unit ! (-1, 0)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Close` is declared here
     Note: the effect inequality `(0, 0) <= (-1, 0)` does not hold
@@ -5059,7 +5059,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Open` has grade `(0, 0)`, which does not match the declared grade `(1, 1)` of `Open`
     File "resource_levels_reject.tpe", line 9, characters 0-40:
-    9 | operation Open : string ~> file ! (1, 1)
+    9 | operation Open : string -> file ! (1, 1)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Open` is declared here
     Note: the effect inequality `(0, 0) <= (1, 1)` does not hold
@@ -5958,7 +5958,7 @@ it names none:
   time_reject_within.tpe
   ======================================================================
   File "time_reject_within.tpe", line 6, characters 0-47:
-  6 | operation Heat : unit ~> unit ! 2 within [1, 2]
+  6 | operation Heat : unit -> unit ! 2 within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `time-lower-bound` grading monoid, which does not use them
   ======================================================================
@@ -6027,7 +6027,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Extrude` has grade `[{1}, {1}]`, which does not match the declared grade `[{3}, {5}]` of `Extrude`
     File "traces_intervals_default_bounds.tpe", line 12, characters 0-71:
-    12 | operation Extrude : unit ~> unit ! [{Extrude}, {Extrude}] within [3, 5]
+    12 | operation Extrude : unit -> unit ! [{Extrude}, {Extrude}] within [3, 5]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{3}, {5}]` does not hold
@@ -6039,7 +6039,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` has grade `[{3}, {3}]`, which does not match the declared grade `[{1}, {2}]` of `Send`
     File "traces_intervals_default_open_reject.tpe", line 11, characters 0-62:
-    11 | operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 3)
+    11 | operation Send : unit -> unit ! [{Send}, {Send}] within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
     Note: the effect inequality `[{3}, {3}] <= [{1}, {2}]` does not hold
@@ -6049,7 +6049,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{2}, {3}]` of `Beep`
     File "traces_intervals_default_open_reject.tpe", line 12, characters 0-62:
-    12 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 3]
+    12 | operation Beep : unit -> unit ! [{Beep}, {Beep}] within (1, 3]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{2}, {3}]` does not hold
@@ -6062,7 +6062,7 @@ it names none:
   Typing error: The grade `[{Write}, {Read; Read; Read}]` admits no run: no run meets both its lower and its upper end
   
   File "traces_intervals_no_common_run_reject.tpe", line 24, characters 32-48:
-  24 | operation Slow : unit ~> unit ! [{5}, {Read; 2}]
+  24 | operation Slow : unit -> unit ! [{5}, {Read; 2}]
                                        ^^^^^^^^^^^^^^^^
   Typing error: The grade `[{5}, {Read; 2}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 5 and its upper end at most 4
   ======================================================================
@@ -6105,7 +6105,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
     File "traces_open_bounds_reject.tpe", line 12, characters 0-52:
-    12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
+    12 | operation Beep : unit -> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
@@ -6129,28 +6129,28 @@ it names none:
   traces_reject_bounds.tpe
   ======================================================================
   File "traces_reject_bounds.tpe", line 8, characters 0-52:
-  8 | operation Heat : unit ~> unit ! {Heat} within [3, 0]
+  8 | operation Heat : unit -> unit ! {Heat} within [3, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The running-time bounds of operation `Heat` must satisfy `lo <= hi`
   ======================================================================
   traces_reject_bounds_declared.tpe
   ======================================================================
   File "traces_reject_bounds_declared.tpe", line 11, characters 0-61:
-  11 | operation Send : string ~> unit ! {Tx | Tx; Tx} within [2, 6]
+  11 | operation Send : string -> unit ! {Tx | Tx; Tx} within [2, 6]
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Operation `Send` is compound, so its running-time bounds follow from its grade `{Tx | Tx; Tx}` and must not be declared
   ======================================================================
   traces_reject_bounds_zero.tpe
   ======================================================================
   File "traces_reject_bounds_zero.tpe", line 9, characters 0-52:
-  9 | operation Heat : unit ~> unit ! {Heat} within [0, 0]
+  9 | operation Heat : unit -> unit ! {Heat} within [0, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The upper running-time bound of operation `Heat` must be positive
   ======================================================================
   traces_reject_bounds_zero_lower.tpe
   ======================================================================
   File "traces_reject_bounds_zero_lower.tpe", line 10, characters 0-52:
-  10 | operation Heat : unit ~> unit ! {Heat} within [0, 2]
+  10 | operation Heat : unit -> unit ! {Heat} within [0, 2]
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The running time of operation `Heat` must be positive: write the lower end of its bounds above 0 or open at 0, as `within (0, 1]`
   ======================================================================
@@ -6161,7 +6161,7 @@ it names none:
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Extrude` has grade `{6}`, which does not match the declared grade `{5}` of `Extrude`
     File "traces_reject_default_bounds.tpe", line 11, characters 0-58:
-    11 | operation Extrude : unit ~> unit ! {Extrude} within [3, 5]
+    11 | operation Extrude : unit -> unit ! {Extrude} within [3, 5]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
     Note: the effect inequality `{6} <= {5}` does not hold
@@ -6176,14 +6176,14 @@ it names none:
   traces_reject_fractional_bound.tpe
   ======================================================================
   File "traces_reject_fractional_bound.tpe", line 10, characters 47-50:
-  10 | operation Heat : unit ~> unit ! {Heat} within [1/2, 1]
+  10 | operation Heat : unit -> unit ! {Heat} within [1/2, 1]
                                                       ^^^
   Syntax error: In the `traces-timed-upper-bound` grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `traces-timed-rigid-lower-bound-rational`, `traces-timed-rigid-upper-bound-rational`, `traces-timed-rigid-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `mode-times` or `operation-spacing` grading monoids?
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================
   File "traces_reject_missing_within.tpe", line 10, characters 0-38:
-  10 | operation Heat : unit ~> unit ! {Heat}
+  10 | operation Heat : unit -> unit ! {Heat}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Atomic operation `Heat` needs running-time bounds `within [lo, hi]` under the `traces-timed-upper-bound` grading monoid
   ======================================================================
@@ -6214,7 +6214,7 @@ it names none:
   traces_reject_self_retry.tpe
   ======================================================================
   File "traces_reject_self_retry.tpe", line 11, characters 0-53:
-  11 | operation Send : string ~> unit ! {Send | Send; Send}
+  11 | operation Send : string -> unit ! {Send | Send; Send}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Compound operation `Send` may not name itself in its grade `{Send | Send; Send}`
   ======================================================================
@@ -6229,7 +6229,7 @@ it names none:
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `h` is defined here
     File "traces_reject_undecided_condition.tpe", line 16, characters 0-31:
-    16 | operation Op : unit ~> unit ! 1
+    16 | operation Op : unit -> unit ! 1
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
     File "traces_reject_undecided_condition.tpe", line 18, characters 33-34:
@@ -6245,7 +6245,7 @@ it names none:
   traces_reject_unknown_event.tpe
   ======================================================================
   File "traces_reject_unknown_event.tpe", line 11, characters 0-53:
-  11 | operation PrintModel : unit ~> unit ! {Heat; Extrude}
+  11 | operation PrintModel : unit -> unit ! {Heat; Extrude}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Extrude` in the grade of operation `PrintModel`
   ======================================================================
@@ -6847,7 +6847,7 @@ automata, 'regex-upper-bound-letter-automata':
   regular_reject_bounds.tpe (regex-upper-bound-letter-automata)
   ======================================================================
   File "regular_reject_bounds.tpe", line 9, characters 0-52:
-  9 | operation Send : unit ~> unit ! {Send} within [1, 2]
+  9 | operation Send : unit -> unit ! {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-letter-automata` grading monoid, which does not use them
   ======================================================================
@@ -6926,7 +6926,7 @@ have one implementation, excepted:
   regex_timed_compound_named_later_reject.tpe (regex-timed-interval-letter-automata)
   ======================================================================
   File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
-  10 | operation Two : unit ~> unit ! {Fetch; Later}
+  10 | operation Two : unit -> unit ! {Fetch; Later}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Later` in the grade of operation `Two`
   ======================================================================
@@ -6951,7 +6951,7 @@ have one implementation, excepted:
   Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
-  24 | operation Slow : unit ~> unit ! [{4; Fetch*}, {Store; 1}]
+  24 | operation Slow : unit -> unit ! [{4; Fetch*}, {Store; 1}]
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
   ======================================================================
@@ -6993,7 +6993,7 @@ have one implementation, excepted:
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
-  24 | operation Other : unit ~> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
+  24 | operation Other : unit -> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
@@ -7105,7 +7105,7 @@ have one implementation, excepted:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
     File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
-    12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
+    12 | operation Beep : unit -> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
@@ -7294,7 +7294,7 @@ their visible implementations, under their implementations by automata
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` has grade `[{2}, {2}]`, which does not match the declared grade `[{1}, {[0, 2)}]` of `Send`
     File "regex_timed_rational_interval_default_open_reject.tpe", line 11, characters 0-62:
-    11 | operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 2)
+    11 | operation Send : unit -> unit ! [{Send}, {Send}] within [1, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
     Note: the effect inequality `[{2}, {2}] <= [{1}, {[0, 2)}]` does not hold
@@ -7304,7 +7304,7 @@ their visible implementations, under their implementations by automata
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
     File "regex_timed_rational_interval_default_open_reject.tpe", line 12, characters 0-62:
-    12 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
+    12 | operation Beep : unit -> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
@@ -7317,7 +7317,7 @@ their visible implementations, under their implementations by automata
   Typing error: The grade `[{(2, 3)}, {[0, 2]}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_rational_interval_no_common_run_reject.tpe", line 24, characters 32-54:
-  24 | operation Slow : unit ~> unit ! [{5/2}, {Sample; 1/2}]
+  24 | operation Slow : unit -> unit ! [{5/2}, {Sample; 1/2}]
                                        ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{2.5}, {Sample; 0.5}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 2.5 and its upper end at most 2
   ======================================================================
@@ -7328,7 +7328,7 @@ their visible implementations, under their implementations by automata
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
     File "regex_timed_rational_interval_open_reject.tpe", line 10, characters 0-62:
-    10 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
+    10 | operation Beep : unit -> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
@@ -7470,7 +7470,7 @@ their visible implementations, under their implementations by automata
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{2}`, which does not match the declared grade `{[0, 2)}` of `Beep`
     File "regex_timed_rational_upper_open_reject.tpe", line 12, characters 0-54:
-    12 | operation Beep : unit ~> unit ! {Beep} within [1/2, 2)
+    12 | operation Beep : unit -> unit ! {Beep} within [1/2, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{2} <= {[0, 2)}` does not hold
@@ -8107,14 +8107,14 @@ the rigid grades excepted:
   regular_reject_bounds.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================
   File "regular_reject_bounds.tpe", line 9, characters 0-52:
-  9 | operation Send : unit ~> unit ! {Send} within [1, 2]
+  9 | operation Send : unit -> unit ! {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-symbolic-by-letters` grading monoid, which does not use them
   ======================================================================
   regular_reject_bounds.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
   File "regular_reject_bounds.tpe", line 9, characters 0-52:
-  9 | operation Send : unit ~> unit ! {Send} within [1, 2]
+  9 | operation Send : unit -> unit ! {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-letter-derivatives` grading monoid, which does not use them
   ======================================================================
@@ -8229,14 +8229,14 @@ the rigid grades excepted:
   regex_timed_compound_named_later_reject.tpe (regex-timed-interval-symbolic-by-letters)
   ======================================================================
   File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
-  10 | operation Two : unit ~> unit ! {Fetch; Later}
+  10 | operation Two : unit -> unit ! {Fetch; Later}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Later` in the grade of operation `Two`
   ======================================================================
   regex_timed_compound_named_later_reject.tpe (regex-timed-interval-letter-derivatives)
   ======================================================================
   File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
-  10 | operation Two : unit ~> unit ! {Fetch; Later}
+  10 | operation Two : unit -> unit ! {Fetch; Later}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Later` in the grade of operation `Two`
   ======================================================================
@@ -8274,7 +8274,7 @@ the rigid grades excepted:
   Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
-  24 | operation Slow : unit ~> unit ! [{4; Fetch*}, {Store; 1}]
+  24 | operation Slow : unit -> unit ! [{4; Fetch*}, {Store; 1}]
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
   ======================================================================
@@ -8286,7 +8286,7 @@ the rigid grades excepted:
   Typing error: The grade `[{Fetch}, {Store*}]` admits no run: no run meets both its lower and its upper end
   
   File "regex_timed_interval_no_common_run_reject.tpe", line 24, characters 32-57:
-  24 | operation Slow : unit ~> unit ! [{4; Fetch*}, {Store; 1}]
+  24 | operation Slow : unit -> unit ! [{4; Fetch*}, {Store; 1}]
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{4; Fetch*}, {Store; 1}]` admits no run: no run meets both its lower and its upper end: its lower end lasts at least 4 and its upper end at most 3
   ======================================================================
@@ -8358,7 +8358,7 @@ the rigid grades excepted:
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
-  24 | operation Other : unit ~> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
+  24 | operation Other : unit -> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
@@ -8370,7 +8370,7 @@ the rigid grades excepted:
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
-  24 | operation Other : unit ~> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
+  24 | operation Other : unit -> unit ! [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
@@ -8569,7 +8569,7 @@ the rigid grades excepted:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
     File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
-    12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
+    12 | operation Beep : unit -> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
@@ -8595,7 +8595,7 @@ the rigid grades excepted:
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
     File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
-    12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
+    12 | operation Beep : unit -> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold

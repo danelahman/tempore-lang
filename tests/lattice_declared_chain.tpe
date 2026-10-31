@@ -7,8 +7,8 @@
 
 grade lattice Public < Internal < Secret
 
-operation ReadWiki : unit ~> string ! (1, Internal)
-operation ReadVault : unit ~> string ! (1, Secret)
+operation ReadWiki : unit -> string ! (1, Internal)
+operation ReadVault : unit -> string ! (1, Secret)
 
 default ReadWiki () = delay 1; "wiki"
 default ReadVault () = delay 1; "vault"

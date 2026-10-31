@@ -34,10 +34,10 @@
 
 (* The exchange between the tasks, through bindings.cpp, as in tilt.tpe. *)
 
-operation Publish : float ~> unit ! [0, 0.05]
+operation Publish : float -> unit ! [0, 0.05]
 default Publish _ = delay 1/100
 
-operation Latest : unit ~> float ! [0, 0.05]
+operation Latest : unit -> float ! [0, 0.05]
 default Latest () = delay 1/100; 0.0
 
 (* The period, in seconds, and the weight of the gyroscope in the

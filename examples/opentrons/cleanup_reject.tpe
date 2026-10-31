@@ -15,13 +15,13 @@
      - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
-operation AddEthanol : unit ~> unit ! {AddEthanol} within (0, 1]
+operation AddEthanol : unit -> unit ! {AddEthanol} within (0, 1]
 default AddEthanol () = delay 1
 
-operation RemoveEthanol : unit ~> unit ! {RemoveEthanol} within [1, 2]
+operation RemoveEthanol : unit -> unit ! {RemoveEthanol} within [1, 2]
 default RemoveEthanol () = delay 2
 
-operation EthanolWash : unit ~> unit ! {AddEthanol; 1; RemoveEthanol}
+operation EthanolWash : unit -> unit ! {AddEthanol; 1; RemoveEthanol}
 
 (* Correctly rejected by the typechecker: the case performs the steps of the
    wash in the reverse order:

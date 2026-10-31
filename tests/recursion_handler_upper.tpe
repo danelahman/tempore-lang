@@ -6,7 +6,7 @@
    it twice: under an operation of unbounded running time, the effect of the
    function is unbounded, and the handler is accepted. *)
 
-operation Read : unit ~> unit ! top
+operation Read : unit -> unit ! top
 
 let h = handler
   | x -> x

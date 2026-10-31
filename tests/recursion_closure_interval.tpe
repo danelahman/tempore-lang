@@ -6,7 +6,7 @@
    calls it twice: its grade contains [1, 1] and is closed under sums, so it
    is [1, ∞), which an operation of grade [1, ∞) admits. *)
 
-operation Read : unit ~> unit ! [1, ∞)
+operation Read : unit -> unit ! [1, ∞)
 
 let h = handler
   | x -> x

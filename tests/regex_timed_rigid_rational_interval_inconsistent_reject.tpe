@@ -10,8 +10,8 @@
 
 type token = Token of string
 
-operation Read : unit ~> nat ! {Read} within [1, 1]
-operation Write : unit ~> unit ! {Write} within [1, 2)
+operation Read : unit -> nat ! {Read} within [1, 1]
+operation Write : unit -> unit ! {Write} within [1, 2)
 
 (* A wait of more than one and less than two before a read. *)
 let between () =

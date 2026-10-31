@@ -10,8 +10,8 @@
 
 type token = Token of string
 
-operation Read : unit ~> nat ! {Read} within [1, 1]
-operation Write : unit ~> unit ! {Write} within [2, 3]
+operation Read : unit -> nat ! {Read} within [1, 1]
+operation Write : unit -> unit ! {Write} within [2, 3]
 
 (* A write of two steps fills a budget of at least two. *)
 let written () =
@@ -44,4 +44,4 @@ let between () =
   tok
 
 (* The same condition in the signature of an operation. *)
-operation Other : unit ~> unit ! [{Write}, {Read; Read; Read}]
+operation Other : unit -> unit ! [{Write}, {Read; Read; Read}]

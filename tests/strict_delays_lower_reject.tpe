@@ -10,9 +10,9 @@
 
 type token = Token of string
 
-operation Open : unit ~> unit ! {Open} within [1, 1]
-operation Close : unit ~> unit ! {Close} within [1, 1]
-operation Stir : unit ~> unit ! {Stir} within [3, 4]
+operation Open : unit -> unit ! {Open} within [1, 1]
+operation Close : unit -> unit ! {Close} within [1, 1]
+operation Stir : unit -> unit ! {Stir} within [3, 4]
 
 (* A wait of five covers the demanded settling. *)
 let settled () =
