@@ -41,36 +41,36 @@ type beads = string
    minutes each; the plate is moved
    onto and off the magnetic block, the ethanol added from above and the
    residual ethanol removed, in at most a minute. *)
-operation AddBeads : sample -> beads ! {AddBeads} within [1, 2]
+operation AddBeads : sample ~> beads ! {AddBeads} within [1, 2]
 default AddBeads samples = delay 3/2; "beads"
 
-operation MagnetOn : unit -> unit ! {MagnetOn} within (0, 1]
+operation MagnetOn : unit ~> unit ! {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1/2
 
-operation MagnetOff : unit -> unit ! {MagnetOff} within (0, 1]
+operation MagnetOff : unit ~> unit ! {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1/2
 
-operation RemoveSupernatant : beads -> unit ! {RemoveSupernatant}
+operation RemoveSupernatant : beads ~> unit ! {RemoveSupernatant}
   within [1, 2]
 default RemoveSupernatant beads = delay 3/2
 
-operation AddEthanol : unit -> unit ! {AddEthanol} within (0, 1]
+operation AddEthanol : unit ~> unit ! {AddEthanol} within (0, 1]
 default AddEthanol () = delay 3/4
 
-operation RemoveEthanol : unit -> unit ! {RemoveEthanol} within [1, 2]
+operation RemoveEthanol : unit ~> unit ! {RemoveEthanol} within [1, 2]
 default RemoveEthanol () = delay 3/2
 
-operation RemoveResidualEthanol : beads -> unit ! {RemoveResidualEthanol}
+operation RemoveResidualEthanol : beads ~> unit ! {RemoveResidualEthanol}
   within (0, 1]
 default RemoveResidualEthanol beads = delay 3/4
 
-operation EluteDNA : beads -> unit ! {EluteDNA} within [1, 2]
+operation EluteDNA : beads ~> unit ! {EluteDNA} within [1, 2]
 default EluteDNA beads = delay 3/2
 
-operation Transfer : sample -> unit ! {Transfer} within [1, 2]
+operation Transfer : sample ~> unit ! {Transfer} within [1, 2]
 default Transfer samples = delay 3/2
 
-operation AddMasterMix : beads -> unit ! {AddMasterMix} within [1, 2]
+operation AddMasterMix : beads ~> unit ! {AddMasterMix} within [1, 2]
 default AddMasterMix eluates = delay 3/2
 
 (* The steps. The box a step takes is its argument's annotated type, and the

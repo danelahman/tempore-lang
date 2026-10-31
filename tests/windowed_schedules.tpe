@@ -5,8 +5,8 @@
    Windowed schedules: the durations of a computation and the times at which
    each of its operations happens. *)
 
-operation Send : unit -> unit ! (1, (Send, {0}))
-operation Wait : unit -> unit ! [1, 3]
+operation Send : unit ~> unit ! (1, (Send, {0}))
+operation Wait : unit ~> unit ! [1, 3]
 
 default Send () = delay 1
 default Wait () = delay 2

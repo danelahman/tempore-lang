@@ -373,7 +373,7 @@ tests show those runs in detail.
                     ^^^^^^^^^^^
   Typing error: For every grade `ε_Op2` the continuation `k'` may have, the case for `Op2` must have a grade matching `3 · ε_Op2`, but its grade `4` does not
     File "../examples/handlers/nested_reject.tpe", line 13, characters 0-32:
-    13 | operation Op2 : unit -> unit ! 3
+    13 | operation Op2 : unit ~> unit ! 3
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op2` is declared here
     File "../examples/handlers/nested_reject.tpe", line 29, characters 19-21:

@@ -9,9 +9,9 @@
 
 type token = Token of string
 
-operation Heat : unit -> unit ! {Heat} within [2, 4]
-operation Stir : unit -> unit ! {Stir} within [1, 1]
-operation Cool : unit -> unit ! {Cool} within [1, 3]
+operation Heat : unit ~> unit ! {Heat} within [2, 4]
+operation Stir : unit ~> unit ! {Stir} within [1, 1]
+operation Cool : unit ~> unit ! {Cool} within [1, 3]
 
 (* A stir of one step fits a delay of three beside a wait of two. *)
 let stirred_budget () =

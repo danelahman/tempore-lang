@@ -9,8 +9,8 @@
 
 type token = Token of string
 
-operation Sample : unit -> nat ! {Sample} within [1/2, 3/2]
-operation Send : nat -> unit ! {Send} within [1/4, 1]
+operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
+operation Send : nat ~> unit ! {Send} within [1/4, 1]
 
 (* A delay of a quarter is short of the half demanded. *)
 let too_early () =

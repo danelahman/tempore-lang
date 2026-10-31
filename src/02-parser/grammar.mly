@@ -323,7 +323,7 @@ plain_command:
     { TyDef (Language.Ast.Derived, defs) }
   | NONETERNAL TYPE defs = separated_nonempty_list(AND, ty_def)
     { TyDef (Language.Ast.Noneternal, defs) }
-  | OPERATION op = mark_position(UNAME) COLON ty1 = prod_ty ARROW ty2 = prod_ty BANG eps = eps_grade
+  | OPERATION op = mark_position(UNAME) COLON ty1 = ty SIGARROW ty2 = ty BANG eps = eps_grade
     bounds = option(op_bounds)
     { OpSig (op, ty1, ty2, eps, bounds) }
   | DEFAULT op = mark_position(UNAME) p = simple_pattern EQUAL t = term

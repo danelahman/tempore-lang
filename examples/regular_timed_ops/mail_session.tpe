@@ -29,24 +29,24 @@ let select_subject (number : nat) : string =
 (* The operations of a session: a login has a running time of two to three
    ticks, a fetch of one to two, and a store and a logout of one each. A
    message is seen if its number is even. *)
-operation Login : string -> unit ! {Login} within [2, 3]
+operation Login : string ~> unit ! {Login} within [2, 3]
 default Login user = delay 3
 
-operation Fetch : nat -> message ! {Fetch} within [1, 2]
+operation Fetch : nat ~> message ! {Fetch} within [1, 2]
 default Fetch number =
   delay 1;
   Message (number, select_subject number, even number)
 
-operation Store : nat * flag -> unit ! {Store} within 1
+operation Store : nat * flag ~> unit ! {Store} within 1
 default Store (number, flag) = delay 1
 
-operation Logout : unit -> unit ! {Logout} within 1
+operation Logout : unit ~> unit ! {Logout} within 1
 default Logout () = delay 1
 
 (* A whole session: a login, fetches and stores in any order, and a logout.
    The operation has no default implementation and is implemented by a
    handler. *)
-operation Session : nat -> nat ! {Login; (Fetch | Store)*; Logout}
+operation Session : nat ~> nat ! {Login; (Fetch | Store)*; Logout}
 
 (* Correctly accepted by the typechecker: fetching 'count' messages from the
    number 'first' on. Assuming that the recursive call has the grade

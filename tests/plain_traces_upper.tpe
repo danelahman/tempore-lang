@@ -7,8 +7,8 @@
    operations declare no running-time bounds, the traces of the branches of a
    conditional are joined, and adjacent delays are merged. *)
 
-operation Read : unit -> nat ! {Read}
-operation Send : nat -> unit ! {Send}
+operation Read : unit ~> nat ! {Read}
+operation Send : nat ~> unit ! {Send}
 
 (* A reading sent at once or after two delays of one tick, which make the
    trace listed with a delay of two. *)

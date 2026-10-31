@@ -144,7 +144,7 @@ and ('rho, 'eps) plain_command =
       * ('rho, 'eps) ty
       * 'eps
       * Grades.Grade.running_time option)
-      (** [operation Op : t1 -> t2 ! eps within [lo, hi]]; the running-time
+      (** [operation Op : t1 ~> t2 ! eps within [lo, hi]]; the running-time
           bounds are optional, read only by the grading monoids of timed
           operations *)
   | OpDefault of operation annotated * ('rho, 'eps) abstraction

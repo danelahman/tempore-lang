@@ -60,7 +60,7 @@ let descriptor bounds =
   "grades": ["time-interval-rational"], "bindings": ["A"],
   "bounds": %s }|}
         bounds );
-    ("p/p.tpe", "operation A : unit -> unit ! [0, 1]\n");
+    ("p/p.tpe", "operation A : unit ~> unit ! [0, 1]\n");
   ]
 
 let descriptors () =
@@ -118,17 +118,17 @@ let replacements () =
     [
       ( "time-interval-rational",
         a,
-        "operation A : unit -> unit ! [0, 1]\n\
-         operation B : unit -> unit ! [0, 1]\n" );
-      ("time-lower-bound-rational", a, "operation A : unit -> unit ! 0\n");
+        "operation A : unit ~> unit ! [0, 1]\n\
+         operation B : unit ~> unit ! [0, 1]\n" );
+      ("time-lower-bound-rational", a, "operation A : unit ~> unit ! 0\n");
       ( "regex-timed-interval-rational-symbolic",
         a,
-        "operation A : unit -> unit ! {A} within (0, 1]\n" );
-      ("counts-upper-bound", a, "operation A : unit -> unit ! (A, 1)\n");
+        "operation A : unit ~> unit ! {A} within (0, 1]\n" );
+      ("counts-upper-bound", a, "operation A : unit ~> unit ! (A, 1)\n");
       ( "time-interval-rational",
         [ ("C", closed "0.5" "0.75") ],
-        "operation A : unit -> unit ! [0, 1]\n" );
-      ("time-interval", a, "operation A : unit -> unit ! [0, 1]\n");
+        "operation A : unit ~> unit ! [0, 1]\n" );
+      ("time-interval", a, "operation A : unit ~> unit ! [0, 1]\n");
     ]
 
 (* The operations bound by both of two packages. *)
@@ -146,7 +146,7 @@ let shared () =
           ( name ^ "/" ^ name ^ ".tpe",
             String.concat ""
               (List.map
-                 (Printf.sprintf "operation %s : unit -> unit ! [0, 1]\n")
+                 (Printf.sprintf "operation %s : unit ~> unit ! [0, 1]\n")
                  bindings) );
         ]
       name

@@ -6,8 +6,8 @@
 
 type file = File of string
 
-operation Open : string -> file ! (1, 1)
-operation Close : file -> unit ! (-1, 0)
+operation Open : string ~> file ! (1, 1)
+operation Close : file ~> unit ! (-1, 0)
 
 (* Rejected: three descriptors are held at the peak. *)
 let three () : unit ! (0, 2) =

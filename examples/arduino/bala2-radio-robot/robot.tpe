@@ -55,36 +55,36 @@
    in its boxes, and once unboxed it is used at once, not after a wait. *)
 noneternal type calibration = Calibration of float
 
-operation Publish : float * float * float * float -> unit ! {Publish} within (0, 0.05]
+operation Publish : float * float * float * float ~> unit ! {Publish} within (0, 0.05]
 default Publish _ = delay 1/100
 
-operation Setpoints : unit -> bool * float * float * float ! {Setpoints} within (0, 0.2]
+operation Setpoints : unit ~> bool * float * float * float ! {Setpoints} within (0, 0.2]
 default Setpoints () = delay 1/100; (true, 0.0, 0.0, 0.0)
 
-operation LatestTilt : unit -> float * float ! {LatestTilt} within (0, 0.55]
+operation LatestTilt : unit ~> float * float ! {LatestTilt} within (0, 0.55]
 default LatestTilt () = delay 1/100; (0.0, 0.0)
 
-operation StartBalancing : calibration -> unit ! {StartBalancing} within (0, 0.05]
+operation StartBalancing : calibration ~> unit ! {StartBalancing} within (0, 0.05]
 default StartBalancing _ = delay 1/100
 
-operation StopBalancing : unit -> unit ! {StopBalancing} within (0, 0.05]
+operation StopBalancing : unit ~> unit ! {StopBalancing} within (0, 0.05]
 default StopBalancing () = delay 1/100
 
-operation Move : float * float -> unit ! {Move} within (0, 0.7]
+operation Move : float * float ~> unit ! {Move} within (0, 0.7]
 default Move _ = delay 1/100
 
 (* Reading () returns the last reading of the unit by the step, as read by
    ReadImu, and its number, counted from 1 at the first reading; bound in
    bindings.cpp. It took at most 0.039 ms, and 0.406 ms on a second robot
    (2026-10-19). *)
-operation Reading : unit -> int * imu ! {Reading} within (0, 0.65]
+operation Reading : unit ~> int * imu ! {Reading} within (0, 0.65]
 default Reading () = delay 1/100; (1i, ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0)))
 
 (* ReportStatus code sends the status of the robot to the controller: the code
    of its phase, by remote_phase_code of the package bala2-radio, and the tilt
    last published by the step; bound in bindings.cpp. It took 0.131 to 2.384 ms
    (2026-10-19), and 0.137 to 3.778 ms in a run at a period of 5 ms. *)
-operation ReportStatus : nat -> unit ! {ReportStatus} within (0, 5.7]
+operation ReportStatus : nat ~> unit ! {ReportStatus} within (0, 5.7]
 default ReportStatus _ = delay 1/10
 
 let report (p : phase) = perform ReportStatus (remote_phase_code p)

@@ -6,10 +6,10 @@
    Rejected under the regular trace grading monoids: a session that reads
    after closing, and one that is never closed. *)
 
-operation Open : unit -> unit ! {Open}
-operation Read : unit -> nat ! {Read}
-operation Close : unit -> unit ! {Close}
-operation Session : unit -> nat ! {Open; Read*; Close}
+operation Open : unit ~> unit ! {Open}
+operation Read : unit ~> nat ! {Read}
+operation Close : unit ~> unit ! {Close}
+operation Session : unit ~> nat ! {Open; Read*; Close}
 
 let late_read =
   handler

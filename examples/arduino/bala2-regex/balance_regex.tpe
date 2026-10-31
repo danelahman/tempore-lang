@@ -49,22 +49,22 @@
 
 type calibration = Calibration of float
 
-operation Publish : float * float * float * float -> unit ! {Publish} within (0, 0.05]
+operation Publish : float * float * float * float ~> unit ! {Publish} within (0, 0.05]
 default Publish _ = delay 1/100
 
-operation Setpoints : unit -> bool * float * float * float ! {Setpoints} within (0, 0.05]
+operation Setpoints : unit ~> bool * float * float * float ! {Setpoints} within (0, 0.05]
 default Setpoints () = delay 1/100; (true, 0.0, 0.0, 0.0)
 
-operation LatestTilt : unit -> float * float ! {LatestTilt} within (0, 0.05]
+operation LatestTilt : unit ~> float * float ! {LatestTilt} within (0, 0.05]
 default LatestTilt () = delay 1/100; (0.0, 0.0)
 
-operation StartBalancing : calibration -> unit ! {StartBalancing} within (0, 0.05]
+operation StartBalancing : calibration ~> unit ! {StartBalancing} within (0, 0.05]
 default StartBalancing _ = delay 1/100
 
-operation StopBalancing : unit -> unit ! {StopBalancing} within (0, 0.05]
+operation StopBalancing : unit ~> unit ! {StopBalancing} within (0, 0.05]
 default StopBalancing () = delay 1/100
 
-operation Move : float * float -> unit ! {Move} within (0, 0.05]
+operation Move : float * float ~> unit ! {Move} within (0, 0.05]
 default Move _ = delay 1/100
 
 (* The control step. The state is the tilt, in degrees, filtered from the

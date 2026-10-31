@@ -18,22 +18,22 @@ type reading = Tilt of float
 
 (* Starting a conversion takes a tick; it is to be collected within five
    ticks, during which nothing noisy happens. *)
-operation StartTiltRead : unit -> [(5, Quiet)] sample ! (1, Quiet)
+operation StartTiltRead : unit ~> [(5, Quiet)] sample ! (1, Quiet)
 default StartTiltRead () = delay 1; box (5, Quiet) (Conversion 544i)
 
-operation CollectTilt : sample -> reading ! (1, Quiet)
+operation CollectTilt : sample ~> reading ! (1, Quiet)
 
 default CollectTilt (Conversion raw) =
   delay 1;
   Tilt ((float_of_int raw -. 512.) /. 64.)
 
-operation ReadSpeed : unit -> int * int ! (1, Quiet)
+operation ReadSpeed : unit ~> int * int ! (1, Quiet)
 default ReadSpeed () = delay 1; (12i, 10i)
 
-operation Drive : float * float -> unit ! (1, Noisy)
+operation Drive : float * float ~> unit ! (1, Noisy)
 default Drive (left, right) = delay 1; ()
 
-operation Transmit : float -> unit ! (1, Noisy)
+operation Transmit : float ~> unit ! (1, Noisy)
 default Transmit angle = delay 1; ()
 
 (* Correctly accepted by the typechecker: the speeds are read during the

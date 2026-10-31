@@ -6,8 +6,8 @@
    and a box with element l may be unboxed only while nothing above l has been
    touched since boxing. *)
 
-operation Send : string -> unit ! High
-operation Read : unit -> string ! Low
+operation Send : string ~> unit ! High
+operation Read : unit ~> string ! Low
 
 default Send s = ()
 default Read () = "report"

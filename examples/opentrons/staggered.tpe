@@ -40,11 +40,11 @@ type column = nat
 
 (* Adding the fixative to a column takes one to two minutes; the column is
    rinsed 12 to 20 minutes later. *)
-operation Fix : column -> [[12, 20]]column ! [1, 2]
+operation Fix : column ~> [[12, 20]]column ! [1, 2]
 default Fix column = delay 1; box [12, 20] column
 
 (* Rinsing a column takes one to two minutes. *)
-operation Rinse : column -> unit ! [1, 2]
+operation Rinse : column ~> unit ! [1, 2]
 default Rinse column = delay 2
 
 (* Rinses the column [fixed] and starts the next column while the column in

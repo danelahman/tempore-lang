@@ -15,13 +15,13 @@ type sample = Sample of nat
 
 (* The operations declare no running-time bounds: a trace records the
    operations and the delays between them, and a delay pays for no operation. *)
-operation Read : unit -> sample ! {Read}
-operation Beep : unit -> unit ! {Beep}
-operation Flag : unit -> unit ! {Flag}
+operation Read : unit ~> sample ! {Read}
+operation Beep : unit ~> unit ! {Beep}
+operation Flag : unit ~> unit ! {Flag}
 
 (* A cycle, a compound operation: a steady heartbeat reads then beeps after
    half a second, an irregular one reads and flags at once. *)
-operation Cycle : unit -> sample ! {Read; 1/2; Beep | Read; Flag}
+operation Cycle : unit ~> sample ! {Read; 1/2; Beep | Read; Flag}
 
 (* Correctly accepted by the typechecker: the traces of the two branches are
    joined into the set of both. *)
@@ -91,5 +91,5 @@ let cycle_brief () : sample ! {Read; 1/2; Beep} =
        `traces-upper-bound-rational` grading monoid, which does not use them
 *)
 (*
-operation ReadBounded : unit -> sample ! {Read} within (0, 1]
+operation ReadBounded : unit ~> sample ! {Read} within (0, 1]
 *)

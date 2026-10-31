@@ -6,7 +6,7 @@
    A recursive definition annotated with an effect has that effect at every
    call, including the recursive calls in its own body. *)
 
-operation Read : unit -> nat ! {Read}
+operation Read : unit ~> nat ! {Read}
 
 (* Correctly accepted by the typechecker: the recursive call follows a read,
    and the body has effect {1 | Read; Read*}, below {Read*}. *)

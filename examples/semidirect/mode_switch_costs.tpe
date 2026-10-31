@@ -20,20 +20,20 @@
    the mode, so these operations have no default implementation, and neither
    have those performed only in some modes: a run stops at the first of
    them. *)
-operation RadioOn : unit -> unit ! (Off, On, 2)
-operation RadioOff : unit -> unit ! (On, Off, 1)
+operation RadioOn : unit ~> unit ! (Off, On, 2)
+operation RadioOff : unit ~> unit ! (On, Off, 1)
 
 (* A sample costs 1 with the radio off and 3 with it on. *)
-operation Sample : unit -> nat ! ((Off, Off, 1), (On, On, 3))
+operation Sample : unit ~> nat ! ((Off, Off, 1), (On, On, 3))
 
 (* A transmission is possible only with the radio on, and costs 4. *)
-operation Send : nat -> unit ! (On, On, 4)
+operation Send : nat ~> unit ! (On, On, 4)
 
 (* Sleeping for ten ticks draws 10 with the radio off and 50 with it on. *)
-operation Sleep : unit -> unit ! ((Off, Off, 10), (On, On, 50))
+operation Sleep : unit ~> unit ! ((Off, Off, 10), (On, On, 50))
 
 (* Averaging costs 1 whatever the mode, and keeps it. *)
-operation Average : nat * nat -> nat ! 1
+operation Average : nat * nat ~> nat ! 1
 default Average (x, y) = (x + y) / 2
 
 (* Correctly accepted by the typechecker: from the radio off back to it off,

@@ -11,12 +11,12 @@
 
 type token = Token of string
 
-operation AddBeads : unit -> unit ! {AddBeads} within [1, 1]
-operation ChangeTip : unit -> unit ! {ChangeTip} within [1, 1]
-operation MagnetOn : unit -> unit ! {MagnetOn} within [1, 1]
-operation Read : unit -> nat ! {Read} within [0.1, 0.1]
-operation Log : unit -> unit ! {Log} within [0.1, 0.4]
-operation Reset : unit -> unit ! {Reset} within [0.1, 0.1]
+operation AddBeads : unit ~> unit ! {AddBeads} within [1, 1]
+operation ChangeTip : unit ~> unit ! {ChangeTip} within [1, 1]
+operation MagnetOn : unit ~> unit ! {MagnetOn} within [1, 1]
+operation Read : unit ~> nat ! {Read} within [0.1, 0.1]
+operation Log : unit ~> unit ! {Log} within [0.1, 0.4]
+operation Reset : unit ~> unit ! {Reset} within [0.1, 0.1]
 
 (* A tip changed during the binding fits a budget of up to ten minutes. *)
 let binding_budget () =

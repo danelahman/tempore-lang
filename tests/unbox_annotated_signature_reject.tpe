@@ -9,8 +9,8 @@
    lapsed; the failing unbox is reported with its accumulated grade both when
    the function's type and effect are annotated and when only its type is. *)
 
-operation Read : unit -> float ! {Read} within (0.0,0.1]
-operation Drive : float -> unit ! {Drive} within (0.0,0.5]
+operation Read : unit ~> float ! {Read} within (0.0,0.1]
+operation Drive : float ~> unit ! {Drive} within (0.0,0.5]
 
 default Read () = delay 0.05; 1.0
 default Drive _ = delay 0.2

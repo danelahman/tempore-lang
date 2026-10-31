@@ -11,9 +11,9 @@
      - Product: concatenation of traces, adjacent delays added *)
 
 (* The operations of the monitor. *)
-operation Read : unit -> nat ! {Read}
-operation Report : nat -> unit ! {Report}
-operation Alarm : unit -> unit ! {Alarm}
+operation Read : unit ~> nat ! {Read}
+operation Report : nat ~> unit ! {Report}
+operation Alarm : unit ~> unit ! {Alarm}
 
 (* Correctly accepted by the typechecker: a reading is reported after a
    positive delay shorter than half a second, the open interval (0, 1/2), here

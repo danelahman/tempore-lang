@@ -303,7 +303,7 @@ computation takes.
   For example, with `Read` taking at most two ticks,
 
   ```
-  operation Read : unit -> nat ! 2
+  operation Read : unit ~> nat ! 2
 
   let read_twice () : nat ! 5 =
     let x = perform Read () in
@@ -346,7 +346,7 @@ For example, under `time-interval-rational`, with `Sense` taking between a
 quarter and a half of a unit of time,
 
 ```
-operation Sense : unit -> nat ! [1/4, 1/2]
+operation Sense : unit ~> nat ! [1/4, 1/2]
 
 let sample () : nat ! (1, 2) =
   let x = perform Sense () in
@@ -384,9 +384,9 @@ For example, under `traces-upper-bound`, a door that opens for three ticks for a
 known badge and raises an alarm for an unknown one,
 
 ```
-operation Unlock : unit -> unit ! {Unlock}
-operation Lock : unit -> unit ! {Lock}
-operation Alarm : unit -> unit ! {Alarm}
+operation Unlock : unit ~> unit ! {Unlock}
+operation Lock : unit ~> unit ! {Lock}
+operation Alarm : unit ~> unit ! {Alarm}
 
 let enter (known : bool) : unit ! {Unlock; 3; Lock | Alarm} =
   if known then (perform Unlock (); delay 3; perform Lock ())
@@ -424,7 +424,7 @@ The grading monoids are:
   For example, with `Read` taking between one and three ticks,
 
   ```
-  operation Read : unit -> nat ! {Read} within [1, 3]
+  operation Read : unit ~> nat ! {Read} within [1, 3]
 
   let read_then_wait () : nat ! {5} =
     let x = perform Read () in
@@ -462,8 +462,8 @@ declare bounds such as `within [1/2, 3/2]`.
 For example, under `traces-timed-interval-rational`, the program
 
 ```
-operation Sample : unit -> nat ! {Sample} within [1/2, 3/2]
-operation Send : nat -> unit ! {Send} within [1/4, 1]
+operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
+operation Send : nat ~> unit ! {Send} within [1/4, 1]
 
 let report () : unit ! [1, 3] =
   let x = perform Sample () in
@@ -543,10 +543,10 @@ The two variants are:
   For example, the file session
 
   ```
-  operation Open : unit -> unit ! {Open}
-  operation Read : unit -> nat ! {Read}
-  operation Write : nat -> unit ! {Write}
-  operation Close : unit -> unit ! {Close}
+  operation Open : unit ~> unit ! {Open}
+  operation Read : unit ~> nat ! {Read}
+  operation Write : nat ~> unit ! {Write}
+  operation Close : unit ~> unit ! {Close}
 
   let copy () : unit ! {Open; (Read | Write)*; Close} =
     perform Open ();
@@ -592,8 +592,8 @@ The two variants are:
   For example, the program
 
   ```
-  operation Sample : unit -> nat ! {Sample}
-  operation Send : nat -> unit ! {Send}
+  operation Sample : unit ~> nat ! {Sample}
+  operation Send : nat ~> unit ! {Send}
 
   let report () : unit ! {Sample; [0, 1/2); Send} =
     let x = perform Sample () in
@@ -713,8 +713,8 @@ Under these:
 For example, under `regex-timed-lower-bound-symbolic`, the program
 
 ```
-operation Fetch : unit -> nat ! {Fetch} within [2, 3]
-operation Send : nat -> unit ! {Send} within [1, 1]
+operation Fetch : unit ~> nat ! {Fetch} within [2, 3]
+operation Send : nat ~> unit ! {Send} within [1, 1]
 
 let send_after_wait () : unit ! {5; Send} =
   let x = perform Fetch () in
@@ -783,8 +783,8 @@ Under these:
 For example, under `regex-timed-upper-bound-rational-symbolic`, the program
 
 ```
-operation Sample : unit -> nat ! {Sample} within [1/2, 3/2]
-operation Send : nat -> unit ! {Send} within [1/4, 1/2]
+operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
+operation Send : nat ~> unit ! {Send} within [1/4, 1/2]
 
 let report () : unit ! {[0, 3)} =
   let x = perform Sample () in
@@ -879,9 +879,9 @@ For example, under `regex-timed-rigid-upper-bound-rational-symbolic`, the
 program
 
 ```
-operation ReadImu : unit -> nat ! {ReadImu} within [0.2, 1.5]
-operation ReadClock : unit -> nat ! {ReadClock} within (0, 0.05]
-operation Redraw : unit -> unit ! {Redraw} within [0.05, 33]
+operation ReadImu : unit ~> nat ! {ReadImu} within [0.2, 1.5]
+operation ReadClock : unit ~> nat ! {ReadClock} within (0, 0.05]
+operation Redraw : unit ~> unit ! {Redraw} within [0.05, 33]
 
 let polls () =
   let start = perform ReadClock () in
@@ -914,7 +914,7 @@ beside it. For periodic sampling with a jitter of `δ`,
 each wait. With
 
 ```
-operation Beep : unit -> unit ! {Beep} within (0, 0.15]
+operation Beep : unit ~> unit ! {Beep} within (0, 0.15]
 
 let sampled () =
   let first = perform ReadImu () in
@@ -998,9 +998,9 @@ In this category, we have the following grading monoids:
   For example, the program
 
   ```
-  operation ReadPublic : unit -> string ! Low
-  operation ReadSecret : unit -> string ! High
-  operation Post : string * string -> unit ! Low
+  operation ReadPublic : unit ~> string ! Low
+  operation ReadSecret : unit ~> string ! High
+  operation Post : string * string ~> unit ! Low
 
   let forward () =
     let c = box Low "public" in
@@ -1029,8 +1029,8 @@ In this category, we have the following grading monoids:
   five ticks or once something secret is touched, the program
 
   ```
-  operation Query : string -> string ! (2, Low)
-  operation ReadPayroll : unit -> string ! (1, High)
+  operation Query : string ~> string ! (2, Low)
+  operation ReadPayroll : unit ~> string ! (1, High)
 
   let query_in_time () =
     let t = box (5, Low) "token" in
@@ -1062,8 +1062,8 @@ In this category, we have the following grading monoids:
   not announced, the program
 
   ```
-  operation ReadSecret : unit -> string ! High
-  operation Publish : string -> unit ! (Low, (Board, Low))
+  operation ReadSecret : unit ~> string ! High
+  operation Publish : string ~> unit ! (Low, (Board, Low))
 
   let announce () : unit ! (High, (Board, Low)) =
     perform Publish "maintenance at noon";
@@ -1115,8 +1115,8 @@ the radio are idle declares
 ```
 grade lattice Quiet < Noisy
 
-operation StartTiltRead : unit -> [(5, Quiet)] sample ! (1, Quiet)
-operation Transmit : float -> unit ! (1, Noisy)
+operation StartTiltRead : unit ~> [(5, Quiet)] sample ! (1, Quiet)
+operation Transmit : float ~> unit ! (1, Noisy)
 ```
 
 under `time-upper-bound-lattice`; transmitting before the conversion is
@@ -1167,8 +1167,8 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
   For example, the program
 
   ```
-  operation Open : string -> unit ! (Files, 1, 1)
-  operation Close : string -> unit ! (Files, -1, 0)
+  operation Open : string ~> unit ! (Files, 1, 1)
+  operation Close : string ~> unit ! (Files, -1, 0)
 
   let copy () : unit ! (Files, 0, 2) =
     perform Open "a";
@@ -1201,7 +1201,7 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
   or 5, the program
 
   ```
-  operation Send : unit -> unit ! (1, (Send, {0}))
+  operation Send : unit ~> unit ! (1, (Send, {0}))
 
   let send_in_window () : unit ! ([5, 6], (Send, {4 | 5})) =
     delay 4;
@@ -1233,15 +1233,15 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
   one, `(_, ≠, n)` from one to another and `(_, Stuck, n)` from one into
   `Stuck`; a branch between a transmission and an operation of cost 1 in every
   mode has grade `((On, On, 4), (_, _, 1), (_, Stuck, 0))`. Delays cost nothing;
-  idle draw is charged by operations such as `Sleep : unit -> unit ! ((Off, Off,
+  idle draw is charged by operations such as `Sleep : unit ~> unit ! ((Off, Off,
   10), (On, On, 50))`.
 
   For example, where switching a radio on costs 2 and a transmission
   4, the program
 
   ```
-  operation TurnOn : unit -> unit ! (Off, On, 2)
-  operation Transmit : string -> unit ! (On, On, 4)
+  operation TurnOn : unit ~> unit ! (Off, On, 2)
+  operation Transmit : string ~> unit ! (On, On, 4)
 
   let report () : unit ! (Off, On, 6) =
     perform TurnOn ();
@@ -1277,9 +1277,9 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
   minutes and a pipetting 3 to 5, the program
 
   ```
-  operation Take : unit -> unit ! ({Take}, Cold, Out) within [1, 2]
-  operation Pipette : unit -> unit ! ({Pipette}, Out, Out) within [3, 5]
-  operation Return : unit -> unit ! ({Return}, Out, Cold) within [1, 1]
+  operation Take : unit ~> unit ! ({Take}, Cold, Out) within [1, 2]
+  operation Pipette : unit ~> unit ! ({Pipette}, Out, Out) within [3, 5]
+  operation Return : unit ~> unit ! ({Return}, Out, Cold) within [1, 1]
 
   let round () : unit ! (Cold, Cold, (Out, [0, 10])) =
     perform Take ();
@@ -1310,13 +1310,13 @@ operation `A`, `n` possibly `∞`; sequencing adds the calls of each operation,
 and delays count none. An operation not listed is bounded by `0`, or by the
 entry `(_, n)`, and a plain `n` bounds every operation: `((Auth, 1), (Send, 3))`
 allows one `Auth`, three `Send` and nothing else. An operation counts itself,
-e.g. `operation Send : nat -> unit ! (Send, 1)`.
+e.g. `operation Send : nat ~> unit ! (Send, 1)`.
 
 For example, the program
 
 ```
-operation Auth : string -> unit ! (Auth, 1)
-operation Send : string -> unit ! (Send, 1)
+operation Auth : string ~> unit ! (Auth, 1)
+operation Send : string ~> unit ! (Send, 1)
 
 let notify () : unit ! ((Auth, 1), (Send, 3)) =
   perform Auth "key";
@@ -1424,7 +1424,7 @@ algebraic types.
 ### Operations and their grades
 
 ```
-operation Read : unit -> string ! 2
+operation Read : unit ~> string ! 2
 ```
 
 declares an operation whose call `perform Read ()` has grade `2`. Under the
@@ -1432,7 +1432,7 @@ trace and regular-expression monoids of timed operations, an *atomic* operation,
 graded by its own name, also declares its running-time bounds (`within [n, m]`):
 
 ```
-operation Tx : string -> unit ! {Tx} within [2, 3]
+operation Tx : string ~> unit ! {Tx} within [2, 3]
 ```
 
 The bounds are durations, written as for `delay` (see [Delays](#delays)), with
@@ -1453,7 +1453,7 @@ is attained: with `A` declared `within [1, 2)`, `{A}` is below `{[0, 2)}` under
 takes less than `2`.
 
 A *compound* operation names other operations in its grade, and its bounds are
-computed from theirs: `Send : string -> unit ! {Tx | Tx; Tx}` gets `[2, 6]`.
+computed from theirs: `Send : string ~> unit ! {Tx | Tx; Tx}` gets `[2, 6]`.
 
 ### Handlers and continuations
 
@@ -1583,7 +1583,7 @@ qualifier `∣ε₁∣ ≾ 0` on the effect `ε₁` of `g` admits only the least
 `0`, which the scheme substitutes. An effect of the unit is not printed on a
 function arrow, but is printed on both sides of a handler type `A ! ε ⇛ B ! ε′`.
 
-Under `time-lower-bound`, with `operation Op : unit -> unit ! 1`, the handler
+Under `time-lower-bound`, with `operation Op : unit ~> unit ! 1`, the handler
 
     let via f = handler | x -> x | Op () k -> f (); continue k with ()
 

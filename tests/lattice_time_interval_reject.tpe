@@ -7,9 +7,9 @@
 
 grade lattice Quiet < Noisy
 
-operation StartTiltRead : unit -> [([0.5,2.0],Quiet)]nat ! ((0.0,0.1],Quiet)
-operation ReadSpeed : unit -> nat ! ([0.5, 1.5], Quiet)
-operation Transmit : nat -> unit ! ((0.0, 1.0], Noisy)
+operation StartTiltRead : unit ~> [([0.5,2.0],Quiet)]nat ! ((0.0,0.1],Quiet)
+operation ReadSpeed : unit ~> nat ! ([0.5, 1.5], Quiet)
+operation Transmit : nat ~> unit ! ((0.0, 1.0], Noisy)
 
 (* Rejected: transmitting during the conversion touches Noisy. *)
 let transmitting () =

@@ -11,10 +11,10 @@
 
 type column = nat
 
-operation Fix : column -> [[12, 20]]column ! [1, 2]
+operation Fix : column ~> [[12, 20]]column ! [1, 2]
 default Fix column = delay 1; box [12, 20] column
 
-operation Rinse : column -> unit ! [1, 2]
+operation Rinse : column ~> unit ! [1, 2]
 default Rinse column = delay 2
 
 (* Correctly rejected by the typechecker: the next column is started five

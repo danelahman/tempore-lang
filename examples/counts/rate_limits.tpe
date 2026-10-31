@@ -12,10 +12,10 @@
 type token = Token of string
 
 (* Each operation counts itself once. *)
-operation Login : string -> token ! (Login, 1)
+operation Login : string ~> token ! (Login, 1)
 default Login user = Token user
 
-operation Request : token * string -> string ! (Request, 1)
+operation Request : token * string ~> string ! (Request, 1)
 default Request (t, q) = "response"
 
 (* Correctly accepted by the typechecker: a session of one login and three
