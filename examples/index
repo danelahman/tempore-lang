@@ -75,6 +75,7 @@ group | Effect handlers | Handlers | Operations handled by clauses that respect 
 Effect handlers | Lower bounds | time-lower-bound | handlers/lower_bound.tpe | An operation case may resume its continuation once it has waited for at least the operation's grade.
 Effect handlers | Upper bounds | time-upper-bound | handlers/upper_bound.tpe | An operation case may resume its continuation at any point up to the operation's grade, or not at all.
 Effect handlers | Nested | time-lower-bound | handlers/nested.tpe | Nested handlers each resume their own continuation, quantifying over one rigid effect per level of nesting.
+Effect handlers | Qualified schemes | time-lower-bound | handlers/qualified.tpe | A case's conditions on a function argument become hypotheses of the handler's scheme, one quantified over the continuation's effect, checked at each use.
 
 group | Traces | Traces | Finite sets of traces of operations and delays, exact or with running times.
 Traces | Door controller | traces-upper-bound | traces/upper_bounds.tpe | A door controller whose visits are graded by the exact traces they may exhibit, a delay paying for no operation.

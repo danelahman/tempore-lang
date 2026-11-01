@@ -1,0 +1,52 @@
+(* A handler whose conditions on a function argument become hypotheses of its
+   type scheme, checked at each use.
+
+   Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound examples/handlers/qualified.tpe
+
+   Grades n: at least n ticks (time steps)
+     - Unit 0: no time needed
+     - Top 0: no time needed; the unit is the top
+     - Product: addition *)
+
+(* Heating takes at least 5 ticks. *)
+operation Heat : unit ~> unit ! 5
+
+(* The case for Heat runs warm_up and then resumes. The effect ε₀ of warm_up
+   is a variable of the definition, and the effect ε_Heat of the continuation
+   is rigid, as the case is checked once for every continuation. The case's
+   conditions on them cannot be decided in the definition, so heating gets the
+   scheme
+
+     ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 5 ∧ (∀ε_Heat. ε_Heat · ε₀ ≾ 5 · ε_Heat) ⇒
+       (unit → α ! ε₀) → (β ! ε₁ ⇛ β ! 0)
+
+   where, in these grades, ≾ 5 reads "at least 5". The first hypothesis says
+   that k is resumed only once warm_up has taken at least the 5 ticks of Heat,
+   and the quantified one that the case, warm_up followed by the continuation,
+   takes at least Heat followed by the continuation, for every effect
+   ε_Heat. *)
+let heating warm_up =
+  handler
+  | x -> x
+  | Heat () k ->
+      warm_up ();
+      continue k with ()
+
+(* Correctly accepted by the typechecker: at this use ε₀ = 6, and both
+   hypotheses hold. *)
+run handle (perform Heat (); 3) with heating (fun () -> delay 6)
+
+(* Correctly rejected by the typechecker: a warm-up of 2 ticks would resume
+   the continuation before heating could have finished.
+
+     Typing error: The resource inequality `2 >= 5` does not hold
+       …
+       `k` is bound here
+       …
+       grade `2` accumulates here (this computation)
+*)
+(*
+run handle (perform Heat (); 3) with heating (fun () -> delay 2)
+*)

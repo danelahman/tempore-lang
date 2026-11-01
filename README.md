@@ -1478,7 +1478,10 @@ instance:
 
 See [`examples/handlers/lower_bound.tpe`](examples/handlers/lower_bound.tpe),
 [`examples/handlers/upper_bound.tpe`](examples/handlers/upper_bound.tpe)
-and [`examples/handlers/3d_printing.tpe`](examples/handlers/3d_printing.tpe).
+and [`examples/handlers/3d_printing.tpe`](examples/handlers/3d_printing.tpe);
+a condition on a variable of the definition becomes a hypothesis of its
+scheme ([Qualified schemes](#qualified-schemes),
+[`examples/handlers/qualified.tpe`](examples/handlers/qualified.tpe)).
 
 ### Contexts of operation cases
 
@@ -1594,6 +1597,8 @@ has
 where `R`, `∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op`, states that for every effect `ε_Op`
 of `k` the case, `f` followed by `k`, takes at least the time of `Op` followed
 by `k`.
+See [`examples/handlers/qualified.tpe`](examples/handlers/qualified.tpe),
+where such a scheme is met at one use and refuted at another.
 
 A `run` must establish every such condition: one without unknowns that the
 typechecker can neither derive nor refute rejects it, and one with unknowns

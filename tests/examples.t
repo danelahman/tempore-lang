@@ -382,6 +382,16 @@ tests show those runs in detail.
     `k'` may have any grade `ε_Op2`
     Note: the effect inequality `∀ε_Op2. 4 >= 3 · ε_Op2` does not hold: for `ε_Op2 = 2` it becomes `4 >= 5`
   ======================================================================
+  ../examples/handlers/qualified.tpe
+  ======================================================================
+  === Run 1 ===
+  return 3
+  State: [
+    { resource_1 ↦ <fun> ! 5 },
+    6
+  ]
+  
+  ======================================================================
   ../examples/handlers/upper_bound.tpe
   ======================================================================
   === Run 1 ===
