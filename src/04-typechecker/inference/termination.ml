@@ -1,9 +1,11 @@
 (* A structural recursion guard in the style of structural termination
-   checkers (Giménez, TYPES 1994; Abel's foetus, Abel and Altenkirch, JFP
-   2002), with a single parameter fixed for all recursive calls: an abstract
-   interpretation of the body tracks which variables are structural parts of
-   which parameters, and every occurrence of the function must pass a strict
-   part of the chosen parameter. *)
+   checkers (Giménez, TYPES 1994; Abel, "foetus – Termination checker for
+   simple functional programs", 1998, with its theory in Abel and Altenkirch,
+   "A predicative analysis of structural recursion", JFP 2002), with a single
+   parameter fixed for all recursive calls: an abstract interpretation of the
+   body tracks which variables are structural parts of which parameters, and
+   every occurrence of the function must pass a strict part of the chosen
+   parameter. *)
 
 module Ast = Language.Ast
 module Location = Utils.Location
