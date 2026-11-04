@@ -39,21 +39,21 @@
     the whole program declares with running-time bounds and the names the grades
     compared mention; the catch-all [_] stands for each declared operation a
     grade does not name, and for every positive delay. A grade must denote at
-    least one trace over them ({!Grade.S.inhabited}). The unit [{0}] is least
+    least one trace over them ({!Grade.S.inhabited}). The unit [{skip}] is least
     under the upper order.
 
     {2 Grades}
 
-    The literals, the unit [{0}], the product, the join, [of_delay] and the
+    The literals, the unit [{skip}], the product, the join, [of_delay] and the
     printing are those of {!RegularTraceGradeRational}: timed regular
     expressions with rational delays, the intervals of delays such as [\[0, q)]
     and [(q, ∞)], [_], intersection and complement over all timed words, a
     number [q] abbreviating [{q}] and [⊤] the language of all traces, which is
-    the unit [{0}] under the lower order. The upper order has [⊤] as its top and
-    its unit least; the lower order has the unit as its top. The running-time
-    bounds implied by a grade are the infimum of the weights of its lower-bound
-    traces, at [lo], and the supremum of those of its upper-bound traces, at
-    [hi], each attained or not, [None] if the latter is unbounded; an
+    the unit [{skip}] under the lower order. The upper order has [⊤] as its top
+    and its unit least; the lower order has the unit as its top. The
+    running-time bounds implied by a grade are the infimum of the weights of its
+    lower-bound traces, at [lo], and the supremum of those of its upper-bound
+    traces, at [hi], each attained or not, [None] if the latter is unbounded; an
     operation's time shadow [of_bounds (lo, hi)] is [{lo}], or [{(lo, ∞)}] if
     [lo] is open, under the lower order, and [{hi}], or [{\[0, hi)}] if [hi] is
     open, under the upper. A counterexample to [ρ ≾ ρ'] is the grade of a trace

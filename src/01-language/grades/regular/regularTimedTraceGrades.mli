@@ -24,11 +24,11 @@
     closure, and [equal] is mutual [≾], coarser than the equality of languages:
     if [Read] declares [within [1, 3]], then [{Read} ≾ {3}] but not conversely
     and [{Read | 3} ≡ {3}] under the upper order, and [{Read | 1} ≡ {1}] and
-    [⊤ ≡ {0}] under the lower order. Products and joins are those of languages,
-    monotone in the orders, and [≡] is a congruence for them; the product of
-    closures is in general strictly smaller than the closure of the product:
-    under the upper order the trace [Read] is in [↓({2}·{2})] but not in
-    [↓{2}·↓{2}]. An operation cannot be excluded while unbounded time is
+    [⊤ ≡ {skip}] under the lower order. Products and joins are those of
+    languages, monotone in the orders, and [≡] is a congruence for them; the
+    product of closures is in general strictly smaller than the closure of the
+    product: under the upper order the trace [Read] is in [↓({2}·{2})] but not
+    in [↓{2}·↓{2}]. An operation cannot be excluded while unbounded time is
     allowed: [{(_ & ~Read)*} ≡ ⊤] under the upper order, its ticks paying for
     [Read]. The grades are thus regular languages modulo downward closure under
     a preorder on traces compatible with concatenation (allowance, or the
@@ -48,11 +48,11 @@
     [bounds rho] is whether [rho] has a trace over [tick], the operations of
     [bounds] and the names [rho] mentions, which fails for [{_ & ~1 & ~A}] if
     [A] is the only operation declared. On the grades that have one, the unit
-    [{0}] is least under the upper order.
+    [{skip}] is least under the upper order.
 
     {2 Grades}
 
-    The literals, the unit [{0}], the product, the join, [of_delay] and the
+    The literals, the unit [{skip}], the product, the join, [of_delay] and the
     printing are those of the underlying regular trace grade. The upper order
     has the language [⊤] of all traces as its top, absorbing up to [≡], and its
     unit is least; the lower order has the unit as its top. The running-time

@@ -9,9 +9,9 @@
     traces permitted from above: a trace is permitted iff its timed word is in
     the language. The order is inclusion, the product concatenation, which adds
     the delays that meet, the join union, the unit the language [{ε}] of the
-    empty word, i.e. of the delay [0], and the top the language of all timed
-    words. The top is not absorbing: [{3}] multiplied by [⊤] permits only the
-    traces that begin with a delay of at least [3].
+    empty word, written [{skip}], and the top the language of all timed words.
+    The top is not absorbing: [{3}] multiplied by [⊤] permits only the traces
+    that begin with a delay of at least [3].
 
     Unlike {!RegularTraceGrade}, a delay is a single letter however long or
     fine: no delay is unrolled into time steps, and no resolution of the
@@ -20,10 +20,10 @@
     {2 Literals}
 
     A grade is written as a brace literal holding a timed regular expression
-    ({!DelayRegex}): an operation name [Read], a delay such as [3], [1/2] or
-    [1.5], an interval of delays [[q, r]], [(q, r)], [\[q, r)], [(q, r\]],
-    [\[q, ∞)] or [(q, ∞)], and [_], every operation and every positive delay,
-    combined with [;], [|], [&], [~] and [*], e.g.
+    ({!DelayRegex}): an operation name [Read], the empty word [skip], a delay
+    such as [3], [1/2] or [1.5], an interval of delays [[q, r]], [(q, r)],
+    [\[q, r)], [(q, r\]], [\[q, ∞)] or [(q, ∞)], and [_], every operation and
+    every positive delay, combined with [;], [|], [&], [~] and [*], e.g.
     [{Read; (0, 1/2); Send | ~Write}]. The complement is taken over all timed
     words: [~1] permits every trace but the delay [1]. A plain number [q]
     abbreviates [{q}], and [⊤] (ASCII [top]) is [_*]. A literal denoting the
@@ -47,10 +47,10 @@
 
     A grade is printed as the expression it was written or built as, [⊤] if it
     denotes all timed words. The expression of a product is the concatenation of
-    the factors of both operands, the delays [0] left out and adjacent delays
-    added, and that of a product with the unit or of a join with a grade below
-    is the other operand's. The printing reads back as the same grade, but
-    grades denoting the same language may print differently.
+    the factors of both operands, [skip] and the delays [0] left out and
+    adjacent delays added, and that of a product with the unit or of a join with
+    a grade below is the other operand's. The printing reads back as the same
+    grade, but grades denoting the same language may print differently.
 
     {2 Witnesses}
 

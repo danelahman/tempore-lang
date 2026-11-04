@@ -82,8 +82,8 @@ module Base (D : Delay.S) : sig
       mentioned anywhere in [p]. *)
 
   val show : traces -> string
-  (** [show p] prints a set of traces as [{Read; 3; Send | Send}]; the empty
-      trace prints as [0], the delay [zero] it denotes. *)
+  (** [show p] prints a set of traces as [{Read; 3; Send | Send}], and the empty
+      trace as [skip]. *)
 
   val number : GradeLiteral.lit -> Rational.t option
   (** [number lit] is the value of the numeric literal [lit] if it or its

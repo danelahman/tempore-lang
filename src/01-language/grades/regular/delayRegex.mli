@@ -7,15 +7,16 @@
     Over the timed words, the free product of the words over the operation names
     with [(ℚ≥0, +)]:
     - an operation name [A] denotes [{A}];
-    - a delay [q] denotes [{q}], [0] the empty word;
+    - [skip] denotes the empty word;
+    - a delay [q] denotes [{q}];
     - an interval [[q, r]], [(q, r)], [\[q, r)], [(q, r\]], [\[q, ∞)] or
-      [(q, ∞)] denotes the delays in it, the delay [0] being the empty word;
+      [(q, ∞)] denotes the delays in it;
     - [_] denotes every operation and every positive delay;
     - [r; s], [r | s], [r & s], [~r] and [r*] denote concatenation, which adds
       the delays that meet, union, intersection, the complement relative to all
       timed words, and repetition;
     - [r^c] denotes the concatenations of [k] words of [r], [k] in the count
-      [c], and [r^0] the empty word.
+      [c], and [r^0] the empty word [skip].
 
     Thus [_*] denotes all timed words, [~1] every timed word but the delay [1],
     and [_ & ~Read] every operation but [Read] and every positive delay. *)

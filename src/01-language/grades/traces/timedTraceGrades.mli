@@ -34,14 +34,15 @@
     {2 Literals}
 
     A set of traces is written as a brace literal, a union with [|] of sequences
-    with [;] of operation names and delays, e.g. [{Read; 3; Send | Send; Send}];
-    parentheses group, and a concatenation of unions denotes the set of the
-    concatenations of their members. A delay [d] abbreviates [{d}], and [⊤]
-    (ASCII [top]) is the greatest grade. The delays of a literal are read by
-    those of the grades ({!Delay.S.read}): integers over {!Delay.Nat}, integers
-    and fractions over {!Delay.Rational}. A bounded repetition of a finite
-    count, [r^n] or [r^[m, n]], abbreviates its unrolling. The other
-    regular-expression forms, [*], [r^\[m, ∞)], [&], [~] and [_], are rejected.
+    with [;] of operation names, delays and the empty trace [skip], e.g.
+    [{Read; 3; Send | Send; Send}]; parentheses group, and a concatenation of
+    unions denotes the set of the concatenations of their members. A delay [d]
+    abbreviates [{d}], and [⊤] (ASCII [top]) is the greatest grade. The delays
+    of a literal are read by those of the grades ({!Delay.S.read}): integers
+    over {!Delay.Nat}, integers and fractions over {!Delay.Rational}. A bounded
+    repetition of a finite count, [r^n] or [r^[m, n]], abbreviates its
+    unrolling. The other regular-expression forms, [*], [r^\[m, ∞)], [&], [~]
+    and [_], are rejected.
 
     {2 Witnesses}
 
@@ -85,7 +86,7 @@ module Bounded (D : Delay.S) : sig
     | Unbounded  (** any trace; printed as [⊤] *)
 
   val one : t
-  (** The unit [{0}]. *)
+  (** The unit [{skip}]. *)
 
   val mul : t -> t -> t
   (** The language product, absorbed by [Unbounded]. *)
@@ -122,7 +123,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) : sig
   module LowerBound : Grade.S with type Delay.t = D.t
   (** Sets of traces read as lower bounds,
       ["traces-timed-lower-bound" ^ N.suffix], in the coverage order; the unit
-      [{0}] is the top. *)
+      [{skip}] is the top. *)
 
   module UpperBound : Grade.S with type Delay.t = D.t
   (** Sets of traces read as upper bounds,
@@ -150,7 +151,7 @@ end
 
 module LowerBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Sets of traces read as lower bounds, ["traces-timed-lower-bound"], in the
-    coverage order; the unit [{0}] is the top. *)
+    coverage order; the unit [{skip}] is the top. *)
 
 module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Sets of traces read as upper bounds, ["traces-timed-upper-bound"], in the

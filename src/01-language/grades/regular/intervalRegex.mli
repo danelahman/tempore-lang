@@ -24,11 +24,11 @@
       bounded repetition, [x; x^c] being [x^(c + 1)];
     - a union is flattened, ordered and without duplicates; its operation sets
       merge into their union, its stretches of one set into the widest, [r] is
-      left out beside [r*], and [0] beside a nullable operand;
+      left out beside [r*], and [skip] beside a nullable operand;
     - the repetition of a stretch is a stretch: on the upper side [≤d*] is [≥0],
       the stretch of every length, and [≤d^[m, n]] is [≤n·d]; on the lower side
-      [≥d*] is [0 | ≥d], [≥0*] is [≥0], [≥d^[m, n]] is [≥m·d] for [m ≥ 1] and
-      [0 | ≥d] for [m = 0];
+      [≥d*] is [skip | ≥d], [≥0*] is [≥0], [≥d^[m, n]] is [≥m·d] for [m ≥ 1] and
+      [skip | ≥d] for [m = 0];
     - on the upper side a stretch [≤0] is the empty word; on the lower side [≥0]
       is kept, a stretch, not the empty word;
     - the laws of repetition of {!SymbolicRegex.S.repeat}.
@@ -38,17 +38,19 @@
 
     {2 Literals}
 
-    A brace literal is read on a side: an operation name, a union of names, [_],
-    [~A] and [_ & ~A] are operation sets; a delay [d], an interval [[a, b]] and
-    the one-sided intervals [≤d], [<d], [≥d] and [>d] are budgets, and under
-    [idle] strict waits; the intersection [(I & S)] of an interval [I] with an
-    operation set [S] is a budget restricted to [S], as [≥0 & ~Read] or
-    [(≤5 & (Scan | Turn))]; a two-sided interval is read by its hull on the
-    side, [[a, b]] as [≤b] on the upper side and [≥a] on the lower one, and a
-    one-sided interval of the other side is rejected, [≥0] and [≤∞] being both.
-    [r?] is [r | 0], and [0] the empty word. Over whole time steps, an open end
-    is closed at the next integer inward, [<3] being [≤2], and fractions are
-    rejected. *)
+    A brace literal is read on a side: [skip] is the empty word on both sides;
+    an operation name, a union of names, [_], [~A] and [_ & ~A] are operation
+    sets; a delay [d], an interval [[a, b]] and the one-sided intervals [≤d],
+    [<d], [≥d] and [>d] are budgets, and under [idle] strict waits; the
+    intersection [(I & S)] of an interval [I] with an operation set [S] is a
+    budget restricted to [S], as [≥0 & ~Read] or [(≤5 & (Scan | Turn))]; a
+    two-sided interval is read by its hull on the side, [[a, b]] as [≤b] on the
+    upper side and [≥a] on the lower one, and a one-sided interval of the other
+    side is rejected, [≥0] and [≤∞] being both. A delay is read as the interval
+    of it alone: [0] is [≤0], the empty word, on the upper side, and the stretch
+    [≥0] on the lower one, as [[0, 0]] is. [r?] is [r | skip], and [r^0] is
+    [skip]. Over whole time steps, an open end is closed at the next integer
+    inward, [<3] being [≤2], and fractions are rejected. *)
 
 open Grade
 

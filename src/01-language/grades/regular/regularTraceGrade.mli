@@ -69,8 +69,8 @@
     {2 Literals}
 
     A grade is written as a brace literal holding a regular expression: an
-    operation name [Read] is that letter, an integer [n] is [n] ticks ([0] the
-    empty word), an interval [[n, m]] any number of ticks from [n] to [m] and
+    operation name [Read] is that letter, [skip] the empty word, an integer [n]
+    is [n] ticks, an interval [[n, m]] any number of ticks from [n] to [m] and
     [\[n, ∞)] at least [n], an open endpoint abbreviating a closed one
     ({!Grade.tick_delays}), [_] is any single letter, [;] concatenates, [|] is
     union, [&] intersection, [~] complement and a postfix [*] repetition, e.g.

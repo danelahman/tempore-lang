@@ -9,7 +9,7 @@
 
     A grade is an extended regular expression in the normal form of
     {!SymbolicRegex}: the product is concatenation, the join union, the unit
-    [{0}] and the top [_*], each built by a smart constructor without any
+    [{skip}] and the top [_*], each built by a smart constructor without any
     automaton, and a delay of [n] time steps is one run of ticks [tickⁿ]. The
     letters are [tick] and every operation name, a letter set being finite or
     cofinite in the names, so that the names a grade does not mention are all

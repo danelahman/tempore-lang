@@ -374,7 +374,8 @@ concatenation and join by union. Operations declare no running-time bounds.
 
 In `traces-upper-bound`, a grade is the set of traces a computation is
 *allowed*, ordered by set inclusion; a delay pays for no operation, and `{Read}`
-is not below `{3}`. The unit `{0}` is not least, and `⊤`, any trace, is the top.
+is not below `{3}`. The unit `{skip}`, the empty trace, is not least, and `⊤`,
+any trace, is the top.
 Traces are compared by equality, so only upper bounds are provided. The rational
 variant `traces-upper-bound-rational` has non-negative rational delays.
 
@@ -414,12 +415,12 @@ Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`.
 The grading monoids are:
 
 - `traces-timed-lower-bound`: the traces a computation must *cover*; an
-  operation performed counts as `lo` ticks towards a demanded duration. `{0}` is
-  the top. A lower bound demands a minimum, so a computation may perform more
-  than the trace it covers lists.
+  operation performed counts as `lo` ticks towards a demanded duration.
+  `{skip}` is the top. A lower bound demands a minimum, so a computation may
+  perform more than the trace it covers lists.
 
 - `traces-timed-upper-bound`: the traces a computation is *allowed*; a duration
-  pays for operations at their `hi`. `{0}` is least and `⊤` the top.
+  pays for operations at their `hi`. `{skip}` is least and `⊤` the top.
 
   For example, with `Read` taking between one and three ticks,
 
@@ -444,7 +445,7 @@ The grading monoids are:
   compared componentwise; `[{...}, ∞)` has no upper bound, `{...}` abbreviates
   `[{...}, {...}]`, `n` is `[{n}, {n}]`, `[n, m]` is `[{n}, {m}]`, and an open
   endpoint abbreviates a closed one, `(n, m)` being `[{n + 1}, {m - 1}]`. The
-  top is `[{0}, ∞)`.
+  top is `[{skip}, ∞)`.
 
 See
 [`examples/traces_timed_ops/lower_bounds.tpe`](examples/traces_timed_ops/lower_bounds.tpe),
@@ -500,8 +501,8 @@ with running-time bounds, `{Heat}` is below `{Heat; Cool}` under
 ### Regular expressions
 
 A grade is a non-empty regular language of traces. The order is inclusion, the
-product is concatenation and the join is union; the unit is `{0}` and the top
-`⊤` is the language of all traces. Operations declare no running-time bounds.
+product is concatenation and the join is union; the unit is `{skip}` and the
+top `⊤` is the language of all traces. Operations declare no running-time bounds.
 The implementation provides two variants, described below.
 
 Under both variants:
@@ -509,9 +510,10 @@ Under both variants:
 - literals are regular expressions, by increasing precedence: union `r | s`,
   intersection `r & s`, concatenation `r; s`, complement `~r`, Kleene star
   `r*` and bounded repetition `r^n` (below);
-- an operation name is a letter, and parentheses or braces group:
-  `{Open; (Read | Write)*; Close}` is a file session and `{~{_*; Revoke; _*}}`
-  the traces that never revoke;
+- an operation name is a letter, `skip` the empty trace, and parentheses or
+  braces group: `{Open; (Read | Write)*; Close}` is a file session,
+  `{Open; (Read | skip); Close}` one that reads at most once, and
+  `{~{_*; Revoke; _*}}` the traces that never revoke;
 - a grade is printed as it is written, and a grade the typechecker computes
   with its runs of equal factors folded (below);
 - when an ordering fails, a note names the shortest trace of the lesser grade
@@ -648,7 +650,7 @@ admits one or two calls of `Ping` only:
 
 The sprint start system
 ([`examples/arduino/starter/starter.tpe`](examples/arduino/starter/starter.tpe))
-annotates its 200 polls `{(0 | idle 2.5; ReadImu; ReadClock)^200}`.
+annotates its 200 polls `{(skip | idle 2.5; ReadImu; ReadClock)^200}`.
 
 #### Implementations for benchmarking
 <!-- web-skip -->
@@ -684,14 +686,14 @@ operations: a grade stands for its *closure*, the traces that fit inside one of
 its traces (upper bounds, an operation taking `hi`) or that cover one of them
 (lower bounds, an operation taking `lo`).
 
-- `regex-timed-upper-bound-symbolic`: the allowance order; `{0}` is least and
-  `⊤` the top.
-- `regex-timed-lower-bound-symbolic`: the coverage order; `{0}` is the top,
+- `regex-timed-upper-bound-symbolic`: the allowance order; `{skip}` is least
+  and `⊤` the top.
+- `regex-timed-lower-bound-symbolic`: the coverage order; `{skip}` is the top,
   and so is every grade containing the empty trace, such as
   `{(Bake; Inspect)*}`, which every trace covers.
 - `regex-timed-interval-symbolic`: closed intervals `[{...}, {...}]` of a lower
   and an upper bound, compared componentwise, with the forms and abbreviations
-  of `traces-timed-interval`; the top is `[{0}, ∞)`.
+  of `traces-timed-interval`; the top is `[{skip}, ∞)`.
 
 Under these:
 
@@ -835,23 +837,23 @@ The letters are:
   such as `idle 10`, `idle [2, 3]` or `idle ≤5`;
 - a *restricted budget* `I & S` of a budget `I` and a set of operations
   `S`, such as `≥0 & ~Read`: a budget whose operations lie in `S`;
-- `0`, the empty trace; a stretch of length 0, such as `idle 0` or `≤0`, is
-  the empty trace too.
+- `skip`, the empty trace.
 
 Expressions use `;`, `|`, `*`, `^n`, `^[m, n]` and the postfix `r?`, which
-is `r | 0`. The complement `~` and the intersection `&` apply to sets of
+is `r | skip`. The complement `~` and the intersection `&` apply to sets of
 operations and to a budget with a set of operations only: a stretch without
 `Read` is the restricted budget `≥0 & ~Read`, not a complement of
 `_*; Read; _*`.
 
 An upper bound reads a letter by its upper end and a lower bound by its
 lower end: `[2, 5]` is `≤5` in an upper bound and `≥2` in a lower one, and
-`d` is `≤d` and `≥d`. Lower bounds take the letters bounded below, upper
-bounds those bounded above, and `≥0` both: `{≤3}` is not a lower bound. Under
-the interval grades a literal `{e}` is the pair of its two readings,
-`[{L}, {U}]` gives them apart, and a pair is printed as one literal where it
-is the pair of one, as `{idle 10}` for `[{idle ≥10}, {idle ≤10}]`. The unit is
-`{0}` and the top `{≥0}`.
+`d` is `≤d` and `≥d`: `0` is the empty trace in an upper bound and the
+stretch `≥0` in a lower one, as `[0, 0]` is, unlike `skip`. Lower bounds take
+the letters bounded below, upper bounds those bounded above, and `≥0` both:
+`{≤3}` is not a lower bound. Under the interval grades a literal `{e}` is the
+pair of its two readings, `[{L}, {U}]` gives them apart, and a pair is printed
+as one literal where it is the pair of one, as `{idle 10}` for
+`[{idle ≥10}, {idle ≤10}]`. The unit is `{skip}` and the top `{≥0}`.
 
 #### The order
 
