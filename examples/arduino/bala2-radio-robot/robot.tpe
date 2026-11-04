@@ -18,7 +18,7 @@
    admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
-     - Unit {0}: the empty trace
+     - Unit {skip}: the empty trace
      - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
@@ -301,7 +301,7 @@ let verdict (checked : bool)
 (* Shows the verdict: "At rest", or "Hold still" with the condition failed,
    and the spread, in whole degrees per second, or the angle, in degrees
    with one decimal, right of it. *)
-let show_verdict (v : verdict) : unit ! {ShowTextAt; (ShowNumberAt | 0)} =
+let show_verdict (v : verdict) : unit ! {ShowTextAt; (ShowNumberAt | skip)} =
   match v with
   | Rest -> perform ShowTextAt (0, 100, 2, "At rest")
   | Check -> perform ShowTextAt (0, 100, 2, "Hold still: check")
@@ -347,7 +347,7 @@ type calibrated =
    to 33 ms, and a measurement 517.95 to 571.2 ms. *)
 let rec measure (p : phase) (n : nat) : calibrated
     ! {(ReportStatus; CheckAtRest; (Reading; idle 10)*; ReportStatus;
-        ShowTextAt; (ShowNumberAt | 0); idle 500; ShowTextAt)*;
+        ShowTextAt; (ShowNumberAt | skip); idle 500; ShowTextAt)*;
        ReportStatus; CheckAtRest; (Reading; idle 10)*} =
   report p;
   let rest = perform CheckAtRest () in
@@ -379,7 +379,7 @@ let rec measure (p : phase) (n : nat) : calibrated
 let calibrate () : calibrated
     ! {StopBalancing; ShowTextAt;
        (ReportStatus; CheckAtRest; (Reading; idle 10)*; ReportStatus;
-        ShowTextAt; (ShowNumberAt | 0); idle 500; ShowTextAt)*;
+        ShowTextAt; (ShowNumberAt | skip); idle 500; ShowTextAt)*;
        ReportStatus; CheckAtRest; (Reading; idle 10)*} =
   perform StopBalancing ();
   perform ShowTextAt (0, 100, 2, "Calibrating");
@@ -392,7 +392,7 @@ let calibrate () : calibrated
    is accepted from now on. *)
 let hold (announce : bool) : unit
     ! {ReportStatus; ShowTextAt; idle 500; ReportStatus; idle 500; ShowTextAt;
-       (Beep | 0)} =
+       (Beep | skip)} =
   report Calibrating;
   perform ShowTextAt (0, 100, 2, "Hold upright");
   delay 500;
@@ -469,14 +469,14 @@ let wait_start () : bool ! {(ReceiveMessage; ReportStatus; idle 400)^[1, 500]} =
    a display call, below the 200 ms after which a move expires. *)
 (* Shows "Balancing" again at the first message after the link was reported
    lost. *)
-let restored (silent : nat) : unit ! {ShowTextAt | 0} =
+let restored (silent : nat) : unit ! {ShowTextAt | skip} =
   if silent >= silence_limit then perform ShowTextAt (0, 100, 2, "Balancing")
   else ()
 
 let rec drive (n : nat) (silent : nat) : unit
-    ! {(ReceiveMessage; Move; (ShowTextAt; Beep | ShowTextAt | 0);
+    ! {(ReceiveMessage; Move; (ShowTextAt; Beep | ShowTextAt | skip);
         ReportStatus; idle 12.5)*;
-       (ReceiveMessage; StopBalancing; idle 12.5 | 0)} =
+       (ReceiveMessage; StopBalancing; idle 12.5 | skip)} =
   match n with
   | 0 -> ()
   | m + 1 -> (
@@ -527,16 +527,16 @@ let rec drive (n : nat) (silent : nat) : unit
 let rec session (n : nat) (announce : bool) : unit
     ! {(StopBalancing; ShowTextAt;
         (ReportStatus; CheckAtRest; (Reading; idle 10)*; ReportStatus;
-         ShowTextAt; (ShowNumberAt | 0); idle 500; ShowTextAt)*;
+         ShowTextAt; (ShowNumberAt | skip); idle 500; ShowTextAt)*;
         ReportStatus; CheckAtRest; (Reading; idle 10)*;
         ReportStatus; ShowTextAt; idle 500; ReportStatus; idle 500; ShowTextAt;
-        (Beep | 0); (ReceiveMessage; ReportStatus; idle 400)^[1, 500];
-        (0
+        (Beep | skip); (ReceiveMessage; ReportStatus; idle 400)^[1, 500];
+        (skip
          | LatestTilt;
            (StartBalancing; ShowTextAt;
-            (ReceiveMessage; Move; (ShowTextAt; Beep | ShowTextAt | 0);
+            (ReceiveMessage; Move; (ShowTextAt; Beep | ShowTextAt | skip);
              ReportStatus; idle 12.5)*;
-            (ReceiveMessage; StopBalancing; idle 12.5 | 0); ShowTextAt
+            (ReceiveMessage; StopBalancing; idle 12.5 | skip); ShowTextAt
            | ShowTextAt)))*} =
   match n with
   | 0 -> ()
@@ -561,7 +561,7 @@ let rec session (n : nat) (announce : bool) : unit
 (* Waits until the step has read the unit, at most n polls 10 ms apart: the
    number of the last reading is positive only after the reading of start, which
    follows LinkStart, so that a ReportStatus after it follows LinkStart. *)
-let rec await_link (n : nat) : unit ! {(Reading; idle 10)*; (Reading | 0)} =
+let rec await_link (n : nat) : unit ! {(Reading; idle 10)*; (Reading | skip)} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -586,7 +586,7 @@ let supervise () =
    Start, which may take 203 s, in which the robot may have tipped over;
    the start window demands the reading of the tilt within it:
 
-     Typing error: Variable `starting` is unboxed with the unit grade `{0}`
+     Typing error: Variable `starting` is unboxed with the unit grade `{skip}`
        accumulated since it was bound, which is not below its box grade
        `{LatestTilt; ([0, 1) & ~(Move | ReceiveMessage))}`
        ...

@@ -6,7 +6,7 @@
        examples/regular/upper_bounds.tpe
 
    Grades {...}: regular languages of traces over ticks and operations
-     - Unit {0}: the empty trace
+     - Unit {skip}: the empty trace
      - Top ⊤: every trace
      - Product: concatenation of traces *)
 
@@ -182,13 +182,13 @@ run box {3; _*} "settled" as s in delay 4; unbox s as msg in msg
    that the annotated grade does not contain:
 
      Typing error: This function's body has grade
-       `{Open; Read; (0 | Write); Close}`, which does not match its annotated
+       `{Open; Read; (skip | Write); Close}`, which does not match its annotated
        grade `{Open; Read*; Close}`
        Note: the effect inequality
-         `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not
+         `{Open; Read; (skip | Write); Close} <= {Open; Read*; Close}` does not
          hold
        Note: the grade `{Open; Read; Write; Close}` is below
-         `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
+         `{Open; Read; (skip | Write); Close}` but not below `{Open; Read*; Close}`
 *)
 (*
 let maybe_write (b : bool) : nat ! {Open; Read*; Close} =

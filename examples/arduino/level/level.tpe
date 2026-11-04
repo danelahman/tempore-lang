@@ -16,7 +16,7 @@
    admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
-     - Unit {0}: the empty trace
+     - Unit {skip}: the empty trace
      - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
@@ -220,12 +220,12 @@ let take_unchecked () : reference =
    unchecked, which is plain data. *)
 let step ((reference, age, rate, touching) : state) : state
     ! {ReadImu; ReadTouch;
-       ((ConfigureImu; CheckAtRest; Beep; DrawButton; ReadImu | 0); DrawLevel;
+       ((ConfigureImu; CheckAtRest; Beep; DrawButton; ReadImu | skip); DrawLevel;
         ShowNumberAt; ShowNumberAt; ShowTextAt; (ShowTextAt | ShowTimeAt);
         ShowTextAt
        | (ReadImu; 10)^3; ReadImu; CheckAtRest; Beep;
          (ShowTextAt | ShowTimeAt); ShowTextAt)} =
-  box {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | 0)} reference
+  box {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | skip)} reference
     as kept in
   let accel, _ = perform ReadImu () in
   box {ReadTouch} accel as reading in
@@ -297,7 +297,7 @@ let start () : state =
 *)
 (*
 let step_reconfigured ((reference, age, rate, touching) : state) : state =
-  box {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | 0)} reference
+  box {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | skip)} reference
     as kept in
   let accel, _ = perform ReadImu () in
   let touched, x, y = perform ReadTouch () in

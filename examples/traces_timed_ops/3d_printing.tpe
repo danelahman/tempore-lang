@@ -6,8 +6,8 @@
        examples/traces_timed_ops/3d_printing.tpe
 
    Grades [{...}, {...}]: a lower and an upper bound on the traces
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Unit [{skip}, {skip}]: nothing demanded, only the empty trace allowed
+     - Top [{skip}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
 
 type model = Model of string
@@ -94,7 +94,7 @@ run handle label_print "Sword #1" (Model "Sword") with printer
 (* Correctly rejected by the typechecker: epoxy is not,
      Typing error: `epoxy` is not eternal, but `label_print` needs the type
        of `tag` to be eternal
-       Note: the resource inequality `[{Heat; Extrude; Cool; 4}, {Heat; Extrude; Cool; 4}] <= [{0}, {0}]` does not hold
+       Note: the resource inequality `[{Heat; Extrude; Cool; 4}, {Heat; Extrude; Cool; 4}] <= [{skip}, {skip}]` does not hold
 *)
 (*
 run handle label_print Epoxy (Model "Sword") with printer
@@ -102,7 +102,7 @@ run handle label_print Epoxy (Model "Sword") with printer
 
 (* The item is kept across a step of unknown effect ε₀, so either its type is
    eternal or ε₀ is the unit. Its scheme is ∀ α β ε₀.
-   Et(β) ∨ ∣ε₀∣ ≾ [{0}, {0}] ⇒ (unit → α ! ε₀) → (β → β ! ε₀) *)
+   Et(β) ∨ ∣ε₀∣ ≾ [{skip}, {skip}] ⇒ (unit → α ! ε₀) → (β → β ! ε₀) *)
 let after_preparing prepare item = prepare (); item
 
 (* Correctly accepted by the typechecker: a model is eternal. *)
@@ -115,7 +115,7 @@ run after_preparing (fun () -> ()) Epoxy
 
      Typing error: `epoxy` is not eternal, but `after_preparing` needs the
        type of `item` to be eternal
-       Note: the resource inequality `[{Heat}, {Heat}] <= [{0}, {0}]` does not
+       Note: the resource inequality `[{Heat}, {Heat}] <= [{skip}, {skip}]` does not
          hold
 *)
 (*

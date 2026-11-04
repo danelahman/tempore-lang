@@ -11,7 +11,7 @@
    admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
-     - Unit {0}: the empty trace
+     - Unit {skip}: the empty trace
      - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 

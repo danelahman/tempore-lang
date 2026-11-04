@@ -7,7 +7,7 @@
 
    Grades {...}: regular languages of traces with rational durations in the
    allowance order
-     - Unit {0}: the empty trace, the least grade
+     - Unit {skip}: the empty trace, the least grade
      - Top ⊤: every trace permitted
      - Product: concatenation of traces *)
 

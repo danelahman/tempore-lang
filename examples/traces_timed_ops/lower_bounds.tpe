@@ -6,8 +6,8 @@
        examples/traces_timed_ops/lower_bounds.tpe
 
    Grades {...}: traces a computation must cover
-     - Unit {0}: the empty trace
-     - Top {0}: the empty trace, demanding nothing; the unit is the top
+     - Unit {skip}: the empty trace
+     - Top {skip}: the empty trace, demanding nothing; the unit is the top
      - Product: concatenation of traces *)
 
 type model = Model of string
@@ -336,9 +336,9 @@ let deliver_stall =
 (* Correctly rejected by the typechecker: a clause that drops the message
    altogether banks nothing towards the transmission 'Deliver' promises:
 
-     Typing error: Variable `k` is unboxed with the unit grade `{0}` accumulated
+     Typing error: Variable `k` is unboxed with the unit grade `{skip}` accumulated
        since it was bound, which is not below its box grade `{Tx | Tx; Tx}`
-       Note: the resource inequality `{0} <= {Tx | Tx; Tx}` does not
+       Note: the resource inequality `{skip} <= {Tx | Tx; Tx}` does not
          hold
 *)
 (*
@@ -352,9 +352,9 @@ let deliver_drop =
    the extrusion, so the three ticks the extruder banks are spent before the
    glue exists, and nothing at all is banked towards the three it needs to set:
 
-     Typing error: Variable `glue` is unboxed with the unit grade `{0}`
+     Typing error: Variable `glue` is unboxed with the unit grade `{skip}`
        accumulated since it was bound, which is not below its box grade `{3}`
-       Note: the resource inequality `{0} <= {3}` does not hold
+       Note: the resource inequality `{skip} <= {3}` does not hold
 *)
 (*
 let extrude_layer_slow h =

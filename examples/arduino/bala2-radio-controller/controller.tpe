@@ -18,7 +18,7 @@
    admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
-     - Unit {0}: the empty trace
+     - Unit {skip}: the empty trace
      - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
@@ -238,8 +238,8 @@ let show_guide (g : guide) =
 let rec idle (n : nat) (dim : bool) (shown : guide) (heard : guide)
     (age : nat) : bool * guide
     ! {(ReadTouch; SendBeat; ReceiveMessage;
-        (DrawLevel | ShowColourTextAt | 0); idle 21/2)*;
-       (ReadTouch | 0)} =
+        (DrawLevel | ShowColourTextAt | skip); idle 21/2)*;
+       (ReadTouch | skip)} =
   match n with
   | 0 -> (false, shown)
   | m + 1 ->
@@ -300,9 +300,9 @@ let rec balancing (n : nat)
     ((link_shown, shown_tilt, bubble_next, guide_shown) : view)
     (zero : neutral) (latest : latest_status) : view
     ! {(ReadImu; ReadTouch; (SendDrive | SendBeat);
-        (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | 0);
+        (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | skip);
         idle 21/2; ReceiveMessage)*;
-       (ReadImu; ReadTouch | 0)} =
+       (ReadImu; ReadTouch | skip)} =
   match n with
   | 0 -> (link_shown, shown_tilt, bubble_next, guide_shown)
   | m + 1 ->
@@ -362,19 +362,19 @@ let rec balancing (n : nat)
 let rec session (n : nat)
     ((link_shown, shown_tilt, bubble_next, guide_shown) : view) : unit
     ! {((ReadTouch; SendBeat; ReceiveMessage;
-         (DrawLevel | ShowColourTextAt | 0); idle 21/2)*;
-        (ReadTouch | 0);
+         (DrawLevel | ShowColourTextAt | skip); idle 21/2)*;
+        (ReadTouch | skip);
         Beep; ReadImu; (SendStart; idle 25/2)^80; SendStart; idle 25/2;
         ReceiveMessage;
         (SendStart; idle 25/2; ReceiveMessage)*;
         (ReadImu; ReadTouch; (SendDrive | SendBeat);
-         (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | 0);
+         (ShowTextAt | ShowNumberAt | DrawLevel | ShowColourTextAt | skip);
          idle 21/2; ReceiveMessage)*;
-        (ReadImu; ReadTouch | 0); Beep; (SendStop; idle 25/2)^20; ShowTextAt)*;
+        (ReadImu; ReadTouch | skip); Beep; (SendStop; idle 25/2)^20; ShowTextAt)*;
        ((ReadTouch; SendBeat; ReceiveMessage;
-         (DrawLevel | ShowColourTextAt | 0); idle 21/2)*;
-        (ReadTouch | 0)
-       | 0)} =
+         (DrawLevel | ShowColourTextAt | skip); idle 21/2)*;
+        (ReadTouch | skip)
+       | skip)} =
   match n with
   | 0 -> ()
   | m + 1 ->

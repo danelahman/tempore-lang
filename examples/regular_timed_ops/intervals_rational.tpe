@@ -8,8 +8,8 @@
 
    Grades [L, U]: a lower and upper regular-language bound on the traces with
    rational durations
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Unit [{skip}, {skip}]: nothing demanded, only the empty trace allowed
+     - Top [{skip}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
 
 type reading = Reading of nat

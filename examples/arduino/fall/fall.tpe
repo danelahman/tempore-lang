@@ -16,7 +16,7 @@
    admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
-     - Unit {0}: the empty trace
+     - Unit {skip}: the empty trace
      - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
@@ -90,7 +90,7 @@ let confirm () : bool ! {(idle 10; ReadImu)^10} =
 
 (* A reading 10 ms after the last unless an impact was found: the greatest
    magnitude so far. *)
-let strike (peak : float) : float ! {0 | idle 10; ReadImu} =
+let strike (peak : float) : float ! {skip | idle 10; ReadImu} =
   if peak > impact then peak
   else (
     delay 10;
@@ -98,7 +98,7 @@ let strike (peak : float) : float ! {0 | idle 10; ReadImu} =
     if a > peak then a else peak)
 
 (* Up to ten readings 10 ms apart, until an impact: at most 115 ms. *)
-let strikes (peak : float) : float ! {(0 | idle 10; ReadImu)^10} =
+let strikes (peak : float) : float ! {(skip | idle 10; ReadImu)^10} =
   let peak = strike peak in
   let peak = strike peak in
   let peak = strike peak in
@@ -189,7 +189,7 @@ let cancel () =
    else. *)
 let rec alarm (n : nat) (seconds : nat) : unit
     ! {((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
-       (0 | (ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)} =
+       (skip | (ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -377,7 +377,7 @@ let suspect_rated (first : float) =
 (*
 let rec alarm_even (n : nat) (seconds : nat) : unit
     ! {((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
-       (0 | (ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)} =
+       (skip | (ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)} =
   match n with
   | 0 -> ()
   | m + 1 ->

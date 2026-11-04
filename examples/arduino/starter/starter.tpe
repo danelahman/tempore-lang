@@ -16,7 +16,7 @@
    admit operations within their time, strict waits `idle` admit none, a
    literal is read by its hull on each side, and operations take positive
    time
-     - Unit {0}: the empty trace
+     - Unit {skip}: the empty trace
      - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
@@ -162,7 +162,7 @@ let moved (m : float) (w : float) ((_, _, lo, hi, _, _) : sense) =
 (* A slow poll unless the hold is over, the block moved or Stand up was
    tapped, with the optional polls left. *)
 let poll_more (m : float) (w : float) ((s, left) : sense * nat) : sense * nat
-    ! {0 | 19.5; ReadImu; ReadTouch} =
+    ! {skip | 19.5; ReadImu; ReadTouch} =
   if left = 0 || stood s || moved m w s then (s, left)
   else (poll_slow s, left - 1)
 
@@ -196,7 +196,7 @@ let fifty_more (m : float) (w : float) (s : sense * nat) : sense * nat
    only from a reading whose time was read at once, with no operation
    between. *)
 let poll_fast (m : float) (w : float) ((found, at) : bool * nat) : bool * nat
-    ! {0 | idle 2.5; ReadImu; ReadClock} =
+    ! {skip | idle 2.5; ReadImu; ReadClock} =
   if found then (found, at)
   else (
     delay 5/2;
@@ -208,7 +208,7 @@ let poll_fast (m : float) (w : float) ((found, at) : bool * nat) : bool * nat
 
 (* Ten fast polls, until the push: up to 40.5 ms. *)
 let ten_fast (m : float) (w : float) (r : bool * nat) : bool * nat
-    ! {(0 | idle 2.5; ReadImu; ReadClock)^10} =
+    ! {(skip | idle 2.5; ReadImu; ReadClock)^10} =
   let r = poll_fast m w r in
   let r = poll_fast m w r in
   let r = poll_fast m w r in
@@ -223,7 +223,7 @@ let ten_fast (m : float) (w : float) (r : bool * nat) : bool * nat
 
 (* Fifty fast polls, until the push: up to 202.5 ms. *)
 let fifty_fast (m : float) (w : float) (r : bool * nat) : bool * nat
-    ! {(0 | idle 2.5; ReadImu; ReadClock)^50} =
+    ! {(skip | idle 2.5; ReadImu; ReadClock)^50} =
   let r = ten_fast m w r in
   let r = ten_fast m w r in
   let r = ten_fast m w r in
@@ -234,7 +234,7 @@ let fifty_fast (m : float) (w : float) (r : bool * nat) : bool * nat
 (* Two hundred fast polls, until the push: a push is found within 4.05 ms of
    its start, and no push declared 540 to 810 ms after the first poll. *)
 let react (m : float) (w : float) : bool * nat
-    ! {(0 | idle 2.5; ReadImu; ReadClock)^200} =
+    ! {(skip | idle 2.5; ReadImu; ReadClock)^200} =
   let r = fifty_fast m w (false, 0) in
   let r = fifty_fast m w r in
   let r = fifty_fast m w r in
@@ -346,9 +346,9 @@ let fire_shown (gun : at_gun) (m : float) (w : float) : outcome
 let start_once (a : athlete) : outcome
     ! {ShowColourTextAt; ShowColourTextAt; DrawButton; DrawButton;
        [197, 1347];
-       (0
+       (skip
        | ShowColourTextAt; ShowColourTextAt; Beep; ReadClock; [197, 2918.5];
-         (0 | Beep; ReadClock; [0, 810]))} =
+         (skip | Beep; ReadClock; [0, 810]))} =
   let mark = marks a in
   perform ShowColourTextAt (0, 40, 3, black, white, "ON YOUR MARKS");
   perform ShowColourTextAt (0, 70, 2, black, white, "Settle for 1 s");

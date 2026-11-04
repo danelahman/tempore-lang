@@ -6,8 +6,8 @@
        examples/traces_timed_ops/intervals.tpe
 
    Grades [{...}, {...}]: a lower and an upper bound on the traces
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Unit [{skip}, {skip}]: nothing demanded, only the empty trace allowed
+     - Top [{skip}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
 
 type model = Model of string
@@ -342,7 +342,7 @@ let print_sword_impatient () =
 
      Typing error: Variable `g` is used with grade `[{1}, {1}]` accumulated
        since it was bound, but its type `epoxy` is not eternal
-       Note: the resource inequality `[{1}, {1}] <= [{0}, {0}]` does not hold
+       Note: the resource inequality `[{1}, {1}] <= [{skip}, {skip}]` does not hold
 *)
 (*
 let print_sword_hasty () =
@@ -382,10 +382,10 @@ let make_cog_impatient () =
    the extrusion, so nothing at all is banked towards the three ticks it needs
    to set by the time it is unboxed:
 
-     Typing error: Variable `glue` is unboxed with the unit grade `[{0}, {0}]`
+     Typing error: Variable `glue` is unboxed with the unit grade `[{skip}, {skip}]`
        accumulated since it was bound, which is not below its box grade
        `[{3}, {7}]`
-       Note: the resource inequality `[{0}, {0}] <= [{3}, {7}]` does not hold
+       Note: the resource inequality `[{skip}, {skip}] <= [{3}, {7}]` does not hold
 *)
 (*
 let make_cog_lazy () =

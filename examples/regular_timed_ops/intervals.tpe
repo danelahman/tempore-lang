@@ -6,8 +6,8 @@
        examples/regular_timed_ops/intervals.tpe
 
    Grades [L, U]: a lower and upper regular-language bound on the traces
-     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
-     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Unit [{skip}, {skip}]: nothing demanded, only the empty trace allowed
+     - Top [{skip}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
 
 type part = Part of string
