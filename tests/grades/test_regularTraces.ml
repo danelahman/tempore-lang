@@ -135,8 +135,8 @@ let rec unroll = function
   | Grade.Star r -> Grade.Star (unroll r)
   | Grade.Compl r -> Grade.Compl (unroll r)
   | Grade.Strict r -> Grade.Strict (unroll r)
-  | ( Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _ | Grade.Any
-    | Grade.Below _ | Grade.Above _ ) as r ->
+  | ( Grade.Letter _ | Grade.Skip | Grade.Tick _ | Grade.Frac _ | Grade.Delays _
+    | Grade.Any | Grade.Below _ | Grade.Above _ ) as r ->
       r
 
 (* Random expressions with bounded repetitions over the names [A] and [B]. *)
@@ -161,6 +161,7 @@ let splits w =
 let rec matches r w =
   match r with
   | Grade.Letter name -> w = [ Op name ]
+  | Grade.Skip -> w = []
   | Grade.Tick n -> w = List.init n (fun _ -> T)
   | Grade.Frac _ -> false
   | Grade.Delays (lo, hi) ->
@@ -291,7 +292,9 @@ struct
       reads "{Read | Send}" ~expected:"{Read | Send}";
       reads "{Open; (Read | Write)*; Close}"
         ~expected:"{Open; (Read | Write)*; Close}";
-      reads "{0}" ~expected:"{0}";
+      reads "{0}" ~expected:"{skip}";
+      reads "{skip}" ~expected:"{skip}";
+      reads "{Read | skip}" ~expected:"{skip | Read}";
       reads "3" ~expected:"{3}";
       reads "⊤" ~expected:"⊤";
       reads "top" ~expected:"⊤";
@@ -374,7 +377,9 @@ struct
       same_lit "{1; (1; 1)*}" "{(1; 1)*; 1}";
       same_lit "{~(~(A*) | ~((A; A)*))}" "{(A; A)*}";
       same_lit "{(A | B | C) & ~C}" "{A | B}";
-      same_lit "{(A | 0); (B | 0)}" "{0 | A | B | A; B}";
+      same_lit "{(A | skip); (B | skip)}" "{skip | A | B | A; B}";
+      same_lit "{skip}" "{0}";
+      same_lit "{A | skip}" "{A?}";
       expect "redundant names are dropped" show_names ~expected:[]
         (G.events (lit "{_ & ~A | A}"));
       expect "distinguished names are kept" show_names ~expected:[ "A" ]
@@ -458,7 +463,7 @@ struct
           | Concrete -> "regex-upper-bound-symbolic-by-letters"
           | Plain -> "regex-upper-bound-letter-derivatives")
         G.name;
-      expect_grade "unit" ~expected:(lit "{0}") G.one;
+      expect_grade "unit" ~expected:(lit "{skip}") G.one;
       expect_grade "of_delay" ~expected:(lit "{4}") (G.of_delay 4);
       expect "unit least" show_bool ~expected:false G.unit_least;
       expect "commutative" show_bool ~expected:false G.commutative;
@@ -534,7 +539,7 @@ struct
     in
     [
       same_lit "{A^3}" "{A; A; A}";
-      same_lit "{A^0}" "{0}";
+      same_lit "{A^0}" "{skip}";
       same_lit "{A^1}" "{A}";
       same_lit "{A^[0, ∞)}" "{A*}";
       same_lit "{A^[2, inf)}" "{A; A; A*}";
@@ -543,14 +548,14 @@ struct
       same_lit "{A^(0, 2]}" "{A | A; A}";
       same_lit "{(A; 2)^2; B}" "{A; 2; A; 2; B}";
       same_lit "{A^2*}" "{(A; A)*}";
-      same_lit "{(A | 0)^3}" "{(A | 0); (A | 0); (A | 0)}";
+      same_lit "{(A | skip)^3}" "{(A | skip); (A | skip); (A | skip)}";
       same_lit "{(A^2)^[1, 3]}" "{A^[2, 6] & (A; A)*}";
       same_lit "{1^4; A}" "{4; A}";
       reads "{A; A; A}" ~expected:"{A^3}";
       reads "{A^2; A; B; B}" ~expected:"{A^3; B^2}";
       reads "{(A; B)^3}" ~expected:"{(A; B)^3}";
-      reads "{(A | 0)^3}" ~expected:"{(0 | A)^3}";
-      reads "{(A | 0)^[1, 3]}" ~expected:"{(0 | A)^3}";
+      reads "{(A | skip)^3}" ~expected:"{(skip | A)^3}";
+      reads "{(A | skip)^[1, 3]}" ~expected:"{(skip | A)^3}";
       reads "{A^[2, ∞)}" ~expected:"{A^[2, ∞)}";
       reads "{A^2 | A^3}" ~expected:"{A^[2, 3]}";
       reads "{A^2 | A^4}" ~expected:"{A^2 | A^4}";

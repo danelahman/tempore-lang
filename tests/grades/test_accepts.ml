@@ -96,8 +96,8 @@ let rec width = function
       | a, Some b -> b - a
       | _, None -> 0
       | exception Grade.Invalid_literal _ -> 0)
-  | Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Any | Grade.Below _
-  | Grade.Above _ ->
+  | Grade.Letter _ | Grade.Skip | Grade.Tick _ | Grade.Frac _ | Grade.Any
+  | Grade.Below _ | Grade.Above _ ->
       0
   | Grade.Seq (r, s) | Grade.Union (r, s) | Grade.Inter (r, s) ->
       max (width r) (width s)

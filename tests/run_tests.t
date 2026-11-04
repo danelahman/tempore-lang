@@ -1930,7 +1930,7 @@ it names none:
   State: []
   
   === Run 5 ===
-  return 42
+  return 50
   State: []
   
   === Run 6 ===
@@ -1942,7 +1942,7 @@ it names none:
   State: []
   
   === Run 8 ===
-  return 11259375
+  return 42
   State: []
   
   === Run 9 ===
@@ -1950,7 +1950,7 @@ it names none:
   State: []
   
   === Run 10 ===
-  return 32072
+  return 11259375
   State: []
   
   === Run 11 ===
@@ -1958,22 +1958,26 @@ it names none:
   State: []
   
   === Run 12 ===
-  return 3.141592
+  return 32072
   State: []
   
   === Run 13 ===
-  return 4.141592
+  return 3.141592
   State: []
   
   === Run 14 ===
-  return -5.1592
+  return 4.141592
   State: []
   
   === Run 15 ===
-  return 6.1592
+  return -5.1592
   State: []
   
   === Run 16 ===
+  return 6.1592
+  State: []
+  
+  === Run 17 ===
   return -3.14
   State: []
   
@@ -2154,34 +2158,52 @@ it names none:
   === Run 11 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {0} }
+    { resource_0 ↦ 1 ! {skip} }
   ]
   
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 1; (0 | 1)^2; Send} }
+    { resource_0 ↦ 1 ! {skip} }
   ]
   
   === Run 13 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 2; (0 | 1); Send} }
+    { resource_0 ↦ 1 ! {skip | Read} }
   ]
   
   === Run 14 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 2; 1*} }
+    { resource_0 ↦ 1 ! {skip | Read} }
   ]
   
   === Run 15 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {2; (0 | 1; (0 | 1))} }
+    { resource_0 ↦ 1 ! {Read; 1; (skip | 1)^2; Send} }
   ]
   
   === Run 16 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {Read; 2; (skip | 1); Send} }
+  ]
+  
+  === Run 17 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {Read; 2; 1*} }
+  ]
+  
+  === Run 18 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {2; (skip | 1; (skip | 1))} }
+  ]
+  
+  === Run 19 ===
   return 0
   State: [
     { resource_0 ↦ 1 ! ⊤ }
@@ -2568,7 +2590,7 @@ it names none:
   === Run 1 ===
   return "any run"
   State: [
-    { resource_0 ↦ "any run" ! [{0}, ∞) },
+    { resource_0 ↦ "any run" ! [{skip}, ∞) },
     [{1}, {1}],
     [{3}, {3}]
   ]
@@ -3848,7 +3870,7 @@ it names none:
   File "recursion_effect_reject_unannotated_regular.tpe", lines 16-21, characters 20-19:
   16 | let rec unannotated (n : nat) =
                            ^^^^^^^^^^^
-  Typing error: The effect inequality `{Read} <= {0}` does not hold
+  Typing error: The effect inequality `{Read} <= {skip}` does not hold
   ======================================================================
   recursion_effect_upper.tpe
   ======================================================================
@@ -4897,9 +4919,9 @@ it names none:
   File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
   18 | let session (b : bool) : nat ! {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
-    Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
-    Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
+  Typing error: This function's body has grade `{Open; Read; (skip | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
+    Note: the effect inequality `{Open; Read; (skip | Write); Close} <= {Open; Read*; Close}` does not hold
+    Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (skip | Write); Close}` but not below `{Open; Read*; Close}`
   
   File "regular_reject_counterexample.tpe", lines 29-30, characters 2-5:
   29 |   unbox t as tok in
@@ -6749,34 +6771,52 @@ automata, 'regex-upper-bound-letter-automata':
   === Run 11 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {0} }
+    { resource_0 ↦ 1 ! {skip} }
   ]
   
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 1; (0 | 1)^2; Send} }
+    { resource_0 ↦ 1 ! {skip} }
   ]
   
   === Run 13 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 2; (0 | 1); Send} }
+    { resource_0 ↦ 1 ! {skip | Read} }
   ]
   
   === Run 14 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 2; 1*} }
+    { resource_0 ↦ 1 ! {skip | Read} }
   ]
   
   === Run 15 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {2; (0 | 1; (0 | 1))} }
+    { resource_0 ↦ 1 ! {Read; 1; (skip | 1)^2; Send} }
   ]
   
   === Run 16 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {Read; 2; (skip | 1); Send} }
+  ]
+  
+  === Run 17 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {Read; 2; 1*} }
+  ]
+  
+  === Run 18 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {2; (skip | 1; (skip | 1))} }
+  ]
+  
+  === Run 19 ===
   return 0
   State: [
     { resource_0 ↦ 1 ! ⊤ }
@@ -6856,9 +6896,9 @@ automata, 'regex-upper-bound-letter-automata':
   File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
   18 | let session (b : bool) : nat ! {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
-    Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
-    Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
+  Typing error: This function's body has grade `{Open; Read; (skip | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
+    Note: the effect inequality `{Open; Read; (skip | Write); Close} <= {Open; Read*; Close}` does not hold
+    Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (skip | Write); Close}` but not below `{Open; Read*; Close}`
   
   File "regular_reject_counterexample.tpe", lines 29-30, characters 2-5:
   29 |   unbox t as tok in
@@ -7849,34 +7889,52 @@ the rigid grades excepted:
   === Run 11 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {0} }
+    { resource_0 ↦ 1 ! {skip} }
   ]
   
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 1; (0 | 1)^2; Send} }
+    { resource_0 ↦ 1 ! {skip} }
   ]
   
   === Run 13 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 2; (0 | 1); Send} }
+    { resource_0 ↦ 1 ! {skip | Read} }
   ]
   
   === Run 14 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 2; 1*} }
+    { resource_0 ↦ 1 ! {skip | Read} }
   ]
   
   === Run 15 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {2; (0 | 1; (0 | 1))} }
+    { resource_0 ↦ 1 ! {Read; 1; (skip | 1)^2; Send} }
   ]
   
   === Run 16 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {Read; 2; (skip | 1); Send} }
+  ]
+  
+  === Run 17 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {Read; 2; 1*} }
+  ]
+  
+  === Run 18 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {2; (skip | 1; (skip | 1))} }
+  ]
+  
+  === Run 19 ===
   return 0
   State: [
     { resource_0 ↦ 1 ! ⊤ }
@@ -7948,34 +8006,52 @@ the rigid grades excepted:
   === Run 11 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {0} }
+    { resource_0 ↦ 1 ! {skip} }
   ]
   
   === Run 12 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 1; (0 | 1)^2; Send} }
+    { resource_0 ↦ 1 ! {skip} }
   ]
   
   === Run 13 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 2; (0 | 1); Send} }
+    { resource_0 ↦ 1 ! {skip | Read} }
   ]
   
   === Run 14 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {Read; 2; 1*} }
+    { resource_0 ↦ 1 ! {skip | Read} }
   ]
   
   === Run 15 ===
   return 0
   State: [
-    { resource_0 ↦ 1 ! {2; (0 | 1; (0 | 1))} }
+    { resource_0 ↦ 1 ! {Read; 1; (skip | 1)^2; Send} }
   ]
   
   === Run 16 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {Read; 2; (skip | 1); Send} }
+  ]
+  
+  === Run 17 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {Read; 2; 1*} }
+  ]
+  
+  === Run 18 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 ! {2; (skip | 1; (skip | 1))} }
+  ]
+  
+  === Run 19 ===
   return 0
   State: [
     { resource_0 ↦ 1 ! ⊤ }
@@ -8123,9 +8199,9 @@ the rigid grades excepted:
   File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
   18 | let session (b : bool) : nat ! {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
-    Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
-    Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
+  Typing error: This function's body has grade `{Open; Read; (skip | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
+    Note: the effect inequality `{Open; Read; (skip | Write); Close} <= {Open; Read*; Close}` does not hold
+    Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (skip | Write); Close}` but not below `{Open; Read*; Close}`
   
   File "regular_reject_counterexample.tpe", lines 29-30, characters 2-5:
   29 |   unbox t as tok in
@@ -8147,9 +8223,9 @@ the rigid grades excepted:
   File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
   18 | let session (b : bool) : nat ! {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
-    Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
-    Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
+  Typing error: This function's body has grade `{Open; Read; (skip | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
+    Note: the effect inequality `{Open; Read; (skip | Write); Close} <= {Open; Read*; Close}` does not hold
+    Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (skip | Write); Close}` but not below `{Open; Read*; Close}`
   
   File "regular_reject_counterexample.tpe", lines 29-30, characters 2-5:
   29 |   unbox t as tok in

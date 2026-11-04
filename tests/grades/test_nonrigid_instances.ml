@@ -97,7 +97,7 @@ let rec perturb ~whole ~finite r =
   match r with
   | Grade.Letter _ -> (
       match Random.int 6 with
-      | 0 -> Grade.Tick 0
+      | 0 -> Grade.Skip
       | 1 -> Grade.Seq (r, delays ~whole ~finite ())
       | 2 -> letter ~whole ~finite ()
       | _ -> r)
@@ -138,12 +138,13 @@ let rec structural letter = function
   | Grade.Union (a, b) -> Grade.Union (structural letter a, structural letter b)
   | Grade.Star a -> Grade.Star (structural letter a)
   | Grade.Repeat (a, c) -> Grade.Repeat (structural letter a, c)
+  | Grade.Skip -> Grade.Skip
   | r -> letter r
 
 (* The upper translation: [A ↦ A?], [D ↦ ≤ sup D]. *)
 let upper =
   structural (function
-    | Grade.Letter _ as a -> Grade.Union (a, Grade.Tick 0)
+    | Grade.Letter _ as a -> Grade.Union (a, Grade.Skip)
     | d -> Grade.Below (supremum d))
 
 let flank = Grade.Above (Grade.Closed Rat.zero)
@@ -211,8 +212,8 @@ let combine op x y =
   | _ -> invalid_arg "combine"
 
 let unit_literal = function
-  | Interval -> Ends (Grade.Tick 0, Grade.Tick 0)
-  | _ -> One (Grade.Tick 0)
+  | Interval -> Ends (Grade.Skip, Grade.Skip)
+  | _ -> One Grade.Skip
 
 (* [run f n] checks the family [f] on [n] random pairs. *)
 let run f n =
@@ -268,8 +269,7 @@ let run f n =
         check
           (name "unit to the top and the unit")
           (nr_unit
-          && R.equal bounds r_one
-               (R.of_lit (lit_of (Ends (flank, Grade.Tick 0))))
+          && R.equal bounds r_one (R.of_lit (lit_of (Ends (flank, Grade.Skip))))
           && R.leq bounds R.one r_one
           && not (R.equal bounds R.one r_one))
           (R.show r_one)

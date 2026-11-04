@@ -972,11 +972,17 @@ let literals =
       (Tuple [ Name "Low"; Int 3 ])
       "not pairs";
     rejects "integer" time_interval (Int 3) "not plain integers";
-    reads "top" traces_lower Top "{0}";
+    reads "top" traces_lower Top "{skip}";
     reads "sequences" traces_lower
       (Braces (union (seq send (Tick 3)) (Letter "Read")))
       "{Read | Send; 3}";
     reads "top" traces_upper Top "⊤";
+    reads "the empty trace" traces_upper
+      (Braces (union send Skip))
+      "{skip | Send}";
+    reads "the empty trace and the delay 0" traces_upper
+      (Braces (union (seq send Skip) (Tick 0)))
+      "{skip | Send}";
     reads "concatenation of a union" traces_upper
       (Braces (seq (union send (Tick 2)) (Tick 1)))
       "{Send; 1 | 3}";
@@ -985,7 +991,7 @@ let literals =
     rejects "complement" traces_upper (Braces (Compl send)) "`~`";
     rejects "wildcard" traces_upper (Braces (seq Any send)) "`_`";
     rejects "pair" traces_upper (Tuple [ Int 1; Int 2 ]) "not pairs";
-    reads "top" traces_interval Top "[{0}, ∞)";
+    reads "top" traces_interval Top "[{skip}, ∞)";
     reads "unbounded upper component" traces_interval (span (Braces send) Inf)
       "[{Send}, ∞)";
     reads "top upper component" traces_interval
@@ -2569,7 +2575,8 @@ let registered_repetitions =
     | Star r -> Star (unroll r)
     | Compl r -> Compl (unroll r)
     | Strict r -> Strict (unroll r)
-    | (Letter _ | Tick _ | Frac _ | Delays _ | Any | Below _ | Above _) as r ->
+    | (Letter _ | Skip | Tick _ | Frac _ | Delays _ | Any | Below _ | Above _)
+      as r ->
         r
   in
   let a = Letter "A" and b = Letter "B" and c = Letter "C" in
@@ -2581,7 +2588,7 @@ let registered_repetitions =
       Repeat (a, count 2 None);
       Repeat (Seq (Strict (Tick 1), a), count 2 (Some 2));
       Repeat (Seq (Repeat (a, count 2 (Some 2)), b), count 2 (Some 2));
-      Repeat (Union (Tick 0, Seq (a, b)), count 4 (Some 4));
+      Repeat (Union (Skip, Seq (a, b)), count 4 (Some 4));
       Repeat (Seq (Frac (Rational.make 1 2), a), count 3 (Some 3));
       Seq (Repeat (Union (Tick 1, a), count 0 (Some 3)), Tick 2);
       Union
@@ -2981,6 +2988,12 @@ let interval_letter_laws =
         ("{idle 1; (1 & A)}", "{(1 & A); idle 1}")
         ("{idle 1; (1 & (A | C))}", "{(1 & A); idle 1}")
         true;
+      leq "skip below the delay 0" "{skip}" "{0}" true;
+      leq "the delay 0 below skip" "{0}" "{skip}" true;
+      leq "an optional operation below a union with skip" "{A?}" "{A | skip}"
+        true;
+      leq "a union with skip below an optional operation" "{A | skip}" "{A?}"
+        true;
       check
         (M.name ^ ": delays are a monoid morphism")
         (M.equal running_times
@@ -2991,7 +3004,7 @@ let interval_letter_laws =
       check
         (M.name ^ ": the unit is below a budget")
         (M.leq running_times M.one (lit "{3}"))
-        "{0} <= {3}";
+        "{skip} <= {3}";
     ]
     @ List.map
         (fun (name, p, b, expected) -> leq name (braces p) (braces b) expected)
@@ -3021,7 +3034,7 @@ let interval_letter_laws =
       leq "F4 premise fails" "{1; idle 1}" "{idle 1}" false;
       product "F4: {1; idle 1}·{1; idle 1} <= {1; idle 2}"
         ("{1; idle 1}", "{1; idle 1}")
-        ("{1; idle 2}", "{0}") false;
+        ("{1; idle 2}", "{skip}") false;
       check
         (M.name ^ ": delays are a monoid morphism")
         (M.equal running_times
@@ -3031,8 +3044,15 @@ let interval_letter_laws =
       check
         (M.name ^ ": the unit is not the top")
         (not (M.is_top running_times M.one))
-        "{0}";
+        "{skip}";
       check (M.name ^ ": the top") (M.is_top running_times (lit "{≥0}")) "{≥0}";
+      leq "skip below the delay 0, the stretch ≥0" "{skip}" "{0}" true;
+      leq "the delay 0, the stretch ≥0, not below skip" "{0}" "{skip}" false;
+      leq "the delay 0 is the stretch ≥0" "{≥0}" "{0}" true;
+      leq "an optional operation below a union with skip" "{A?}" "{A | skip}"
+        true;
+      leq "a union with skip below an optional operation" "{A | skip}" "{A?}"
+        true;
       leq "no flank" "{A; idle 5; C; B}" "{A; idle 5; B}" false;
       leq "window rule: both sets" "{C}" "{(1 & C); (1 & (A | C))}" true;
       leq "window rule: a set without it" "{C}" "{(1 & C); (1 & A)}" false;
@@ -3742,7 +3762,7 @@ let resource_laws =
 
 (* The printed grades of the interval grades of timed operations, on their
    samples, read back as equal grades: a lower bound of all traces prints as '⊤'
-   and reads back as the top '{0}' of the lower order, equal to it. *)
+   and reads back as the top '{skip}' of the lower order, equal to it. *)
 let interval_read_back =
   List.concat_map
     (fun (name, (module G : Grade.S)) ->

@@ -252,15 +252,15 @@ let rec to_regex e =
             if hi_open then Grade.Open (q h) else Grade.Closed (q h) )
   in
   let fold = function
-    | [] -> Grade.Tick 0
+    | [] -> Grade.Skip
     | x :: xs -> List.fold_left (fun a b -> Grade.Union (a, b)) x xs
   in
   let seq = function
-    | [] -> Grade.Tick 0
+    | [] -> Grade.Skip
     | x :: xs -> List.fold_left (fun a b -> Grade.Seq (a, b)) x xs
   in
   match e with
-  | R.Eps -> Grade.Tick 0
+  | R.Eps -> Grade.Skip
   | R.Empty -> Grade.Inter (Grade.Letter "A", Grade.Letter "B")
   | R.Letter (R.Op names) -> fold (List.map (fun n -> Grade.Letter n) names)
   | R.Letter (R.Stretch (R.Names [], iv)) -> Grade.Strict (interval iv)

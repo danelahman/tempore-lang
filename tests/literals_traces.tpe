@@ -2,7 +2,7 @@
 
      ./tempore --grades traces-timed-interval tests/literals_traces.tpe
 
-   The top '⊤' (ASCII 'top') under traces-timed-interval is '[{0}, ∞)', an
+   The top '⊤' (ASCII 'top') under traces-timed-interval is '[{skip}, ∞)', an
    interval unbounded above. *)
 
 operation Send : unit ~> unit ! {Send} within [1, 2]

@@ -75,11 +75,11 @@ let rec to_regex ~grid e =
             if hi_open then Grade.Open (q h) else Grade.Closed (q h) )
   in
   let fold f = function
-    | [] -> Grade.Tick 0
+    | [] -> Grade.Skip
     | x :: xs -> List.fold_left (fun acc x -> f acc x) x xs
   in
   match e with
-  | R.Eps -> Grade.Tick 0
+  | R.Eps -> Grade.Skip
   | R.Empty -> Grade.Inter (Grade.Letter "A", Grade.Letter "B")
   | R.Letter (R.Op names) ->
       fold

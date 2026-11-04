@@ -232,6 +232,8 @@ let laws =
     is "(0, ∞)* = [0, ∞)" (same "{(0, ∞)*}" "{[0, ∞)}");
     is "2* & 3* = 6*" (same "{2* & 3*}" "{6*}");
     is "the unit is 0" (same "{0}" "{[0, 0]}");
+    is "the unit is skip" (same "{skip}" "{0}");
+    is "skip is the empty alternative" (same "{A | skip}" "{A?}");
     is "~~(A; [0, 1)) = A; [0, 1)" (same "{~~(A; [0, 1))}" "{A; [0, 1)}");
     is "De Morgan" (same "{~(A | (2, ∞))}" "{~A & ~(2, ∞)}");
     is "_* ; A ; _* holds every word with an A"
@@ -465,6 +467,7 @@ let matches r w =
     in
     match r with
     | Grade.Letter a -> operation () = Some a
+    | Grade.Skip -> delay () = Some Rational.zero
     | Grade.Tick m -> delay () = Some (qi m)
     | Grade.Frac p -> delay () = Some p
     | Grade.Delays (lo, hi) -> (
@@ -573,7 +576,7 @@ let rec iota = function
   | Grade.Star r -> Grade.Star (iota r)
   | Grade.Repeat (r, c) -> Grade.Repeat (iota r, c)
   | Grade.Strict r -> Grade.Strict (iota r)
-  | ( Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _
+  | ( Grade.Letter _ | Grade.Skip | Grade.Tick _ | Grade.Frac _ | Grade.Delays _
     | Grade.Below _ | Grade.Above _ ) as r ->
       r
 
@@ -780,8 +783,8 @@ let rec unroll = function
   | Grade.Star r -> Grade.Star (unroll r)
   | Grade.Compl r -> Grade.Compl (unroll r)
   | Grade.Strict r -> Grade.Strict (unroll r)
-  | ( Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _ | Grade.Any
-    | Grade.Below _ | Grade.Above _ ) as r ->
+  | ( Grade.Letter _ | Grade.Skip | Grade.Tick _ | Grade.Frac _ | Grade.Delays _
+    | Grade.Any | Grade.Below _ | Grade.Above _ ) as r ->
       r
 
 (* [random_count st] is a count of at most [4]. *)
@@ -831,13 +834,14 @@ let repetitions =
     reads "{(1/2)^3}" ~expected:"{(0.5)^3}";
     reads "{A^(1, 4); B}" ~expected:"{A^[2, 3]; B}";
     reads "{A^[1, ∞)}" ~expected:"{A^[1, ∞)}";
+    reads "{(A | skip)^2*}" ~expected:"{(A | skip)^2*}";
     reads "{(A | 0)^2*}" ~expected:"{(A | 0)^2*}";
     rejects "{A^(1, 2)}" "holds no natural number";
     expect "repetitions: a product prints folded" Fun.id ~expected:"{A^3; B}"
       (G.show (G.mul (lit "{A}") (G.mul (lit "{A}") (lit "{A; B}"))));
     expect "repetitions: products of repetitions print folded" Fun.id
-      ~expected:"{(0 | A; 0.5)^20}"
-      (let p = lit "{(0 | A; 1/2)^10}" in
+      ~expected:"{(skip | A; 0.5)^20}"
+      (let p = lit "{(skip | A; 1/2)^10}" in
        G.show (G.mul p p));
     expect "repetitions: a counterexample prints folded" Fun.id
       ~expected:"{A^3; B}"
@@ -908,7 +912,7 @@ let show_grades ((r, _, _), (s, _, _)) = show_regex r ^ ", " ^ show_regex s
 let rec operations = function
   | Grade.Seq (r, s) -> operations r + operations s
   | Grade.Repeat (r, c) -> c.least * operations r
-  | Grade.Tick _ | Grade.Frac _ -> 0
+  | Grade.Skip | Grade.Tick _ | Grade.Frac _ -> 0
   | _ -> 1
 
 let grade_agreement =

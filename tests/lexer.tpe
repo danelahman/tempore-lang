@@ -4,6 +4,7 @@ run let _a = 10 in _a
 run let a' = 20 in a'
 run let a'b' = 30 in a'b'
 run let a''' = 40 in a'''
+run let skip = 50 in skip
 
 run 42
 run 0b101010

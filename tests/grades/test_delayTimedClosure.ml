@@ -101,7 +101,7 @@ let examples =
       (upper "{S}" "{3/2}");
     is "upper: not below it" (not (upper "{S}" "{1.4}"));
     is "upper: a match resets the budget" (not (upper "{S; T}" "{T; 2}"));
-    is "upper: the unit is least" (upper "{0}" "{A; B}");
+    is "upper: the unit is least" (upper "{skip}" "{A; B}");
     is "upper: delays of the bound buy any operation"
       (G.Upper.is_top bounds (lit "{(_ & ~A)*}"));
     is "upper: a complement of a delay is the top"
@@ -131,7 +131,7 @@ let examples =
     is "lower: a demanded operation is performed" (not (lower "{1}" "{S}"));
     is "lower: open delays above a bound cover it" (lower "{(1/2, ∞)}" "{1/2}");
     is "lower: open delays near 0 cover none" (not (lower "{(0, 1)}" "{1/2}"));
-    is "lower: the unit is the top" (G.Lower.is_top bounds (lit "{0}"));
+    is "lower: the unit is the top" (G.Lower.is_top bounds (lit "{skip}"));
     is "lower: all traces are the top" (G.Lower.is_top bounds (lit "⊤"));
     is "lower: A; _* is not the top"
       (not (G.Lower.is_top bounds (lit "{A; _*}")));
@@ -368,7 +368,7 @@ let literals =
   [
     reads (module G.Upper) (frac 3 2) "{1.5}";
     reads (module G.Upper) Grade.Top "⊤";
-    reads (module G.Lower) Grade.Top "{0}";
+    reads (module G.Lower) Grade.Top "{skip}";
     reads
       (module G.Interval)
       (Grade.Interval (Grade.Closed (frac 1 2), Grade.Closed (frac 3 2)))
@@ -722,7 +722,8 @@ let operations e =
   in
   List.length
     (List.filter
-       (function Grade.Tick _ | Grade.Frac _ -> false | _ -> true)
+       (function
+         | Grade.Skip | Grade.Tick _ | Grade.Frac _ -> false | _ -> true)
        (factors e))
 
 (* [valid leq c rho rho'] is whether the trace grade [c], read by the automata,
@@ -860,8 +861,8 @@ let rec iota n =
   | Grade.Repeat (r, c) -> Grade.Repeat (iota n r, c)
   | Grade.Strict r -> Grade.Strict (iota n r)
   | Grade.Tick k -> Grade.rational_tick (q k n)
-  | ( Grade.Letter _ | Grade.Frac _ | Grade.Delays _ | Grade.Below _
-    | Grade.Above _ ) as r ->
+  | ( Grade.Letter _ | Grade.Skip | Grade.Frac _ | Grade.Delays _
+    | Grade.Below _ | Grade.Above _ ) as r ->
       r
 
 let whole_names = [ "A"; "B"; "C" ]

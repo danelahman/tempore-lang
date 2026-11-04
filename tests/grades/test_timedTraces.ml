@@ -219,6 +219,7 @@ let random_regex ?(finite = false) ?(longest = 2) ~depth state =
    and [_]. *)
 let rec finite_words = function
   | Grade.Letter o -> [ [ Op o ] ]
+  | Grade.Skip -> [ [] ]
   | Grade.Tick n -> [ List.init n (fun _ -> T) ]
   | Grade.Seq (r, s) ->
       List.concat_map
@@ -579,9 +580,13 @@ module Suite (I : IMPLEMENTATION) = struct
            (Upper.mul (U.lit "{3}") Upper.top)
            Upper.top);
       holds (name "the top absorbs up to equality") (equal "{3; _*}" "⊤");
+      holds (name "skip is the delay 0") (equal "{skip}" "{0}");
+      holds (name "a union with skip is optional") (equal "{A | skip}" "{A?}");
       holds
         (name "a zero running time is invisible")
-        (Upper.equal (bounds_of [ ("A", (0, 0)) ]) (U.lit "{A*}") (U.lit "{0}"));
+        (Upper.equal
+           (bounds_of [ ("A", (0, 0)) ])
+           (U.lit "{A*}") (U.lit "{skip}"));
       expect (name "counterexample") (show_option Fun.id)
         ~expected:(Some "{A; 3}")
         (Option.map Upper.show
@@ -618,7 +623,7 @@ module Suite (I : IMPLEMENTATION) = struct
       fails (name "a demanded operation is not bought") (leq "{B}" "{A}");
       holds (name "equal up to the closure") (equal "{A | 1}" "{1}");
       holds (name "the unit is the top") (equal "⊤" "{_*}");
-      fails (name "the unit is not least") (leq "{0}" "{A}");
+      fails (name "the unit is not least") (leq "{skip}" "{A}");
       expect (name "counterexample") (show_option Fun.id) ~expected:(Some "{A}")
         (Option.map Lower.show
            (Lower.counterexample running_times (Lo.lit "{A | 3}") (Lo.lit "{2}")));
@@ -633,7 +638,7 @@ module Suite (I : IMPLEMENTATION) = struct
       expect (name "time shadow") Fun.id ~expected:"{1}"
         (Lower.show (Lower.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       fails (name "unit least") Lower.unit_least;
-      expect (name "top") Fun.id ~expected:"{0}" (Lower.show (Lo.lit "⊤"));
+      expect (name "top") Fun.id ~expected:"{skip}" (Lower.show (Lo.lit "⊤"));
     ]
 
   let interval_examples =
@@ -652,7 +657,7 @@ module Suite (I : IMPLEMENTATION) = struct
       reads "[1, 3]" "[{1}, {3}]";
       reads "[{A}, ∞)" "[{A}, ∞)";
       reads "[{A}, ⊤]" "[{A}, ∞)";
-      reads "⊤" "[{0}, ∞)";
+      reads "⊤" "[{skip}, ∞)";
       holds (name "componentwise") (leq "{A}" "[1, 3]");
       fails (name "the lower component") (leq "{A}" "[2, 3]");
       fails (name "the upper component") (leq "{A}" "[1, 2]");

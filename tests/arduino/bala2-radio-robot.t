@@ -22,7 +22,7 @@ StopBalancing:
 
   $ for v in stale_tilt stopped polled early unsettled; do packages --typecheck-only $app/robot.tpe bala2-radio-robot/$v.tpe > out 2>&1; echo "[$?]"; grep 'error' out; done
   [1]
-  Typing error: Variable `starting` is unboxed with the unit grade `{0}` accumulated since it was bound, which is not below its box grade `{LatestTilt; ([0, 1) & ~(Move | ReceiveMessage))}`
+  Typing error: Variable `starting` is unboxed with the unit grade `{skip}` accumulated since it was bound, which is not below its box grade `{LatestTilt; ([0, 1) & ~(Move | ReceiveMessage))}`
   [1]
   Typing error: Variable `calibrated` is unboxed with grade `{ReportStatus; ShowTextAt; idle 500; ReportStatus; idle 500; ShowTextAt; Beep?; (ReceiveMessage; ReportStatus; idle 400)^[1, 500]; Move}` accumulated since it was bound, which is not below its box grade `{[1000, 600000] & ~Move}`
   [1]

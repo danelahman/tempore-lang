@@ -279,8 +279,8 @@ grades are printed in full. Only the timelines are shown.
   $ ../tempore --grades regex-timed-rigid-interval-rational-symbolic --timeline ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
   Run  Start                                     Event           Grade
-  1    {0}                                       box binding     {AddBeads; idle [5, 10]; MagnetOn}
-  1    {0}                                       AddBeads        {AddBeads}
+  1    {skip}                                    box binding     {AddBeads; idle [5, 10]; MagnetOn}
+  1    {skip}                                    AddBeads        {AddBeads}
   1                                              · delay         {idle 2}
   1    {AddBeads}                                delay           {idle 7}
   1    {AddBeads; idle 7}                        MagnetOn        {MagnetOn}
@@ -317,8 +317,8 @@ grades are printed in full. Only the timelines are shown.
   $ ../tempore --grades regex-timed-rigid-interval-rational-symbolic --timeline-full ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
   Run  Start                                                                                                                                        Event           Grade
-  1    {0}                                                                                                                                          box binding     {AddBeads; idle [5, 10]; MagnetOn}
-  1    {0}                                                                                                                                          AddBeads        {AddBeads}
+  1    {skip}                                                                                                                                       box binding     {AddBeads; idle [5, 10]; MagnetOn}
+  1    {skip}                                                                                                                                       AddBeads        {AddBeads}
   1                                                                                                                                                 · delay         {idle 2}
   1    {AddBeads}                                                                                                                                   delay           {idle 7}
   1    {AddBeads; idle 7}                                                                                                                           MagnetOn        {MagnetOn}
@@ -355,7 +355,7 @@ grades are printed in full. Only the timelines are shown.
   $ ../tempore --grades traces-timed-interval --timeline ../examples/traces_timed_ops/3d_printing.tpe | sed -n '/^Timeline$/,/^Run [0-9][0-9]* /p'
   Timeline
   Run  Start                                                                     Event          Grade
-  1    [{0}, {0}]                                                                MixEpoxy       [{MixEpoxy}, {MixEpoxy}]
+  1    [{skip}, {skip}]                                                          MixEpoxy       [{MixEpoxy}, {MixEpoxy}]
   1                                                                              · delay        [{1}, {1}]
   1                                                                              · box glue     [{8}, {11}]
   1    [{MixEpoxy}, {MixEpoxy}]                                                  Heat           [{Heat}, {Heat}]
@@ -375,7 +375,7 @@ grades are printed in full. Only the timelines are shown.
   Run 1 returned Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))) at [{…; Heat; Extrude; Cool; 2; Mount}, {…; Heat; Extrude; Cool; 2; Mount}].
   Timeline
   Run  Start                                                 Event          Grade
-  2    [{0}, {0}]                                            Heat           [{Heat}, {Heat}]
+  2    [{skip}, {skip}]                                      Heat           [{Heat}, {Heat}]
   2                                                          · delay        [{1}, {1}]
   2    [{Heat}, {Heat}]                                      Extrude        [{Extrude}, {Extrude}]
   2                                                          · delay        [{4}, {4}]
@@ -388,18 +388,18 @@ grades are printed in full. Only the timelines are shown.
   2    [{Heat; Extrude; Cool; 4}, {Heat; Extrude; Cool; 4}]  unbox printed
   Run 2 returned ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword"))))) at [{Heat; Extrude; Cool; 4}, {Heat; Extrude; Cool; 4}].
   Timeline
-  Run  Start       Event    Grade
-  3    [{0}, {0}]  Heat     [{Heat}, {Heat}]
-  3                · delay  [{1}, {1}]
+  Run  Start             Event    Grade
+  3    [{skip}, {skip}]  Heat     [{Heat}, {Heat}]
+  3                      · delay  [{1}, {1}]
   Run 3 returned Model "Sword" at [{Heat}, {Heat}].
   Timeline
   Run  Start  Event  Grade
-  Run 4 returned Epoxy at [{0}, {0}].
+  Run 4 returned Epoxy at [{skip}, {skip}].
 
   $ ../tempore --grades traces-timed-interval --timeline-full ../examples/traces_timed_ops/3d_printing.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
   Run  Start                                                                     Event          Grade
-  1    [{0}, {0}]                                                                MixEpoxy       [{MixEpoxy}, {MixEpoxy}]
+  1    [{skip}, {skip}]                                                          MixEpoxy       [{MixEpoxy}, {MixEpoxy}]
   1                                                                              · delay        [{1}, {1}]
   1                                                                              · box glue     [{8}, {11}]
   1    [{MixEpoxy}, {MixEpoxy}]                                                  Heat           [{Heat}, {Heat}]
@@ -419,7 +419,7 @@ grades are printed in full. Only the timelines are shown.
   Run 1 returned Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))) at [{MixEpoxy; Heat; Extrude; Cool; 2; Mount}, {MixEpoxy; Heat; Extrude; Cool; 2; Mount}].
   Timeline
   Run  Start                                                 Event          Grade
-  2    [{0}, {0}]                                            Heat           [{Heat}, {Heat}]
+  2    [{skip}, {skip}]                                      Heat           [{Heat}, {Heat}]
   2                                                          · delay        [{1}, {1}]
   2    [{Heat}, {Heat}]                                      Extrude        [{Extrude}, {Extrude}]
   2                                                          · delay        [{4}, {4}]
@@ -439,9 +439,9 @@ grades are printed in full. Only the timelines are shown.
   ]
   
   Timeline
-  Run  Start       Event    Grade
-  3    [{0}, {0}]  Heat     [{Heat}, {Heat}]
-  3                · delay  [{1}, {1}]
+  Run  Start             Event    Grade
+  3    [{skip}, {skip}]  Heat     [{Heat}, {Heat}]
+  3                      · delay  [{1}, {1}]
   Run 3 returned Model "Sword" at [{Heat}, {Heat}].
   
   === Run 4 ===
@@ -450,7 +450,7 @@ grades are printed in full. Only the timelines are shown.
   
   Timeline
   Run  Start  Event  Grade
-  Run 4 returned Epoxy at [{0}, {0}].
+  Run 4 returned Epoxy at [{skip}, {skip}].
   
 
 --timeline and --timeline-full are refused with --emit-opentrons, and

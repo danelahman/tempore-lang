@@ -18,6 +18,9 @@ run box {Open; (Read | Write)*; Close | Open; Close} 1 as x in 0
 run box {(1; 1)* | 1; 1; 1} 1 as x in 0
 run box 3 1 as x in 0
 run box {0} 1 as x in 0
+run box {skip} 1 as x in 0
+run box {Read | skip} 1 as x in 0
+run let skip = 1 in box {Read?; skip} skip as x in 0
 run box {Read; [1, 3]; Send} 1 as x in 0
 run box {Read; (1, 4); Send} 1 as x in 0
 run box {Read; [2, ∞)} 1 as x in 0
