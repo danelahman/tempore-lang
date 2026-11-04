@@ -47,7 +47,9 @@ let regex_timed_rigid =
 let lattices = ("Grade lattices", "Lattices")
 let semidirect = ("Semidirect products", "Semidirect")
 let counts = ("Operation counts", "Counts")
-let spacing = ("Spacing of timed operations", "Spacing (timed ops)")
+
+let inter_arrival =
+  ("Inter-arrival times of timed operations", "Inter-arrival (timed ops)")
 
 let entry ?(visibility = Everywhere) ?implementation ?over_lattice
     (module G : Grade.S) group title description =
@@ -612,8 +614,8 @@ let entries =
       "At most n calls of each operation, by name, such as ((Auth, 1), (Send, \
        3)); delays count nothing.";
     entry
-      (module OperationSpacingGrades)
-      spacing "Operation spacing"
+      (module InterArrivalGrades)
+      inter_arrival "Inter-arrival bounds"
       "How often an operation recurs: the time between consecutive \
        occurrences, at most and at least, such as (Beat, [0, 20]); operations \
        take their running times, occurring at their start.";

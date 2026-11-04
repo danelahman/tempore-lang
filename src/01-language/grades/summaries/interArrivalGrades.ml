@@ -311,7 +311,7 @@ module Terms = SummaryTerms.Make (Summary)
 include Terms
 module Delay = Delay.Rational
 
-let name = "operation-spacing"
+let name = "inter-arrival"
 let leq_symbol = "<="
 let unit_least = false
 let plus _ = None
@@ -347,8 +347,8 @@ let of_braces lit r =
     | Repeat (r, ({ most = Some _; _ } as c)) -> go (unrolled r c)
     | Any | Star _ | Repeat _ | Inter _ | Compl _ ->
         invalid_lit lit
-          "the brace literals of operation spacing are sequences `;`, unions \
-           `|` and finite counts `^n`, `^[m, n]` of operation names and \
+          "the brace literals of the inter-arrival grades are sequences `;`, \
+           unions `|` and finite counts `^n`, `^[m, n]` of operation names and \
            delays, without `*`, `^[m, ∞)`, `&`, `~` and `_`"
   in
   go r
@@ -661,4 +661,4 @@ let rec show c =
                  match view c with Join _ -> "(" ^ show c ^ ")" | _ -> show c))
            (groups cs))
   | Join cs, None -> String.concat " ⊔ " (List.map show cs)
-  | Op _, None -> invalid_arg "OperationSpacingGrades.show"
+  | Op _, None -> invalid_arg "InterArrivalGrades.show"

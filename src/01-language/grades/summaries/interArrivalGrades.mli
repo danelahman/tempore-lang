@@ -1,7 +1,8 @@
-(** The operation-spacing grade, ["operation-spacing"]: how often each operation
-    recurs, bounding the time between the occurrences of an operation, at most
-    and at least, as the minimum and maximum distance functions of event streams
-    (K. Richter, "Compositional Scheduling Analysis Using Standard Event
+(** The inter-arrival grade, ["inter-arrival"]: how often each operation recurs,
+    bounding the time between the occurrences of an operation, at most and at
+    least. It generalises the minimum and maximum inter-arrival times of
+    real-time systems, as the minimum and maximum distance functions of event
+    streams (K. Richter, "Compositional Scheduling Analysis Using Standard Event
     Models", PhD thesis, TU Braunschweig, 2005) and the bounded recurrence of
     real-time specification patterns (S. Konrad and B. H. C. Cheng, "Real-time
     specification patterns", ICSE 2005) do.
