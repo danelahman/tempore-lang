@@ -1,6 +1,6 @@
 # The make targets of the example: the grades of its program and the
 # simulated time of its host simulation, in seconds.
-EXAMPLE_GRADES = operation-spacing
+EXAMPLE_GRADES = inter-arrival
 EXAMPLE_SIMULATE = 46
 
 # The build flags of the target -record: the recording of bindings.cpp in
