@@ -89,14 +89,19 @@ val size : t -> int
 
 val to_string : t -> string
 (** [to_string r] prints [r] in the literal syntax, without the enclosing
-    braces: runs of ticks as integers, the empty word as [0], the empty language
-    as [~_*], letter sets as unions of letters, as [_] or as [_ & ~(…)], and a
-    bounded repetition as [x^n], [x^[m, n]] or [x^\[m, ∞)]. A group ending with
-    a repetition is printed in braces rather than parentheses, e.g.
-    [~{_*; Revoke; _*}], so that no printed expression contains a repetition
-    followed by a closing parenthesis, which would close a comment quoting it.
-*)
+    braces: runs of ticks as integers, the empty word as [skip], the empty
+    language as [~_*], letter sets as unions of letters, as [_] or as
+    [_ & ~(…)], and a bounded repetition as [x^n], [x^[m, n]] or [x^\[m, ∞)]. A
+    group ending with a repetition is printed in braces rather than parentheses,
+    e.g. [~{_*; Revoke; _*}], so that no printed expression contains a
+    repetition followed by a closing parenthesis, which would close a comment
+    quoting it. *)
 
 val literal : t -> string
 (** [literal r] is the literal of the regular trace grade [r]: [⊤] if [r] is
     [_*], and otherwise {!to_string} [r] in braces. *)
+
+val numbers : t -> string
+(** [numbers r] prints the expression [r] over the letter [tick] alone as a
+    brace literal of a set of numbers of ticks, the empty word being the number
+    [0]. *)

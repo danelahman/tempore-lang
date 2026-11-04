@@ -15,6 +15,7 @@ let ticks = R.ticks
 
 let rec of_regex = function
   | Letter name -> R.letters (Letters.name name)
+  | Skip -> R.eps
   | Tick n -> ticks n
   | Frac q -> fractional_tick q
   | Delays (lo, hi) -> of_regex (tick_delays lo hi)

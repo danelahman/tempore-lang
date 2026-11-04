@@ -332,6 +332,7 @@ let of_braces lit r =
   check_delays lit r;
   let rec go = function
     | Letter name -> Terms.op name ()
+    | Skip -> Terms.one
     | Tick n -> Terms.of_delay (Rational.of_int n)
     | Frac q -> Terms.of_delay q
     | Delays (lo, hi) -> (
@@ -622,6 +623,9 @@ let rec regex c =
   in
   match view c with
   | Op (name, ()) -> Some (Letter name)
+  | Delays (Closed q, Closed q')
+    when Rational.sign q = 0 && Rational.sign q' = 0 ->
+      Some Skip
   | Delays (Closed q, Closed q') when Rational.equal q q' ->
       Some (rational_tick q)
   | Delays (lo, hi) -> Some (Delays (lo, hi))

@@ -14,6 +14,7 @@ let show_interval show lo hi =
 
 type regex =
   | Letter of string
+  | Skip
   | Tick of int
   | Frac of Rational.t
   | Delays of Rational.t bound * Rational.t bound
@@ -29,22 +30,22 @@ type regex =
   | Strict of regex
 
 let rec delays_only = function
-  | Tick _ | Frac _ | Delays _ | Below _ | Above _ -> true
+  | Skip | Tick _ | Frac _ | Delays _ | Below _ | Above _ -> true
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> delays_only r && delays_only s
   | Star r | Repeat (r, _) -> delays_only r
   | Letter _ | Any | Compl _ | Strict _ -> false
 
-(* [r^[m, n]] is [r; …; r; (0 | r; (0 | r; …))], [m] factors and [n - m]
+(* [r^[m, n]] is [r; …; r; (skip | r; (skip | r; …))], [m] factors and [n - m]
    optional ones nested, and [r^[m, ∞)] is [r; …; r; r*]. *)
 let unrolled r (c : Count.t) =
-  let seq a b = match b with Tick 0 -> a | b -> Seq (a, b) in
+  let seq a b = match b with Skip -> a | b -> Seq (a, b) in
   let rest =
     match c.most with
     | None -> Star r
     | Some n ->
         List.fold_left
-          (fun acc _ -> Union (Tick 0, seq r acc))
-          (Tick 0)
+          (fun acc _ -> Union (Skip, seq r acc))
+          Skip
           (List.init (n - c.least) Fun.id)
   in
   List.fold_left (fun acc _ -> seq r acc) rest (List.init c.least Fun.id)
@@ -52,6 +53,7 @@ let unrolled r (c : Count.t) =
 let rec equal_regex r s =
   match (r, s) with
   | Letter a, Letter b -> String.equal a b
+  | Skip, Skip -> true
   | Tick m, Tick n -> Int.equal m n
   | Frac p, Frac q -> Rational.equal p q
   | Delays (lo, hi), Delays (lo', hi') ->
@@ -90,13 +92,13 @@ let sequence factors =
     | [] -> [ r ]
   in
   match List.fold_right join factors [] with
-  | [] -> Tick 0
+  | [] -> Skip
   | r :: rs -> List.fold_left (fun r s -> Seq (r, s)) r rs
 
 let regex_names r =
   let rec go = function
     | Letter name -> [ name ]
-    | Tick _ | Frac _ | Delays _ | Below _ | Above _ | Any -> []
+    | Skip | Tick _ | Frac _ | Delays _ | Below _ | Above _ | Any -> []
     | Seq (r, s) | Union (r, s) | Inter (r, s) -> go r @ go s
     | Star r | Repeat (r, _) | Compl r | Strict r -> go r
   in
@@ -131,6 +133,7 @@ let show_regex r =
   in
   let rec go ctx = function
     | Letter name -> add name
+    | Skip -> add "skip"
     | Tick n -> add (string_of_int n)
     | Frac q -> wrap ctx 4 (fun () -> add (Rational.show q))
     | Delays (lo, hi) -> add (show_interval Rational.show lo hi)

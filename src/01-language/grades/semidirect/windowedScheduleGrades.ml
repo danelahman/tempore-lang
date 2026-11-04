@@ -10,6 +10,13 @@ let interval lo hi =
 (** [from lo] is the set of the numbers from [lo] on. *)
 let from lo = R.concat (R.ticks lo) naturals
 
+(** [show_times rho] prints the set of numbers [rho] as a brace literal. *)
+let show_times rho =
+  LetterRegex.numbers
+    (Option.value
+       (RegularTraceGradeDerivative.canonical rho)
+       ~default:(LetterRegex.of_symbolic rho))
+
 (** [of_braces lit r] is the set of the numbers the brace literal [lit] with
     expression [r] denotes, over the letter [tick] alone: [_] is a single tick
     and a complement is taken within the natural numbers.
@@ -24,6 +31,7 @@ let of_braces lit r =
           "the times of windowed schedules are sets of numbers of ticks, and \
            name no operation such as `%s`"
           name
+    | Grade.Skip -> R.eps
     | Grade.Tick n -> R.ticks n
     | Grade.Frac q ->
         Grade.component_of_lit lit ~context:"" Grade.fractional_tick q
@@ -146,7 +154,7 @@ module Durations = struct
       match upper_end lo rho with
       | Some hi when R.equal rho (interval lo hi) ->
           Printf.sprintf "[%d, %d]" lo hi
-      | Some _ | None -> RegularTraceGradeDerivative.show rho
+      | Some _ | None -> show_times rho
 
   let witnesses ~degree:_ _bounds = Grade.sampled mul
 end
@@ -172,7 +180,7 @@ module Times = struct
     | Grade.Braces r -> Grade.whole_braces ~names:false r
     | _ -> false
 
-  let show = RegularTraceGradeDerivative.show
+  let show = show_times
 end
 
 module Shift = struct

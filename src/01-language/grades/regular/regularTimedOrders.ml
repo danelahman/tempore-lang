@@ -132,7 +132,7 @@ struct
     let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
     let counterexample = counterexample coverage
 
-    (** The unit [{0}], covered by every trace. *)
+    (** The unit [{skip}], covered by every trace. *)
     let top = coverage.top
 
     let is_top = is_top coverage

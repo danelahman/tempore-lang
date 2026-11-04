@@ -8,6 +8,7 @@ let rec factors = function Seq (r, s) -> factors r @ factors s | r -> [ r ]
 
 let rec delays = function
   | Letter _ -> DelaySet.empty
+  | Skip -> DelaySet.zero
   | Tick n -> DelaySet.point (Rational.of_int n)
   | Frac q -> DelaySet.point q
   | Delays (lo, hi) -> DelaySet.between lo hi
@@ -24,7 +25,7 @@ let rec delays = function
 (* [letterless r] is whether [r] has no name, [_] or complement: its words are
    then single delays, those of [delays r]. *)
 let rec letterless = function
-  | Tick _ | Frac _ | Delays _ -> true
+  | Skip | Tick _ | Frac _ | Delays _ -> true
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> letterless r && letterless s
   | Star r | Repeat (r, _) -> letterless r
   | Letter _ | Any | Compl _ | Strict _ | Below _ | Above _ -> false
@@ -33,7 +34,7 @@ let rec letterless = function
 let rec automaton = function
   | Letter name -> A.operations (A.Class.name name)
   | Any -> any
-  | (Tick _ | Frac _ | Delays _) as r -> A.delays (delays r)
+  | (Skip | Tick _ | Frac _ | Delays _) as r -> A.delays (delays r)
   | Compl r -> A.compl (automaton r)
   | r when letterless r -> A.delays (delays r)
   | Seq _ as r -> A.concat_list (List.map automaton (factors r))

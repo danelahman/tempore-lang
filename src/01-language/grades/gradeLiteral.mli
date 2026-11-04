@@ -17,6 +17,7 @@ val show_interval : ('a -> string) -> 'a bound -> 'a bound -> string
     literal [{...}]. *)
 type regex =
   | Letter of string  (** An operation name, e.g. [Send] *)
+  | Skip  (** The empty word, [skip] *)
   | Tick of int  (** A delay of [n] time steps, e.g. [3] *)
   | Frac of Rational.t  (** A delay that is not an [int], e.g. [1/2] or [1.5] *)
   | Delays of Rational.t bound * Rational.t bound
@@ -44,8 +45,8 @@ type regex =
           delays only ({!delays_only}): [idle 3], [idle [2, 3]], [idle _] *)
 
 val delays_only : regex -> bool
-(** [delays_only r] is whether [r] is built from delays and intervals of delays
-    by [;], [|], [&] and [*] alone, so that its words are delays. *)
+(** [delays_only r] is whether [r] is built from [skip], delays and intervals of
+    delays by [;], [|], [&] and [*] alone, so that its words are delays. *)
 
 val show_below : Rational.t bound -> string
 (** [show_below b] prints the letter [Below b], e.g. [≤3] or [<1/2]. *)
@@ -55,16 +56,16 @@ val show_above : Rational.t bound -> string
 
 val unrolled : regex -> Count.t -> regex
 (** [unrolled r c] is an expression of [r^c] without bounded repetition:
-    [r; …; r; (0 | r; (0 | r; …))] for [c = [m, n]], with [m] factors [r] and
-    [n - m] optional ones, and [r; …; r; r*] for [c = \[m, ∞)]. *)
+    [r; …; r; (skip | r; (skip | r; …))] for [c = [m, n]], with [m] factors [r]
+    and [n - m] optional ones, and [r; …; r; r*] for [c = \[m, ∞)]. *)
 
 val equal_regex : regex -> regex -> bool
 (** [equal_regex r s] is whether [r] and [s] are the same expression. *)
 
 val sequence : regex list -> regex
-(** [sequence factors] is the concatenation of [factors], [0] if there are none,
-    every run of two or more adjacent factors of the same base joined into one
-    bounded repetition: [x; x; x] is [x^3], and [x^c; x] is [x^(c + 1)]. The
+(** [sequence factors] is the concatenation of [factors], [skip] if there are
+    none, every run of two or more adjacent factors of the same base joined into
+    one bounded repetition: [x; x; x] is [x^3], and [x^c; x] is [x^(c + 1)]. The
     factors are not split into further factors. *)
 
 val regex_names : regex -> string list

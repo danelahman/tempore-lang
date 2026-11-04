@@ -1,7 +1,7 @@
 open Grade
 
 (* [concatenation r s] is the expression [r; s], the factors of both
-   concatenations listed in turn, the delays [0] left out, adjacent budget
+   concatenations listed in turn, [skip] and the delays [0] left out, adjacent budget
    delays added and runs of factors of the same base joined into bounded
    repetitions ({!Grade.sequence}); adjacent strict delays stay apart, as
    distinct words. *)
@@ -25,7 +25,7 @@ let concatenation r s =
   sequence
     (merge
        (List.filter
-          (function Tick 0 -> false | _ -> true)
+          (function Skip | Tick 0 -> false | _ -> true)
           (factors r @ factors s)))
 
 (* The languages of the grades. *)
@@ -60,7 +60,7 @@ struct
   let language rho = rho.language
   let expression rho = rho.expression
   let of_regex expression = { language = L.of_regex expression; expression }
-  let one = of_regex (Tick 0)
+  let one = of_regex Skip
   let top = of_regex (Star Any)
   let equal _bounds rho rho' = L.equal rho.language rho'.language
   let is_top _bounds rho = L.is_top rho.language

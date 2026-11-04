@@ -890,16 +890,16 @@ minus_infinity:
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] and repetition
    [*], bounded repetition [r^n], [r^[m, n]] or [r^[m, ∞)] and the optional
-   [r?], which is [(r | 0)], the strict delay [idle] binding as the
+   [r?], which is [(r | skip)], the strict delay [idle] binding as the
    complement but applying to the operand of a repetition [*]; [idle r^c] is
    the strict delay of the delays of [r^c], and [(idle r)^c] a repetition of
    strict delays.
    Braces group as parentheses do. An atom is an operation name, a delay,
-   the wildcard [_], an interval of delays [[a, b]], [(a, b)], [[a, b)],
-   [(a, b]], [[a, ∞)] or [(a, ∞)], or a one-sided interval of delays [≤d],
-   [<d], [≥d] or [>d] (ASCII [<=d] and [>=d]), [≤∞] and [<∞] being all
-   delays; a parenthesis followed by a delay and a comma opens an interval,
-   and otherwise a group. *)
+   the empty word [skip], the wildcard [_], an interval of delays [[a, b]],
+   [(a, b)], [[a, b)], [(a, b]], [[a, ∞)] or [(a, ∞)], or a one-sided
+   interval of delays [≤d], [<d], [≥d] or [>d] (ASCII [<=d] and [>=d]), [≤∞]
+   and [<∞] being all delays; a parenthesis followed by a delay and a comma
+   opens an interval, and otherwise a group. *)
 regex:
   | r = regex_inter { r }
   | r = regex BAR s = regex_inter { Grade.Union (r, s) }
@@ -937,7 +937,7 @@ regex_postfix:
   | r = regex_atom { r }
   | r = regex_postfix STAR { Grade.Star r }
   | r = regex_postfix CARET c = repeat_count { Grade.Repeat (r, c) }
-  | r = regex_postfix QUESTION { Grade.Union (r, Grade.Tick 0) }
+  | r = regex_postfix QUESTION { Grade.Union (r, Grade.Skip) }
 
 (* The count of a bounded repetition: a natural number [n], or an interval
    [[m, n]], [(m, n)], [[m, n)], [(m, n]], [[m, ∞)] or [(m, ∞)] of natural
@@ -986,6 +986,7 @@ regex_atom:
   | LPAREN lo = duration COMMA hi = delay_end RPAREN
     { delays ~loc:(location $loc)
         ~lower_open:true lo hi ~upper_open:true }
+  | SKIP { Grade.Skip }
   | UNDERSCORE { Grade.Any }
   | LEQ hi = delay_end { below ~loc:(location $loc) ~upper_open:false hi }
   | LT hi = delay_end { below ~loc:(location $loc) ~upper_open:true hi }

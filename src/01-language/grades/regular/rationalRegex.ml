@@ -389,6 +389,7 @@ let compl r =
 
 let rec of_regex : GradeLiteral.regex -> t = function
   | Letter name -> names_atom (Letters.name name)
+  | Skip -> eps
   | Tick n -> delays_atom (DelaySet.point (Rational.of_int n))
   | Frac q -> delays_atom (DelaySet.point q)
   | Delays (lo, hi) -> delays_atom (DelaySet.between lo hi)

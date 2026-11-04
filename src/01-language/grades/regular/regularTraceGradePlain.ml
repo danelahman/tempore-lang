@@ -28,6 +28,7 @@ let of_regex r =
   let names = regex_names r in
   let rec go = function
     | Letter name -> atom name
+    | Skip -> Regex.eps
     | Tick n -> ticks n
     | Frac q -> fractional_tick q
     | Delays (lo, hi) -> go (tick_delays lo hi)

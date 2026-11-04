@@ -64,10 +64,10 @@ module Base (D : Delay.S) = struct
 
   let show_event = function Ev o -> o | Wait n -> D.show n
 
-  (** [show_trace t] prints a trace as [Read; 3; Send]; the empty trace prints
-      as [0], the delay [zero] it denotes. *)
+  (** [show_trace t] prints a trace as [Read; 3; Send], and the empty trace as
+      [skip]. *)
   let show_trace = function
-    | [] -> D.show D.zero
+    | [] -> "skip"
     | t -> String.concat "; " (List.map show_event t)
 
   let show p = "{" ^ String.concat " | " (List.map show_trace p) ^ "}"
@@ -88,6 +88,7 @@ module Base (D : Delay.S) = struct
       counts unrolled; [lit] is the literal it is part of. *)
   let rec of_regex lit = function
     | Letter name -> [ [ Ev name ] ]
+    | Skip -> [ [] ]
     | Tick n -> of_delay (delay_of_lit lit (Int n))
     | Frac q -> of_delay (delay_of_lit lit (Rat q))
     | Strict _ as r -> component_of_lit lit ~context:"" strict_unsupported r

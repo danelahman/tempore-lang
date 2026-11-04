@@ -176,7 +176,8 @@ let rec negative_delay = function
   | (Below (Closed a | Open a) | Above (Closed a | Open a)) as r
     when Rational.sign a < 0 ->
       Some (show_regex r)
-  | Letter _ | Tick _ | Frac _ | Delays _ | Below _ | Above _ | Any -> None
+  | Letter _ | Skip | Tick _ | Frac _ | Delays _ | Below _ | Above _ | Any ->
+      None
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> (
       match negative_delay r with Some d -> Some d | None -> negative_delay s)
   | Star r | Repeat (r, _) | Compl r | Strict r -> negative_delay r
@@ -188,7 +189,7 @@ let check_delays lit r =
 
 let rec whole_delays ~names = function
   | Letter _ -> names
-  | Tick _ | Any -> true
+  | Skip | Tick _ | Any -> true
   | Frac _ -> false
   | Below _ | Above _ -> false
   | Delays (lo, hi) -> (
@@ -203,7 +204,8 @@ let whole_braces ~names r =
   Option.is_none (negative_delay r) && whole_delays ~names r
 
 let rec positive = function
-  | Letter _ | Tick _ | Frac _ | Delays _ | Below _ | Above _ | Any -> true
+  | Letter _ | Skip | Tick _ | Frac _ | Delays _ | Below _ | Above _ | Any ->
+      true
   | Seq (r, s) | Union (r, s) -> positive r && positive s
   | Star r | Repeat (r, _) -> positive r
   | Inter _ | Compl _ | Strict _ -> false

@@ -128,7 +128,7 @@ module Printed = struct
 
   let rec print = function
     | Empty -> { text = "_ & ~_"; level = 1 }
-    | Eps -> atom "0"
+    | Eps -> atom "skip"
     | Ops s -> ops s
     | Length (s, text) when Ops.is_empty s -> atom ("idle " ^ text)
     | Length (Ops.Except [], text) -> atom text
@@ -583,10 +583,7 @@ struct
       | Upper -> stretch set (upper_cut hi)
       | Lower -> stretch set (lower_cut lo)
     in
-    let point set q =
-      let q = number q in
-      if Rational.sign q = 0 then eps else stretch set (Finite (q, true))
-    in
+    let point set q = stretch set (Finite (number q, true)) in
     let prefix set = if Ops.is_empty set then "idle " else "" in
     let rec go set r =
       match ops_of r with
@@ -597,6 +594,7 @@ struct
           | _ -> op s)
       | None -> (
           match r with
+          | Skip -> eps
           | Tick n -> point set (Rational.of_int n)
           | Frac q -> point set q
           | Delays (lo, hi) ->

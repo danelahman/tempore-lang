@@ -56,6 +56,7 @@ let dfa_of_regex names =
   let n = size names in
   let rec go = function
     | Letter name -> Dfa.word n [ letter names name ]
+    | Skip -> Dfa.word n []
     | Tick k -> Dfa.ticks n k (Some k)
     | Frac q -> fractional_tick q
     | Delays (lo, hi) ->
@@ -79,7 +80,7 @@ let of_regex r =
   let names = regex_names r in
   restrict names (dfa_of_regex names r) (Expression.of_regex r)
 
-let one = of_regex (Tick 0)
+let one = of_regex Skip
 let mul = lift2 Dfa.concat Expression.mul
 let join = lift2 Dfa.union Expression.join
 let plus _ = None

@@ -349,27 +349,31 @@ let print_letters (p : Letters.t) =
       let excluded = alternatives (ticks (not p.tick) @ names) in
       { text = "_ & ~" ^ at 3 excluded; level = 1 }
 
-let rec print = function
+(* [print eps r] is the printed form of [r], the empty word printed as
+   [eps]. *)
+let rec print eps = function
   | Empty -> { text = "~_*"; level = 3 }
-  | Eps -> atom "0"
+  | Eps -> atom eps
   | Letters p -> print_letters p
-  | Seq rs -> print_seq rs
-  | Union rs -> nary " | " 0 rs
-  | Inter rs -> nary " & " 1 rs
-  | Compl r -> { text = "~" ^ at 3 (print r); level = 3 }
-  | Star r -> { text = at 4 (print r) ^ "*"; level = 4 }
-  | Repeat (r, c) -> { text = at 4 (print r) ^ "^" ^ Count.show c; level = 4 }
+  | Seq rs -> print_seq eps rs
+  | Union rs -> nary eps " | " 0 rs
+  | Inter rs -> nary eps " & " 1 rs
+  | Compl r -> { text = "~" ^ at 3 (print eps r); level = 3 }
+  | Star r -> { text = at 4 (print eps r) ^ "*"; level = 4 }
+  | Repeat (r, c) ->
+      { text = at 4 (print eps r) ^ "^" ^ Count.show c; level = 4 }
 
-and nary separator level rs =
+and nary eps separator level rs =
   {
-    text = String.concat separator (List.map (fun r -> at level (print r)) rs);
+    text =
+      String.concat separator (List.map (fun r -> at level (print eps r)) rs);
     level;
   }
 
-and print_seq rs =
+and print_seq eps rs =
   let part = function
     | Ticks n -> string_of_int n
-    | Factor r -> at 3 (print r)
+    | Factor r -> at 3 (print eps r)
   in
   let parts = group_ticks rs in
   let rec join = function
@@ -381,5 +385,6 @@ and print_seq rs =
   | [ Ticks n ] -> atom (string_of_int n)
   | parts -> { text = String.concat "; " (List.map part parts); level = 2 }
 
-let to_string r = (print r).text
+let to_string r = (print "skip" r).text
 let literal r = if equal r top then "⊤" else "{" ^ to_string r ^ "}"
+let numbers r = "{" ^ (print "0" r).text ^ "}"
