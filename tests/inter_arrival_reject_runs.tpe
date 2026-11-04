@@ -1,9 +1,9 @@
-(* Run this test with the 'operation-spacing' grading monoid, e.g.
+(* Run this test with the 'inter-arrival' grading monoid, e.g.
 
-     ./tempore --grades operation-spacing \
-       tests/operation_spacing_reject_runs.tpe
+     ./tempore --grades inter-arrival \
+       tests/inter_arrival_reject_runs.tpe
 
-   Operation spacing: grades that admit no run, each entry describing the same
+   Inter-arrival bounds: grades that admit no run, each entry describing the same
    run and its total duration. *)
 
 operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]

@@ -1,0 +1,11 @@
+(* Run this test with the 'inter-arrival' grading monoid, e.g.
+
+     ./tempore --grades inter-arrival \
+       tests/literals_reject_inter_arrival.tpe
+
+   Rejected: a specification of inter-arrival bounds lists one interval, the
+   gaps, or three, the lead, the gaps and the tail. *)
+
+operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]
+
+let beat () : unit ! (Beat, [0, 1], [0, 5]) = perform Beat ()

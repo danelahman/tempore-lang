@@ -41,8 +41,8 @@ let malformed =
     "traces_reject_missing_within.tpe";
     "traces_reject_self_retry.tpe";
     "traces_reject_unknown_event.tpe";
-    "operation_spacing_reject_runs.tpe";
-    "operation_spacing_reject_unknown.tpe";
+    "inter_arrival_reject_runs.tpe";
+    "inter_arrival_reject_unknown.tpe";
     "regex_timed_compound_named_later_reject.tpe";
     "use_undefined_type.tpe";
     "non_linear_pattern.tpe";
@@ -74,7 +74,7 @@ let malformed =
     "literals_reject_interval_reversed.tpe";
     "literals_reject_resource_levels_range_empty.tpe";
     "literals_reject_windowed_schedules_empty.tpe";
-    "literals_reject_operation_spacing.tpe";
+    "literals_reject_inter_arrival.tpe";
     "literals_reject_within_empty.tpe";
     "literals_reject_within_no_step.tpe";
     "nat_reject_negative.tpe";

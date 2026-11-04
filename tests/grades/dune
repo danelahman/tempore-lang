@@ -6,7 +6,7 @@
 ; trace grades of timed operations over rational delays with their closures; the
 ; sets of delays against an implementation by lists of intervals; the laws of
 ; every registered grade, on samples, by the checks the tests share; the
-; operation-spacing grade against concrete computations; the non-rigid
+; inter-arrival grade against concrete computations; the non-rigid
 ; grades of timed operations against their translations into the grades with
 ; interval letters; and the run consistency of the intervals with interval
 ; letters against the reference.
@@ -67,8 +67,8 @@
  (libraries grades lawChecks parser))
 
 (test
- (name test_operationSpacing)
- (modules test_operationSpacing)
+ (name test_interArrival)
+ (modules test_interArrival)
  (libraries utils grades lawChecks parser sugaredAst))
 
 (test

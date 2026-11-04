@@ -1,8 +1,8 @@
-(* Run this test with the 'operation-spacing' grading monoid, e.g.
+(* Run this test with the 'inter-arrival' grading monoid, e.g.
 
-     ./tempore --grades operation-spacing tests/operation_spacing_reject.tpe
+     ./tempore --grades inter-arrival tests/inter_arrival_reject.tpe
 
-   Operation spacing: rejected programs. *)
+   Inter-arrival bounds: rejected programs. *)
 
 operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]
 default Beat () = delay 0.2
