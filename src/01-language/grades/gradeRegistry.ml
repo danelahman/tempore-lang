@@ -40,9 +40,7 @@ let timed_regex = ("Timed regex grades", "Timed regex")
 let lattices = ("Grade lattices", "Lattices")
 let semidirect = ("Semidirect products", "Semidirect")
 let at_most_counts = ("At-most counts", "Counts")
-
-let inter_arrival =
-  ("Inter-arrival times of timed operations", "Inter-arrival (timed ops)")
+let inter_arrival = ("Inter-arrival grades", "Inter-arrival")
 
 let entry ?(visibility = Everywhere) ?implementation ?over_lattice
     (module G : Grade.S) group title description =
@@ -159,76 +157,76 @@ let letter_derivatives =
 
 (* How inclusion is decided for the regex grades with banked delays, full
    and short. *)
-let timed_symbolic_inclusion =
+let banked_symbolic_inclusion =
   "emptiness of the product of the automaton of the gap derivatives of the \
    lesser grade with a reader of the closure of that of the greater grade, by \
    breadth-first search"
 
-let timed_symbolic_inclusion_short =
+let banked_symbolic_inclusion_short =
   "gap derivatives with a closure reader, breadth-first"
 
-let timed_letter_inclusion =
+let banked_letter_inclusion =
   "emptiness relative to the closure of the greater grade, by depth-first \
    search of the derivatives by single letters with the closure stepped \
    alongside, an automaton built on the fly"
 
-let timed_letter_inclusion_short =
+let banked_letter_inclusion_short =
   "derivatives by single letters with closures, depth-first"
 
-let timed_product_inclusion =
+let banked_product_inclusion =
   "emptiness of the product with the automaton of the closure of the greater \
    grade, by breadth-first search"
 
-let timed_product_inclusion_short = "product with the closure, breadth-first"
+let banked_product_inclusion_short = "product with the closure, breadth-first"
 
-let timed_rational_inclusion =
+let banked_rational_inclusion =
   "emptiness of the product with a reader of the closure of the greater grade, \
    by breadth-first search"
 
-let timed_rational_inclusion_short =
+let banked_rational_inclusion_short =
   "product with a closure reader, breadth-first"
 
 (* The implementations of the regex grades with banked delays. *)
-let timed_symbolic =
+let banked_symbolic =
   {
     symbolic with
-    inclusion = timed_symbolic_inclusion;
-    inclusion_short = timed_symbolic_inclusion_short;
+    inclusion = banked_symbolic_inclusion;
+    inclusion_short = banked_symbolic_inclusion_short;
   }
 
-let timed_letter_automata =
+let banked_letter_automata =
   {
     letter_automata with
-    inclusion = timed_product_inclusion;
-    inclusion_short = timed_product_inclusion_short;
+    inclusion = banked_product_inclusion;
+    inclusion_short = banked_product_inclusion_short;
   }
 
-let timed_rational_symbolic =
+let banked_rational_symbolic =
   {
     rational_symbolic with
-    inclusion = timed_symbolic_inclusion;
-    inclusion_short = timed_symbolic_inclusion_short;
+    inclusion = banked_symbolic_inclusion;
+    inclusion_short = banked_symbolic_inclusion_short;
   }
 
-let timed_rational_automata =
+let banked_rational_automata =
   {
     rational_automata with
-    inclusion = timed_rational_inclusion;
-    inclusion_short = timed_rational_inclusion_short;
+    inclusion = banked_rational_inclusion;
+    inclusion_short = banked_rational_inclusion_short;
   }
 
-let timed_symbolic_by_letters =
+let banked_symbolic_by_letters =
   {
     symbolic_by_letters with
-    inclusion = timed_letter_inclusion;
-    inclusion_short = timed_letter_inclusion_short;
+    inclusion = banked_letter_inclusion;
+    inclusion_short = banked_letter_inclusion_short;
   }
 
-let timed_letter_derivatives =
+let banked_letter_derivatives =
   {
     letter_derivatives with
-    inclusion = timed_letter_inclusion;
-    inclusion_short = timed_letter_inclusion_short;
+    inclusion = banked_letter_inclusion;
+    inclusion_short = banked_letter_inclusion_short;
   }
 
 (* The descriptions shared by the implementations of a regular grade. *)
@@ -236,15 +234,15 @@ let regular_languages =
   "Regular languages of traces over delays and operations, ordered by \
    inclusion."
 
-let timed_lower =
+let banked_lower =
   "Regular languages of traces in the coverage order, operations counting at \
    their lower running-time bounds."
 
-let timed_upper =
+let banked_upper =
   "Regular languages of traces in the allowance order, operations counting at \
    their upper running-time bounds."
 
-let timed_interval =
+let banked_interval =
   "Closed intervals [L, U] of a lower and an upper regular-language bound, \
    compared componentwise."
 
@@ -252,94 +250,97 @@ let rational_languages =
   "Regular languages of traces over rational delays and operations, ordered by \
    inclusion; exact."
 
-let timed_lower_rational =
+let banked_lower_rational =
   "Regular languages of traces over rational delays in the coverage order, \
    operations counting at their lower running-time bounds, which may be \
    fractional; exact."
 
-let timed_upper_rational =
+let banked_upper_rational =
   "Regular languages of traces over rational delays in the allowance order, \
    operations counting at their upper running-time bounds, which may be \
    fractional; exact."
 
-let timed_interval_rational =
+let banked_interval_rational =
   "Closed intervals [L, U] of a lower and an upper regular-language bound over \
    rational delays, compared componentwise; exact."
 
-let interval_words =
-  "words of operations, idle waits and spans, a word below a bound when it \
-   follows the skeleton of one of its words: its operations matched in order, \
-   and the other items placed in its spans, an idle wait holding waiting only"
+let time_span_words =
+  "words of operations, idle waits and time spans, a word below a bound when \
+   it follows the skeleton of one of its words: its operations matched in \
+   order, and the other items fitting in its time spans, an idle wait holding \
+   waiting only"
 
 let timed_regex_lower =
-  "Regular languages of " ^ interval_words
+  "Regular languages of " ^ time_span_words
   ^ "; lengths bounded below, ≥d and idle ≥d, operations counting at their \
      lower running-time bounds."
 
 let timed_regex_upper =
-  "Regular languages of " ^ interval_words
+  "Regular languages of " ^ time_span_words
   ^ "; lengths bounded above, ≤d and idle ≤d, operations counting at their \
      upper running-time bounds."
 
 let timed_regex_interval =
   "Intervals [L, U] of a lower and an upper bound of regular languages of \
-   words with idle waits and spans, compared componentwise."
+   words with idle waits and time spans, compared componentwise."
 
 let timed_regex_lower_rational =
-  "Regular languages of " ^ interval_words
+  "Regular languages of " ^ time_span_words
   ^ "; rational lengths bounded below, ≥d, >d, idle ≥d and idle >d, operations \
      counting at their lower running-time bounds; exact."
 
 let timed_regex_upper_rational =
-  "Regular languages of " ^ interval_words
+  "Regular languages of " ^ time_span_words
   ^ "; rational lengths bounded above, ≤d, <d, idle ≤d and idle <d, operations \
      counting at their upper running-time bounds; exact."
 
 let timed_regex_interval_rational =
   "Intervals [L, U] of a lower and an upper bound of regular languages of \
-   words with idle waits and spans of rational lengths, compared \
+   words with idle waits and time spans of rational lengths, compared \
    componentwise; exact."
 
 let timed_regex_finite_lower =
-  "Finite sets of " ^ interval_words
+  "Finite sets of " ^ time_span_words
   ^ "; lengths bounded below, ≥d and idle ≥d, operations counting at their \
      lower running-time bounds."
 
 let timed_regex_finite_upper =
-  "Finite sets of " ^ interval_words
+  "Finite sets of " ^ time_span_words
   ^ "; lengths bounded above, ≤d and idle ≤d, operations counting at their \
      upper running-time bounds."
 
 let timed_regex_finite_interval =
   "Intervals [L, U] of a lower and an upper bound of finite sets of words with \
-   idle waits and spans, compared componentwise."
+   idle waits and time spans, compared componentwise."
 
 let timed_regex_finite_lower_rational =
-  "Finite sets of " ^ interval_words
+  "Finite sets of " ^ time_span_words
   ^ "; rational lengths bounded below, operations counting at their lower \
      running-time bounds, which may be fractional."
 
 let timed_regex_finite_upper_rational =
-  "Finite sets of " ^ interval_words
+  "Finite sets of " ^ time_span_words
   ^ "; rational lengths bounded above, operations counting at their upper \
      running-time bounds, which may be fractional."
 
 let timed_regex_finite_interval_rational =
   "Intervals [L, U] of a lower and an upper bound of finite sets of words with \
-   idle waits and spans of rational lengths, compared componentwise."
+   idle waits and time spans of rational lengths, compared componentwise."
 
 (* The implementation of the timed regex grades. *)
-let interval_letters =
+let time_spans =
   {
     representation =
-      "timed regular expressions over operation sets and one-sided spans in \
-       normal form";
-    representation_short = "expressions with interval letters";
+      "timed regular expressions over operation sets, one-sided time spans and \
+       idle waits in normal form";
+    representation_short =
+      "expressions over time spans, idle waits and operation sets";
     inclusion =
       "breadth-first search of the automaton of the partial derivatives of the \
-       lesser grade against a reader of the spans of the greater one, at \
+       lesser grade against a reader of the time spans of the greater one, at \
        extremal lengths";
-    inclusion_short = "partial derivatives with a span reader, breadth-first";
+    inclusion_short =
+      "partial derivatives with a time span reader, breadth-first";
   }
 
 let entries =
@@ -415,27 +416,6 @@ let entries =
       banked_traces "Intervals (rational)"
       "Closed intervals [L, U] of a lower and an upper trace bound with \
        rational delays, compared componentwise.";
-    entry ~implementation:interval_letters
-      (module TimedRegexGrades.Finite.LowerBound)
-      timed_regex_finite "Lower bounds" timed_regex_finite_lower;
-    entry ~implementation:interval_letters
-      (module TimedRegexGrades.Finite.UpperBound)
-      timed_regex_finite "Upper bounds" timed_regex_finite_upper;
-    entry ~implementation:interval_letters
-      (module TimedRegexGrades.Finite.Interval)
-      timed_regex_finite "Intervals" timed_regex_finite_interval;
-    entry ~implementation:interval_letters
-      (module TimedRegexGrades.Finite.Rational.LowerBound)
-      timed_regex_finite "Lower bounds (rational)"
-      timed_regex_finite_lower_rational;
-    entry ~implementation:interval_letters
-      (module TimedRegexGrades.Finite.Rational.UpperBound)
-      timed_regex_finite "Upper bounds (rational)"
-      timed_regex_finite_upper_rational;
-    entry ~implementation:interval_letters
-      (module TimedRegexGrades.Finite.Rational.Interval)
-      timed_regex_finite "Intervals (rational)"
-      timed_regex_finite_interval_rational;
     entry ~implementation:symbolic
       (module RegularTraceLanguagesDerivative)
       regular_trace_languages "Upper bounds (symbolic)" regular_languages;
@@ -458,78 +438,99 @@ let entries =
       (module RegularTraceLanguagesPlain)
       regular_trace_languages "Upper bounds (letter derivatives)"
       regular_languages;
-    entry ~implementation:timed_symbolic
+    entry ~implementation:banked_symbolic
       (module BankedRegexGrades.Symbolic.LowerBound)
-      banked_regex "Lower bounds (symbolic)" timed_lower;
-    entry ~implementation:timed_symbolic
+      banked_regex "Lower bounds (symbolic)" banked_lower;
+    entry ~implementation:banked_symbolic
       (module BankedRegexGrades.Symbolic.UpperBound)
-      banked_regex "Upper bounds (symbolic)" timed_upper;
-    entry ~implementation:timed_symbolic
+      banked_regex "Upper bounds (symbolic)" banked_upper;
+    entry ~implementation:banked_symbolic
       (module BankedRegexGrades.Symbolic.Interval)
-      banked_regex "Intervals (symbolic)" timed_interval;
-    entry ~visibility:Hidden ~implementation:timed_letter_automata
+      banked_regex "Intervals (symbolic)" banked_interval;
+    entry ~visibility:Hidden ~implementation:banked_letter_automata
       (module BankedRegexGrades.LowerBound)
-      banked_regex "Lower bounds (letter automata)" timed_lower;
-    entry ~visibility:Hidden ~implementation:timed_letter_automata
+      banked_regex "Lower bounds (letter automata)" banked_lower;
+    entry ~visibility:Hidden ~implementation:banked_letter_automata
       (module BankedRegexGrades.UpperBound)
-      banked_regex "Upper bounds (letter automata)" timed_upper;
-    entry ~visibility:Hidden ~implementation:timed_letter_automata
+      banked_regex "Upper bounds (letter automata)" banked_upper;
+    entry ~visibility:Hidden ~implementation:banked_letter_automata
       (module BankedRegexGrades.Interval)
-      banked_regex "Intervals (letter automata)" timed_interval;
-    entry ~implementation:timed_rational_symbolic
+      banked_regex "Intervals (letter automata)" banked_interval;
+    entry ~implementation:banked_rational_symbolic
       (module BankedRegexGradesRational.LowerBound)
-      banked_regex "Lower bounds (rational, symbolic)" timed_lower_rational;
-    entry ~implementation:timed_rational_symbolic
+      banked_regex "Lower bounds (rational, symbolic)" banked_lower_rational;
+    entry ~implementation:banked_rational_symbolic
       (module BankedRegexGradesRational.UpperBound)
-      banked_regex "Upper bounds (rational, symbolic)" timed_upper_rational;
-    entry ~implementation:timed_rational_symbolic
+      banked_regex "Upper bounds (rational, symbolic)" banked_upper_rational;
+    entry ~implementation:banked_rational_symbolic
       (module BankedRegexGradesRational.Interval)
-      banked_regex "Intervals (rational, symbolic)" timed_interval_rational;
-    entry ~visibility:Hidden ~implementation:timed_rational_automata
+      banked_regex "Intervals (rational, symbolic)" banked_interval_rational;
+    entry ~visibility:Hidden ~implementation:banked_rational_automata
       (module BankedRegexGradesRational.Automata.LowerBound)
-      banked_regex "Lower bounds (rational, automata)" timed_lower_rational;
-    entry ~visibility:Hidden ~implementation:timed_rational_automata
+      banked_regex "Lower bounds (rational, automata)" banked_lower_rational;
+    entry ~visibility:Hidden ~implementation:banked_rational_automata
       (module BankedRegexGradesRational.Automata.UpperBound)
-      banked_regex "Upper bounds (rational, automata)" timed_upper_rational;
-    entry ~visibility:Hidden ~implementation:timed_rational_automata
+      banked_regex "Upper bounds (rational, automata)" banked_upper_rational;
+    entry ~visibility:Hidden ~implementation:banked_rational_automata
       (module BankedRegexGradesRational.Automata.Interval)
-      banked_regex "Intervals (rational, automata)" timed_interval_rational;
-    entry ~visibility:Hidden ~implementation:timed_symbolic_by_letters
+      banked_regex "Intervals (rational, automata)" banked_interval_rational;
+    entry ~visibility:Hidden ~implementation:banked_symbolic_by_letters
       (module BankedRegexGrades.Concrete.LowerBound)
-      banked_regex "Lower bounds (symbolic by letters)" timed_lower;
-    entry ~visibility:Hidden ~implementation:timed_symbolic_by_letters
+      banked_regex "Lower bounds (symbolic by letters)" banked_lower;
+    entry ~visibility:Hidden ~implementation:banked_symbolic_by_letters
       (module BankedRegexGrades.Concrete.UpperBound)
-      banked_regex "Upper bounds (symbolic by letters)" timed_upper;
-    entry ~visibility:Hidden ~implementation:timed_symbolic_by_letters
+      banked_regex "Upper bounds (symbolic by letters)" banked_upper;
+    entry ~visibility:Hidden ~implementation:banked_symbolic_by_letters
       (module BankedRegexGrades.Concrete.Interval)
-      banked_regex "Intervals (symbolic by letters)" timed_interval;
-    entry ~visibility:Hidden ~implementation:timed_letter_derivatives
+      banked_regex "Intervals (symbolic by letters)" banked_interval;
+    entry ~visibility:Hidden ~implementation:banked_letter_derivatives
       (module BankedRegexGrades.Plain.LowerBound)
-      banked_regex "Lower bounds (letter derivatives)" timed_lower;
-    entry ~visibility:Hidden ~implementation:timed_letter_derivatives
+      banked_regex "Lower bounds (letter derivatives)" banked_lower;
+    entry ~visibility:Hidden ~implementation:banked_letter_derivatives
       (module BankedRegexGrades.Plain.UpperBound)
-      banked_regex "Upper bounds (letter derivatives)" timed_upper;
-    entry ~visibility:Hidden ~implementation:timed_letter_derivatives
+      banked_regex "Upper bounds (letter derivatives)" banked_upper;
+    entry ~visibility:Hidden ~implementation:banked_letter_derivatives
       (module BankedRegexGrades.Plain.Interval)
-      banked_regex "Intervals (letter derivatives)" timed_interval;
-    entry ~implementation:interval_letters
+      banked_regex "Intervals (letter derivatives)" banked_interval;
+    entry ~implementation:time_spans
       (module TimedRegexGrades.LowerBound)
       timed_regex "Lower bounds (symbolic)" timed_regex_lower;
-    entry ~implementation:interval_letters
+    entry ~implementation:time_spans
       (module TimedRegexGrades.UpperBound)
       timed_regex "Upper bounds (symbolic)" timed_regex_upper;
-    entry ~implementation:interval_letters
+    entry ~implementation:time_spans
       (module TimedRegexGrades.Interval)
       timed_regex "Intervals (symbolic)" timed_regex_interval;
-    entry ~implementation:interval_letters
+    entry ~implementation:time_spans
       (module TimedRegexGrades.Rational.LowerBound)
       timed_regex "Lower bounds (rational, symbolic)" timed_regex_lower_rational;
-    entry ~implementation:interval_letters
+    entry ~implementation:time_spans
       (module TimedRegexGrades.Rational.UpperBound)
       timed_regex "Upper bounds (rational, symbolic)" timed_regex_upper_rational;
-    entry ~implementation:interval_letters
+    entry ~implementation:time_spans
       (module TimedRegexGrades.Rational.Interval)
       timed_regex "Intervals (rational, symbolic)" timed_regex_interval_rational;
+    entry ~implementation:time_spans
+      (module TimedRegexGrades.Finite.LowerBound)
+      timed_regex_finite "Lower bounds" timed_regex_finite_lower;
+    entry ~implementation:time_spans
+      (module TimedRegexGrades.Finite.UpperBound)
+      timed_regex_finite "Upper bounds" timed_regex_finite_upper;
+    entry ~implementation:time_spans
+      (module TimedRegexGrades.Finite.Interval)
+      timed_regex_finite "Intervals" timed_regex_finite_interval;
+    entry ~implementation:time_spans
+      (module TimedRegexGrades.Finite.Rational.LowerBound)
+      timed_regex_finite "Lower bounds (rational)"
+      timed_regex_finite_lower_rational;
+    entry ~implementation:time_spans
+      (module TimedRegexGrades.Finite.Rational.UpperBound)
+      timed_regex_finite "Upper bounds (rational)"
+      timed_regex_finite_upper_rational;
+    entry ~implementation:time_spans
+      (module TimedRegexGrades.Finite.Rational.Interval)
+      timed_regex_finite "Intervals (rational)"
+      timed_regex_finite_interval_rational;
     entry
       ~over_lattice:(fun lattice ->
         let module V = LatticeGrades.Over (struct
@@ -608,7 +609,7 @@ let entries =
        end.";
     entry
       (module CountGrades.AtMost)
-      at_most_counts "At-most counts, by name"
+      at_most_counts "At-most counts"
       "At most n calls of each operation, by name, such as ((Auth, 1), (Send, \
        3)); delays count nothing.";
     entry

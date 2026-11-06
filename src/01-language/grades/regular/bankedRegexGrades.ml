@@ -133,9 +133,9 @@ module ByLetters (L : LANGUAGE) = struct
 
   include Numbered (L)
   module Traces = Dfa.Implicit (L.State)
-  module Allowance = TimedClosure.Allowance (L.State)
-  module Coverage = TimedClosure.Coverage (L.State)
-  module Weights = TimedClosure.Weights (L.State)
+  module Allowance = BankedClosure.Allowance (L.State)
+  module Coverage = BankedClosure.Coverage (L.State)
+  module Weights = BankedClosure.Weights (L.State)
 
   (** Sets of states of the automata of traces, the states of the closures. *)
   module States = struct
@@ -225,7 +225,7 @@ end
 
 (** The decisions by the graphs of the gap derivatives of the symbolic regular
     expressions ({!GapGraph}) and the readers and search of
-    {!DelayTimedClosure.Graph} over them, at integer running times. *)
+    {!DelayBankedClosure.Graph} over them, at integer running times. *)
 module ByGaps = struct
   type t = SymbolicRegex.t
 
@@ -281,27 +281,27 @@ module ByGaps = struct
                   "BankedRegexGrades.ByGaps.symbols: an empty class of names"))
       word
 
-  let in_allowance = tabulated (on_graphs DelayTimedClosure.Graph.in_allowance)
-  let in_coverage = tabulated (on_graphs DelayTimedClosure.Graph.in_coverage)
+  let in_allowance = tabulated (on_graphs DelayBankedClosure.Graph.in_allowance)
+  let in_coverage = tabulated (on_graphs DelayBankedClosure.Graph.in_coverage)
 
   let allowance =
     tabulated (fun world rho rho' ->
         Option.map symbols
-          (on_graphs DelayTimedClosure.Graph.allowance world rho rho'))
+          (on_graphs DelayBankedClosure.Graph.allowance world rho rho'))
 
   let coverage =
     tabulated (fun world rho rho' ->
         Option.map symbols
-          (on_graphs DelayTimedClosure.Graph.coverage world rho rho'))
+          (on_graphs DelayBankedClosure.Graph.coverage world rho rho'))
 
   let weight extreme world rho =
     Option.map
       (fun (q, _) -> integer q)
       (extreme (operations world) (graph world rho))
 
-  let min_weight = weight DelayTimedClosure.Graph.min_weight
-  let max_weight = weight DelayTimedClosure.Graph.max_weight
-  let inhabited world rho = DelayTimedClosure.Graph.inhabited (graph world rho)
+  let min_weight = weight DelayBankedClosure.Graph.min_weight
+  let max_weight = weight DelayBankedClosure.Graph.max_weight
+  let inhabited world rho = DelayBankedClosure.Graph.inhabited (graph world rho)
 
   let consistent =
     tabulated_jointly (fun lo_world hi_world rho rho' ->
@@ -317,7 +317,7 @@ module Over
     (Variant : sig
       val suffix : string
     end) =
-  RegularTimedOrders.Make
+  BankedRegexOrders.Make
     (L)
     (struct
       type grade = L.t

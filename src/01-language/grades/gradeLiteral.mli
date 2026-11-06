@@ -40,7 +40,7 @@ type regex =
           concatenations of [k] words of [r], [k] in the count *)
   | Inter of regex * regex  (** Intersection, [r & s] *)
   | Compl of regex  (** Complement, [~r] *)
-  | Strict of regex
+  | Idle of regex
       (** An idle wait, [idle r], [r] the wildcard [_] or an expression of
           delays only ({!delays_only}): [idle 3], [idle [2, 3]], [idle _] *)
 
@@ -138,8 +138,8 @@ val distinct_entries :
       on [lit] with the reason [twice k] if two entries have the same key [k].
 *)
 
-val strict_unsupported : regex -> 'a
-(** [strict_unsupported r] rejects the idle wait [r], [idle d], under a grade
+val idle_unsupported : regex -> 'a
+(** [idle_unsupported r] rejects the idle wait [r], [idle d], under a grade
     other than the timed regex grades.
 
     @raise Invalid_literal on the brace literal of [r]. *)

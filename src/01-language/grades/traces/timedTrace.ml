@@ -91,7 +91,7 @@ module Base (D : Delay.S) = struct
     | Skip -> [ [] ]
     | Tick n -> of_delay (delay_of_lit lit (Int n))
     | Frac q -> of_delay (delay_of_lit lit (Rat q))
-    | Strict _ as r -> component_of_lit lit ~context:"" strict_unsupported r
+    | Idle _ as r -> component_of_lit lit ~context:"" idle_unsupported r
     | Seq (r, s) -> binary lit product r s
     | Union (r, s) -> binary lit union r s
     | Star _ -> unsupported lit "repetition `*`"

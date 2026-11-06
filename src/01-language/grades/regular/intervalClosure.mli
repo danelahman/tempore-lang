@@ -1,5 +1,5 @@
-(** The order of the timed grades with interval letters, decided on the
-    expressions of {!IntervalRegex}.
+(** The order of the timed regex grades, decided on the expressions of
+    {!IntervalRegex}.
 
     [x ≾ y] iff every exact word of [x] fits some exact word of [y]: the
     operations of the word of [y] occur in that of [x] at the same time spans,

@@ -1,4 +1,4 @@
-(** The operation-count grades: how often a computation performs each operation.
+(** The at-most counts: how often a computation performs each operation.
 
     A grade maps the names of the operations to numbers of calls,
     {!GradeConstructions.Indexed.OfGrade} over the time grades, sequencing

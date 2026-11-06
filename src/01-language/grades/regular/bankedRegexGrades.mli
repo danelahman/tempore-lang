@@ -10,7 +10,7 @@
 
     A trace is a word over [tick] and operation names, as in
     {!RegularTraceLanguages}, and the orders on single traces are allowance and
-    coverage, as characterised in {!TimedClosure}. A grade is ordered below
+    coverage, as characterised in {!BankedClosure}. A grade is ordered below
     another through the closure of the greater one:
     - upper bounds: [ρ ≾ ρ'] iff every trace of [ρ] is permitted by some trace
       of [ρ'], i.e. [ρ ⊆ ↓ρ'], operations counting at their upper running-time
@@ -108,11 +108,11 @@ end
     class stood for by its least name. [ρ ≾ ρ'] is decided by breadth-first
     search of the product of the automaton {!LANGUAGE.traces} of [ρ] with an
     automaton of the closure of the automaton {!LANGUAGE.traces} of [ρ'], over
-    these letters, {!TimedClosure.Allowance} under the upper order and
-    {!TimedClosure.Coverage} under the lower order, both explored only as far as
-    the search needs. The least names of the classes and their running times are
-    hash-consed into a numbered world; the searches are tabulated by the number
-    of the world and the representations of the grades compared
+    these letters, {!BankedClosure.Allowance} under the upper order and
+    {!BankedClosure.Coverage} under the lower order, both explored only as far
+    as the search needs. The least names of the classes and their running times
+    are hash-consed into a numbered world; the searches are tabulated by the
+    number of the world and the representations of the grades compared
     ({!Grade.S.compare} and {!Grade.S.hash} of [L]), and the automata
     {!LANGUAGE.traces} by the number of the least names and the representation
     of the grade, in module-level tables that only ever grow. A grade is the top
@@ -122,17 +122,17 @@ end
     intervals. A grade is {!Grade.S.inhabited} iff {!LANGUAGE.traces} accepts
     some word, over the classes of its names of any running time, and its
     running-time bounds are read off {!LANGUAGE.traces} over the classes of the
-    running times read ({!TimedClosure.Weights}). The searches, the closures and
-    the weights take the runs of ticks of the automata {!LANGUAGE.traces} of the
-    derivatives in one step each ({!Dfa.type-automaton}); over {!Automata},
+    running times read ({!BankedClosure.Weights}). The searches, the closures
+    and the weights take the runs of ticks of the automata {!LANGUAGE.traces} of
+    the derivatives in one step each ({!Dfa.type-automaton}); over {!Automata},
     every tick is a transition.
 
     An interval admits a run iff some trace covers a trace of its lower end and
-    is permitted by a trace of its upper end ({!RegularTimedOrders.Make}),
+    is permitted by a trace of its upper end ({!BankedRegexOrders.Make}),
     decided over [tick] and the classes of the names of equal pairs of lower and
     upper running times, by depth-first search of the product of the automata
-    {!TimedClosure.Coverage} of the lower end, at the lower running times, and
-    {!TimedClosure.Allowance} of the upper end, at the upper running times, for
+    {!BankedClosure.Coverage} of the lower end, at the lower running times, and
+    {!BankedClosure.Allowance} of the upper end, at the upper running times, for
     a pair of final states ({!Dfa.Product.intersect}); over the gap graphs
     ({!Symbolic}) by {!JointWalk.consistent}. *)
 module Make
@@ -220,19 +220,19 @@ module Interval :
     ["banked-regex-interval-symbolic"], decided over the graphs of the gap
     derivatives of the grades ({!GapGraph}), over the least names of the classes
     of the minterms of their letter sets and running times: [ρ ≾ ρ'] by the
-    search of {!DelayTimedClosure.Graph.in_allowance} under the upper order and
-    {!DelayTimedClosure.Graph.in_coverage} under the lower order, of the graph
+    search of {!DelayBankedClosure.Graph.in_allowance} under the upper order and
+    {!DelayBankedClosure.Graph.in_coverage} under the lower order, of the graph
     of [ρ] against the reader of the closure of the graph of [ρ'], at the
     integer running times read; a counterexample by
-    {!DelayTimedClosure.Graph.allowance} and
-    {!DelayTimedClosure.Graph.coverage}, shortest in its number of symbols, its
+    {!DelayBankedClosure.Graph.allowance} and
+    {!DelayBankedClosure.Graph.coverage}, shortest in its number of symbols, its
     delays the extremal values of the sets of delays read, which sets of
     integers attain, and above every finite threshold of the reader where a set
     is unbounded; the running-time bounds implied by
-    {!DelayTimedClosure.Graph.min_weight} and
-    {!DelayTimedClosure.Graph.max_weight}, and inhabitation by the liveness of
+    {!DelayBankedClosure.Graph.min_weight} and
+    {!DelayBankedClosure.Graph.max_weight}, and inhabitation by the liveness of
     the graph. The orders on traces over whole time steps are those of
-    {!DelayTimedClosure} on words of integer delays, by the same segment
+    {!DelayBankedClosure} on words of integer delays, by the same segment
     characterisation, so that its readers decide them. The graphs have one gap
     state per gap derivative, whatever the delays of the grades, and the
     searches and graphs are tabulated by their arguments in module-level tables

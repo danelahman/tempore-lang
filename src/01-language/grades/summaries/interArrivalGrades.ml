@@ -64,8 +64,8 @@ module Summary = struct
     Hashing.combine (hash_opt I.hash e.silent) (hash_opt hash_active e.active)
 
   (* The longest-gap monoid, lifted to the cases of an entry: a stretch without
-     the name added to a lead or a tail, and the tail of the first part with
-     the lead of the second part forming a gap, the counts added. *)
+     the name added to a lead time or a tail, and the tail of the first part
+     with the lead time of the second part forming a gap, the counts added. *)
   let mul_entry e e' =
     let cases =
       [
@@ -341,7 +341,7 @@ let of_braces lit r =
         | None -> Terms.delays (lo, hi))
     | Seq (r, s) -> mul (go r) (go s)
     | Union (r, s) -> join (go r) (go s)
-    | Strict _ as r -> component_of_lit lit ~context:"" strict_unsupported r
+    | Idle _ as r -> component_of_lit lit ~context:"" idle_unsupported r
     | (Below _ | Above _) as r ->
         component_of_lit lit ~context:"" one_sided_unsupported r
     | Repeat (r, ({ most = Some _; _ } as c)) -> go (unrolled r c)
@@ -354,9 +354,9 @@ let of_braces lit r =
   go r
 
 (* The entry of a specification of the count [count] of occurrences, the
-   silent computations included where it contains [0], and of the lead, the
-   gaps and the tail of the active ones; there are no gaps where the count of
-   the active ones is [1]. *)
+   silent computations included where it contains [0], and of the lead time,
+   the gaps and the tail of the active ones; there are no gaps where the count
+   of the active ones is [1]. *)
 let make_entry (count : Count.t) ~lead ~gaps ~tail =
   let open Summary in
   {
@@ -430,7 +430,7 @@ let entry_of_lit lit =
   in
   let full x count lead gaps tail =
     make_entry count
-      ~lead:(interval x "in the lead, " lead)
+      ~lead:(interval x "in the lead time, " lead)
       ~gaps:
         (Option.fold ~none:I.unbounded ~some:(interval x "in the gaps, ") gaps)
       ~tail:(interval x "in the tail, " tail)
@@ -441,8 +441,8 @@ let entry_of_lit lit =
       (x, full x Count.unbounded lead (Some gaps) tail)
   | Tuple (Name _ :: _) ->
       invalid_lit lit
-        "an entry `(X, ...)` lists one interval, the gaps, or three, the lead, \
-         the gaps and the tail"
+        "an entry `(X, ...)` lists one interval, the gaps, or three, the lead \
+         time, the gaps and the tail"
   | Tuple (count :: Name x :: rest) -> (
       let count =
         component_of_lit lit
@@ -457,13 +457,14 @@ let entry_of_lit lit =
         | [] | _ :: _ :: _ :: _ :: _ ->
             invalid_lit lit
               "an entry `(n, X, ...)` lists one interval, the gaps, two, the \
-               lead and the tail, or three, the lead, the gaps and the tail"
+               lead time and the tail, or three, the lead time, the gaps and \
+               the tail"
       in
       match entry with
       | { silent = None; active = None } ->
           invalid_lit lit
             "the entry of `%s` admits no computation: a count of 0, and a lead \
-             and a tail that do not meet"
+             time and a tail that do not meet"
             x
       | entry -> (x, entry))
   | lit ->
@@ -507,8 +508,8 @@ let of_lit lit =
       of_specification lit components
   | Name name ->
       invalid_lit lit
-        "the occurrence of an operation is written `{%s}`, and its spacing \
-         `(%s, [s, t])`"
+        "the occurrence of an operation is written `{%s}`, and the gaps \
+         between its occurrences `(%s, [s, t])`"
         name name
   | lit ->
       invalid_lit lit

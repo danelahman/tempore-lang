@@ -1,5 +1,6 @@
-(** The trace grades without running times: finite sets of traces (see
-    {!TimedTrace}), multiplied by the language product and ordered by inclusion.
+(** The finite run sets: finite sets of traces (see {!TimedTrace}) whose
+    operations declare no running-time bounds, multiplied by the language
+    product and ordered by inclusion.
 
     {2 Order}
 

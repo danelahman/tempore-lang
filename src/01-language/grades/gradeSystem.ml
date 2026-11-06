@@ -1,16 +1,18 @@
-(** Grade systems: a grade for resources, a grade for effects, and a grade
-    morphism [∣_∣] from the latter to the former. *)
+(** Grade systems: a grade algebra for resources, a grade algebra for effects,
+    and a morphism [∣_∣] of grade algebras from the latter to the former. *)
 
 module type S = sig
   module R : Grade.S
-  (** The resource grades. *)
+  (** The grade algebra of the resource grades. *)
 
   module E : Grade.S with type Delay.t = R.Delay.t
-  (** The effect grades, over the delays of the resource grades. *)
+  (** The grade algebra of the effect grades, over the delays of the resource
+      grades. *)
 
   val map : E.t -> R.t
-  (** The grade morphism [∣_∣]: monotone, and preserving the unit, the product,
-      the top, joins and delays: [map (E.of_delay d) = R.of_delay d]. *)
+  (** The morphism [∣_∣] of grade algebras: monotone, and preserving the unit,
+      the product, the top, joins and delays:
+      [map (E.of_delay d) = R.of_delay d]. *)
 
   val lattice : GradeLattice.t option
   (** The grade lattice the program declares, over which the lattice grades are

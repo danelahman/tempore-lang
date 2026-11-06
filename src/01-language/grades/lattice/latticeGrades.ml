@@ -83,7 +83,7 @@ struct
 
   module Indexed = GradeConstructions.Indexed
 
-  (* The element at which a sink is written, if it is: [None] below every
+  (* The element at which an output is written, if it is: [None] below every
      [Some l]. *)
   module WrittenAt = struct
     type t = element option
@@ -111,7 +111,7 @@ struct
 
   module Outputs = Indexed.OfSemilattice (WrittenAt)
 
-  (* The action of an element on the outputs, raising each written sink to at
+  (* The action of an element on the outputs, raising each written output to at
      least it. *)
   module Raise =
     Indexed.Action
@@ -123,19 +123,19 @@ struct
         let act l = Option.map (join_element l)
       end)
 
-  (** [written lit] is the output the literal [lit] of a sink and an element
-      denotes. *)
+  (** [written lit] is the output that the literal [lit], of an output and an
+      element, denotes. *)
   let written = function
-    | Grade.Tuple [ Grade.Name sink; element ] as lit ->
-        ( sink,
+    | Grade.Tuple [ Grade.Name output; element ] as lit ->
+        ( output,
           Grade.component_of_lit lit ~context:"in the element of an output, "
             Elements.of_lit element )
     | lit ->
         Grade.invalid_lit lit
-          "outputs are pairs `(Sink, l)` of a sink and an element, not %s"
+          "outputs are pairs `(Output, l)` of an output and an element, not %s"
           (Grade.describe_lit lit)
 
-  (** [of_written lit ws] is the outputs [ws], each sink listed once in the
+  (** [of_written lit ws] is the outputs [ws], each output listed once in the
       literal [lit]. *)
   let of_written lit ws =
     let defaults, named =
@@ -173,8 +173,8 @@ struct
             | Ok l -> (l, Outputs.bottom)
             | Error (_, reason) ->
                 Grade.invalid_lit lit
-                  "%s, or tuples `(l, (Sink, l1), ...)` of an element and the \
-                   outputs written"
+                  "%s, or tuples `(l, (Output, l1), ...)` of an element and \
+                   the outputs written"
                   reason)
 
       let accepts = Grade.reads_lit of_lit
@@ -188,9 +188,9 @@ struct
           ^ ")"
 
       (* Each ordering is the conjunction of its projections on the element and
-         on each sink, (l, W) ↦ (l, W(s)), morphisms preserving the joins: a
-         failure at a rigid shows at the element and one sink of it, the sinks no
-         constant names being alike. *)
+         on each output, (l, W) ↦ (l, W(s)), morphisms preserving the joins: a
+         failure at a rigid shows at the element and one output of it, the
+         outputs no constant names being alike. *)
       let witnesses ~degree:_ _bounds cs =
         let outputs =
           Outputs.bottom

@@ -1,4 +1,4 @@
-module C = DelayTimedClosure
+module C = DelayBankedClosure
 
 type value = DelaySet.extremum = Finite of Rational.t * bool | Infinite
 

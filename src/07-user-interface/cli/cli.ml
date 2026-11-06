@@ -235,7 +235,7 @@ let parse_args_to_config () =
            names a file in _opentrons/protocols" );
         ( "--grades",
           Arg.Set_string grades,
-          Printf.sprintf " Selects the grades (default: %s); accepted:%s"
+          Printf.sprintf " Select the grade algebra (default: %s); accepted:%s"
             Grades.GradeRegistry.default_name accepted_grades_help );
         ( "--help",
           Arg.Unit
@@ -1141,7 +1141,7 @@ let main () =
           Diagnostic.print ~source d Format.err_formatter;
           exit 1)
   | None ->
-      Printf.eprintf "Unknown grades `%s`. Accepted: %s\n" config.grades
+      Printf.eprintf "Unknown grade algebra `%s`. Accepted: %s\n" config.grades
         (String.concat ", "
            (List.map (fun s -> "`" ^ s ^ "`") accepted_grade_names));
       exit 1

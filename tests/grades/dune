@@ -7,9 +7,9 @@
 ; sets of delays against an implementation by lists of intervals; the laws of
 ; every registered grade, on samples, by the checks the tests share; the
 ; inter-arrival grade against concrete computations; the grades with
-; banked delays against their translations into the grades with
-; interval letters; and the run consistency of the intervals with interval
-; letters against the reference.
+; banked delays against their translations into the timed regex grades; and
+; the run consistency of the intervals of the timed regex grades against the
+; reference.
 
 (library
  (name lawChecks)
@@ -33,8 +33,8 @@
  (libraries grades parser sugaredAst lawChecks))
 
 (test
- (name test_timedTraces)
- (modules test_timedTraces)
+ (name test_bankedTraces)
+ (modules test_bankedTraces)
  (libraries grades parser sugaredAst lawChecks))
 
 (test
@@ -53,8 +53,8 @@
  (libraries utils grades parser sugaredAst))
 
 (test
- (name test_delayTimedClosure)
- (modules test_delayTimedClosure)
+ (name test_delayBankedClosure)
+ (modules test_delayBankedClosure)
  (libraries grades parser sugaredAst))
 
 (test

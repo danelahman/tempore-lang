@@ -50,7 +50,7 @@ module Make (R : EXPRESSION) = struct
     in
     ignore (number rho);
     let gaps, ops = explore [] [] 0 in
-    DelayTimedClosure.graph
+    DelayBankedClosure.graph
       ~gaps:(Array.of_list (List.rev gaps))
       ~ops:(Array.of_list (List.rev_map fst ops))
       ~final:(Array.of_list (List.rev_map snd ops))

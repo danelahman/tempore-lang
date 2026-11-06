@@ -126,7 +126,8 @@ let grades_of_sources ~grades sources =
       match List.assoc_opt grades Grades.GradeRegistry.grade_modules with
       | Some grade -> (grade, None)
       | None ->
-          invalid_arg ("Loader.grades_of_sources: unknown grades " ^ grades))
+          invalid_arg
+            ("Loader.grades_of_sources: unknown grade algebra " ^ grades))
   | Some (at, chains) -> (
       let lattice = Grades.GradeLattice.of_chains ~at chains in
       match Grades.GradeRegistry.over_lattice grades lattice with

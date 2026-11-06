@@ -400,7 +400,7 @@ let rec of_regex : GradeLiteral.regex -> t = function
   | Compl r -> compl (of_regex r)
   | Star r -> star (of_regex r)
   | Repeat (r, c) -> repeat (of_regex r) c
-  | Strict _ as r -> GradeLiteral.strict_unsupported r
+  | Idle _ as r -> GradeLiteral.idle_unsupported r
   | (Below _ | Above _) as r -> GradeLiteral.one_sided_unsupported r
 
 (** {1 Traversals} *)

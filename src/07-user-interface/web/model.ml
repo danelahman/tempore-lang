@@ -980,7 +980,8 @@ let check_program edit_model declared =
         (failed declared
            [
              fatal
-               (Printf.sprintf "Unknown grades `%s`" edit_model.selected_grades);
+               (Printf.sprintf "Unknown grade algebra `%s`"
+                  edit_model.selected_grades);
            ])
   | Some _ -> (
       try

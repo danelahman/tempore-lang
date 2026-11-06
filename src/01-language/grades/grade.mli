@@ -1,14 +1,16 @@
-(** Grades: partially ordered monoids with a greatest element and binary joins.
+(** Grade algebras: partially ordered monoids with a greatest element and binary
+    joins.
 
     The instances the prototype offers are defined in {!TimeGrades},
     {!RationalTimeGrades}, {!FiniteRunSetGrades}, {!BankedTraceGrades},
     {!RegularTraceLanguages}, {!RegularTraceLanguagesDerivative},
     {!RegularTraceLanguagesPlain}, {!RegularTraceLanguagesRational},
-    {!BankedRegexGrades}, {!LatticeGrades}, {!WatermarkGrades},
-    {!CallTimeSetGrades}, {!ModeSwitchCostGrades}, {!ModeTimeGrades},
-    {!CountGrades} and {!InterArrivalGrades}, built with the constructions of
-    {!GradeConstructions} and {!SummaryTerms}, and listed in {!GradeRegistry};
-    the modules of the regular trace languages implement the same grade.
+    {!BankedRegexGrades}, {!BankedRegexGradesRational}, {!TimedRegexGrades},
+    {!LatticeGrades}, {!WatermarkGrades}, {!CallTimeSetGrades},
+    {!ModeSwitchCostGrades}, {!ModeTimeGrades}, {!CountGrades} and
+    {!InterArrivalGrades}, built with the constructions of {!GradeConstructions}
+    and {!SummaryTerms}, and listed in {!GradeRegistry}; the modules of the
+    regular trace languages implement the same grade algebra.
 
     {2 Laws}
 

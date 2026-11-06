@@ -15,20 +15,20 @@ module type S = sig
   (** The grade lattice. *)
 
   module WrittenAt : GradeConstructions.SEMILATTICE with type t = element option
-  (** The element at which a sink is written, ["written"]: [None] if it is not,
-      below [Some l] for every element [l], ordered as the elements. Its
+  (** The element at which an output is written, ["written"]: [None] if it is
+      not, below [Some l] for every element [l], ordered as the elements. Its
       literals are the elements. *)
 
   module Outputs :
     GradeConstructions.SEMILATTICE
       with type t = element option GradeConstructions.Indexed.t
-  (** The outputs a computation writes, each sink at the highest element touched
-      before writing it, the other sinks unwritten:
+  (** The outputs a computation writes, each output at the highest element
+      touched before writing it, the other outputs unwritten:
       {!GradeConstructions.Indexed.OfSemilattice} [(WrittenAt)]. Its top writes
-      every sink at the greatest element. *)
+      every output at the greatest element. *)
 
-  (** The action of an element [l] on the outputs, raising each written sink to
-      at least [l]: {!GradeConstructions.Indexed.Action}. *)
+  (** The action of an element [l] on the outputs, raising each written output
+      to at least [l]: {!GradeConstructions.Indexed.Action}. *)
   module Raise :
     GradeConstructions.ACTION with type m = element and type n = Outputs.t
 
@@ -76,7 +76,7 @@ module type S = sig
 
   (** The flow-sensitive levels, ["flow-sensitive-levels"]: the semidirect
       product {!GradeConstructions.SemiDirect} [(Lattice) (Outputs) (Raise)].
-      [(l, W)] is "touches nothing above [l], and writes each sink at most at
+      [(l, W)] is "touches nothing above [l], and writes each output at most at
       the element [W] gives it", and
       [(l, W) · (l', W') = (l ⊔ l', W ⊔ raise_l W')]: the later outputs are
       written after [l] has been touched.
@@ -86,16 +86,17 @@ module type S = sig
       - Its delays are those of {!Lattice}, and [of_delay] is constantly the
         unit.
       - [of_lit] reads [⊤] as the top, an element [l] as [(l, ∅)] and a tuple
-        [(l, (S₁, l₁), …, (Sₖ, lₖ))] as [l] with the sinks [Sᵢ] written at [lᵢ],
-        each sink listed once, an entry [(_, l')] writing every other sink at
-        [l']; [show] prints alike, the sinks in increasing order.
+        [(l, (S₁, l₁), …, (Sₖ, lₖ))] as [l] with the outputs [Sᵢ] written at
+        [lᵢ], each output listed once, an entry [(_, l')] writing every other
+        output at [l']; [show] prints alike, the outputs in increasing order.
       - No counterexample is offered.
       - The witnesses of the constants [cs] are complete: the pairs of an
-        element with no output or with one sink written at an element, the sinks
-        being those of [cs] and a sink ["_"] standing for the others. An
-        ordering is the conjunction of its projections [(l, W) ↦ (l, W(s))] on
-        the sinks, morphisms preserving the joins, so that it fails at a rigid
-        iff it fails at the witness of the element and one sink of the rigid. *)
+        element with no output or with one output written at an element, the
+        outputs being those of [cs] and an output ["_"] standing for the others.
+        An ordering is the conjunction of its projections [(l, W) ↦ (l, W(s))]
+        on the outputs, morphisms preserving the joins, so that it fails at a
+        rigid iff it fails at the witness of the element and one output of the
+        rigid. *)
   module FlowSensitiveLevels :
     Grade.S
       with type t = element * Outputs.t

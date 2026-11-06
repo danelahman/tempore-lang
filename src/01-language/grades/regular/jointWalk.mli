@@ -1,5 +1,5 @@
 (** Run consistency of a guarantee and an allowance given as graphs in gap form
-    ({!DelayTimedClosure.type-graph}), over rational delays and running times.
+    ({!DelayBankedClosure.type-graph}), over rational delays and running times.
 
     {2 Statement}
 
@@ -7,7 +7,7 @@
     covers a word [p] of [L] and is permitted by a word [q] of [U],
     [p ≼ᶜ x ≼ᵃ q], each operation of [x] running for its lower running time in
     the coverage order and for its upper running time in the allowance order
-    ({!DelayTimedClosure}). For single traces this is decided by the joint walk
+    ({!DelayBankedClosure}). For single traces this is decided by the joint walk
     of {!TimedTrace.Make.consistent}, which carries the slack [k] of the
     coverage order and the budget [b] of the allowance order. Its moves are
     those of [U] alone (a delay banked as budget; an operation skipped, or
@@ -27,7 +27,7 @@
     equal with both attained, as in the bounds of difference-bound matrices.
 
     The moves of [U] between two moves of [L] are summarised by longest paths
-    over the graph of [U] ({!DelayTimedClosure.longest}, infinite through a
+    over the graph of [U] ({!DelayBankedClosure.longest}, infinite through a
     cycle of positive weight): from [(k, b)] at the node [m], the node [m'] is
     reached with [(k, b + B(m, m'))], every delay banked and every operation
     skipped, and, for each transition [v -a-> v'] of an operation, the last one
@@ -46,10 +46,10 @@
     of [L] without a repeated node, within as many rounds as [L] has nodes. *)
 
 val consistent :
-  lo:DelayTimedClosure.world ->
-  hi:DelayTimedClosure.world ->
-  DelayTimedClosure.graph ->
-  DelayTimedClosure.graph ->
+  lo:DelayBankedClosure.world ->
+  hi:DelayBankedClosure.world ->
+  DelayBankedClosure.graph ->
+  DelayBankedClosure.graph ->
   bool
 (** [consistent ~lo ~hi l u] is whether some trace covers a word of [l], its
     operations running for their running times in [lo], and is permitted by a

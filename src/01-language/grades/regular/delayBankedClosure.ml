@@ -263,7 +263,7 @@ let running_time_of world name =
   | Some c -> c
   | None ->
       invalid_arg
-        ("DelayTimedClosure.running_time_of: the name " ^ name
+        ("DelayBankedClosure.running_time_of: the name " ^ name
        ^ " is not an operation of the world")
 
 let max_weight world (a : graph) =
@@ -510,8 +510,8 @@ let operation_of world c =
   | Some (name, _) -> name
   | None ->
       invalid_arg
-        "DelayTimedClosure.operation_of: a class of names without an operation \
-         of the world"
+        "DelayBankedClosure.operation_of: a class of names without an \
+         operation of the world"
 
 (* [reads world reader word] is whether [reader] accepts the word [word] over
    [world], its delays exact. *)
@@ -609,7 +609,7 @@ let half = Rational.make 1 2
 let choose s =
   match DelaySet.choose s with
   | Some d -> d
-  | None -> invalid_arg "DelayTimedClosure.choose: an empty set of delays"
+  | None -> invalid_arg "DelayBankedClosure.choose: an empty set of delays"
 
 let open_interval lo hi =
   DelaySet.interval ~lo ~lo_closed:false ~hi:(Some hi) ~hi_closed:false
@@ -633,7 +633,7 @@ let highest ~above eps s =
         (DelaySet.inter s
            (DelaySet.interval ~lo:above ~lo_closed:true ~hi:None
               ~hi_closed:false))
-  | None -> invalid_arg "DelayTimedClosure.highest: an empty set of delays"
+  | None -> invalid_arg "DelayBankedClosure.highest: an empty set of delays"
 
 (* [lowest eps s] is a delay of [s] close to its infimum: the minimum if
    attained, and otherwise the simplest delay of [s] within [eps] above it. *)
@@ -647,7 +647,7 @@ let lowest eps s =
         (open_interval q
            (if Rational.compare bottom.hi hi < 0 then bottom.hi else hi))
   | Some Infinite | None ->
-      invalid_arg "DelayTimedClosure.lowest: an empty set of delays"
+      invalid_arg "DelayBankedClosure.lowest: an empty set of delays"
 
 (* [concretise delay rejects steps] is the word of the path [steps], each set
    of delays read as the delay [delay eps] chooses from it, for the first [eps]
@@ -670,7 +670,7 @@ let concretise delay rejects steps =
     if rejects w then w
     else if halvings >= max_halvings then
       invalid_arg
-        "DelayTimedClosure.concretise: no rejected word within the bound on \
+        "DelayBankedClosure.concretise: no rejected word within the bound on \
          the halvings of the distance"
     else attempt (halvings + 1) (Rational.mul half eps)
   in

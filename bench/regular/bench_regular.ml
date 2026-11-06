@@ -6,8 +6,8 @@
    expressions over letter sets ([RegularTraceLanguagesDerivative.Concrete],
    "regular-trace-languages-symbolic-by-letters"), and by symbolic derivatives
    by minterms ([RegularTraceLanguagesDerivative],
-   "regular-trace-languages-symbolic"); the grades of timed operations are
-   "banked-regex-upper-bound" and the others, with the same suffixes.
+   "regular-trace-languages-symbolic"); the regex grades with banked delays
+   are "banked-regex-upper-bound" and the others, with the same suffixes.
    Consecutive implementations differ in one design choice each: the
    construction (automata or derivatives), the representation of letters (single
    letters or letter sets) and the letters derived by (letters or minterms). The
@@ -384,7 +384,7 @@ module Programs (G : Grade.S) = struct
     workload None :: List.map (fun f -> workload (Some f)) programs
 end
 
-(** {1 Workloads of the grades of timed operations} *)
+(** {1 Workloads of the regex grades with banked delays} *)
 
 (* The running times of [operations]: their running-time bounds are [(1, 2)],
    [(2, 3)] or [(3, 4)] by the length of their names. *)
@@ -416,7 +416,8 @@ let cost_corpus_names =
 
 (* The one-sided box grades of
    examples/banked_regex/{lower,upper}_bounds.tpe and of
-   tests/banked_regex_*.tpe, understood by every grade of timed operations. *)
+   tests/banked_regex_*.tpe, understood by every regex grade with banked
+   delays. *)
 let cost_corpus =
   [
     "{Coat; 4}";
@@ -465,7 +466,7 @@ module CostWorkloads (G : Grade.S) = struct
     in
     let bounds = cost_model cost_corpus_names in
     let family =
-      Printf.sprintf "%s: timed corpus (%d literals)" G.name
+      Printf.sprintf "%s: banked corpus (%d literals)" G.name
         (List.length corpus)
     in
     let grades () = List.map lit corpus in
@@ -564,7 +565,7 @@ let cost_programs grade =
 
 module Cost = Grades.BankedRegexGrades
 
-(* The programs typechecked under the grade of timed operations [grade], the
+(* The programs typechecked under the banked regex grade [grade], the
    example first. *)
 let cost_files example grade =
   ("examples/banked_regex/" ^ example ^ ".tpe") :: cost_programs grade

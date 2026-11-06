@@ -2,6 +2,6 @@
 
      ./tempore --grades flow-sensitive-levels tests/literals_reject_flow.tpe
 
-   Rejected: a sink is listed twice. *)
+   Rejected: an output is listed twice. *)
 
 let claim () = box (High, (Board, Low), (Board, High)) 1

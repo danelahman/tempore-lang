@@ -237,7 +237,7 @@ struct
      entered at weight [0]. A word is accepted when a final node is reached
      after its last item. *)
 
-  type kind = KOp of int | KStrict | KBudget of Ops.t
+  type kind = KOp of int | KIdle | KSpan of Ops.t
   type item = { kind : kind; weight : weight }
   type config = { cid : int; at : int list; opened : (int * weight) list }
   type flow = { admit : bool array; reach : (int * cut) list option array }
@@ -275,7 +275,8 @@ struct
       items = Hashtbl.create 16;
       steps = Hashtbl.create 256;
       distances =
-        (if upper then DelayTimedClosure.longest else DelayTimedClosure.shortest);
+        (if upper then DelayBankedClosure.longest
+         else DelayBankedClosure.shortest);
       edges = Hashtbl.create 8;
       world;
     }
@@ -293,8 +294,8 @@ struct
   let admitted world kind s =
     match kind with
     | KOp k -> Ops.mem world.names.(k) s
-    | KStrict -> true
-    | KBudget s' -> Ops.subset s' s
+    | KIdle -> true
+    | KSpan s' -> Ops.subset s' s
 
   let flow r kind =
     let admit = Array.map (admitted r.world kind) r.g.set in
@@ -410,7 +411,7 @@ struct
           (fun n ->
             List.iter (fun t -> at := IntSet.add t !at) r.matches.(n).(k))
           c.at
-    | KStrict | KBudget _ -> ());
+    | KIdle | KSpan _ -> ());
     let flow_from q x =
       List.iter
         (fun (n, l) ->
@@ -467,7 +468,7 @@ struct
     @ List.concat_map
         (fun e ->
           let s = l.set.(e) and c = l.cut.(e) and j = l.dst.(e) in
-          let kind = if Ops.is_empty s then KStrict else KBudget s in
+          let kind = if Ops.is_empty s then KIdle else KSpan s in
           if (not upper) && admits zero c then
             let positive =
               if Steps.whole then Finite (Rational.of_int 1, true)
@@ -557,7 +558,7 @@ struct
             | `Length (s, d) ->
                 step r c
                   {
-                    kind = (if Ops.is_empty s then KStrict else KBudget s);
+                    kind = (if Ops.is_empty s then KIdle else KSpan s);
                     weight = plain (Finite (d, true));
                   })
           (start r) w
@@ -646,8 +647,8 @@ struct
         g.ops
     in
     let d =
-      (if longest then DelayTimedClosure.longest edges
-       else DelayTimedClosure.shortest edges)
+      (if longest then DelayBankedClosure.longest edges
+       else DelayBankedClosure.shortest edges)
         0
     in
     let best = ref None in

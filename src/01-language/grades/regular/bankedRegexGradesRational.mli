@@ -7,8 +7,8 @@
 
     A trace is a timed word ({!DelayAutomaton}): operations and non-negative
     rational delays, adjacent delays added. The orders on single traces are
-    allowance and coverage, as characterised in {!DelayTimedClosure}. A grade is
-    ordered below another through the closure of the greater one:
+    allowance and coverage, as characterised in {!DelayBankedClosure}. A grade
+    is ordered below another through the closure of the greater one:
     - upper bounds, ["banked-regex-upper-bound-rational-symbolic"]: [ρ ≾ ρ'] iff
       every trace of [ρ] is permitted by some trace of [ρ'], i.e. [ρ ⊆ ↓ρ'],
       operations counting at their upper running-time bound [hi];
@@ -68,20 +68,20 @@
     which stands for the others of its running time: no grade tells them apart.
     [ρ ≾ ρ'] is decided over the graphs of the gap derivatives of the
     expressions of the grades in normal form ({!RationalRegex.graph}), over the
-    operations of the comparison: by {!DelayTimedClosure.Graph.in_allowance}
-    under the upper order and {!DelayTimedClosure.Graph.in_coverage} under the
+    operations of the comparison: by {!DelayBankedClosure.Graph.in_allowance}
+    under the upper order and {!DelayBankedClosure.Graph.in_coverage} under the
     lower order, which build no trace; a counterexample by
-    {!DelayTimedClosure.Graph.allowance} and
-    {!DelayTimedClosure.Graph.coverage}, the implied running-time bounds by
-    {!DelayTimedClosure.Graph.min_weight} and
-    {!DelayTimedClosure.Graph.max_weight}, and the inhabitation by
-    {!DelayTimedClosure.Graph.inhabited}. There is nothing to decide if the
+    {!DelayBankedClosure.Graph.allowance} and
+    {!DelayBankedClosure.Graph.coverage}, the implied running-time bounds by
+    {!DelayBankedClosure.Graph.min_weight} and
+    {!DelayBankedClosure.Graph.max_weight}, and the inhabitation by
+    {!DelayBankedClosure.Graph.inhabited}. There is nothing to decide if the
     grades are the same expression in normal form or [ρ'] is the top. A grade is
     the top if its expression is that of the top, and otherwise iff the order
     decides [⊤ ≾ ρ].
 
     An interval admits a run iff some trace covers a trace of its lower end and
-    is permitted by a trace of its upper end ({!RegularTimedOrders.Make}), each
+    is permitted by a trace of its upper end ({!BankedRegexOrders.Make}), each
     operation running for the value of the lower, respectively upper, end of its
     running-time bounds, as if both were closed. It is decided by
     {!JointWalk.consistent} on the graphs of the two ends, over the names the
@@ -113,8 +113,8 @@ module Interval :
      and type Delay.t = Delay.Rational.t
 
 (** The same grades over {!RegularTraceLanguagesRational.Automata}, decided on
-    the automata of the grades by {!DelayTimedClosure.allowance} and
-    {!DelayTimedClosure.coverage}, the events of a grade being the names its
+    the automata of the grades by {!DelayBankedClosure.allowance} and
+    {!DelayBankedClosure.coverage}, the events of a grade being the names its
     automaton tells apart, named ["banked-regex-lower-bound-rational-automata"],
     ["banked-regex-upper-bound-rational-automata"] and
     ["banked-regex-interval-rational-automata"]. *)

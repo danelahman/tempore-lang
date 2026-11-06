@@ -11,7 +11,7 @@
     below): the supremum of the durations of the operation under the allowance
     order and their infimum under the coverage order, attained or not; a word is
     permitted, or covers, iff it does at every duration of each of its
-    operations. As in {!TimedClosure}, over whole time steps, a trace [s] is
+    operations. As in {!BankedClosure}, over whole time steps, a trace [s] is
     permitted by a bound [t], [s ≼ᵃ t], iff they factor as
     [s = s₀ o₁ s₁ ⋯ oₙ sₙ] and [t = t₀ o₁ t₁ ⋯ oₙ tₙ], the operations [oᵢ]
     matched, such that the weight of each [sᵢ] is at most the duration of [tᵢ];

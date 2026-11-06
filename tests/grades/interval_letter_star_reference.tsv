@@ -1,4 +1,4 @@
-# Random pairs of one-sided regular expressions with interval letters and star,
+# Random pairs of one-sided timed regular expressions with star,
 # with the verdict of the order x <= y over the rationals decided by an
 # independent reference (the pouring reader lifted to automata), computed
 # offline. Columns: the side (u upper, l lower), x, y, the verdict. The running

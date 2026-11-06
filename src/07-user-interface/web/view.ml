@@ -1386,7 +1386,7 @@ let view_grades (edit_model : Model.edit_model) =
         [
           elt "label"
             ~a:[ class_ "label"; attr "for" "grades-select" ]
-            [ text "Grades" ];
+            [ text "Grade algebra" ];
           div
             ~a:[ class_ "control is-expanded" ]
             [
@@ -2353,7 +2353,7 @@ let view_navbar =
                   [
                     text
                       "A language for programming with temporal resources, \
-                       using modal types and graded effects";
+                       using graded modal types and graded effects";
                   ];
               ];
           ];

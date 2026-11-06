@@ -134,7 +134,7 @@ let rec unroll = function
   | Grade.Inter (r, s) -> Grade.Inter (unroll r, unroll s)
   | Grade.Star r -> Grade.Star (unroll r)
   | Grade.Compl r -> Grade.Compl (unroll r)
-  | Grade.Strict r -> Grade.Strict (unroll r)
+  | Grade.Idle r -> Grade.Idle (unroll r)
   | ( Grade.Letter _ | Grade.Skip | Grade.Tick _ | Grade.Frac _ | Grade.Delays _
     | Grade.Any | Grade.Below _ | Grade.Above _ ) as r ->
       r
@@ -182,7 +182,7 @@ let rec matches r w =
   | Grade.Union (r, s) -> matches r w || matches s w
   | Grade.Inter (r, s) -> matches r w && matches s w
   | Grade.Compl r -> not (matches r w)
-  | Grade.Strict _ | Grade.Below _ | Grade.Above _ ->
+  | Grade.Idle _ | Grade.Below _ | Grade.Above _ ->
       invalid_arg "matches: an idle wait"
   | Grade.Star r' ->
       w = []

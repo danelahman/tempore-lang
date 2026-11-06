@@ -1,14 +1,16 @@
-(** Timed regular expressions with interval letters, the timed regex grades.
+(** Timed regular expressions over operation sets and time spans, the timed
+    regex grades.
 
     {2 Letters}
 
     A letter is an operation set, of which exactly one operation occurs, or a
-    stretch: a set of operations and an interval of lengths, during which only
-    operations of the set may run. A stretch with the empty set is an idle wait,
-    and one with every operation an unrestricted span. The intervals of an
-    expression are one-sided, on the side of the expression ({!type-side}): from
-    [0] to an upper end on the upper side, and from a lower end to [∞] on the
-    lower side; either is one end, a {!type-cut}.
+    time span, represented as a stretch: a set of operations and an interval of
+    lengths, during which only operations of the set may run. A stretch with the
+    empty set is an idle wait, and one with every operation a time span that
+    admits every operation. The intervals of an expression are one-sided, on the
+    side of the expression ({!type-side}): from [0] to an upper end on the upper
+    side, and from a lower end to [∞] on the lower side; either is one end, a
+    {!type-cut}.
 
     {2 Normal form}
 
@@ -40,16 +42,16 @@
     A brace literal is read on a side: [skip] is the empty word on both sides;
     an operation name, a union of names, [_], [~A] and [_ & ~A] are operation
     sets; a delay [d], an interval [[a, b]] and the one-sided intervals [≤d],
-    [<d], [≥d] and [>d] are spans, and under [idle] idle waits; the intersection
-    [(I & S)] of an interval [I] with an operation set [S] is a span restricted
-    to [S], as [≥0 & ~Read] or [(≤5 & (Scan | Turn))]; a two-sided interval is
-    read by its hull on the side, [[a, b]] as [≤b] on the upper side and [≥a] on
-    the lower one, and a one-sided interval of the other side is rejected, [≥0]
-    and [≤∞] being both. A delay is read as the interval of it alone: [0] is
-    [≤0], the empty word, on the upper side, and the stretch [≥0] on the lower
-    one, as [[0, 0]] is. [r?] is [r | skip], and [r^0] is [skip]. Over whole
-    time steps, an open end is closed at the next integer inward, [<3] being
-    [≤2], and fractions are rejected. *)
+    [<d], [≥d] and [>d] are time spans, and under [idle] idle waits; the
+    intersection [(I & S)] of an interval [I] with an operation set [S] is a
+    time span restricted to [S], as [≥0 & ~Read] or [(≤5 & (Scan | Turn))]; a
+    two-sided interval is read by its hull on the side, [[a, b]] as [≤b] on the
+    upper side and [≥a] on the lower one, and a one-sided interval of the other
+    side is rejected, [≥0] and [≤∞] being both. A delay is read as the interval
+    of it alone: [0] is [≤0], the empty word, on the upper side, and the stretch
+    [≥0] on the lower one, as [[0, 0]] is. [r?] is [r | skip], and [r^0] is
+    [skip]. Over whole time steps, an open end is closed at the next integer
+    inward, [<3] being [≤2], and fractions are rejected. *)
 
 open Grade
 

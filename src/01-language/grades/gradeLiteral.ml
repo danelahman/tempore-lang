@@ -27,13 +27,13 @@ type regex =
   | Repeat of regex * Count.t
   | Inter of regex * regex
   | Compl of regex
-  | Strict of regex
+  | Idle of regex
 
 let rec delays_only = function
   | Skip | Tick _ | Frac _ | Delays _ | Below _ | Above _ -> true
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> delays_only r && delays_only s
   | Star r | Repeat (r, _) -> delays_only r
-  | Letter _ | Any | Compl _ | Strict _ -> false
+  | Letter _ | Any | Compl _ | Idle _ -> false
 
 (* [r^[m, n]] is [r; …; r; (skip | r; (skip | r; …))], [m] factors and [n - m]
    optional ones nested, and [r^[m, ∞)] is [r; …; r; r*]. *)
@@ -74,8 +74,7 @@ let rec equal_regex r s =
   | Union (r, s), Union (r', s')
   | Inter (r, s), Inter (r', s') ->
       equal_regex r r' && equal_regex s s'
-  | Star r, Star r' | Compl r, Compl r' | Strict r, Strict r' ->
-      equal_regex r r'
+  | Star r, Star r' | Compl r, Compl r' | Idle r, Idle r' -> equal_regex r r'
   | Repeat (r, c), Repeat (r', c') -> equal_regex r r' && Count.equal c c'
   | _ -> false
 
@@ -100,7 +99,7 @@ let regex_names r =
     | Letter name -> [ name ]
     | Skip | Tick _ | Frac _ | Delays _ | Below _ | Above _ | Any -> []
     | Seq (r, s) | Union (r, s) | Inter (r, s) -> go r @ go s
-    | Star r | Repeat (r, _) | Compl r | Strict r -> go r
+    | Star r | Repeat (r, _) | Compl r | Idle r -> go r
   in
   List.sort_uniq String.compare (go r)
 
@@ -150,7 +149,7 @@ let show_regex r =
         wrap ctx 3 (fun () ->
             add "~";
             go 3 r)
-    | Strict r ->
+    | Idle r ->
         add "idle ";
         go 4 r
     | Star r ->
@@ -168,7 +167,7 @@ let show_regex r =
   and operand ?(bounded = false) r =
     match r with
     | Star _ | Repeat _ -> go 4 r
-    | Strict _ when bounded -> wrap 5 4 (fun () -> go 4 r)
+    | Idle _ when bounded -> wrap 5 4 (fun () -> go 4 r)
     | r -> go 5 r
   and chain ctx prec separator split r =
     wrap ctx prec (fun () ->
@@ -217,7 +216,7 @@ let distinct_entries lit ~compare ~twice entries =
   in
   check sorted
 
-let strict_unsupported r =
+let idle_unsupported r =
   invalid_lit (Braces r)
     "idle waits `%s` are read by the timed regex grades only, `timed-regex-…`"
     (show_regex r)

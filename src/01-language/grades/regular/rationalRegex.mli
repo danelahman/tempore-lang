@@ -173,6 +173,6 @@ val counterexample : t -> t -> DelayAutomaton.symbol list option
     ({!DelaySet.choose}) of the set of delays it is read by; every word
     [d₀ a₁ d₁ ⋯ aₖ dₖ] with [aᵢ ∈ cᵢ] is in [r] and not in [s]. *)
 
-val graph : string list -> t -> DelayTimedClosure.graph
+val graph : string list -> t -> DelayBankedClosure.graph
 (** [graph names r] is the automaton in gap form of the gap derivatives of [r]
     by [names] ({!GapGraph.Make}), explored in full, breadth-first from [r]. *)

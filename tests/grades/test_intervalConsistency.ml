@@ -1,9 +1,9 @@
-(* Tests of the run consistency of the intervals of the timed regex grades, with interval letters: the verdicts and reasons on chosen
-   literals, over whole time steps and rationals, with open ends, restricted
-   spans, repetitions and stars; random intervals against the reference
-   by enumeration of runs, with the runs found checked by the reference; the
-   preservation of consistency by the operations of the grades; and the
-   counterexamples of the order. *)
+(* Tests of the run consistency of the intervals of the timed regex grades:
+   the verdicts and reasons on chosen literals, over whole time steps and
+   rationals, with open ends, restricted time spans, repetitions and stars;
+   random intervals against the reference by enumeration of runs, with the
+   runs found checked by the reference; the preservation of consistency by the
+   operations of the grades; and the counterexamples of the order. *)
 
 open LawChecks
 module R = IntervalLettersReference
@@ -262,7 +262,7 @@ let rec to_regex e =
   | R.Eps -> Grade.Skip
   | R.Empty -> Grade.Inter (Grade.Letter "A", Grade.Letter "B")
   | R.Letter (R.Op names) -> fold (List.map (fun n -> Grade.Letter n) names)
-  | R.Letter (R.Stretch (R.Names [], iv)) -> Grade.Strict (interval iv)
+  | R.Letter (R.Stretch (R.Names [], iv)) -> Grade.Idle (interval iv)
   | R.Letter (R.Stretch (R.All, iv)) -> interval iv
   | R.Letter (R.Stretch (R.Names names, iv)) ->
       Grade.Inter (interval iv, fold (List.map (fun n -> Grade.Letter n) names))

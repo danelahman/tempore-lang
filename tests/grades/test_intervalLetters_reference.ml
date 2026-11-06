@@ -1,8 +1,6 @@
-(* Tests of the reference decision of the order of the timed grades with
-   interval letters on exact words: the two counterexamples to monotonicity of
-   the earlier rigid orders, the verdicts on the transcribed rows of the
-   prototype's tests of idle waits, upper and lower, open ends and the
-   point rule. *)
+(* Tests of the reference decision of the order of the timed regex grades on
+   exact words: products checked for monotonicity, and the verdicts on time
+   spans and idle waits, upper and lower, open ends and the point rule. *)
 
 open LawChecks
 module R = IntervalLettersReference
@@ -85,7 +83,7 @@ let rec to_regex ~grid e =
       fold
         (fun a b -> Grade.Union (a, b))
         (List.map (fun n -> Grade.Letter n) names)
-  | R.Letter (R.Stretch (R.Names [], iv)) -> Grade.Strict (interval iv)
+  | R.Letter (R.Stretch (R.Names [], iv)) -> Grade.Idle (interval iv)
   | R.Letter (R.Stretch (R.All, iv)) -> interval iv
   | R.Letter (R.Stretch (R.Names names, iv)) ->
       Grade.Inter
@@ -342,15 +340,15 @@ let restricted =
       (rb [ "A"; "C" ] (up 2))
       (rb [ "A" ] (up 2))
       false;
-    verdict "an unrestricted span into a restricted one"
+    verdict "an unrestricted time span into a restricted one"
       (R.budget (up 2))
       (rb [ "A"; "C" ] (up 2))
       false;
-    verdict "a wait into a restricted span"
+    verdict "a wait into a restricted time span"
       (R.strict (up 2))
       (rb [ "A" ] (up 2))
       true;
-    verdict "a restricted span into a wait"
+    verdict "a restricted time span into a wait"
       (rb [ "A" ] (up 2))
       (R.strict (up 2))
       false;
@@ -458,7 +456,7 @@ let random_running_time ~whole = function
       else { R.lo = 1; lo_open = true; hi = Some 3; hi_open = false }
   | n -> invalid_arg n
 
-(* [random_set ()] is a set of the operations for a restricted span. *)
+(* [random_set ()] is a set of the operations for a restricted time span. *)
 let random_set () =
   R.Names
     (List.nth [ [ "A" ]; [ "C" ]; [ "A"; "B" ]; [ "A"; "C" ] ] (Random.int 4))

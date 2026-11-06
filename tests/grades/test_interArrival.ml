@@ -188,8 +188,8 @@ let rec concrete (bounds : Grade.bounds) st c =
 let duration = function Occurrence (_, d) | Wait d -> d
 
 (* The summary of the name [name] in the computation [steps], directly: the
-   total duration, and [None] if silent, or the count, the lead, the gaps and
-   the tail. *)
+   total duration, and [None] if silent, or the count, the lead time, the gaps
+   and the tail. *)
 let observe name steps =
   let total, starts =
     List.fold_left

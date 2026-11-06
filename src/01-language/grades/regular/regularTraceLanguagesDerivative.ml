@@ -26,7 +26,7 @@ let rec of_regex = function
   | Star r -> R.star (of_regex r)
   | Repeat (r, c) -> R.repeat (of_regex r) c
   | Compl r -> R.compl (of_regex r)
-  | Strict _ as r -> strict_unsupported r
+  | Idle _ as r -> idle_unsupported r
   | (Below _ | Above _) as r -> one_sided_unsupported r
 
 (** {1 Shared by the implementations} *)

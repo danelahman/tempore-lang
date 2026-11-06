@@ -88,9 +88,9 @@ let rec skeletons = function
 
 (* {1 Exact words} *)
 
-type item = IOp of string * int | IWait of int | IBudget of set * int
+type item = IOp of string * int | IWait of int | ISpan of set * int
 
-let length = function IOp (_, t) -> t | IWait d | IBudget (_, d) -> d
+let length = function IOp (_, t) -> t | IWait d | ISpan (_, d) -> d
 
 (* [samples ~dense ~k ~dx iv] is the sampled lengths of [iv], in units, and
    if [dense] the length just above a closed lower end. *)
@@ -126,7 +126,7 @@ let words ~dense ~running_time ~k ~dx skeleton =
           (fun d ->
             if d = 0 then None
             else if set = Names [] then Some (IWait d)
-            else Some (IBudget (set, d)))
+            else Some (ISpan (set, d)))
           (samples ~dense ~k ~dx iv)
   in
   List.fold_right
@@ -153,7 +153,7 @@ let piece ~k = function
 
 let admits set = function
   | IWait _ -> true
-  | IBudget (s, _) -> subset s set
+  | ISpan (s, _) -> subset s set
   | IOp (name, _) -> mem name set
 
 (* [fits items pieces] is whether the exact word [items] fits a word of the

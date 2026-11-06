@@ -922,16 +922,16 @@ regex_unary:
   | IDLE r = regex_unary
     { (* [idle] binds to the operand of a repetition: [idle _*] is
          [(idle _)*]. *)
-      let rec strict = function
-        | Grade.Star r -> Grade.Star (strict r)
-        | Grade.Compl s as r when Grade.delays_only s -> Grade.Strict r
-        | r when r = Grade.Any || Grade.delays_only r -> Grade.Strict r
+      let rec idle = function
+        | Grade.Star r -> Grade.Star (idle r)
+        | Grade.Compl s as r when Grade.delays_only s -> Grade.Idle r
+        | r when r = Grade.Any || Grade.delays_only r -> Grade.Idle r
         | r ->
             Error.syntax ~loc:(location $loc(r))
               "An idle wait applies to a length or an interval of \
                lengths, not to `%s`" (Grade.show_regex r)
       in
-      strict r }
+      idle r }
 
 regex_postfix:
   | r = regex_atom { r }

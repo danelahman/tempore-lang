@@ -2,7 +2,7 @@
     of a comparison: the automata of their gap derivatives.
 
     A trace over whole time steps is a word in gap form [tickᵈ⁰ a₁ ⋯ aₖ tickᵈᵏ],
-    its delays integers, as a timed word of {!DelayTimedClosure}. The graph of
+    its delays integers, as a timed word of {!DelayBankedClosure}. The graph of
     an expression [ρ] over a list of names has the expressions reached from [ρ]
     by the gap derivatives by these names ({!SymbolicRegex.S.gap_derivative}) as
     its gap states, [ρ] the start. A gap state [r] has, for each name [a] and
@@ -33,11 +33,11 @@ end
 
 (** The graphs of the expressions of [R]. *)
 module Make (R : EXPRESSION) : sig
-  val graph : string list -> R.t -> DelayTimedClosure.graph
+  val graph : string list -> R.t -> DelayBankedClosure.graph
   (** [graph names rho] is the graph of [rho] over [names], explored in full,
       breadth-first from [rho]. *)
 end
 
-val graph : string list -> SymbolicRegex.t -> DelayTimedClosure.graph
+val graph : string list -> SymbolicRegex.t -> DelayBankedClosure.graph
 (** [graph names rho] is the graph of [rho] over [names], explored in full,
     breadth-first from [rho]. *)

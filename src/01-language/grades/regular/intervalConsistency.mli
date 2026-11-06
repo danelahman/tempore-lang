@@ -1,6 +1,5 @@
-(** Run consistency of the intervals of the timed grades with interval letters:
-    whether some run fits an exact word of a lower bound and an exact word of an
-    upper bound.
+(** Run consistency of the intervals of the timed regex grades: whether some run
+    fits an exact word of a lower bound and an exact word of an upper bound.
 
     A run is a sequence of operations, each with an exact running time within
     its bounds, and idle waits. It fits an exact word when the operations of the

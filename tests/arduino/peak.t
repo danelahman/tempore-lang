@@ -1,5 +1,5 @@
 The peak tilt recorder of examples/arduino/peak on the M5Stack CoreS3 Lite,
-under the operation counts, with the declarations of the packages m5-imu and
+under the at-most counts, with the declarations of the packages m5-imu and
 m5-display under these grades: its runs by the interpreter, its rejected
 variants, its project, whose operations have no running-time bounds and
 whose periodic task is not checked against its period by the typechecker,

@@ -1,4 +1,4 @@
-(* Tests of the timed regular expressions with interval letters: the syntax of
+(* Tests of the timed regular expressions over time spans: the syntax of
    their letters in brace literals and its errors, their normal forms on each
    side, over whole time steps and rationals, their printing, the zipping of
    intervals, and the rejection of the forms they do not read. *)
@@ -172,10 +172,11 @@ let rejections =
     rejects `Upper "{~(A; B)}"
       "the complement `~` applies to operation sets and intervals only";
     rejects `Upper "{(A; B) & C}"
-      "the intersection `&` applies to operation sets, intervals and a span \
-       with an operation set only";
+      "the intersection `&` applies to operation sets, intervals and a time \
+       span with an operation set only";
     rejects `Upper "{A; >=0 & ~B; C}"
-      "a restricted span in a sequence is written in parentheses";
+      "a time span with an operation set in a sequence is written in \
+       parentheses";
     reads `Upper "{(>=0 & ~B)}" "≥0 & ~B";
     reads `Lower "{>=0 & ~ReceiveMessage}" "≥0 & ~ReceiveMessage";
     reads `Upper "{A; (≤5 & (Scan | Turn)); B}" "A; (≤5 & (Scan | Turn)); B";

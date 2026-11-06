@@ -1,6 +1,6 @@
 open Grade
 module A = DelayAutomaton
-module Closure = DelayTimedClosure
+module Closure = DelayBankedClosure
 
 (* [extremum b] is the extremal value of the finite end [b] of running-time
    bounds, attained iff [b] is closed. *)
@@ -181,7 +181,7 @@ module Make
     (N : sig
       val suffix : string
     end) =
-  RegularTimedOrders.Make
+  BankedRegexOrders.Make
     (L)
     (struct
       type grade = L.t

@@ -231,7 +231,7 @@ let () =
   (* unknown and malformed values ignored *)
   check_resolve "unknown example" ~remembered "?example=no/such.tpe" remembered
     [ WebLink.Example ];
-  check_resolve "unknown grades and backend" ~remembered
+  check_resolve "unknown grade algebra and backend" ~remembered
     "?example=arduino/bala2/balance.tpe&grades=no-such&backend=no-such"
     robot_choices
     [ WebLink.Grades; Backend ];

@@ -55,7 +55,7 @@ let () =
       "G | T | time-interval | a.tpe | D. | opentrons | binding";
       "G | T | time-interval | a.tpe | D. | opentrons | =b.py";
     ];
-  (* unknown grades, backends, inputs and choices *)
+  (* unknown grade algebras, backends, inputs and choices *)
   List.iter
     (fun line ->
       match example line with

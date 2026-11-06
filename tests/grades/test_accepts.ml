@@ -101,8 +101,7 @@ let rec width = function
       0
   | Grade.Seq (r, s) | Grade.Union (r, s) | Grade.Inter (r, s) ->
       max (width r) (width s)
-  | Grade.Star r | Grade.Repeat (r, _) | Grade.Compl r | Grade.Strict r ->
-      width r
+  | Grade.Star r | Grade.Repeat (r, _) | Grade.Compl r | Grade.Idle r -> width r
 
 let rec lit_width = function
   | Grade.Braces r -> width r

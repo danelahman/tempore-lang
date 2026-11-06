@@ -12,7 +12,7 @@ let grade_module ?lattice name =
       List.assoc_opt name Grades.GradeRegistry.grade_modules )
   with
   | Some g, _ | None, Some g -> g
-  | None, None -> failwith ("unknown grades " ^ name)
+  | None, None -> failwith ("unknown grade algebra " ^ name)
 
 let lattice_of_file path =
   let text = In_channel.with_open_text path In_channel.input_all in

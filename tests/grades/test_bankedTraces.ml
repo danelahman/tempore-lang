@@ -16,7 +16,7 @@
 
 module Grade = Grades.Grade
 module Dfa = Grades.Dfa
-module TimedClosure = Grades.TimedClosure
+module BankedClosure = Grades.BankedClosure
 module TimedTrace = Grades.TimedTrace.Make (Grades.Delay.Nat)
 module BankedTraceGrades = Grades.BankedTraceGrades
 module Timed = Grades.BankedRegexGrades
@@ -229,8 +229,8 @@ let rec finite_words = function
   | Grade.Repeat (r, ({ most = Some _; _ } as c)) ->
       finite_words (Grade.unrolled r c)
   | Grade.Frac _ | Grade.Delays _ | Grade.Any | Grade.Star _ | Grade.Repeat _
-  | Grade.Inter _ | Grade.Compl _ | Grade.Strict _ | Grade.Below _
-  | Grade.Above _ ->
+  | Grade.Inter _ | Grade.Compl _ | Grade.Idle _ | Grade.Below _ | Grade.Above _
+    ->
       invalid_arg "finite_words"
 
 (* [Reader (G)] reads the literals of [G] by the parser, in the grade position
@@ -374,7 +374,7 @@ end
 (* The checks of the implementation [I]. *)
 module Suite (I : IMPLEMENTATION) = struct
   include I
-  module Coverage = TimedClosure.Coverage (L.State)
+  module Coverage = BankedClosure.Coverage (L.State)
 
   module Covering = Dfa.Implicit (struct
     type t = L.State.t list
@@ -398,7 +398,7 @@ module Suite (I : IMPLEMENTATION) = struct
     let name = I.name ^ ": " ^ name in
     let dfa = L.concrete names rho in
     let down =
-      TimedClosure.allowance ~running_time:(letter_running_time table snd) dfa
+      BankedClosure.allowance ~running_time:(letter_running_time table snd) dfa
     in
     let up =
       Coverage.closure
@@ -431,19 +431,20 @@ module Suite (I : IMPLEMENTATION) = struct
       check
         (name ^ ": allowance closure extensive and idempotent")
         (operator
-           (TimedClosure.allowance
+           (BankedClosure.allowance
               ~running_time:(letter_running_time table snd)))
         show_rho;
       check
         (name ^ ": coverage closure extensive and idempotent")
         (operator
-           (TimedClosure.coverage ~running_time:(letter_running_time table fst)))
+           (BankedClosure.coverage
+              ~running_time:(letter_running_time table fst)))
         show_rho;
       check
         (name ^ ": coverage closure of the traces")
         (Dfa.equal (Covering.canonical n up)
            (closed
-              (TimedClosure.coverage
+              (BankedClosure.coverage
                  ~running_time:(letter_running_time table fst)
                  dfa)))
         show_rho;
@@ -1131,8 +1132,8 @@ let semigroups =
 module Canonical (I : IMPLEMENTATION) = struct
   include I
   module States = Set.Make (L.State)
-  module Allowance = TimedClosure.Allowance (L.State)
-  module Coverage = TimedClosure.Coverage (L.State)
+  module Allowance = BankedClosure.Allowance (L.State)
+  module Coverage = BankedClosure.Coverage (L.State)
   module Sets = Map.Make (States)
 
   let letters = List.length names + 1

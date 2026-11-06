@@ -649,7 +649,7 @@ let literals =
            Tuple [ Name "Board"; Name "High" ];
          ])
       "(High, (Board, High), (_, Low))";
-    rejects "sink listed twice" flow_sensitive_levels
+    rejects "output listed twice" flow_sensitive_levels
       (Tuple
          [
            Name "High";
@@ -664,7 +664,7 @@ let literals =
       (Tuple [ Name "Low"; Name "Board" ])
       "outputs are pairs";
     rejects "integer" flow_sensitive_levels (Int 3)
-      "tuples `(l, (Sink, l1), ...)`";
+      "tuples `(l, (Output, l1), ...)`";
     reads "count" at_most_counts (Tuple [ Name "Send"; Int 3 ]) "(Send, 3)";
     reads "counts" at_most_counts
       (Tuple [ Tuple [ Name "Send"; Int 3 ]; Tuple [ Name "Auth"; Int 1 ] ])
@@ -1203,12 +1203,12 @@ let registry =
           "time-interval-rational";
           "banked-traces-interval";
           "banked-traces-interval-rational";
-          "timed-regex-finite-interval";
-          "timed-regex-finite-interval-rational";
           "banked-regex-interval-symbolic";
           "banked-regex-interval-rational-symbolic";
           "timed-regex-interval-symbolic";
           "timed-regex-interval-rational-symbolic";
+          "timed-regex-finite-interval";
+          "timed-regex-finite-interval-rational";
           "call-time-sets";
           "mode-times";
           "inter-arrival";
@@ -1219,12 +1219,12 @@ let registry =
         [
           "banked-traces-interval";
           "banked-traces-interval-rational";
-          "timed-regex-finite-interval";
-          "timed-regex-finite-interval-rational";
           "banked-regex-interval-symbolic";
           "banked-regex-interval-rational-symbolic";
           "timed-regex-interval-symbolic";
           "timed-regex-interval-rational-symbolic";
+          "timed-regex-finite-interval";
+          "timed-regex-finite-interval-rational";
         ]
       (GradeRegistry.accepting
          (span (Grade.Braces (Grade.Letter "A"))
@@ -1242,12 +1242,12 @@ let registry =
           "time-lower-bound-rational";
           "time-interval-rational";
           "banked-traces-interval";
-          "timed-regex-finite-interval";
-          "timed-regex-finite-interval-rational";
           "banked-regex-interval-symbolic";
           "banked-regex-interval-rational-symbolic";
           "timed-regex-interval-symbolic";
           "timed-regex-interval-rational-symbolic";
+          "timed-regex-finite-interval";
+          "timed-regex-finite-interval-rational";
           "watermarks";
           "call-time-sets";
           "inter-arrival";
@@ -1265,9 +1265,6 @@ let registry =
           "banked-traces-lower-bound-rational";
           "banked-traces-upper-bound-rational";
           "banked-traces-interval-rational";
-          "timed-regex-finite-lower-bound-rational";
-          "timed-regex-finite-upper-bound-rational";
-          "timed-regex-finite-interval-rational";
           "regular-trace-languages-rational-symbolic";
           "banked-regex-lower-bound-rational-symbolic";
           "banked-regex-upper-bound-rational-symbolic";
@@ -1275,6 +1272,9 @@ let registry =
           "timed-regex-lower-bound-rational-symbolic";
           "timed-regex-upper-bound-rational-symbolic";
           "timed-regex-interval-rational-symbolic";
+          "timed-regex-finite-lower-bound-rational";
+          "timed-regex-finite-upper-bound-rational";
+          "timed-regex-finite-interval-rational";
           "mode-times";
           "inter-arrival";
         ]
@@ -1286,9 +1286,6 @@ let registry =
           "banked-traces-lower-bound-rational";
           "banked-traces-upper-bound-rational";
           "banked-traces-interval-rational";
-          "timed-regex-finite-lower-bound-rational";
-          "timed-regex-finite-upper-bound-rational";
-          "timed-regex-finite-interval-rational";
           "regular-trace-languages-rational-symbolic";
           "banked-regex-lower-bound-rational-symbolic";
           "banked-regex-upper-bound-rational-symbolic";
@@ -1296,6 +1293,9 @@ let registry =
           "timed-regex-lower-bound-rational-symbolic";
           "timed-regex-upper-bound-rational-symbolic";
           "timed-regex-interval-rational-symbolic";
+          "timed-regex-finite-lower-bound-rational";
+          "timed-regex-finite-upper-bound-rational";
+          "timed-regex-finite-interval-rational";
           "inter-arrival";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Frac (Rational.make 1 2))));
@@ -1305,15 +1305,15 @@ let registry =
           "banked-traces-lower-bound-rational";
           "banked-traces-upper-bound-rational";
           "banked-traces-interval-rational";
-          "timed-regex-finite-lower-bound-rational";
-          "timed-regex-finite-upper-bound-rational";
-          "timed-regex-finite-interval-rational";
           "banked-regex-lower-bound-rational-symbolic";
           "banked-regex-upper-bound-rational-symbolic";
           "banked-regex-interval-rational-symbolic";
           "timed-regex-lower-bound-rational-symbolic";
           "timed-regex-upper-bound-rational-symbolic";
           "timed-regex-interval-rational-symbolic";
+          "timed-regex-finite-lower-bound-rational";
+          "timed-regex-finite-upper-bound-rational";
+          "timed-regex-finite-interval-rational";
           "mode-times";
           "inter-arrival";
         ]
@@ -1328,9 +1328,6 @@ let registry =
           "banked-traces-lower-bound-rational";
           "banked-traces-upper-bound-rational";
           "banked-traces-interval-rational";
-          "timed-regex-finite-lower-bound-rational";
-          "timed-regex-finite-upper-bound-rational";
-          "timed-regex-finite-interval-rational";
           "regular-trace-languages-rational-symbolic";
           "banked-regex-lower-bound-rational-symbolic";
           "banked-regex-upper-bound-rational-symbolic";
@@ -1338,6 +1335,9 @@ let registry =
           "timed-regex-lower-bound-rational-symbolic";
           "timed-regex-upper-bound-rational-symbolic";
           "timed-regex-interval-rational-symbolic";
+          "timed-regex-finite-lower-bound-rational";
+          "timed-regex-finite-upper-bound-rational";
+          "timed-regex-finite-interval-rational";
           "lattice";
           "time-interval-lattice";
           "flow-sensitive-levels";
@@ -1377,9 +1377,6 @@ let registry =
     expect "registry: grades reading an interval of delays" show_names
       ~expected:
         [
-          "timed-regex-finite-lower-bound-rational";
-          "timed-regex-finite-upper-bound-rational";
-          "timed-regex-finite-interval-rational";
           "regular-trace-languages-rational-symbolic";
           "banked-regex-lower-bound-rational-symbolic";
           "banked-regex-upper-bound-rational-symbolic";
@@ -1387,6 +1384,9 @@ let registry =
           "timed-regex-lower-bound-rational-symbolic";
           "timed-regex-upper-bound-rational-symbolic";
           "timed-regex-interval-rational-symbolic";
+          "timed-regex-finite-lower-bound-rational";
+          "timed-regex-finite-upper-bound-rational";
+          "timed-regex-finite-interval-rational";
           "inter-arrival";
         ]
       (GradeRegistry.accepting
@@ -1600,8 +1600,8 @@ let elements_low_high =
   LatticeGrades.(
     List.map Lattice.of_lit [ Grade.Name "Low"; Grade.Name "High" ])
 
-(* The flow-sensitive grades over the sinks [sinks], each written at an element
-   or not at all, and the top. *)
+(* The flow-sensitive grades over the outputs [sinks], each written at an
+   element or not at all, and the top. *)
 let flow_grades sinks =
   let outputs =
     List.fold_left
@@ -1834,7 +1834,7 @@ let witnesses =
                Rational_upper_conditions.(constants lhs @ constants rhs))))
       "1·j <= 1 ⊔ j·j·j";
     check
-      "flow-sensitive-levels: a failure at an unnamed sink shows at a witness"
+      "flow-sensitive-levels: a failure at an unnamed output shows at a witness"
       (not
          (Flow_conditions.at_witnesses
             (Flow_conditions.Rigid, Const (Flow.of_lit (Grade.Name "High")))))
@@ -1921,7 +1921,7 @@ let family name =
   let timed_regex =
     prefix "banked-regex-" || (prefix "timed-regex-" && not finite)
   in
-  let timed_traces = prefix "banked-traces-" || finite in
+  let banked_traces = prefix "banked-traces-" || finite in
   match name with
   | "lattice" -> Some Lattice
   | "time-lower-bound-lattice" | "time-upper-bound-lattice" ->
@@ -1940,9 +1940,9 @@ let family name =
   | _ when timed_regex && String.ends_with ~suffix:"-rational-symbolic" name ->
       Some Rational_banked_regex
   | _ when prefix "regular-trace-languages-" || timed_regex -> Some Regex
-  | _ when timed_traces && String.ends_with ~suffix:"-rational" name ->
+  | _ when banked_traces && String.ends_with ~suffix:"-rational" name ->
       Some Rational_traces
-  | _ when timed_traces -> Some Traces
+  | _ when banked_traces -> Some Traces
   | _ when prefix "time-" -> Some Time
   | _ -> None
 
@@ -1961,7 +1961,7 @@ let letter_c = Grade.Letter "C"
    others; for the trace and regular grades, the operations of [running_times],
    delays, unions, sequences and, for the regular grades, repetitions, the
    catch-all letter, intersections and complements; the two elements; pairs of
-   times and elements; elements with outputs at named sinks and at the others;
+   times and elements; elements with named outputs and the others written;
    releases, acquisitions, ranges of net changes, explicit and unbounded troughs
    and the resources not named; durations with the times of named and other
    operations; partial operations, changes of mode, traces stuck at a cost,
@@ -2582,7 +2582,7 @@ let registered_repetitions =
     | Inter (r, s) -> Inter (unroll r, unroll s)
     | Star r -> Star (unroll r)
     | Compl r -> Compl (unroll r)
-    | Strict r -> Strict (unroll r)
+    | Idle r -> Idle (unroll r)
     | (Letter _ | Skip | Tick _ | Frac _ | Delays _ | Any | Below _ | Above _)
       as r ->
         r
@@ -2594,15 +2594,14 @@ let registered_repetitions =
       Repeat (Seq (a, Tick 1), count 0 (Some 2));
       Seq (Repeat (Union (a, Seq (b, Tick 2)), count 1 (Some 3)), c);
       Repeat (a, count 2 None);
-      Repeat (Seq (Strict (Tick 1), a), count 2 (Some 2));
+      Repeat (Seq (Idle (Tick 1), a), count 2 (Some 2));
       Repeat (Seq (Repeat (a, count 2 (Some 2)), b), count 2 (Some 2));
       Repeat (Union (Skip, Seq (a, b)), count 4 (Some 4));
       Repeat (Seq (Frac (Rational.make 1 2), a), count 3 (Some 3));
       Seq (Repeat (Union (Tick 1, a), count 0 (Some 3)), Tick 2);
       Union
-        ( Seq (c, Seq (Repeat (Seq (a, Strict (Tick 1)), count 1 (Some 2)), b)),
-          Seq (c, Seq (Repeat (Seq (a, Strict (Tick 1)), count 2 (Some 4)), b))
-        );
+        ( Seq (c, Seq (Repeat (Seq (a, Idle (Tick 1)), count 1 (Some 2)), b)),
+          Seq (c, Seq (Repeat (Seq (a, Idle (Tick 1)), count 2 (Some 4)), b)) );
       Union
         ( Seq (Repeat (a, count 0 (Some 2)), c),
           Seq (Repeat (a, count 4 (Some 5)), c) );
@@ -2915,12 +2914,10 @@ module Reader (G : Grade.S) = struct
     | exception Utils.Error.Error d -> Error d.Utils.Diagnostic.message
 end
 
-(* The laws of the timed regex grades, with interval letters:
-   the two counterexamples to monotonicity of the earlier rigid orders, now
-   consistent with monotonicity; the delays as a monoid morphism on either
-   side; the unit, which is not the top of the lower bounds; and the verdicts
-   of the prototype's tests of idle waits, the guarantees of the lower
-   bounds given explicit flanks [≥0]. *)
+(* The laws of the timed regex grades: products checked for monotonicity; the
+   delays as a monoid morphism on either side; the unit, which is not the top
+   of the lower bounds; and the verdicts on time spans and idle waits, the
+   guarantees of the lower bounds given explicit flanks [≥0]. *)
 let interval_letter_laws =
   let module G = Grades.TimedRegexGrades in
   let running_times =
@@ -2997,8 +2994,9 @@ let interval_letter_laws =
       leq "F4 product" "{1; 1}" "{1; idle 1; 1}" true;
       leq "window rule: both sets" "{C}" "{(2 & C); (2 & (A | C))}" true;
       leq "window rule: a set without it" "{C}" "{(2 & C); (2 & A)}" false;
-      leq "a restricted span into a wider one" "{(2 & A)}" "{2 & (A | C)}" true;
-      leq "a budget into a restricted one" "{2}" "{2 & (A | C)}" false;
+      leq "a restricted time span into a wider one" "{(2 & A)}" "{2 & (A | C)}"
+        true;
+      leq "a time span into a restricted one" "{2}" "{2 & (A | C)}" false;
       leq "an excluded operation" "{A; S; A}" "{A; (3 & ~S); A}" false;
       product "window rule: monotone"
         ("{idle 1; (1 & A)}", "{(1 & A); idle 1}")
@@ -4011,8 +4009,8 @@ module Lattice = LatticeGrades.Lattice
 
 let written_elements = None :: List.map Option.some elements_low_high
 
-(* The outputs to the sinks [Audit] and [Board] and the other sinks, each
-   unwritten or written at an element: every element over these sinks. *)
+(* The outputs [Audit] and [Board] and the other outputs, each unwritten or
+   written at an element: every element over these outputs. *)
 let all_outputs =
   List.concat_map
     (fun others ->
@@ -4040,7 +4038,7 @@ let finite_laws =
       LatticeGrades.Raise.act bounds
   in
   let context = "all elements" in
-  let flow_context = "all elements over the sinks Audit, Board and _" in
+  let flow_context = "all elements over the outputs Audit, Board and _" in
   let width = List.length all_flow_sensitive_levels in
   order_laws ~width:2 (module Lattice) ~context bounds elements
   @ algebra_laws ~width:2 (module Lattice) ~context bounds elements
@@ -4084,7 +4082,8 @@ let declared_lattices =
 (* The laws of the grades of the registry built on a grade lattice, over the
    declared lattice [lattice] described by [label], on samples read from
    literals, and the laws of the components and the action of the
-   flow-sensitive grades on all elements over the sink [Board] and the others. *)
+   flow-sensitive grades on all elements over the output [Board] and the
+   others. *)
 let declared_laws_over (label, lattice) =
   let module GradeLattice = Grades.GradeLattice in
   let elements = GradeLattice.elements lattice in
@@ -4347,7 +4346,7 @@ let flow_tops =
     expect "flow-sensitive-levels: the top prints as ⊤" Fun.id ~expected:"⊤"
       (F.show F.top);
     check
-      "flow-sensitive-levels: a low element with every sink written is not ⊤"
+      "flow-sensitive-levels: a low element with every output written is not ⊤"
       (F.show (LatticeGrades.Lattice.one, LatticeGrades.Outputs.top) <> "⊤")
       (F.show (LatticeGrades.Lattice.one, LatticeGrades.Outputs.top));
   ]

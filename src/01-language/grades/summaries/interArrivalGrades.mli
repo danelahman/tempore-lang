@@ -23,13 +23,13 @@
     [Active (k, a, G, b) · Silent d] is [Active (k, a, G, b + d)], and
     [Active (k, a, G, b) · Active (k', a', G', b')] is
     [Active (k + k', a, G ∪ G' ∪ {b + a'}, b')], the tail of the first part and
-    the lead of the second forming a gap.
+    the lead time of the second forming a gap.
 
     A grade over-approximates a set of computations by, for each name, an
     interval of their silent durations or none, and intervals containing their
-    counts, natural numbers of at least [1], their leads, their gaps (or none,
-    with one occurrence) and their tails, or none; and by an interval of their
-    total durations. Products and joins are taken case by case with the
+    counts, natural numbers of at least [1], their lead times, their gaps (or
+    none, with one occurrence) and their tails, or none; and by an interval of
+    their total durations. Products and joins are taken case by case with the
     Minkowski sums and the hulls of intervals, of durations and of counts; the
     sums distribute over the hulls, so that the product is associative and
     distributes over the join. The order is inclusion, component by component
@@ -59,12 +59,13 @@
     - A number [q] or an interval, e.g. [[1, 2]], [(1/2, 3\]] or the open pair
       [(1, 4)], is a computation without occurrences taking a time in it.
     - [(X, [s, t])] is a specification: consecutive [X]s at least [s] and at
-      most [t] apart, and no stretch without [X] longer than [t] at the start or
-      the end: lead, tail and silent duration in [[0, t]]. E.g.
+      most [t] apart, and no duration without [X] longer than [t] at the start
+      or the end: lead time, tail and silent duration in [[0, t]]. E.g.
       [(Beep, \[2, ∞))] is a rate limit, two [Beep]s at least [2] apart.
     - [(X, lead, gaps, tail)] bounds the three components of the active
-      computations by the intervals [lead], [gaps] and [tail], and the silent
-      durations by the intersection of [lead] and [tail].
+      computations, the lead time, the gaps and the tail, by the intervals
+      [lead], [gaps] and [tail], and the silent durations by the intersection of
+      [lead] and [tail].
     - These two forms state no count: any number of [X]s, spaced as stated. With
       a count [n] first, a natural number or an interval [[n, m]] or [\[n, ∞)]
       of them, [(n, X, ...)] bounds the number of [X]s by [n] as well, its
@@ -74,7 +75,7 @@
       [(1, Read, [10, 45], [0, 1.5])] is exactly one [Read], started [10] to
       [45] after the start, the end at most [1.5] after it; [(0, Send, \[0, ∞))]
       performs no [Send]. A pair [(n, X)] is rejected, as is an entry of count
-      [0] whose lead and tail do not meet, which admits no computation.
+      [0] whose lead time and tail do not meet, which admits no computation.
     - A tuple of entries of these forms, each name listed once, and at most one
       interval, the total duration, e.g.
       [((Read, [0, 20]), (Draw, 5), [0, 100])]; the names not listed are
@@ -88,17 +89,17 @@
     {2 Loop invariants}
 
     The specification [(X, [s, t])] is not closed under sequencing: two
-    stretches of [t] without [X] may meet, at the end of one part and the start
+    durations of [t] without [X] may meet, at the end of one part and the start
     of the next. The invariant of a loop whose body starts with [X] and takes at
     most [t] is the full form [(X, [0, 0], [0, t], [0, t])]: no time before the
     first [X], gaps and tail at most [t]; it is closed under sequencing. A rate
     limit [(X, \[s, ∞))] is not closed under sequencing, as the tail of one part
-    and the lead of the next may form a gap shorter than [s]; it is the
+    and the lead time of the next may form a gap shorter than [s]; it is the
     invariant of a loop each of whose rounds that performs [X] takes at least
     [s] from the start of its last [X] to its end.
 
     Counts add under sequencing, so that an invariant states none, or [\[0, ∞)];
-    a count suits a bounded stretch, such as the time from a box to its
+    a count suits a bounded duration, such as the time from a box to its
     unboxing: [(1, X, lead, tail)] is exactly one [X] between them.
 
     The grade ["at-most-counts"] bounds the numbers of calls from above alone,
@@ -130,7 +131,7 @@
     All entries describe one run and share its total duration. For a name [X] of
     running times [within [lo, hi]], the total durations its entry admits are
     the set [D_X] of the silent durations and of the sums
-    [a + g₁ + ... + g_{k-1} + b] of a lead [a], gaps [gᵢ] and a tail [b] in
+    [a + g₁ + ... + g_{k-1} + b] of a lead time [a], gaps [gᵢ] and a tail [b] in
     their intervals and a count [k] in its interval, each gap and the tail at
     least [lo]: an occurrence ends before the next one starts and before the
     end. [D_X] is a {!DelaySet}, exact for unbounded counts. [vacuous] gives a
@@ -166,8 +167,8 @@ module Summary : sig
     tail : DurationIntervals.t;
   }
   (** The active computations of a name: an interval of their numbers of
-      occurrences, at least [1], and intervals of the leads, of the gaps, [None]
-      exactly where the count is [1], and of the tails. *)
+      occurrences, at least [1], and intervals of the lead times, of the gaps,
+      [None] exactly where the count is [1], and of the tails. *)
 
   type entry = { silent : DurationIntervals.t option; active : active option }
   (** The summary of a name: the silent durations and the active computations,

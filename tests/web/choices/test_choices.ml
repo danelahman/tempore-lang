@@ -59,7 +59,7 @@ let () =
       "4:true1:01:01:0-1:0";
       "garbage";
     ];
-  (* unknown grades, backends and inputs *)
+  (* unknown grade algebras, backends and inputs *)
   let unknown =
     WebChoices.sanitise
       {

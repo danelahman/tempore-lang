@@ -1,4 +1,4 @@
-(** The grades the prototype offers. *)
+(** The grade algebras the prototype offers. *)
 
 val grade_modules : (string * (module Grade.S)) list
 (** All available grades by name, the default first. The names accepted by the
@@ -93,9 +93,10 @@ type info = {
 type group = {
   label : string;  (** The web selector's optgroup label, e.g. ["Time"]. *)
   short : string;
-      (** The label's short form, e.g. ["Regex"] for ["Regular expressions"];
-          shown with the selected grade by the web selector's closed control.
-          The short forms of distinct groups are distinct. *)
+      (** The label's short form, e.g. ["Regular languages"] for
+          ["Regular trace languages"]; shown with the selected grade by the web
+          selector's closed control. The short forms of distinct groups are
+          distinct. *)
   grades : (string * info) list;
       (** The group's grades, each by its CLI name, in the order
           {!grade_modules} lists them. *)

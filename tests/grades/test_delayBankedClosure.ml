@@ -16,7 +16,7 @@ module Grade = Grades.Grade
 module Rational = Grades.Rational
 module DelaySet = Grades.DelaySet
 module A = Grades.DelayAutomaton
-module C = Grades.DelayTimedClosure
+module C = Grades.DelayBankedClosure
 module Plain = Grades.RegularTraceLanguagesRational.Automata
 module G = Grades.BankedRegexGradesRational.Automata
 module W = Grades.BankedRegexGrades.Symbolic
@@ -339,7 +339,7 @@ let classes =
     match f () with
     | _ -> false
     | exception Invalid_argument message ->
-        String.starts_with ~prefix:"DelayTimedClosure." message
+        String.starts_with ~prefix:"DelayBankedClosure." message
   in
   [
     expect "classes: the member of a name" Fun.id ~expected:"B"
@@ -869,7 +869,7 @@ let rec iota n =
   | Grade.Inter (r, s) -> Grade.Inter (iota n r, iota n s)
   | Grade.Star r -> Grade.Star (iota n r)
   | Grade.Repeat (r, c) -> Grade.Repeat (iota n r, c)
-  | Grade.Strict r -> Grade.Strict (iota n r)
+  | Grade.Idle r -> Grade.Idle (iota n r)
   | Grade.Tick k -> Grade.rational_tick (q k n)
   | ( Grade.Letter _ | Grade.Skip | Grade.Frac _ | Grade.Delays _
     | Grade.Below _ | Grade.Above _ ) as r ->

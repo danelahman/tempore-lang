@@ -29,7 +29,7 @@ val with_running_times :
     those of its [within], if it declares them, and else those of its grade, if
     it is the grade of its bounds ({!Grades.Grade.S.of_bounds}), by the grade of
     the new bounds. An operation whose grade bounds no durations, as under the
-    operation counts, keeps its declaration.
+    at-most counts, keeps its declaration.
 
     @raise Utils.Error.Error
       if [commands] declare no operation of [running_times], if the grade of an

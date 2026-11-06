@@ -138,16 +138,16 @@ let whole_step_rejections =
      check "whole steps: a fractional endpoint rejected"
        (contains reason
           "delays are whole numbers of time steps; did you mean to use one of \
-           the `timed-regex-finite-lower-bound-rational`, \
-           `timed-regex-finite-upper-bound-rational`, \
-           `timed-regex-finite-interval-rational`, \
-           `regular-trace-languages-rational-symbolic`, \
+           the `regular-trace-languages-rational-symbolic`, \
            `banked-regex-lower-bound-rational-symbolic`, \
            `banked-regex-upper-bound-rational-symbolic`, \
            `banked-regex-interval-rational-symbolic`, \
            `timed-regex-lower-bound-rational-symbolic`, \
            `timed-regex-upper-bound-rational-symbolic`, \
-           `timed-regex-interval-rational-symbolic` or `inter-arrival` grade \
+           `timed-regex-interval-rational-symbolic`, \
+           `timed-regex-finite-lower-bound-rational`, \
+           `timed-regex-finite-upper-bound-rational`, \
+           `timed-regex-finite-interval-rational` or `inter-arrival` grade \
            algebras?")
        reason);
     (let reason =
@@ -485,7 +485,7 @@ let matches r w =
     | Grade.Union (r1, r2) -> go r1 s e || go r2 s e
     | Grade.Inter (r1, r2) -> go r1 s e && go r2 s e
     | Grade.Compl r1 -> not (go r1 s e)
-    | Grade.Strict _ | Grade.Below _ | Grade.Above _ ->
+    | Grade.Idle _ | Grade.Below _ | Grade.Above _ ->
         invalid_arg "eval: an idle wait"
     | Grade.Repeat (r1, c) -> go (Grade.unrolled r1 c) s e
     | Grade.Star r1 ->
@@ -575,7 +575,7 @@ let rec iota = function
   | Grade.Inter (r, s) -> Grade.Inter (iota r, iota s)
   | Grade.Star r -> Grade.Star (iota r)
   | Grade.Repeat (r, c) -> Grade.Repeat (iota r, c)
-  | Grade.Strict r -> Grade.Strict (iota r)
+  | Grade.Idle r -> Grade.Idle (iota r)
   | ( Grade.Letter _ | Grade.Skip | Grade.Tick _ | Grade.Frac _ | Grade.Delays _
     | Grade.Below _ | Grade.Above _ ) as r ->
       r
@@ -782,7 +782,7 @@ let rec unroll = function
   | Grade.Inter (r, s) -> Grade.Inter (unroll r, unroll s)
   | Grade.Star r -> Grade.Star (unroll r)
   | Grade.Compl r -> Grade.Compl (unroll r)
-  | Grade.Strict r -> Grade.Strict (unroll r)
+  | Grade.Idle r -> Grade.Idle (unroll r)
   | ( Grade.Letter _ | Grade.Skip | Grade.Tick _ | Grade.Frac _ | Grade.Delays _
     | Grade.Any | Grade.Below _ | Grade.Above _ ) as r ->
       r
