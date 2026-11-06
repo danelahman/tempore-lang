@@ -1,0 +1,15 @@
+(* Run this test with the 'banked-regex-upper-bound-rational-symbolic' grade algebra, e.g.
+
+     ./tempore --grades banked-regex-upper-bound-rational-symbolic \
+       tests/literals_reject_idle_grade.tpe
+
+   Rejected under the 'banked-regex-upper-bound-rational-symbolic' grade
+   algebra: idle waits are read by the timed regex grades
+   only. *)
+
+operation Read : unit ~> nat ! {Read} within [1, 1]
+
+let read () : nat ! {Read; idle 3} =
+  let a = perform Read () in
+  delay 3;
+  a

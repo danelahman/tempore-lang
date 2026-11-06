@@ -1,6 +1,6 @@
 (* Unboxing a pair before its box's grade has accumulated, correctly rejected.
 
-   Run this example with the 'time-lower-bound' grading monoid, e.g.
+   Run this example with the 'time-lower-bound' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound examples/basics/basic_unbox.tpe
 

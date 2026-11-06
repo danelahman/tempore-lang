@@ -1,9 +1,9 @@
 (* A wheel check of the M5Stack BALA2: speeds and spin-up times over windows
    of fixed traces
 
-   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
 
-     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational-symbolic \
        --package m5-imu \
        --package m5-display \
        --package bala2-base \
@@ -11,8 +11,8 @@
        examples/arduino/wheels/wheels.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
-   durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `idle` admit none, a
+   durations, in the timed regex order: operations are matched in order, spans
+   admit operations within their time, idle waits admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {skip}: the empty trace
@@ -174,7 +174,7 @@ let profile (drive : int) : float * float =
 
 (* Correctly rejected by the typechecker: the drive is doubled after the
    first sample, so that the profile is not that of one drive command; with
-   budget delays in place of the strict ones, the box would admit the
+   span delays in place of the idle ones, the box would admit the
    command, of at most 0.45 ms, beside a wait of 19.75 ms:
 
      Typing error: Variable `spaced` is unboxed with grade `{SetMotors;

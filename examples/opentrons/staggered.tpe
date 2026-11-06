@@ -1,6 +1,6 @@
 (* A staggered fixation on the Opentrons Flex: each column fixed for 12 to 20 minutes.
 
-   Run this example with the 'time-interval' grading monoid, e.g.
+   Run this example with the 'time-interval' grade algebra, e.g.
 
      ./tempore --grades time-interval examples/opentrons/staggered.tpe
 

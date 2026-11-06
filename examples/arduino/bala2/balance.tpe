@@ -1,6 +1,6 @@
 (* The M5Stack BALA2 balancing robot: a 5 ms control step and its supervision
 
-   Run this example with the 'time-interval-rational' grading monoid, e.g.
+   Run this example with the 'time-interval-rational' grade algebra, e.g.
 
      ./tempore --grades time-interval-rational \
        --package m5-imu \

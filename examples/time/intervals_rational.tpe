@@ -1,6 +1,6 @@
 (* A medication schedule in hours, with doses due within fractional windows.
 
-   Run this example with the 'time-interval-rational' grading monoid, e.g.
+   Run this example with the 'time-interval-rational' grade algebra, e.g.
 
      ./tempore --grades time-interval-rational \
        examples/time/intervals_rational.tpe

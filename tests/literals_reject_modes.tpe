@@ -1,4 +1,4 @@
-(* Run this test with the 'mode-switch-costs' grading monoid, e.g.
+(* Run this test with the 'mode-switch-costs' grade algebra, e.g.
 
      ./tempore --grades mode-switch-costs tests/literals_reject_modes.tpe
 

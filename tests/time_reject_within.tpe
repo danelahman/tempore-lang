@@ -1,6 +1,6 @@
 (* Correctly rejected by the typechecker, under the default 'time-lower-bound'
-   grading monoid: running-time bounds are only declared under the trace
-   grading monoids, where the grade of an operation does not already give
+   grade algebra: running-time bounds are only declared under the trace
+   grade algebras, where the grade of an operation does not already give
    them. *)
 
 operation Heat : unit ~> unit ! 2 within [1, 2]

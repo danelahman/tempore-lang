@@ -1,6 +1,6 @@
 (* A sensor reading, usable only once its scan is complete and while it is current.
 
-   Run this example with the 'time-interval-rational' grading monoid, e.g.
+   Run this example with the 'time-interval-rational' grade algebra, e.g.
 
      ./tempore --grades time-interval-rational \
        examples/introduction/sensor_reading.tpe

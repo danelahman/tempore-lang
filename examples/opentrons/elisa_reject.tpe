@@ -1,7 +1,7 @@
 (* As the example of an enzyme-linked immunosorbent assay (ELISA), with the
    plate washed after too short an incubation with the detection antibody.
 
-   Run this example with the 'time-interval' grading monoid, e.g.
+   Run this example with the 'time-interval' grade algebra, e.g.
 
      ./tempore --grades time-interval examples/opentrons/elisa_reject.tpe
 

@@ -1,6 +1,6 @@
 (* Folding over a list of boxed values, nesting boxes over the accumulator.
 
-   Run this example with the 'time-lower-bound' grading monoid, e.g.
+   Run this example with the 'time-lower-bound' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound examples/basics/fold_over_boxes.tpe
 

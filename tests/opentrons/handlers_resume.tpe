@@ -1,5 +1,5 @@
 (* Deep handlers whose cases resume their continuation twice, under the
-   'time-lower-bound' grading monoid: a choice collects the results of both
+   'time-lower-bound' grade algebra: a choice collects the results of both
    alternatives, nested handlers forward operations to the outer one, and a
    handler is applied to every call of its operation in the continuation. *)
 

@@ -62,9 +62,9 @@ it waits.
   comment: Tempore run 1 returns 0
 
 The bead clean-up example, its operations declaring their running times under
-regex-timed-rigid-interval-rational-symbolic, a time unit given in seconds.
+timed-regex-interval-rational-symbolic, a time unit given in seconds.
 
-  $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-opentrons washes.py \
+  $ ../../tempore --grades timed-regex-interval-rational-symbolic --emit-opentrons washes.py \
   >   --bind $examples/washes_bindings.py --time-unit 60 $examples/washes.tpe
   Wrote _opentrons/protocols/washes.py
   $ simulate washes.py
@@ -347,7 +347,7 @@ atomic operations call binding functions and are commented. The compound
 operations, which have neither binding functions nor defaults, are neither
 errors nor warnings.
 
-  $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-opentrons cleanup.py \
+  $ ../../tempore --grades timed-regex-interval-rational-symbolic --emit-opentrons cleanup.py \
   >   --bind $examples/cleanup_bindings.py --time-unit minutes $examples/cleanup.tpe
   Wrote _opentrons/protocols/cleanup.py
   $ simulate cleanup.py
@@ -402,7 +402,7 @@ The bead purification by steps that unbox and rebox the beads: boxes generate
 no actions, so the protocol performs only the operations and the delays of
 the steps, and the binding function of AddBeads returns the beads.
 
-  $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --emit-opentrons purification.py \
+  $ ../../tempore --grades timed-regex-interval-rational-symbolic --emit-opentrons purification.py \
   >   --bind $examples/purification_bindings.py --time-unit minutes $examples/purification.tpe
   Wrote _opentrons/protocols/purification.py
   $ simulate purification.py
@@ -466,11 +466,11 @@ The rejected variants of the examples.
 
   $ ../../tempore --grades time-interval --typecheck-only $examples/elisa_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `incubating` is unboxed with grade `[30, 30]` accumulated since it was bound, which is not below its box grade `[60, ∞)`
-  $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/washes_reject.tpe 2>&1 | grep 'Typing error'
+  $ ../../tempore --grades timed-regex-interval-rational-symbolic --typecheck-only $examples/washes_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: This function's body has grade `{(Wash; (Wash; ChangeTip)*)?}`, which does not match its annotated grade `{(Wash; ChangeTip)*}`
-  $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/cleanup_reject.tpe 2>&1 | grep 'Typing error'
+  $ ../../tempore --grades timed-regex-interval-rational-symbolic --typecheck-only $examples/cleanup_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `k` is unboxed with grade `{RemoveEthanol; idle 1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; 1; RemoveEthanol}`
-  $ ../../tempore --grades regex-timed-rigid-interval-rational-symbolic --typecheck-only $examples/purification_reject.tpe 2>&1 | grep 'Typing error'
+  $ ../../tempore --grades timed-regex-interval-rational-symbolic --typecheck-only $examples/purification_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `warm` is unboxed with grade `{idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
   Typing error: The resource inequality `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol} <= {AddEthanol; idle [0.5, 1.5]}` does not hold
   Typing error: Variable `soaking` is unboxed with grade `{AddEthanol; MagnetOff; idle 0.5}` accumulated since it was bound, which is not below its box grade `{AddEthanol; idle [0.5, 1.5]}`
@@ -495,11 +495,11 @@ without the binding file.
   === Run 1 ===
   return 0
 
-Under a grading monoid with compound operations, an atomic operation that a
+Under a grade algebra with compound operations, an atomic operation that a
 handler has a case for, with neither a binding function nor a default
 implementation, is a warning, and such a compound operation is not.
 
-  $ ../../tempore --grades regex-timed-interval-symbolic --emit-opentrons atomic_handled.py \
+  $ ../../tempore --grades banked-regex-interval-symbolic --emit-opentrons atomic_handled.py \
   >   --bind protocol_bindings.py protocol_atomic_handled.tpe
   Warning: Operation `Probe`, which run 1 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
   Wrote _opentrons/protocols/atomic_handled.py

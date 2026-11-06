@@ -1,6 +1,6 @@
 (* A ddPCR plate set-up on the Opentrons Flex, keeping clean tips from the test article.
 
-   Run this example with the 'time-upper-bound-lattice' grading monoid, e.g.
+   Run this example with the 'time-upper-bound-lattice' grade algebra, e.g.
 
      ./tempore --grades time-upper-bound-lattice \
        examples/opentrons/contamination.tpe

@@ -1,8 +1,7 @@
 The sprint start system of examples/arduino/starter on the M5Stack CoreS3 Lite,
-with the packages m5-imu, m5-display, m5-touch and m5-speaker, under the
-rigid regular expressions of timed operations: its runs by the interpreter,
-its rejected variants, its project and its host simulation, over the starts
-and the taps of its host model.
+with the packages m5-imu, m5-display, m5-touch and m5-speaker, under the timed
+regex grades: its runs by the interpreter, its rejected variants, its project
+and its host simulation, over the starts and the taps of its host model.
 
   $ app=../../examples/arduino/starter
   $ . ../helpers.sh

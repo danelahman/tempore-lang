@@ -1,7 +1,7 @@
 (* A robot step whose tilt conversion is collected within a time window, while
    the robot is quiet.
 
-   Run this example with the 'time-interval-lattice' grading monoid, e.g.
+   Run this example with the 'time-interval-lattice' grade algebra, e.g.
 
      ./tempore --grades time-interval-lattice \
        examples/lattice/quiet_noisy_intervals.tpe

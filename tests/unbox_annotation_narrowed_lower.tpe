@@ -1,4 +1,4 @@
-(* Run this test with the 'time-lower-bound' grading monoid, e.g.
+(* Run this test with the 'time-lower-bound' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound \
        tests/unbox_annotation_narrowed_lower.tpe

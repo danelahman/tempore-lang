@@ -1,6 +1,6 @@
 (* A stop and read on the Opentrons Flex: a stopped plate read within 30 minutes.
 
-   Run this example with the 'time-interval' grading monoid, e.g.
+   Run this example with the 'time-interval' grade algebra, e.g.
 
      ./tempore --grades time-interval examples/opentrons/stopread.tpe
 

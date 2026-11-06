@@ -1,6 +1,6 @@
 (* A value boxed for at most three ticks, unboxed before or after that bound.
 
-   Run this example with the 'time-upper-bound' grading monoid, e.g.
+   Run this example with the 'time-upper-bound' grade algebra, e.g.
 
      ./tempore --grades time-upper-bound examples/time/upper_bounds.tpe
 

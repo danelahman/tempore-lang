@@ -1,0 +1,8 @@
+(* Run this test with the 'watermarks' grade algebra, e.g.
+
+     ./tempore --grades watermarks \
+       tests/literals_reject_watermarks_range_empty.tpe
+
+   Rejected: the open range of net changes '(0, 1)' contains no integer. *)
+
+let claim () = box ((0, 1), 1) 1

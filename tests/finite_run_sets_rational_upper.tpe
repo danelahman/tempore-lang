@@ -1,0 +1,21 @@
+(* Run this test with the 'finite-run-sets-rational' grade algebra, e.g.
+
+     ./tempore --grades finite-run-sets-rational \
+       tests/finite_run_sets_rational_upper.tpe
+
+   Correctly accepted by the typechecker, under the
+   'finite-run-sets-rational' grade algebra: the delays of the traces are
+   non-negative rationals, and adjacent delays are merged, so that two delays
+   of a quarter make the trace listed with a delay of a half. *)
+
+operation Sample : unit ~> nat ! {Sample}
+operation Send : nat ~> unit ! {Send}
+
+let report () =
+  box {Sample; 1/2; Send | 3/2} () as due in
+  let v = perform Sample () in
+  delay 1/4;
+  delay 0.25;
+  perform Send v;
+  unbox due as u in
+  u

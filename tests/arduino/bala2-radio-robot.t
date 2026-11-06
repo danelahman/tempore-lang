@@ -1,9 +1,8 @@
 The BALA2 application of examples/arduino/bala2-radio-robot: the balancing robot
-driven by a controller over ESP-NOW, under the rigid regular expressions of
-timed operations, with the packages esp-now and bala2-radio and the binding
-file and host model of examples/arduino/bala2:
-its typing, its rejected variants, and its host simulation with a scripted
-controller.
+driven by a controller over ESP-NOW, under the timed regex grades, with the
+packages esp-now and bala2-radio and the binding file and host model of
+examples/arduino/bala2: its typing, its rejected variants, and its host
+simulation with a scripted controller.
 
   $ app=../../examples/arduino/bala2-radio-robot
   $ . ../helpers.sh

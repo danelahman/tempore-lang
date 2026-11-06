@@ -1,0 +1,13 @@
+(* Run this test with the 'banked-traces-upper-bound' grade algebra, e.g.
+
+     ./tempore --grades banked-traces-upper-bound tests/banked_traces_annotation.tpe
+
+   Correctly accepted by the typechecker, under 'banked-traces-upper-bound': the
+   annotation allows a single transmission or a retry, and the body transmits
+   once, which fits inside either trace. *)
+operation Tx : string ~> unit ! {Tx} within [2, 3]
+default Tx msg = delay 2
+
+let send msg : unit ! {Tx | Tx; Tx} = perform Tx msg
+
+run send "ping"

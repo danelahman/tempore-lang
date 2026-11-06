@@ -1,4 +1,4 @@
-(* Run this test with the 'time-upper-bound-lattice' grading monoid, e.g.
+(* Run this test with the 'time-upper-bound-lattice' grade algebra, e.g.
 
      ./tempore --grades time-upper-bound-lattice \
        tests/lattice_time_upper_reject.tpe

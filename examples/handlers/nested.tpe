@@ -1,6 +1,6 @@
 (* Nested handlers, the outer case resuming once the inner handle completes.
 
-   Run this example with the 'time-lower-bound' grading monoid, e.g.
+   Run this example with the 'time-lower-bound' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound examples/handlers/nested.tpe
 

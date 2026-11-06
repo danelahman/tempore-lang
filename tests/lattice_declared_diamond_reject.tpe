@@ -1,6 +1,7 @@
-(* Run this test with the 'flow-lattice' grading monoid, e.g.
+(* Run this test with the 'flow-sensitive-levels' grade algebra, e.g.
 
-     ./tempore --grades flow-lattice tests/lattice_declared_diamond_reject.tpe
+     ./tempore --grades flow-sensitive-levels \
+       tests/lattice_declared_diamond_reject.tpe
 
    A declared grade lattice, a diamond: rejected annotations. *)
 

@@ -1,4 +1,4 @@
-(* Run this test with the 'time-lower-bound-lattice' grading monoid, e.g.
+(* Run this test with the 'time-lower-bound-lattice' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound-lattice \
        tests/lattice_declared_chain_reject.tpe

@@ -1,8 +1,8 @@
-(* Run this test with the 'inter-arrival' grading monoid, e.g.
+(* Run this test with the 'inter-arrival' grade algebra, e.g.
 
      ./tempore --grades inter-arrival tests/inter_arrival_reject.tpe
 
-   Inter-arrival bounds: rejected programs. *)
+   Inter-arrival grades: rejected programs. *)
 
 operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]
 default Beat () = delay 0.2

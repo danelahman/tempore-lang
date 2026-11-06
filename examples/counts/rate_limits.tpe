@@ -1,8 +1,8 @@
 (* Logins and requests of a client, checked against rate limits on each.
 
-   Run this example with the 'counts-upper-bound' grading monoid, e.g.
+   Run this example with the 'at-most-counts' grade algebra, e.g.
 
-     ./tempore --grades counts-upper-bound examples/counts/rate_limits.tpe
+     ./tempore --grades at-most-counts examples/counts/rate_limits.tpe
 
    Grades ((A, n), ...): at most n calls of each operation A
      - Unit 0: no calls, the least grade

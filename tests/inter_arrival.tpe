@@ -1,8 +1,8 @@
-(* Run this test with the 'inter-arrival' grading monoid, e.g.
+(* Run this test with the 'inter-arrival' grade algebra, e.g.
 
      ./tempore --grades inter-arrival tests/inter_arrival.tpe
 
-   Inter-arrival bounds: the times between consecutive occurrences of an
+   Inter-arrival grades: the times between consecutive occurrences of an
    operation, at most and at least. *)
 
 operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]

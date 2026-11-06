@@ -1,4 +1,4 @@
-(* Run this test with the 'time-interval-lattice' grading monoid, e.g.
+(* Run this test with the 'time-interval-lattice' grade algebra, e.g.
 
      ./tempore --grades time-interval-lattice \
        tests/lattice_time_interval_reject.tpe

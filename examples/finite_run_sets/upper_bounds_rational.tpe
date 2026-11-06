@@ -1,0 +1,95 @@
+(* A heart-rate monitor timed in fractions of a second, graded by its exact
+   traces.
+
+   Run this example with the 'finite-run-sets-rational' grade algebra, e.g.
+
+     ./tempore --grades finite-run-sets-rational \
+       examples/finite_run_sets/upper_bounds_rational.tpe
+
+   Grades {...}: the traces a computation is allowed, compared by inclusion
+     - Unit {skip}: the empty trace
+     - Top ⊤: every trace permitted
+     - Product: concatenation of traces *)
+
+type sample = Sample of nat
+
+(* The operations declare no running-time bounds: a trace records the
+   operations and the delays between them, and a delay pays for no operation. *)
+operation Read : unit ~> sample ! {Read}
+operation Beep : unit ~> unit ! {Beep}
+operation Flag : unit ~> unit ! {Flag}
+
+(* A cycle, a compound operation: a steady heartbeat reads then beeps after
+   half a second, an irregular one reads and flags at once. *)
+operation Cycle : unit ~> sample ! {Read; 1/2; Beep | Read; Flag}
+
+(* Correctly accepted by the typechecker: the traces of the two branches are
+   joined into the set of both. *)
+let cycle (steady : bool) : sample ! {Read; 1/2; Beep | Read; Flag} =
+  let s = perform Read () in
+  if steady then (
+    delay 1/2;
+    perform Beep ();
+    s)
+  else (
+    perform Flag ();
+    s)
+
+(* Correctly accepted by the typechecker: the half-second delay is performed
+   as delays of a fifth and of three tenths of a second, merged into the one
+   the grade lists. *)
+let cycle_in_steps () : sample ! {Read; 1/2; Beep} =
+  let s = perform Read () in
+  delay 1/5;
+  delay 3/10;
+  perform Beep ();
+  s
+
+(* Correctly accepted by the typechecker: the clause realises a cycle by a
+   steady reading, one of the traces 'Cycle' permits. *)
+let admit =
+  handler
+  | x -> x
+  | Cycle () k ->
+      let s = cycle_in_steps () in
+      continue k with s
+
+(* Correctly accepted by the typechecker: a log entry boxed at the start of a
+   cycle may be read once the cycle is over, the traces exhibited since boxing
+   being among those its grade lists. *)
+let logged () =
+  box {Read; 1/2; Beep | Read; Flag} "entry" as record in
+  let s = perform Cycle () in
+  unbox record as r in
+  (r, s)
+
+(* The operations have no default implementations, since only performing an
+   operation realises its grade; the run uses delays alone. *)
+run box {1/2; 1 | 5/2} "ready" as s in delay 3/2; unbox s as msg in msg
+
+(* Correctly rejected by the typechecker: a cycle beeping after a quarter
+   second, where the grade lists a half. The traces are compared exactly:
+
+     Typing error: This function's body has grade `{Read; 0.25; Beep}`,
+       which does not match its annotated grade `{Read; 0.5; Beep}`
+       Note: the effect inequality
+         `{Read; 0.25; Beep} <= {Read; 0.5; Beep}` does not hold
+*)
+(*
+let cycle_brief () : sample ! {Read; 1/2; Beep} =
+  let s = perform Read () in
+  delay 1/4;
+  perform Beep ();
+  s
+*)
+
+(* Correctly rejected by the typechecker: a running-time bound declared on an
+   operation, which these grades, unlike the trace grades with banked delays,
+   do not admit:
+
+     Typing error: Running-time bounds must not be declared under the
+       `finite-run-sets-rational` grade algebra, which does not use them
+*)
+(*
+operation ReadBounded : unit ~> sample ! {Read} within (0, 1]
+*)

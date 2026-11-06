@@ -41,7 +41,7 @@ package under other grades, and --package with --device are refused:
   $ ../../tempore --grades time-interval-rational --package m5-gyro filter.tpe 2>&1 | head -1 | sed 's/^.*tempore: //'
   option '--package': 'm5-gyro' is not one of bala2-base, bala2-radio, esp-now, i2c, m5-display, m5-imu, m5-speaker, m5-touch.
   $ ../../tempore --grades time-interval --package m5-imu filter.tpe
-  Error: The package `m5-imu` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `inter-arrival`, `counts-upper-bound`, not `time-interval`
+  Error: The package `m5-imu` declares its operations under the grades `time-interval-rational`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound-rational-symbolic`, `timed-regex-upper-bound-rational-symbolic`, `timed-regex-interval-rational-symbolic`, `inter-arrival`, `at-most-counts`, not `time-interval`
   [1]
   $ emit tilt --device packages/tilt.device.json --package m5-imu packages/tilt.tpe
   ../../tempore: option '--package' cannot be used with '--device'.
@@ -49,7 +49,7 @@ package under other grades, and --package with --device are refused:
 
 The running-time bounds of the operations of a package on a board, given by
 its descriptor, replace those of its declarations for --board, under the
-interval grades and under the regular expressions of timed operations; a
+interval grades and under the regex grades with banked delays; a
 board for which the package gives none keeps those of the declarations:
 
   $ cat > bounds.tpe <<'EOF'
@@ -65,7 +65,7 @@ board for which the package gives none keeps those of the declarations:
   $ cat > bounds.tpe <<'EOF'
   > let read () : imu ! {[0, 1.3]} = perform ReadImu ()
   > EOF
-  $ for b in m5stack-gray m5stack-cores3; do ../../tempore --grades regex-timed-interval-rational-symbolic --package m5-imu --board $b --typecheck-only bounds.tpe 2>&1 | grep error; done
+  $ for b in m5stack-gray m5stack-cores3; do ../../tempore --grades banked-regex-interval-rational-symbolic --package m5-imu --board $b --typecheck-only bounds.tpe 2>&1 | grep error; done
   Typing error: This function's body has grade `[{ReadImu}, {ReadImu}]`, which does not match its annotated grade `[{[0, 1.3]}, {[0, 1.3]}]`
 
 The default implementations take a time within the bounds of every board, so
@@ -73,7 +73,7 @@ that the declarations of each package load under each of its grade systems
 on each board:
 
   $ touch empty.tpe
-  $ for p in bala2-base esp-now i2c m5-display m5-imu; do for g in time-interval-rational regex-timed-lower-bound-rational-symbolic regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic inter-arrival counts-upper-bound; do for b in m5stack-gray m5stack-gray-radio m5stack-cores3 esp32-devkit; do ../../tempore --grades $g --package $p --board $b --typecheck-only empty.tpe || echo "$p $g $b"; done; done; done
+  $ for p in bala2-base esp-now i2c m5-display m5-imu; do for g in time-interval-rational banked-regex-lower-bound-rational-symbolic banked-regex-upper-bound-rational-symbolic banked-regex-interval-rational-symbolic inter-arrival at-most-counts; do for b in m5stack-gray m5stack-gray-radio m5stack-cores3 esp32-devkit; do ../../tempore --grades $g --package $p --board $b --typecheck-only empty.tpe || echo "$p $g $b"; done; done; done
 
 The option --board needs --package and names a board profile:
 
@@ -382,8 +382,8 @@ once older than 50 ms, decode to Nothing:
   $ cd ../../..
 
 A message received is used within 150 ms of its reception, under
-time-interval-rational and the regular expressions of timed operations with
-intervals or upper bounds:
+time-interval-rational and the regex grades with banked delays, as intervals
+or upper bounds:
 
   $ cat > window.tpe <<'EOF'
   > let soon () =
@@ -399,12 +399,12 @@ intervals or upper bounds:
   >   unbox fresh as r in
   >   r
   > EOF
-  $ for g in time-interval-rational regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only window.tpe 2>&1 | grep error; done
+  $ for g in time-interval-rational banked-regex-upper-bound-rational-symbolic banked-regex-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only window.tpe 2>&1 | grep error; done
   Typing error: Variable `fresh` is unboxed with grade `[150, 151]` accumulated since it was bound, which is not below its box grade `[0, 150)`
   Typing error: Variable `fresh` is unboxed with grade `{Send; 150}` accumulated since it was bound, which is not below its box grade `{[0, 150)}`
   Typing error: Variable `fresh` is unboxed with grade `[{Send; 150}, {Send; 150}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 150)}]`
 
-Under the rigid grades a message received comes in one box with its
+Under the timed regex grades a message received comes in one box with its
 setpoints, the message with its setpoints zero, usable within 150 ms and
 while no further ReceiveMessage has come: a use after 150 ms fails it, and so does
 a use after a further ReceiveMessage. The setpoints are non-eternal, so that once
@@ -436,7 +436,7 @@ refused:
   >   remote_send Beat;
   >   match setpoints with Setpoints (speed, turn) -> speed +. turn
   > EOF
-  $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only latest.tpe 2>&1 | grep error; done
+  $ for g in timed-regex-upper-bound-rational-symbolic timed-regex-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only latest.tpe 2>&1 | grep error; done
   Typing error: Variable `latest` is unboxed with grade `{Send; idle ≤150}` accumulated since it was bound, which is not below its box grade `{<150 & ~ReceiveMessage}`
   Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage}` accumulated since it was bound, which is not below its box grade `{<150 & ~ReceiveMessage}`
   Typing error: Variable `setpoints` is used with grade `{Send}` accumulated since it was bound, but its type `setpoints` is not eternal
@@ -445,7 +445,7 @@ refused:
   Typing error: Variable `setpoints` is used with grade `{Send}` accumulated since it was bound, but its type `setpoints` is not eternal
 
 The status of the robot, sent by SendStatus as tag 5 and received by
-remote_status, under the rigid grades in one box, usable within 200 ms and
+remote_status, under the timed regex grades in one box, usable within 200 ms and
 while no further ReceiveMessage has come:
 
   $ cat > status.tpe <<'EOF'
@@ -466,13 +466,13 @@ while no further ReceiveMessage has come:
   >   unbox latest as s in
   >   remote_balancing s
   > EOF
-  $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only status.tpe 2>&1 | grep error; done
+  $ for g in timed-regex-upper-bound-rational-symbolic timed-regex-interval-rational-symbolic; do ../../tempore --grades $g --package esp-now --package bala2-radio --typecheck-only status.tpe 2>&1 | grep error; done
   Typing error: Variable `latest` is unboxed with grade `{idle ≤200}` accumulated since it was bound, which is not below its box grade `{<200 & ~ReceiveMessage}`
   Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage}` accumulated since it was bound, which is not below its box grade `{<200 & ~ReceiveMessage}`
   Typing error: Variable `latest` is unboxed with grade `{idle 200}` accumulated since it was bound, which is not below its box grade `{[0, 200) & ~ReceiveMessage}`
   Typing error: Variable `latest` is unboxed with grade `{ReceiveMessage}` accumulated since it was bound, which is not below its box grade `{[0, 200) & ~ReceiveMessage}`
 
-Under the rigid grades, read_imu_boxed of the package m5-imu reads the unit
+Under the timed regex grades, read_imu_boxed of the package m5-imu reads the unit
 once and returns the reading in one box, usable within 2 ms and while no
 further reading has come: a use after a further reading fails it, and so
 does a use after a display call of up to 33 ms:
@@ -493,7 +493,7 @@ does a use after a display call of up to 33 ms:
   >   unbox latest as a in
   >   a
   > EOF
-  $ for g in regex-timed-rigid-upper-bound-rational-symbolic regex-timed-rigid-interval-rational-symbolic; do ../../tempore --grades $g --package m5-imu --package m5-display --board m5stack-cores3 --typecheck-only boxed.tpe 2>&1 | grep error; done
+  $ for g in timed-regex-upper-bound-rational-symbolic timed-regex-interval-rational-symbolic; do ../../tempore --grades $g --package m5-imu --package m5-display --board m5stack-cores3 --typecheck-only boxed.tpe 2>&1 | grep error; done
   Typing error: Variable `latest` is unboxed with grade `{ReadImu}` accumulated since it was bound, which is not below its box grade `{≤2 & ~ReadImu}`
   Typing error: Variable `latest` is unboxed with grade `{ShowTextAt}` accumulated since it was bound, which is not below its box grade `{≤2 & ~ReadImu}`
   Typing error: Variable `latest` is unboxed with grade `{ReadImu}` accumulated since it was bound, which is not below its box grade `{[0, 2] & ~ReadImu}`
@@ -677,5 +677,5 @@ unknown package and a package under other grades are refused:
   File "packages/memory.device.json", line 4, characters 15-20:
   4 |   "packages": ["i2c"],
                      ^^^^^
-  Compilation error: The package `i2c` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `inter-arrival`, `counts-upper-bound`, not `time-interval`
+  Compilation error: The package `i2c` declares its operations under the grades `time-interval-rational`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound-rational-symbolic`, `timed-regex-upper-bound-rational-symbolic`, `timed-regex-interval-rational-symbolic`, `inter-arrival`, `at-most-counts`, not `time-interval`
   exit 1

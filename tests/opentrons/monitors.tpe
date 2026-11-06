@@ -1,5 +1,5 @@
 (* Operations with running-time bounds closed or open at each end, under the
-   'traces-timed-interval-rational' grading monoid, for the monitors of their
+   'banked-traces-interval-rational' grade algebra, for the monitors of their
    binding functions; 'Wait' also has a default implementation. *)
 
 operation CC : nat ~> nat ! [{CC}, {CC}] within [2, 4]

@@ -1,5 +1,5 @@
 (* Two calls of the same function, one inside the other, under the
-   'time-lower-bound' grading monoid: the continuation of the inner call of
+   'time-lower-bound' grade algebra: the continuation of the inner call of
    Inc contains the binder of the continuation of the outer call, and each
    resumption returns the value it is given. *)
 

@@ -1,4 +1,4 @@
-(* Run this test with the 'mode-times' grading monoid, e.g.
+(* Run this test with the 'mode-times' grade algebra, e.g.
 
      ./tempore --grades mode-times tests/literals_reject_mode_times.tpe
 

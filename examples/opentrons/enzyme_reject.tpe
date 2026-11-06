@@ -1,6 +1,6 @@
 (* As the enzyme mix example, with a fifth plate of reactions.
 
-   Run this example with the 'mode-times' grading monoid, e.g.
+   Run this example with the 'mode-times' grade algebra, e.g.
 
      ./tempore --grades mode-times examples/opentrons/enzyme_reject.tpe
 

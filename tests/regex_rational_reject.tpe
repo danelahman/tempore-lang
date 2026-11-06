@@ -1,13 +1,13 @@
-(* Run this test with the 'regex-upper-bound-rational-symbolic' grading monoid, e.g.
+(* Run this test with the 'regular-trace-languages-rational-symbolic' grade algebra, e.g.
 
-     ./tempore --grades regex-upper-bound-rational-symbolic \
+     ./tempore --grades regular-trace-languages-rational-symbolic \
        tests/regex_rational_reject.tpe
 
    Correctly rejected by the typechecker, under the
-   'regex-upper-bound-rational-symbolic' grading monoid: two delays adding up to
-   the one delay a complement excludes, a reading sent too late, a delay off the
-   period of a timer, and a trace too short for a lower bound on its delay,
-   which a note refutes by one of its traces. *)
+   'regular-trace-languages-rational-symbolic' grade algebra: two delays adding
+   up to the one delay a complement excludes, a reading sent too late, a delay
+   off the period of a timer, and a trace too short for a lower bound on its
+   delay, which a note refutes by one of its traces. *)
 
 operation Sample : unit ~> nat ! {Sample}
 operation Send : nat ~> unit ! {Send}

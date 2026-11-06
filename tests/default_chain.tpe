@@ -1,5 +1,5 @@
 (* Correctly accepted by the typechecker, under the default 'time-lower-bound'
-   grading monoid: a default may perform operations whose defaults perform
+   grade algebra: a default may perform operations whose defaults perform
    others in turn, as long as no default can reach its own operation again.
    The default of 'Ask' performs 'Load', whose default is declared later and
    calls a top-level function performing 'Store'. The default of 'Report'

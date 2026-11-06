@@ -1,4 +1,4 @@
-(* Run this test with the 'time-interval-rational' grading monoid, e.g.
+(* Run this test with the 'time-interval-rational' grade algebra, e.g.
 
      ./tempore --grades time-interval-rational \
        tests/unbox_nested_reject_upper.tpe *)

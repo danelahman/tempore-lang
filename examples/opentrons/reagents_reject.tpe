@@ -1,6 +1,6 @@
 (* As the tagmentation example, with a reagent dispensed after a long incubation.
 
-   Run this example with the 'time-interval' grading monoid, e.g.
+   Run this example with the 'time-interval' grade algebra, e.g.
 
      ./tempore --grades time-interval examples/opentrons/reagents_reject.tpe
 

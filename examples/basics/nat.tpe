@@ -1,6 +1,6 @@
 (* Unary natural numbers, with addition, multiplication and conversion to nat.
 
-   Run this example with the 'time-lower-bound' grading monoid, e.g.
+   Run this example with the 'time-lower-bound' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound examples/basics/nat.tpe
 

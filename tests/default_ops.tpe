@@ -1,5 +1,5 @@
 (* Correctly accepted by the typechecker, under the default 'time-lower-bound'
-   grading monoid: an operation may be given a default implementation, which
+   grade algebra: an operation may be given a default implementation, which
    runs when the operation reaches the top level unhandled. A handled operation
    never uses its default, and a default may itself perform operations that are
    defaulted in turn. The default is checked against the grade of the

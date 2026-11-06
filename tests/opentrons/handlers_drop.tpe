@@ -1,5 +1,5 @@
 (* Handlers whose cases drop their continuation, under the 'time-upper-bound'
-   grading monoid: the computation after the call is abandoned together with
+   grade algebra: the computation after the call is abandoned together with
    the frames inside the handler, and the frames outside it continue with the
    value of the case. *)
 

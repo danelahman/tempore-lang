@@ -1,0 +1,16 @@
+(* Run this test with the 'banked-traces-upper-bound' grade algebra, e.g.
+
+     ./tempore --grades banked-traces-upper-bound \
+       tests/banked_traces_reject_allowance.tpe
+
+   Correctly rejected by the typechecker, under the 'banked-traces-upper-bound'
+   grade algebra: one tick of allowance does not buy a 'Heat', which may take
+   up to two. *)
+
+operation Heat : unit ~> unit ! {Heat} within [1, 2]
+
+run
+  box 1 42 as r in
+  perform Heat ();
+  unbox r as x in
+  x

@@ -276,7 +276,7 @@ Long grades of event traces: accumulated grades keep their last events,
 box grades their first; with --timeline-full, which implies --timeline, the
 grades are printed in full. Only the timelines are shown.
 
-  $ ../tempore --grades regex-timed-rigid-interval-rational-symbolic --timeline ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
+  $ ../tempore --grades timed-regex-interval-rational-symbolic --timeline ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
   Run  Start                                     Event           Grade
   1    {skip}                                    box binding     {AddBeads; idle [5, 10]; MagnetOn}
@@ -314,7 +314,7 @@ grades are printed in full. Only the timelines are shown.
   1                                              · delay         {idle 2}
   Run 1 returned () at {…; idle 2; MagnetOn; idle 3; Transfer}.
 
-  $ ../tempore --grades regex-timed-rigid-interval-rational-symbolic --timeline-full ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
+  $ ../tempore --grades timed-regex-interval-rational-symbolic --timeline-full ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
   Run  Start                                                                                                                                        Event           Grade
   1    {skip}                                                                                                                                       box binding     {AddBeads; idle [5, 10]; MagnetOn}
@@ -352,7 +352,7 @@ grades are printed in full. Only the timelines are shown.
   1                                                                                                                                                 · delay         {idle 2}
   Run 1 returned () at {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2; MagnetOn; idle 3; Transfer}.
 
-  $ ../tempore --grades traces-timed-interval --timeline ../examples/traces_timed_ops/3d_printing.tpe | sed -n '/^Timeline$/,/^Run [0-9][0-9]* /p'
+  $ ../tempore --grades banked-traces-interval --timeline ../examples/banked_traces/3d_printing.tpe | sed -n '/^Timeline$/,/^Run [0-9][0-9]* /p'
   Timeline
   Run  Start                                                                     Event          Grade
   1    [{skip}, {skip}]                                                          MixEpoxy       [{MixEpoxy}, {MixEpoxy}]
@@ -396,7 +396,7 @@ grades are printed in full. Only the timelines are shown.
   Run  Start  Event  Grade
   Run 4 returned Epoxy at [{skip}, {skip}].
 
-  $ ../tempore --grades traces-timed-interval --timeline-full ../examples/traces_timed_ops/3d_printing.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
+  $ ../tempore --grades banked-traces-interval --timeline-full ../examples/banked_traces/3d_printing.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
   Run  Start                                                                     Event          Grade
   1    [{skip}, {skip}]                                                          MixEpoxy       [{MixEpoxy}, {MixEpoxy}]

@@ -1,0 +1,14 @@
+(* Run this test with the 'banked-traces-interval' grade algebra, e.g.
+
+     ./tempore --grades banked-traces-interval \
+       tests/banked_traces_intervals_default_bounds.tpe
+
+   Correctly rejected by the typechecker, under the 'banked-traces-interval'
+   grade algebra: both components of a default implementation are checked
+   against their own end of the running-time bounds, so a default that is
+   faster than the lower bound of its operation is rejected even though it
+   stays inside the upper one. *)
+
+operation Extrude : unit ~> unit ! [{Extrude}, {Extrude}] within [3, 5]
+
+default Extrude () = delay 1

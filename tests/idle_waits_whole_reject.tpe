@@ -1,0 +1,35 @@
+(* Run this test with the 'timed-regex-interval-symbolic' grade algebra, e.g.
+
+     ./tempore --grades timed-regex-interval-symbolic \
+       tests/idle_waits_whole_reject.tpe
+
+   Rejected under the 'timed-regex-interval-symbolic' grade algebra:
+   over whole time steps, an idle wait `idle d` admits waiting only; the
+   span form is accepted, the idle form rejected. *)
+
+type token = Token of string
+
+operation Read : unit ~> nat ! {Read} within [1, 1]
+operation Log : unit ~> unit ! {Log} within [1, 1]
+
+(* A log of one step fits a period of two to four steps beside a wait of
+   two. *)
+let logged_budget () =
+  box {([2, 4]; Read)*} (Token "l") as l in
+  delay 2;
+  let a = perform Read () in
+  perform Log ();
+  delay 2;
+  let b = perform Read () in
+  unbox l as tok in
+  tok
+
+let logged_strict () =
+  box {(idle [2, 4]; Read)*} (Token "l") as l in
+  delay 2;
+  let a = perform Read () in
+  perform Log ();
+  delay 2;
+  let b = perform Read () in
+  unbox l as tok in
+  tok

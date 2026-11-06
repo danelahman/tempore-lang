@@ -1,6 +1,6 @@
 (* A public and a classified channel, forwarding public and secret readings.
 
-   Run this example with the 'lattice' grading monoid, e.g.
+   Run this example with the 'lattice' grade algebra, e.g.
 
      ./tempore --grades lattice examples/lattice/security.tpe
 

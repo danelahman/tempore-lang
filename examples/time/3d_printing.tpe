@@ -1,6 +1,6 @@
 (* Printing and UV-curing resin models, boxed for the ticks each stage takes.
 
-   Run this example with the 'time-lower-bound' grading monoid, e.g.
+   Run this example with the 'time-lower-bound' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound examples/time/3d_printing.tpe
 

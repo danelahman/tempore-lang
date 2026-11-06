@@ -2,14 +2,13 @@ Closures are compiled by defunctionalisation: a value of a function type is a
 struct with a tag, which names the function of the closure among the
 functions of that type in the program, and the union of their environments;
 an application calls the function of the tag. The runs of closures.tpe are
-typed under the upper bounds of the regular expressions of timed operations,
-under which a case of a handler need not perform its operation, so that the
-handler device implements the operations of the runs on the host. Programs
-compiled for the host print the results of their runs as the interpreter
-prints them.
+typed under the regex upper bounds with banked delays, under which a case of
+a handler need not perform its operation, so that the handler device
+implements the operations of the runs on the host. Programs compiled for the
+host print the results of their runs as the interpreter prints them.
 
   $ . ../helpers.sh
-  $ grades=regex-timed-upper-bound-symbolic
+  $ grades=banked-regex-upper-bound-symbolic
   $ parity () {
   >   ../../tempore --grades "$grades" "$1" 2>&1 | strip_state > interpreter.out
   >   ../../tempore --grades "$grades" --emit-arduino "${1%.tpe}" --host-runs "$1" > /dev/null &&
@@ -74,7 +73,7 @@ closure has the environment of the variable x:
   >   unbox inner as v in
   >   v
   > TPE
-  $ ../../tempore --grades regex-timed-interval-rational-symbolic --emit-arduino staged staged.tpe > /dev/null
+  $ ../../tempore --grades banked-regex-interval-rational-symbolic --emit-arduino staged staged.tpe > /dev/null
   $ c++ -std=c++17 -Wall -Wextra -Werror -c -o staged.o _arduino/projects/staged/tempore_program.cpp
   $ awk '/^\/\/ Comparisons/ { exit } /^\/\/ Types/ { on = 1 } on' _arduino/projects/staged/tempore_program.h
   // Types.

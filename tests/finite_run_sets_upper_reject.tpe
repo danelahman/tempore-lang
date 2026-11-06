@@ -1,0 +1,23 @@
+(* Run this test with the 'finite-run-sets' grade algebra, e.g.
+
+     ./tempore --grades finite-run-sets tests/finite_run_sets_upper_reject.tpe
+
+   Correctly rejected by the typechecker, under the 'finite-run-sets'
+   grade algebra, whose order is the inclusion of sets of traces: a delay
+   pays for no operation, so a heating is not below the one tick a box allows,
+   whereas under 'banked-traces-upper-bound', with 'Heat' declared
+   'within [1, 1]', that tick pays for it. A trace not listed by the greater
+   grade is named as a counterexample. *)
+
+operation Heat : unit ~> unit ! {Heat}
+operation Read : unit ~> nat ! {Read}
+operation Send : nat ~> unit ! {Send}
+
+let heated () =
+  box 1 42 as r in
+  perform Heat ();
+  unbox r as x in
+  x
+
+let read_or_send (fresh : bool) : unit ! {Read} =
+  if fresh then (let x = perform Read () in ()) else perform Send 0

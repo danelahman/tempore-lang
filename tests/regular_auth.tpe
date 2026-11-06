@@ -1,8 +1,8 @@
-(* Run this test with the 'regex-upper-bound-symbolic' grading monoid, e.g.
+(* Run this test with the 'regular-trace-languages-symbolic' grade algebra, e.g.
 
-     ./tempore --grades regex-upper-bound-symbolic tests/regular_auth.tpe
+     ./tempore --grades regular-trace-languages-symbolic tests/regular_auth.tpe
 
-   Accepted under the regular trace grading monoids: resources guarded by the
+   Accepted under the regular trace languages: resources guarded by the
    traces that may occur before they are used. *)
 
 type token = Token of string

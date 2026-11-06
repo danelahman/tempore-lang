@@ -1,0 +1,9 @@
+(* Run this test with the 'call-time-sets' grade algebra, e.g.
+
+     ./tempore --grades call-time-sets \
+       tests/literals_reject_call_time_sets_empty.tpe
+
+   Rejected: the open interval of durations '(2, 3)' contains no whole number
+   of ticks. *)
+
+let claim () = box (2, 3) 1

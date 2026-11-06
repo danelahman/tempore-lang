@@ -1,10 +1,10 @@
-(* Run this test with the 'time-interval-rational' grading monoid, e.g.
+(* Run this test with the 'time-interval-rational' grade algebra, e.g.
 
      ./tempore --grades time-interval-rational \
        tests/rational_time_intervals_reject_within.tpe
 
    Correctly rejected by the typechecker, under the 'time-interval-rational'
-   grading monoid: its delays read the fractional running-time bounds, but they
-   are only declared under the grading monoids that read them. *)
+   grade algebra: its delays read the fractional running-time bounds, but they
+   are only declared under the grade algebras that read them. *)
 
 operation Dose : unit ~> unit ! [0.5, 1.5] within [1/2, 3/2]

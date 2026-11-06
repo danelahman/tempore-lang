@@ -1,0 +1,16 @@
+(* Run this test with the 'banked-traces-interval-rational' grade algebra, e.g.
+
+     ./tempore --grades banked-traces-interval-rational \
+       tests/banked_traces_rational_intervals_default_open_reject.tpe
+
+   Correctly rejected by the typechecker, under the
+   'banked-traces-interval-rational' grade algebra: a default implementation
+   taking exactly the open upper end 2 of [1, 2), or the open lower end 1 of
+   (1, 2], lies outside the running-time bounds of its operation, although the
+   finite sets of traces of the grade express only their closed hull [1, 2]. *)
+
+operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 2)
+operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
+
+default Send () = delay 2
+default Beep () = delay 1

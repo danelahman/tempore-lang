@@ -114,6 +114,222 @@ tests show those runs in detail.
   return (0., 0.)
   
   ======================================================================
+  ../examples/banked_regex/intervals.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    [{1}, {1}],
+    [{4}, {4}],
+    [{1}, {1}],
+    [{2}, {2}]
+  ]
+  
+  ======================================================================
+  ../examples/banked_regex/intervals_rational.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    [{0.75}, {0.75}],
+    [{0.6}, {0.6}],
+    [{0.75}, {0.75}]
+  ]
+  
+  ======================================================================
+  ../examples/banked_regex/lower_bounds.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Part "gear")
+  State: [
+    { resource_0 ↦ Part "gear" ! {Coat; 4} },
+    {1},
+    {4},
+    {2}
+  ]
+  
+  ======================================================================
+  ../examples/banked_regex/mail_session.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Checkpoint 5, 2)
+  State: [
+    { resource_0 ↦ Checkpoint 5 ! {Login; (Fetch | Store)*; Logout} },
+    {3},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1}
+  ]
+  
+  === Run 2 ===
+  return (Message (1, "Agenda", false))
+  State: [
+    {3},
+    {1},
+    {1}
+  ]
+  
+  === Run 3 ===
+  return 3
+  State: [
+    { resource_1 ↦ <fun> ! {Login; (Fetch | Store)*; Logout} },
+    {3},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1}
+  ]
+  
+  === Run 4 ===
+  return 1
+  State: [
+    {1},
+    {1},
+    {1},
+    {1}
+  ]
+  
+  ======================================================================
+  ../examples/banked_regex/upper_bounds.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Reading 0)
+  State: [
+    { resource_0 ↦ Reading 0 ! {2; Send; 6} },
+    {2},
+    {2},
+    {5}
+  ]
+  
+  ======================================================================
+  ../examples/banked_regex/upper_bounds_rational.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Reading 0)
+  State: [
+    { resource_0 ↦ Reading 0 ! {[0, 1.5]; Send; 5.5} },
+    {0.8},
+    {1.5},
+    {5}
+  ]
+  
+  ======================================================================
+  ../examples/banked_traces/3d_printing.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
+  State: [
+    [{1}, {1}],
+    { resource_0 ↦ Epoxy ! [{8}, {11}],
+      resource_2 ↦ <fun> ! [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
+    },
+    [{1}, {1}],
+    [{4}, {4}],
+    { resource_3 ↦ Extruded (Heated (Model "Sword")) ! [{2}, {2}] },
+    [{2}, {2}],
+    { resource_4 ↦
+        Printed (Cooled (Extruded (Heated (Model "Sword"))))
+        ! [{2}, {8}]
+    },
+    [{2}, {2}],
+    [{1}, {1}]
+  ]
+  
+  === Run 2 ===
+  return ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword")))))
+  State: [
+    { resource_1 ↦ <fun> ! [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}] },
+    [{1}, {1}],
+    [{4}, {4}],
+    { resource_2 ↦ Extruded (Heated (Model "Sword")) ! [{2}, {2}] },
+    [{2}, {2}],
+    { resource_3 ↦
+        Printed (Cooled (Extruded (Heated (Model "Sword"))))
+        ! [{2}, {8}]
+    },
+    [{4}, {4}]
+  ]
+  
+  === Run 3 ===
+  return (Model "Sword")
+  State: [
+    [{1}, {1}]
+  ]
+  
+  === Run 4 ===
+  return Epoxy
+  State: []
+  
+  ======================================================================
+  ../examples/banked_traces/intervals.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
+  State: [
+    [{1}, {1}],
+    { resource_0 ↦ Epoxy ! [{8}, {11}],
+      resource_2 ↦ <fun> ! [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
+    },
+    [{1}, {1}],
+    [{4}, {4}],
+    { resource_3 ↦ Extruded (Heated (Model "Sword")) ! [{2}, {2}] },
+    [{2}, {2}],
+    { resource_4 ↦
+        Printed (Cooled (Extruded (Heated (Model "Sword"))))
+        ! [{2}, {8}]
+    },
+    [{2}, {2}],
+    [{1}, {1}]
+  ]
+  
+  ======================================================================
+  ../examples/banked_traces/intervals_rational.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    [{0.75}, {0.75}],
+    [{0.5}, {0.5}],
+    [{1.75}, {1.75}]
+  ]
+  
+  ======================================================================
+  ../examples/banked_traces/lower_bounds.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
+  State: [
+    {1},
+    { resource_0 ↦ Epoxy ! {8}, resource_2 ↦ <fun> ! {Heat; Extrude; Cool} },
+    {1},
+    {4},
+    { resource_3 ↦ Extruded (Heated (Model "Sword")) ! {2} },
+    {2},
+    { resource_4 ↦ Printed (Cooled (Extruded (Heated (Model "Sword")))) ! {2} },
+    {2},
+    {1}
+  ]
+  
+  ======================================================================
+  ../examples/banked_traces/upper_bounds.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Receipt "telemetry")
+  State: [
+    { resource_0 ↦ Receipt "telemetry" ! {7},
+      resource_2 ↦ <fun> ! {Tx | Tx; Tx}
+    },
+    {2},
+    {2}
+  ]
+  
+  ======================================================================
   ../examples/basics/basic_unbox.tpe
   ======================================================================
   File "../examples/basics/basic_unbox.tpe", lines 24-25, characters 4-9:
@@ -315,6 +531,26 @@ tests show those runs in detail.
   ]
   
   ======================================================================
+  ../examples/finite_run_sets/upper_bounds.tpe
+  ======================================================================
+  === Run 1 ===
+  return "closed"
+  State: [
+    { resource_0 ↦ "closed" ! {3 | 4} },
+    {3}
+  ]
+  
+  ======================================================================
+  ../examples/finite_run_sets/upper_bounds_rational.tpe
+  ======================================================================
+  === Run 1 ===
+  return "ready"
+  State: [
+    { resource_0 ↦ "ready" ! {1.5 | 2.5} },
+    {1.5}
+  ]
+  
+  ======================================================================
   ../examples/handlers/3d_printing.tpe
   ======================================================================
   === Run 1 ===
@@ -448,7 +684,7 @@ tests show those runs in detail.
      perform SetOffsetAngle (offset, angle) (op_var. return op_var)))
   
   ======================================================================
-  ../examples/lattice/flow.tpe
+  ../examples/lattice/flow_sensitive_levels.tpe
   ======================================================================
   === Run 1 ===
   return ()
@@ -1327,7 +1563,7 @@ tests show those runs in detail.
     Note: the effect inequality `{(Wash; (Wash; ChangeTip)*)?} <= {(Wash; ChangeTip)*}` does not hold
     Note: the grade `[{Wash}, {(Wash; (Wash; ChangeTip)*)?}]` is below `{(Wash; (Wash; ChangeTip)*)?}` but not below `{(Wash; ChangeTip)*}`
   ======================================================================
-  ../examples/regular/upper_bounds.tpe
+  ../examples/regular_trace_languages/upper_bounds.tpe
   ======================================================================
   === Run 1 ===
   return "settled"
@@ -1337,7 +1573,7 @@ tests show those runs in detail.
   ]
   
   ======================================================================
-  ../examples/regular/upper_bounds_rational.tpe
+  ../examples/regular_trace_languages/upper_bounds_rational.tpe
   ======================================================================
   === Run 1 ===
   return "settled"
@@ -1348,176 +1584,7 @@ tests show those runs in detail.
   ]
   
   ======================================================================
-  ../examples/regular_timed_ops/intervals.tpe
-  ======================================================================
-  === Run 1 ===
-  return ()
-  State: [
-    [{1}, {1}],
-    [{4}, {4}],
-    [{1}, {1}],
-    [{2}, {2}]
-  ]
-  
-  ======================================================================
-  ../examples/regular_timed_ops/intervals_rational.tpe
-  ======================================================================
-  === Run 1 ===
-  return ()
-  State: [
-    [{0.75}, {0.75}],
-    [{0.6}, {0.6}],
-    [{0.75}, {0.75}]
-  ]
-  
-  ======================================================================
-  ../examples/regular_timed_ops/lower_bounds.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Part "gear")
-  State: [
-    { resource_0 ↦ Part "gear" ! {Coat; 4} },
-    {1},
-    {4},
-    {2}
-  ]
-  
-  ======================================================================
-  ../examples/regular_timed_ops/mail_session.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Checkpoint 5, 2)
-  State: [
-    { resource_0 ↦ Checkpoint 5 ! {Login; (Fetch | Store)*; Logout} },
-    {3},
-    {1},
-    {1},
-    {1},
-    {1},
-    {1},
-    {1},
-    {1}
-  ]
-  
-  === Run 2 ===
-  return (Message (1, "Agenda", false))
-  State: [
-    {3},
-    {1},
-    {1}
-  ]
-  
-  === Run 3 ===
-  return 3
-  State: [
-    { resource_1 ↦ <fun> ! {Login; (Fetch | Store)*; Logout} },
-    {3},
-    {1},
-    {1},
-    {1},
-    {1},
-    {1},
-    {1}
-  ]
-  
-  === Run 4 ===
-  return 1
-  State: [
-    {1},
-    {1},
-    {1},
-    {1}
-  ]
-  
-  ======================================================================
-  ../examples/regular_timed_ops/upper_bounds.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Reading 0)
-  State: [
-    { resource_0 ↦ Reading 0 ! {2; Send; 6} },
-    {2},
-    {2},
-    {5}
-  ]
-  
-  ======================================================================
-  ../examples/regular_timed_ops/upper_bounds_rational.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Reading 0)
-  State: [
-    { resource_0 ↦ Reading 0 ! {[0, 1.5]; Send; 5.5} },
-    {0.8},
-    {1.5},
-    {5}
-  ]
-  
-  ======================================================================
-  ../examples/regular_timed_rigid/intervals_rational.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Sample 3)
-  State: [
-    {idle 0.6},
-    { resource_0 ↦
-        3
-        ! [{(≥0; ReadImu; ReadClock)^3; ≥0}, {(≤2.5; ReadImu; ReadClock)*}]
-    },
-    {idle 1.75},
-    {idle 0.6},
-    {idle 0.02},
-    {idle 2.25},
-    {idle 0.6},
-    {idle 0.02},
-    {idle 1.5},
-    {idle 0.6},
-    {idle 0.02}
-  ]
-  
-  ======================================================================
-  ../examples/regular_timed_rigid/upper_bounds_rational.tpe
-  ======================================================================
-  === Run 1 ===
-  return (4, Stamp 1200)
-  State: [
-    { resource_0 ↦ 4 ! {Beep; ReadClock; ≤750} },
-    {idle ≤0.1},
-    {idle ≤0.02},
-    {idle ≤312.5},
-    {idle ≤0.6}
-  ]
-  
-  ======================================================================
-  ../examples/semidirect/mode_switch_costs.tpe
-  ======================================================================
-  === Run 1 ===
-  return 5
-  State: []
-  
-  === Run 2 (unhandled operation) ===
-  perform Sample () (op_var.
-    (let x = return op_var in
-     perform RadioOn () (op_var. return op_var);
-     perform Send x (op_var. return op_var);
-     perform RadioOff () (op_var. return op_var);
-     perform Sleep () (op_var. return op_var)))
-  
-  ======================================================================
-  ../examples/semidirect/resource_levels.tpe
-  ======================================================================
-  === Run 1 (unhandled operation) ===
-  perform Open "a" (op_var.
-    ((let i = return op_var in
-      let o = perform Open "a.bak" (op_var. return op_var) in
-      let s = perform Read i (op_var. return op_var) in
-      perform Write (o, s) (op_var. return op_var);
-      perform Close o (op_var. return op_var);
-      perform Close i (op_var. return op_var));
-     copy ("b", "b.bak")))
-  
-  ======================================================================
-  ../examples/semidirect/windowed_schedules.tpe
+  ../examples/semidirect/call_time_sets.tpe
   ======================================================================
   === Run 1 ===
   return ()
@@ -1544,6 +1611,34 @@ tests show those runs in detail.
     4,
     1
   ]
+  
+  ======================================================================
+  ../examples/semidirect/mode_switch_costs.tpe
+  ======================================================================
+  === Run 1 ===
+  return 5
+  State: []
+  
+  === Run 2 (unhandled operation) ===
+  perform Sample () (op_var.
+    (let x = return op_var in
+     perform RadioOn () (op_var. return op_var);
+     perform Send x (op_var. return op_var);
+     perform RadioOff () (op_var. return op_var);
+     perform Sleep () (op_var. return op_var)))
+  
+  ======================================================================
+  ../examples/semidirect/watermarks.tpe
+  ======================================================================
+  === Run 1 (unhandled operation) ===
+  perform Open "a" (op_var.
+    ((let i = return op_var in
+      let o = perform Open "a.bak" (op_var. return op_var) in
+      let s = perform Read i (op_var. return op_var) in
+      perform Write (o, s) (op_var. return op_var);
+      perform Close o (op_var. return op_var);
+      perform Close i (op_var. return op_var));
+     copy ("b", "b.bak")))
   
   ======================================================================
   ../examples/time/3d_printing.tpe
@@ -1703,132 +1798,37 @@ tests show those runs in detail.
   ]
   
   ======================================================================
-  ../examples/traces/upper_bounds.tpe
+  ../examples/timed_regex/intervals_rational.tpe
   ======================================================================
   === Run 1 ===
-  return "closed"
+  return (Sample 3)
   State: [
-    { resource_0 ↦ "closed" ! {3 | 4} },
-    {3}
-  ]
-  
-  ======================================================================
-  ../examples/traces/upper_bounds_rational.tpe
-  ======================================================================
-  === Run 1 ===
-  return "ready"
-  State: [
-    { resource_0 ↦ "ready" ! {1.5 | 2.5} },
-    {1.5}
-  ]
-  
-  ======================================================================
-  ../examples/traces_timed_ops/3d_printing.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
-  State: [
-    [{1}, {1}],
-    { resource_0 ↦ Epoxy ! [{8}, {11}],
-      resource_2 ↦ <fun> ! [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
+    {idle 0.6},
+    { resource_0 ↦
+        3
+        ! [{(≥0; ReadImu; ReadClock)^3; ≥0}, {(≤2.5; ReadImu; ReadClock)*}]
     },
-    [{1}, {1}],
-    [{4}, {4}],
-    { resource_3 ↦ Extruded (Heated (Model "Sword")) ! [{2}, {2}] },
-    [{2}, {2}],
-    { resource_4 ↦
-        Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        ! [{2}, {8}]
-    },
-    [{2}, {2}],
-    [{1}, {1}]
+    {idle 1.75},
+    {idle 0.6},
+    {idle 0.02},
+    {idle 2.25},
+    {idle 0.6},
+    {idle 0.02},
+    {idle 1.5},
+    {idle 0.6},
+    {idle 0.02}
   ]
-  
-  === Run 2 ===
-  return ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword")))))
-  State: [
-    { resource_1 ↦ <fun> ! [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}] },
-    [{1}, {1}],
-    [{4}, {4}],
-    { resource_2 ↦ Extruded (Heated (Model "Sword")) ! [{2}, {2}] },
-    [{2}, {2}],
-    { resource_3 ↦
-        Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        ! [{2}, {8}]
-    },
-    [{4}, {4}]
-  ]
-  
-  === Run 3 ===
-  return (Model "Sword")
-  State: [
-    [{1}, {1}]
-  ]
-  
-  === Run 4 ===
-  return Epoxy
-  State: []
   
   ======================================================================
-  ../examples/traces_timed_ops/intervals.tpe
+  ../examples/timed_regex/upper_bounds_rational.tpe
   ======================================================================
   === Run 1 ===
-  return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
+  return (4, Stamp 1200)
   State: [
-    [{1}, {1}],
-    { resource_0 ↦ Epoxy ! [{8}, {11}],
-      resource_2 ↦ <fun> ! [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
-    },
-    [{1}, {1}],
-    [{4}, {4}],
-    { resource_3 ↦ Extruded (Heated (Model "Sword")) ! [{2}, {2}] },
-    [{2}, {2}],
-    { resource_4 ↦
-        Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        ! [{2}, {8}]
-    },
-    [{2}, {2}],
-    [{1}, {1}]
-  ]
-  
-  ======================================================================
-  ../examples/traces_timed_ops/intervals_rational.tpe
-  ======================================================================
-  === Run 1 ===
-  return ()
-  State: [
-    [{0.75}, {0.75}],
-    [{0.5}, {0.5}],
-    [{1.75}, {1.75}]
-  ]
-  
-  ======================================================================
-  ../examples/traces_timed_ops/lower_bounds.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
-  State: [
-    {1},
-    { resource_0 ↦ Epoxy ! {8}, resource_2 ↦ <fun> ! {Heat; Extrude; Cool} },
-    {1},
-    {4},
-    { resource_3 ↦ Extruded (Heated (Model "Sword")) ! {2} },
-    {2},
-    { resource_4 ↦ Printed (Cooled (Extruded (Heated (Model "Sword")))) ! {2} },
-    {2},
-    {1}
-  ]
-  
-  ======================================================================
-  ../examples/traces_timed_ops/upper_bounds.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Receipt "telemetry")
-  State: [
-    { resource_0 ↦ Receipt "telemetry" ! {7},
-      resource_2 ↦ <fun> ! {Tx | Tx; Tx}
-    },
-    {2},
-    {2}
+    { resource_0 ↦ 4 ! {Beep; ReadClock; ≤750} },
+    {idle ≤0.1},
+    {idle ≤0.02},
+    {idle ≤312.5},
+    {idle ≤0.6}
   ]
   

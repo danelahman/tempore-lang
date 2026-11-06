@@ -1,9 +1,8 @@
-The wheel check of examples/arduino/wheels on the M5Stack BALA2, under the
-rigid regular expressions of timed operations, with the declarations of the
-packages m5-imu, m5-display and bala2-base under these grades: its runs by
-the interpreter, its rejected variants, the check of a periodic task against
-its period from the durations of a trace, and its host simulation on a
-stand, with a stalled wheel.
+The wheel check of examples/arduino/wheels on the M5Stack BALA2, under the timed
+regex grades, with the declarations of the packages m5-imu, m5-display and
+bala2-base under these grades: its runs by the interpreter, its rejected
+variants, the check of a periodic task against its period from the durations of
+a trace, and its host simulation on a stand, with a stalled wheel.
 
   $ app=../../examples/arduino/wheels
   $ . ../helpers.sh

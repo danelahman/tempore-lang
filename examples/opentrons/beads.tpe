@@ -1,6 +1,6 @@
 (* A bead clean-up on the Opentrons Flex: settled beads and an air-dry window.
 
-   Run this example with the 'time-interval' grading monoid, e.g.
+   Run this example with the 'time-interval' grade algebra, e.g.
 
      ./tempore --grades time-interval examples/opentrons/beads.tpe
 

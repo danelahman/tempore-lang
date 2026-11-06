@@ -1,6 +1,6 @@
 (* An enzyme mix on the Opentrons Flex: at most 30 minutes out of the cold block in total.
 
-   Run this example with the 'mode-times' grading monoid, e.g.
+   Run this example with the 'mode-times' grade algebra, e.g.
 
      ./tempore --grades mode-times examples/opentrons/enzyme.tpe
 

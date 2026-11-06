@@ -1,0 +1,17 @@
+(* Run this test with the 'banked-traces-upper-bound-rational' grade algebra, e.g.
+
+     ./tempore --grades banked-traces-upper-bound-rational \
+       tests/banked_traces_rational_upper_open_reject.tpe
+
+   Correctly rejected by the typechecker, under the
+   'banked-traces-upper-bound-rational' grade algebra: a sample within
+   [1/2, 3/2) takes up to nearly 3/2 time units, more than the 1.4 the box
+   allows. *)
+
+operation Sample : unit ~> unit ! {Sample} within [1/2, 3/2)
+
+let sample () =
+  box {1.4} 1 as slot in
+  perform Sample ();
+  unbox slot as r in
+  r

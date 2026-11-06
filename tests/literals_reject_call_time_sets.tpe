@@ -1,0 +1,8 @@
+(* Run this test with the 'call-time-sets' grade algebra, e.g.
+
+     ./tempore --grades call-time-sets \
+       tests/literals_reject_call_time_sets.tpe
+
+   Rejected: the times of call-time sets are given by operation. *)
+
+let claim () = box (1, {0}) 1

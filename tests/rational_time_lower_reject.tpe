@@ -1,4 +1,4 @@
-(* Run this test with the 'time-lower-bound-rational' grading monoid, e.g.
+(* Run this test with the 'time-lower-bound-rational' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound-rational \
        tests/rational_time_lower_reject.tpe *)

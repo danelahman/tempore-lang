@@ -1,5 +1,5 @@
 (* Correctly rejected by the desugarer, under the default 'time-lower-bound'
-   grading monoid: a default implementation can only be given for an operation
+   grade algebra: a default implementation can only be given for an operation
    that has already been declared. *)
 
 default Log msg = delay 1

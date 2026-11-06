@@ -1,11 +1,11 @@
-(* Run this test with the 'regex-timed-rigid-interval-rational-symbolic'
-   grading monoid, e.g.
+(* Run this test with the 'timed-regex-interval-rational-symbolic'
+   grade algebra, e.g.
 
-     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational-symbolic \
        tests/unbox_annotated_signature_reject.tpe
 
-   Rejected under the 'regex-timed-rigid-interval-rational-symbolic' grading
-   monoid: a box returned by a function is unboxed after its box grade has
+   Rejected under the 'timed-regex-interval-rational-symbolic' grade
+   algebra: a box returned by a function is unboxed after its box grade has
    lapsed; the failing unbox is reported with its accumulated grade both when
    the function's type and effect are annotated and when only its type is. *)
 

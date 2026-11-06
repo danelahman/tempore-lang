@@ -1,0 +1,11 @@
+(* Run this test with the 'banked-traces-upper-bound' grade algebra, e.g.
+
+     ./tempore --grades banked-traces-upper-bound \
+       tests/banked_traces_reject_unknown_event.tpe
+
+   Correctly rejected by the typechecker, under the 'banked-traces-upper-bound'
+   grade algebra: the events of a grade must be operations that have already
+   been declared. *)
+
+operation Heat : unit ~> unit ! {Heat} within [1, 2]
+operation PrintModel : unit ~> unit ! {Heat; Extrude}

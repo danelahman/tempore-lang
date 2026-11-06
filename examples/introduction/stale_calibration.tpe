@@ -1,8 +1,8 @@
 (* A calibration usable only if every later reconfiguration is self-tested.
 
-   Run this example with the 'regex-upper-bound-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'regular-trace-languages-rational-symbolic' grade algebra, e.g.
 
-     ./tempore --grades regex-upper-bound-rational-symbolic \
+     ./tempore --grades regular-trace-languages-rational-symbolic \
        examples/introduction/stale_calibration.tpe
 
    Grades {...}: regular languages of traces over operations and rational delays
@@ -20,7 +20,7 @@
    A trace of a computation is the sequence of operations it performs and delays
    it makes, in order, e.g. 'Calibrate; Configure; 2; SelfTest'; here operations
    take no time, and adjacent delays add. For operations that take time, see the
-   examples under 'Regular expressions of timed operations'.
+   examples under 'Regex grades with banked delays'.
 
    Each grade is a set of traces: the grade of a computation contains every
    trace it may have, and a box's grade specifies the traces permitted between
@@ -99,7 +99,7 @@ let stale_calibration () =
 (* The top-level command 'run' executes a computation, using the small-step
    reduction semantics, and prints its return value and final state.
 
-   Under the given grading monoid an operation has no default implementation in
+   Under the given grade algebra an operation has no default implementation in
    the prototype: a default must have a grade below the operation's, e.g.
    '{Configure}', which a computation not performing the operation does not
    have. The run therefore stops at the first operation, which is unhandled. *)

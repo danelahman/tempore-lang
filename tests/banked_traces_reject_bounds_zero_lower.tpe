@@ -1,0 +1,10 @@
+(* Run this test with the 'banked-traces-upper-bound' grade algebra, e.g.
+
+     ./tempore --grades banked-traces-upper-bound \
+       tests/banked_traces_reject_bounds_zero_lower.tpe
+
+   Correctly rejected by the typechecker, under the 'banked-traces-upper-bound'
+   grade algebra: an operation's running time must be positive, its lower
+   running-time bound above 0 or open at 0. *)
+
+operation Heat : unit ~> unit ! {Heat} within [0, 2]

@@ -1,7 +1,8 @@
-The controller of examples/arduino/bala2-radio-controller: the M5Stack CoreS3 that
-drives the BALA2 of examples/arduino/bala2-radio-robot by its tilt over ESP-NOW,
-under the rigid regular expressions of timed operations, with the packages m5-imu, m5-display, m5-touch, m5-speaker, esp-now and bala2-radio:
-its typing, its rejected variants, and its host simulation.
+The controller of examples/arduino/bala2-radio-controller: the M5Stack CoreS3
+that drives the BALA2 of examples/arduino/bala2-radio-robot by its tilt over
+ESP-NOW, under the timed regex grades, with the packages m5-imu, m5-display,
+m5-touch, m5-speaker, esp-now and bala2-radio: its typing, its rejected
+variants, and its host simulation.
 
   $ app=../../examples/arduino/bala2-radio-controller
   $ . ../helpers.sh

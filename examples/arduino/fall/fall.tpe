@@ -1,9 +1,9 @@
 (* A fall detector on the M5Stack CoreS3 Lite: a free fall and an impact
    within a second, and an alarm raised 10 to 30 s after a prompt
 
-   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
 
-     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational-symbolic \
        --package m5-imu \
        --package m5-display \
        --package m5-touch \
@@ -12,8 +12,8 @@
        examples/arduino/fall/fall.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
-   durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `idle` admit none, a
+   durations, in the timed regex order: operations are matched in order, spans
+   admit operations within their time, idle waits admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {skip}: the empty trace
@@ -348,7 +348,7 @@ let respond_silent (fall : fall) =
 
 (* Correctly rejected by the typechecker: the unit is reconfigured to 400 Hz
    at the onset of a free fall, before the readings that confirm it; with
-   budget delays in place of the strict ones, the box would admit the
+   span delays in place of the idle ones, the box would admit the
    reconfiguration, of at most 0.4 ms, beside the wait of 10 ms:
 
      Typing error: Variable `onset` is unboxed with grade `{ConfigureImu;

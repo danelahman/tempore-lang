@@ -1,6 +1,6 @@
 (* A login session token that expires after five ticks or a tainting read.
 
-   Run this example with the 'time-upper-bound-lattice' grading monoid, e.g.
+   Run this example with the 'time-upper-bound-lattice' grade algebra, e.g.
 
      ./tempore --grades time-upper-bound-lattice examples/lattice/time_upper.tpe
 

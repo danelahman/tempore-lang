@@ -1,5 +1,5 @@
 (* Correctly accepted by the typechecker, under the default 'time-lower-bound'
-   grading monoid: the two delays of the operation case are folded into the
+   grade algebra: the two delays of the operation case are folded into the
    single delay of 7 that the grade of 'Tick' asks for, and an operation case
    may in any case take longer than the grade of its operation prescribes. *)
 

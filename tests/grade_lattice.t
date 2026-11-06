@@ -1,5 +1,5 @@
 Declarations of the grade lattice: the checks of a declaration, an undeclared
-element, a declaration under a grading monoid not built on a grade lattice, and
+element, a declaration under a grade algebra not built on a grade lattice, and
 the declarations of the files of one run.
 
 An element occurs twice in a chain:
@@ -66,24 +66,24 @@ An element that is not declared, among few elements and among many:
   File "unknown.tpe", line 3, characters 15-19:
   3 | let f () = box High 1 as x in unbox x as y in y
                      ^^^^
-  Syntax error: In the `lattice` grading monoid, unknown element `High` of the grade lattice; its elements are `Quiet` and `Noisy`
+  Syntax error: In the `lattice` grade algebra, unknown element `High` of the grade lattice; its elements are `Quiet` and `Noisy`
   [1]
   $ printf 'grade lattice P < Q < R < S < T\n\nlet f () = box (3, X) 1 as x in unbox x as y in y\n' > unknown_many.tpe
   $ ../tempore --grades time-upper-bound-lattice unknown_many.tpe
   File "unknown_many.tpe", line 3, characters 15-21:
   3 | let f () = box (3, X) 1 as x in unbox x as y in y
                      ^^^^^^
-  Syntax error: In the `time-upper-bound-lattice` grading monoid, in the second component (`lattice`), unknown element `X` of the grade lattice; its 5 elements range from `P` to `T`
+  Syntax error: In the `time-upper-bound-lattice` grade algebra, in the second component (`lattice`), unknown element `X` of the grade lattice; its 5 elements range from `P` to `T`
   [1]
 
-A declaration under a grading monoid not built on a grade lattice:
+A declaration under a grade algebra not built on a grade lattice:
 
   $ printf 'grade lattice Quiet < Noisy\n\nlet x = 1\n' > monoid.tpe
   $ ../tempore --grades time-upper-bound monoid.tpe
   File "monoid.tpe", line 1, characters 0-27:
   1 | grade lattice Quiet < Noisy
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Syntax error: The `time-upper-bound` grading monoid is not built on a grade lattice, so none can be declared
+  Syntax error: The `time-upper-bound` grade algebra is not built on a grade lattice, so none can be declared
   [1]
 
 The files of one run share a declaration: repeated identically, in another

@@ -1,6 +1,6 @@
 (* As the bead clean-up example, with the beads air-dried for too long.
 
-   Run this example with the 'time-interval' grading monoid, e.g.
+   Run this example with the 'time-interval' grade algebra, e.g.
 
      ./tempore --grades time-interval examples/opentrons/beads_reject.tpe
 

@@ -1,0 +1,10 @@
+(* Run this test with the 'banked-traces-interval-rational' grade algebra, e.g.
+
+     ./tempore --grades banked-traces-interval-rational \
+       tests/banked_traces_rational_intervals_reject_open.tpe
+
+   Rejected: an open endpoint of an interval of sets of traces denotes
+   infinitely many traces, which the finite sets of traces of
+   'banked-traces-interval-rational' do not express. *)
+
+let claim () = box (1/2, 2] 1

@@ -1,13 +1,13 @@
 (* As the bead clean-up example, with the further ethanol washes sharing a tip.
 
-   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
 
-     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational-symbolic \
        examples/opentrons/washes_reject.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
-   durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `idle` admit none, a
+   durations, in the timed regex order: operations are matched in order, spans
+   admit operations within their time, idle waits admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {skip}: the empty trace

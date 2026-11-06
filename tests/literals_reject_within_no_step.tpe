@@ -1,6 +1,6 @@
-(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+(* Run this test with the 'banked-traces-upper-bound' grade algebra, e.g.
 
-     ./tempore --grades traces-timed-upper-bound \
+     ./tempore --grades banked-traces-upper-bound \
        tests/literals_reject_within_no_step.tpe
 
    Rejected: in whole ticks, an open end of running-time bounds abbreviates a

@@ -1,6 +1,6 @@
 (* A bead binding on the Opentrons Flex: the beads resuspended every 2 to 5 minutes.
 
-   Run this example with the 'inter-arrival' grading monoid, e.g.
+   Run this example with the 'inter-arrival' grade algebra, e.g.
 
      ./tempore --grades inter-arrival examples/opentrons/binding.tpe
 

@@ -1,6 +1,6 @@
-(* Run this test with the 'resource-levels' grading monoid, e.g.
+(* Run this test with the 'watermarks' grade algebra, e.g.
 
-     ./tempore --grades resource-levels tests/literals_reject_peak.tpe
+     ./tempore --grades watermarks tests/literals_reject_peak.tpe
 
    Rejected: a peak below the net change. *)
 

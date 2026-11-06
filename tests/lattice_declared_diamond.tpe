@@ -1,6 +1,6 @@
-(* Run this test with the 'flow-lattice' grading monoid, e.g.
+(* Run this test with the 'flow-sensitive-levels' grade algebra, e.g.
 
-     ./tempore --grades flow-lattice tests/lattice_declared_diamond.tpe
+     ./tempore --grades flow-sensitive-levels tests/lattice_declared_diamond.tpe
 
    A declared grade lattice, a diamond: Team and Partner are incomparable, and their
    join is Confidential. *)

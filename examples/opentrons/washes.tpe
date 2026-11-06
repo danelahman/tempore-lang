@@ -1,13 +1,13 @@
 (* A bead clean-up on the Opentrons Flex: two or more ethanol washes, each with a fresh tip.
 
-   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
 
-     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational-symbolic \
        examples/opentrons/washes.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
-   durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `idle` admit none, a
+   durations, in the timed regex order: operations are matched in order, spans
+   admit operations within their time, idle waits admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {skip}: the empty trace
@@ -27,7 +27,7 @@
    A tick is a minute. The protocol for the Flex, with the operations
    performed by the functions of 'washes_bindings.py', is written by
 
-     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational-symbolic \
        --emit-opentrons washes.py \
        --bind examples/opentrons/washes_bindings.py \
        --time-unit minutes \
@@ -131,7 +131,7 @@ let cleanup (beads : beads) (n : nat)
   perform Transfer settled
 
 (* Correctly rejected by the typechecker: the further washes share a tip.
-   Under 'regex-timed-interval-symbolic' the function is accepted, the tip
+   Under 'banked-regex-interval-symbolic' the function is accepted, the tip
    changes of the upper bound being left out:
 
      Typing error: This function's body has grade `{(Wash; …)?}`, which
@@ -180,7 +180,7 @@ let elute_off_magnet (beads : beads)
 
 (* Correctly rejected by the typechecker: the residual ethanol is removed
    within the air-dry, which leaves a minute of drying. Under
-   'regex-timed-interval-symbolic', and with the budgets `2` and `[2, 3]` in
+   'banked-regex-interval-symbolic', and with the spans `2` and `[2, 3]` in
    place of `idle 2` and `idle [2, 3]`, the function is accepted, the
    removal counting towards the air-dry:
 

@@ -1,6 +1,6 @@
 (* As the bead binding example, with the wash plate filled too late.
 
-   Run this example with the 'inter-arrival' grading monoid, e.g.
+   Run this example with the 'inter-arrival' grade algebra, e.g.
 
      ./tempore --grades inter-arrival examples/opentrons/binding_reject.tpe
 

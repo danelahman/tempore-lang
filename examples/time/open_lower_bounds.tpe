@@ -1,6 +1,6 @@
 (* A second dose, due strictly more than four hours after the first.
 
-   Run this example with the 'time-lower-bound-rational' grading monoid, e.g.
+   Run this example with the 'time-lower-bound-rational' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound-rational \
        examples/time/open_lower_bounds.tpe

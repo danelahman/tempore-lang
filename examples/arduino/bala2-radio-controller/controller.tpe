@@ -1,9 +1,9 @@
 (* The controller of the BALA2 on the M5Stack CoreS3: drive by tilt over
-   ESP-NOW, start and stop by touch, under rigid timed regular expressions
+   ESP-NOW, start and stop by touch, under timed regex grades
 
-   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
 
-     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational-symbolic \
        --package m5-imu \
        --package m5-display \
        --package m5-touch \
@@ -14,8 +14,8 @@
        examples/arduino/bala2-radio-controller/controller.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
-   durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `idle` admit none, a
+   durations, in the timed regex order: operations are matched in order, spans
+   admit operations within their time, idle waits admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {skip}: the empty trace
@@ -351,7 +351,7 @@ let rec balancing (n : nat)
    robot confirms, Drive or Beat until a tap on Stop, and Stop 20
    times, in this order; a tone of 60 ms, started by Beep, which returns at
    once, acknowledges each accepted tap: 1760 Hz on Start and 880 Hz on
-   Stop. Its grade is the protocol of the controller, and its strict
+   Stop. Its grade is the protocol of the controller, and its idle
    waits and operations bound the time from the end of one message to the
    start of the next by 47 ms, below the 50 ms within which the robot
    expects one: after the last Stop, the wait of 12.5 ms, the redraw of

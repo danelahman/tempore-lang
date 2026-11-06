@@ -1,5 +1,5 @@
-(* Default implementations, under the default 'time-lower-bound' grading
-   monoid: a run uses only the defaults declared above it, a default runs
+(* Default implementations, under the default 'time-lower-bound' grade
+   algebra: a run uses only the defaults declared above it, a default runs
    outside every handler around its call, and a run whose operation call has
    neither a handler nor a default stops there, the next run following. *)
 

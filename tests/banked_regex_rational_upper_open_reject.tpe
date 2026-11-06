@@ -1,0 +1,20 @@
+(* Run this test with the 'banked-regex-upper-bound-rational-symbolic' grade algebra, e.g.
+
+     ./tempore --grades banked-regex-upper-bound-rational-symbolic \
+       tests/banked_regex_rational_upper_open_reject.tpe
+
+   Correctly rejected by the typechecker, under the
+   'banked-regex-upper-bound-rational-symbolic' grade algebra: a sample within
+   [1/2, 2] may take 2 time units, which no delay of [0, 2) permits, and a
+   default of exactly 2 exceeds [1/2, 2). *)
+
+operation Sample : unit ~> unit ! {Sample} within [1/2, 2]
+operation Beep : unit ~> unit ! {Beep} within [1/2, 2)
+
+let sample () =
+  box {[0, 2)} 1 as slot in
+  perform Sample ();
+  unbox slot as r in
+  r
+
+default Beep () = delay 2

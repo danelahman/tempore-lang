@@ -1,6 +1,6 @@
 (* A robot step whose tilt conversion completes only while the robot is quiet.
 
-   Run this example with the 'time-upper-bound-lattice' grading monoid, e.g.
+   Run this example with the 'time-upper-bound-lattice' grade algebra, e.g.
 
      ./tempore --grades time-upper-bound-lattice \
        examples/lattice/quiet_noisy.tpe

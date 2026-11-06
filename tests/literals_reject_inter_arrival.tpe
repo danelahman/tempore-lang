@@ -1,4 +1,4 @@
-(* Run this test with the 'inter-arrival' grading monoid, e.g.
+(* Run this test with the 'inter-arrival' grade algebra, e.g.
 
      ./tempore --grades inter-arrival \
        tests/literals_reject_inter_arrival.tpe

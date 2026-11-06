@@ -1,4 +1,4 @@
-(* Run this test with the 'time-interval' grading monoid, e.g.
+(* Run this test with the 'time-interval' grade algebra, e.g.
 
      ./tempore --grades time-interval tests/recursion_closure_reject_interval.tpe
 

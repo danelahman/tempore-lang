@@ -1,4 +1,4 @@
-(* Run this test with the 'lattice' grading monoid, e.g.
+(* Run this test with the 'lattice' grade algebra, e.g.
 
      ./tempore --grades lattice tests/lattice_reject.tpe
 

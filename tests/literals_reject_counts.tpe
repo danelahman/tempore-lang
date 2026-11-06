@@ -1,6 +1,6 @@
-(* Run this test with the 'counts-upper-bound' grading monoid, e.g.
+(* Run this test with the 'at-most-counts' grade algebra, e.g.
 
-     ./tempore --grades counts-upper-bound tests/literals_reject_counts.tpe
+     ./tempore --grades at-most-counts tests/literals_reject_counts.tpe
 
    Rejected: a count is non-negative. *)
 

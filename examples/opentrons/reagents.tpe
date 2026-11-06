@@ -1,6 +1,6 @@
 (* A tagmentation on the Opentrons Flex: thawed reagents used within 30 minutes.
 
-   Run this example with the 'time-interval' grading monoid, e.g.
+   Run this example with the 'time-interval' grade algebra, e.g.
 
      ./tempore --grades time-interval examples/opentrons/reagents.tpe
 

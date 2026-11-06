@@ -58,7 +58,7 @@ As the interpreter, the Python program ends with exit code 3 when a run fails:
   return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   
-  $ parity traces-timed-interval ../../examples/traces_timed_ops/3d_printing.tpe
+  $ parity banked-traces-interval ../../examples/banked_traces/3d_printing.tpe
   === Run 1 ===
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
   
@@ -151,7 +151,7 @@ handler; and runs that end at an unhandled operation call.
 Operations with running-time bounds and no binding functions: their runs end
 at the unhandled call, or run the default implementation.
 
-  $ parity traces-timed-interval-rational monitors.tpe
+  $ parity banked-traces-interval-rational monitors.tpe
   === Run 1 (unhandled operation) ===
   perform CC 1 (<continuation>)
   
@@ -183,7 +183,7 @@ against the bounds of its operation, each end closed or open; outside them it
 aborts the run under the policy abort, and is reported and recorded under warn.
 Delays and declared durations advance the clock, scaled by the time unit.
 
-  $ ../../tempore --grades traces-timed-interval-rational --emit-opentrons monitors.py monitors.tpe &&
+  $ ../../tempore --grades banked-traces-interval-rational --emit-opentrons monitors.py monitors.tpe &&
   > python3 monitor_driver.py _opentrons/protocols/monitors.py
   Wrote _opentrons/protocols/monitors.py
   Policy abort:
@@ -267,7 +267,7 @@ bounds of the operations it names, compound ones included.
   > operation C : unit ~> unit ! {B; A}
   > run return ()
   > TPE
-  $ ../../tempore --grades traces-timed-upper-bound --emit-opentrons compound.py compound.tpe &&
+  $ ../../tempore --grades banked-traces-upper-bound --emit-opentrons compound.py compound.tpe &&
   > grep -o '"C": tempore_Bounds([^)]*)[^)]*)[^)]*)' _opentrons/protocols/compound.py
   Wrote _opentrons/protocols/compound.py
   "C": tempore_Bounds(tempore_Fraction(3, 1), True, tempore_Fraction(6, 1), True)

@@ -1,0 +1,8 @@
+(* Run this test with the 'banked-traces-upper-bound' grade algebra, e.g.
+
+     ./tempore --grades banked-traces-upper-bound tests/banked_traces_reject_bounds.tpe
+
+   Correctly rejected by the typechecker, under the 'banked-traces-upper-bound'
+   grade algebra: the running-time bounds of an operation must be ordered. *)
+
+operation Heat : unit ~> unit ! {Heat} within [3, 0]

@@ -1,6 +1,6 @@
 (* An embargoed report, publishable once untainted and enough time has passed.
 
-   Run this example with the 'time-lower-bound-lattice' grading monoid, e.g.
+   Run this example with the 'time-lower-bound-lattice' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound-lattice examples/lattice/time_lower.tpe
 

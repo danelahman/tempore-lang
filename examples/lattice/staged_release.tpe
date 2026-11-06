@@ -1,6 +1,6 @@
 (* A staged release of software to hosts, with observation, retries and hotfixes.
 
-   Run this example with the 'time-lower-bound-lattice' grading monoid, e.g.
+   Run this example with the 'time-lower-bound-lattice' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound-lattice \
        examples/lattice/staged_release.tpe

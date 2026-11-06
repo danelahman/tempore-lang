@@ -1,8 +1,8 @@
 (* A peak tilt recorder on the M5Stack CoreS3 Lite: its flash writes counted
 
-   Run this example with the 'counts-upper-bound' grading monoid, e.g.
+   Run this example with the 'at-most-counts' grade algebra, e.g.
 
-     ./tempore --grades counts-upper-bound \
+     ./tempore --grades at-most-counts \
        --package m5-imu \
        --package m5-display \
        --board m5stack-cores3 \

@@ -1,9 +1,9 @@
 (* The M5Stack BALA2 driven by radio from a controller over ESP-NOW, under
-   rigid timed regular expressions
+   timed regex grades
 
-   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
 
-     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational-symbolic \
        --package m5-imu \
        --package m5-display \
        --package m5-speaker \
@@ -14,8 +14,8 @@
        examples/arduino/bala2-radio-robot/robot.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
-   durations, in the rigid order: operations are matched in order, budgets
-   admit operations within their time, strict waits `idle` admit none, a
+   durations, in the timed regex order: operations are matched in order, spans
+   admit operations within their time, idle waits admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {skip}: the empty trace
@@ -464,7 +464,7 @@ let wait_start () : bool ! {(ReceiveMessage; ReportStatus; idle 400)^[1, 500]} =
    the silence shows "Balancing" again; each of these iterations then
    reports the phase Balancing. Stop stops the balancing by StopBalancing
    and ends the drive. The grade fixes the
-   operations and the strict wait of each iteration, which therefore takes
+   operations and the idle wait of each iteration, which therefore takes
    12.5 to 52.8 ms by the bounds of its operations, 12.5 to 19.5 ms without
    a display call, below the 200 ms after which a move expires. *)
 (* Shows "Balancing" again at the first message after the link was reported

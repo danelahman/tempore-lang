@@ -1,9 +1,8 @@
-The BALA2 application of examples/arduino/bala2-regex: the balancing robot
-under the rigid regular expressions of timed operations, with the declarations of
-the packages m5-imu, m5-display and bala2-base under these grades and the
-binding file and host model of examples/arduino/bala2: its runs by the
-interpreter, its rejected variants, and its closed loop with the host model
-of the robot.
+The BALA2 application of examples/arduino/bala2-regex: the balancing robot under
+the timed regex grades, with the declarations of the packages m5-imu, m5-display
+and bala2-base under these grades and the binding file and host model of
+examples/arduino/bala2: its runs by the interpreter, its rejected variants, and
+its closed loop with the host model of the robot.
 
   $ app=../../examples/arduino/bala2-regex
   $ . ../helpers.sh

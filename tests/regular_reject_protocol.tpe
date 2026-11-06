@@ -1,9 +1,9 @@
-(* Run this test with the 'regex-upper-bound-symbolic' grading monoid, e.g.
+(* Run this test with the 'regular-trace-languages-symbolic' grade algebra, e.g.
 
-     ./tempore --grades regex-upper-bound-symbolic \
+     ./tempore --grades regular-trace-languages-symbolic \
        tests/regular_reject_protocol.tpe
 
-   Rejected under the regular trace grading monoids: a session that reads
+   Rejected under the regular trace languages: a session that reads
    after closing, and one that is never closed. *)
 
 operation Open : unit ~> unit ! {Open}

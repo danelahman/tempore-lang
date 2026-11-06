@@ -1,7 +1,7 @@
 (* A handler whose conditions on a function argument become hypotheses of its
    type scheme, checked at each use.
 
-   Run this example with the 'time-lower-bound' grading monoid, e.g.
+   Run this example with the 'time-lower-bound' grade algebra, e.g.
 
      ./tempore --grades time-lower-bound examples/handlers/qualified.tpe
 

@@ -1,5 +1,5 @@
 (* The definitions of 'eternal_tyvars.tpe' under the default
-   'time-lower-bound' grading monoid, where zero is the top of the sub-grade
+   'time-lower-bound' grade algebra, where zero is the top of the sub-grade
    order. There the inequality accompanying every eternality constraint holds
    outright, so the generalised types carry no constraints and a function may
    be kept across a delay. *)
@@ -7,6 +7,6 @@
 let keep x = delay 1; x
 let after g x = g (); x
 
-(* Correctly accepted by the typechecker under this monoid. *)
+(* Correctly accepted by the typechecker under this grade algebra. *)
 run keep (fun () -> ())
 run after (fun () -> delay 2) (fun () -> ())

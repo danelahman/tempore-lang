@@ -1,6 +1,6 @@
-(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+(* Run this test with the 'banked-traces-upper-bound' grade algebra, e.g.
 
-     ./tempore --grades traces-timed-upper-bound \
+     ./tempore --grades banked-traces-upper-bound \
        tests/literals_reject_within_empty.tpe
 
    Rejected: running-time bounds open at an end have ends lo < hi, and

@@ -1,6 +1,6 @@
 (* A tilt display on the M5Stack CoreS3 Lite: a 20 ms step and its display
 
-   Run this example with the 'time-interval-rational' grading monoid, e.g.
+   Run this example with the 'time-interval-rational' grade algebra, e.g.
 
      ./tempore --grades time-interval-rational \
        --package m5-imu \

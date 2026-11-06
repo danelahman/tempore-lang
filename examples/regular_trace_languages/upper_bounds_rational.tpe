@@ -1,0 +1,95 @@
+(* A heart-rate monitor whose readings, reports and alarms are timed in seconds.
+
+   Run this example with the 'regular-trace-languages-rational-symbolic' grade algebra, e.g.
+
+     ./tempore --grades regular-trace-languages-rational-symbolic \
+       examples/regular_trace_languages/upper_bounds_rational.tpe
+
+   Grades {...}: regular languages of traces over operations and rational delays
+     - Unit {skip}: the empty trace
+     - Top ⊤: every trace
+     - Product: concatenation of traces, adjacent delays added *)
+
+(* The operations of the monitor. *)
+operation Read : unit ~> nat ! {Read}
+operation Report : nat ~> unit ! {Report}
+operation Alarm : unit ~> unit ! {Alarm}
+
+(* Correctly accepted by the typechecker: a reading is reported after a
+   positive delay shorter than half a second, the open interval (0, 1/2), here
+   after two delays adding up to 0.35. *)
+let report () : unit ! {Read; (0, 1/2); Report} =
+  let v = perform Read () in
+  delay 0.25;
+  delay 1/10;
+  perform Report v
+
+(* Correctly accepted by the typechecker: readings each followed by a delay of
+   more than a quarter and at most half a second, any number of times. *)
+let sample_twice () : nat ! {(Read; (1/4, 1/2])*} =
+  let x = perform Read () in
+  delay 2/5;
+  let y = perform Read () in
+  delay 0.3;
+  x + y
+
+(* Correctly accepted by the typechecker: the alarm may sound after any trace
+   but a delay of exactly one second, which the complement '~1' excludes; here
+   the delays add up to 0.9. *)
+let alarm () =
+  box {~1} () as a in
+  delay 0.6;
+  delay 0.3;
+  unbox a as u in
+  perform Alarm u
+
+(* Correctly accepted by the typechecker: a timer that fires after any number
+   of delays of three quarters of a second, here two, 1.5 in all. *)
+let timer () =
+  box {(3/4)*} "fired" as t in
+  delay 3/4;
+  delay 0.75;
+  unbox t as msg in
+  msg
+
+(* Correctly rejected by the typechecker: the delays add up to one second,
+   the one delay the complement excludes:
+
+     Typing error: Variable `a` is unboxed with grade `{1}` accumulated since
+       it was bound, which is not below its box grade `{~1}`
+       ...
+       Note: the resource inequality `{1} <= {~1}` does not hold
+*)
+(*
+let late_alarm () =
+  box {~1} () as a in
+  delay 0.6;
+  delay 0.4;
+  unbox a as u in
+  perform Alarm u
+*)
+
+(* Correctly rejected by the typechecker: the report comes half a second after
+   the reading, which the grade excludes by a strict bound:
+
+     Typing error: This function's body has grade `{Read; 0.5; Report}`, which
+       does not match its annotated grade `{Read; (0, 0.5); Report}`
+       Note: the effect inequality
+         `{Read; 0.5; Report} <= {Read; (0, 0.5); Report}` does not hold
+*)
+(*
+let slow_report () : unit ! {Read; (0, 1/2); Report} =
+  let v = perform Read () in
+  delay 1/2;
+  perform Report v
+*)
+
+(* The operations have no default implementations, since only performing an
+   operation realises its grade; the run uses delays alone, the grade of the
+   box permitting the delays of more than a second that are not whole. *)
+run
+  box {(1, ∞) & ~1*} "settled" as s in
+  delay 1/2;
+  delay 1.25;
+  unbox s as msg in
+  msg

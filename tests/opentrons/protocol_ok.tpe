@@ -1,4 +1,4 @@
-(* Operations of a protocol under the 'time-interval' grading monoid: 'Pipette'
+(* Operations of a protocol under the 'time-interval' grade algebra: 'Pipette'
    is performed by a binding function, 'Probe' only under a handler, 'Shake'
    by its default implementation, and 'Lost' only by a definition that no run
    uses. *)

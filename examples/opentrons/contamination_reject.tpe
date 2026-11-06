@@ -1,6 +1,6 @@
 (* As the ddPCR example, with a tip reused after touching the test article.
 
-   Run this example with the 'time-upper-bound-lattice' grading monoid, e.g.
+   Run this example with the 'time-upper-bound-lattice' grade algebra, e.g.
 
      ./tempore --grades time-upper-bound-lattice \
        examples/opentrons/contamination_reject.tpe

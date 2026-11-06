@@ -1,6 +1,6 @@
 (* Values boxed for a time interval, unboxed once the interval has elapsed.
 
-   Run this example with the 'time-interval' grading monoid, e.g.
+   Run this example with the 'time-interval' grade algebra, e.g.
 
      ./tempore --grades time-interval examples/time/intervals.tpe
 

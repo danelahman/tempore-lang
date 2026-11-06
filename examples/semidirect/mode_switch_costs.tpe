@@ -1,6 +1,6 @@
 (* A sensor node whose energy costs depend on whether its radio is on.
 
-   Run this example with the 'mode-switch-costs' grading monoid, e.g.
+   Run this example with the 'mode-switch-costs' grade algebra, e.g.
 
      ./tempore --grades mode-switch-costs \
        examples/semidirect/mode_switch_costs.tpe
