@@ -149,8 +149,8 @@ delays, by plain derivatives (316 ms to 427 ms) and by letters (339 ms to
 Retired in NEW, not measured by this benchmark: the alternative implementations
 `timed-regex-{upper-bound,lower-bound,interval}` with the suffixes
 `-letter-automata`, `-letter-derivatives` and `-symbolic-by-letters` (nine grade
-names). The timed regex grades remain with the suffixes `-symbolic` and
-`-rational-symbolic`, now over time spans and idle waits.
+names). The timed regex grades remain, named without a suffix and with
+`-rational`, now over time spans and idle waits.
 
 Typechecking of the timed regex grades (`bench/typecheck`, 3 processes, best of
 3 runs; the files of the examples changed between the revisions):

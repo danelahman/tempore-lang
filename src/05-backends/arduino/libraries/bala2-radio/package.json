@@ -6,8 +6,8 @@
     "time-interval-rational": "bala2_radio.tpe",
     "banked-regex-upper-bound-rational-symbolic": "bala2_radio_upper.tpe",
     "banked-regex-interval-rational-symbolic": "bala2_radio_interval.tpe",
-    "timed-regex-upper-bound-rational-symbolic": "bala2_radio_timed_regex_upper.tpe",
-    "timed-regex-interval-rational-symbolic": "bala2_radio_timed_regex.tpe"
+    "timed-regex-upper-bound-rational": "bala2_radio_timed_regex_upper.tpe",
+    "timed-regex-interval-rational": "bala2_radio_timed_regex.tpe"
   },
   "sources": ["bala2_radio.cpp", "bala2_radio.h"],
   "bindings": ["SendStart", "SendDrive", "SendStop", "SendBeat", "SendStatus"],

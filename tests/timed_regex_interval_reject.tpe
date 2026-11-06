@@ -1,9 +1,9 @@
-(* Run this test with the 'timed-regex-interval-symbolic' grade algebra, e.g.
+(* Run this test with the 'timed-regex-interval' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-interval-symbolic \
+     ./tempore --grades timed-regex-interval \
        tests/timed_regex_interval_reject.tpe
 
-   Rejected under the 'timed-regex-interval-symbolic' grade algebra: the lower
+   Rejected under the 'timed-regex-interval' grade algebra: the lower
    bound is in the coverage order and the upper bound in the timed regex
    allowance order, over whole time steps; the first definition is accepted, the
    second rejected. *)

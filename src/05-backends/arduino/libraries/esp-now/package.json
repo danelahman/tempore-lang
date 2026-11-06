@@ -5,9 +5,9 @@
     "banked-regex-lower-bound-rational-symbolic": "esp_now_link_timed_ops.tpe",
     "banked-regex-upper-bound-rational-symbolic": "esp_now_link_timed_ops.tpe",
     "banked-regex-interval-rational-symbolic": "esp_now_link_timed_ops.tpe",
-    "timed-regex-lower-bound-rational-symbolic": "esp_now_link_timed_ops.tpe",
-    "timed-regex-upper-bound-rational-symbolic": "esp_now_link_timed_ops.tpe",
-    "timed-regex-interval-rational-symbolic": "esp_now_link_timed_ops.tpe",
+    "timed-regex-lower-bound-rational": "esp_now_link_timed_ops.tpe",
+    "timed-regex-upper-bound-rational": "esp_now_link_timed_ops.tpe",
+    "timed-regex-interval-rational": "esp_now_link_timed_ops.tpe",
     "inter-arrival": "esp_now_link_timed_ops.tpe",
     "at-most-counts": "esp_now_link_counts.tpe"
   },

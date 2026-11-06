@@ -114,6 +114,19 @@ tests show those runs in detail.
   return (0., 0.)
   
   ======================================================================
+  ../examples/at_most_counts/rate_limits.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: []
+  
+  === Run 2 ===
+  return (Token "bob")
+  State: [
+    { resource_0 ↦ Token "bob" ! (Request, 2) }
+  ]
+  
+  ======================================================================
   ../examples/banked_regex/intervals.tpe
   ======================================================================
   === Run 1 ===
@@ -516,19 +529,6 @@ tests show those runs in detail.
   === Run 1 ===
   return ((Right 5)::(Left "test")::[])
   State: []
-  
-  ======================================================================
-  ../examples/counts/rate_limits.tpe
-  ======================================================================
-  === Run 1 ===
-  return ()
-  State: []
-  
-  === Run 2 ===
-  return (Token "bob")
-  State: [
-    { resource_0 ↦ Token "bob" ! (Request, 2) }
-  ]
   
   ======================================================================
   ../examples/finite_run_sets/upper_bounds.tpe

@@ -1,8 +1,8 @@
 (* A reaction timer timed in milliseconds: a start signal, its time stamp and a loop of polls, bounded by timed regex upper bounds.
 
-   Run this example with the 'timed-regex-upper-bound-rational-symbolic' grade algebra, e.g.
+   Run this example with the 'timed-regex-upper-bound-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-upper-bound-rational-symbolic \
+     ./tempore --grades timed-regex-upper-bound-rational \
        examples/timed_regex/upper_bounds_rational.tpe
 
    Grades {...}: upper bounds on the traces with rational durations, in the

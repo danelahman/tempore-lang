@@ -494,22 +494,22 @@ let entries =
       banked_regex "Intervals (letter derivatives)" banked_interval;
     entry ~implementation:time_spans
       (module TimedRegexGrades.LowerBound)
-      timed_regex "Lower bounds (symbolic)" timed_regex_lower;
+      timed_regex "Lower bounds" timed_regex_lower;
     entry ~implementation:time_spans
       (module TimedRegexGrades.UpperBound)
-      timed_regex "Upper bounds (symbolic)" timed_regex_upper;
+      timed_regex "Upper bounds" timed_regex_upper;
     entry ~implementation:time_spans
       (module TimedRegexGrades.Interval)
-      timed_regex "Intervals (symbolic)" timed_regex_interval;
+      timed_regex "Intervals" timed_regex_interval;
     entry ~implementation:time_spans
       (module TimedRegexGrades.Rational.LowerBound)
-      timed_regex "Lower bounds (rational, symbolic)" timed_regex_lower_rational;
+      timed_regex "Lower bounds (rational)" timed_regex_lower_rational;
     entry ~implementation:time_spans
       (module TimedRegexGrades.Rational.UpperBound)
-      timed_regex "Upper bounds (rational, symbolic)" timed_regex_upper_rational;
+      timed_regex "Upper bounds (rational)" timed_regex_upper_rational;
     entry ~implementation:time_spans
       (module TimedRegexGrades.Rational.Interval)
-      timed_regex "Intervals (rational, symbolic)" timed_regex_interval_rational;
+      timed_regex "Intervals (rational)" timed_regex_interval_rational;
     entry ~implementation:time_spans
       (module TimedRegexGrades.Finite.LowerBound)
       timed_regex_finite "Lower bounds" timed_regex_finite_lower;

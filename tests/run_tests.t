@@ -1075,7 +1075,7 @@ it names none:
   File "banked_traces_rational_intervals_reject_open.tpe", line 10, characters 19-27:
   10 | let claim () = box (1/2, 2] 1
                           ^^^^^^^^
-  Syntax error: In the `banked-traces-interval-rational` grade algebra, an open endpoint denotes an infinite set of traces, which these grades do not express; did you mean to use one of the `time-interval-rational`, `banked-regex-interval-rational-symbolic`, `timed-regex-interval-rational-symbolic`, `timed-regex-finite-interval-rational` or `inter-arrival` grade algebras?
+  Syntax error: In the `banked-traces-interval-rational` grade algebra, an open endpoint denotes an infinite set of traces, which these grades do not express; did you mean to use one of the `time-interval-rational`, `banked-regex-interval-rational-symbolic`, `timed-regex-interval-rational`, `timed-regex-finite-interval-rational` or `inter-arrival` grade algebras?
   ======================================================================
   banked_traces_rational_upper.tpe
   ======================================================================
@@ -1206,7 +1206,7 @@ it names none:
   File "banked_traces_reject_fractional_bound.tpe", line 10, characters 47-50:
   10 | operation Heat : unit ~> unit ! {Heat} within [1/2, 1]
                                                       ^^^
-  Syntax error: In the `banked-traces-upper-bound` grade algebra, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound-rational-symbolic`, `timed-regex-upper-bound-rational-symbolic`, `timed-regex-interval-rational-symbolic`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `mode-times` or `inter-arrival` grade algebras?
+  Syntax error: In the `banked-traces-upper-bound` grade algebra, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound-rational`, `timed-regex-upper-bound-rational`, `timed-regex-interval-rational`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `mode-times` or `inter-arrival` grade algebras?
   ======================================================================
   banked_traces_reject_missing_within.tpe
   ======================================================================
@@ -1821,7 +1821,7 @@ it names none:
   File "delay_reject_fraction.tpe", line 8, characters 20-23:
   8 | let wait () = delay 0.5
                           ^^^
-  Syntax error: In the `time-upper-bound` grade algebra, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `finite-run-sets-rational`, `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound-rational-symbolic`, `timed-regex-upper-bound-rational-symbolic`, `timed-regex-interval-rational-symbolic`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `lattice`, `time-interval-lattice`, `flow-sensitive-levels`, `mode-times` or `inter-arrival` grade algebras?
+  Syntax error: In the `time-upper-bound` grade algebra, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `finite-run-sets-rational`, `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound-rational`, `timed-regex-upper-bound-rational`, `timed-regex-interval-rational`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `lattice`, `time-interval-lattice`, `flow-sensitive-levels`, `mode-times` or `inter-arrival` grade algebras?
   ======================================================================
   delay_reject_negative.tpe
   ======================================================================
@@ -3046,7 +3046,7 @@ it names none:
   File "lattice_reject_literal.tpe", line 7, characters 19-20:
   7 | let claim () = box 3 1
                          ^
-  Syntax error: In the `lattice` grade algebra, grades are the elements `Low` and `High` of the grade lattice, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `finite-run-sets`, `finite-run-sets-rational`, `banked-traces-lower-bound`, `banked-traces-upper-bound`, `banked-traces-interval`, `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `regular-trace-languages-symbolic`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-symbolic`, `banked-regex-upper-bound-symbolic`, `banked-regex-interval-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound-symbolic`, `timed-regex-upper-bound-symbolic`, `timed-regex-interval-symbolic`, `timed-regex-lower-bound-rational-symbolic`, `timed-regex-upper-bound-rational-symbolic`, `timed-regex-interval-rational-symbolic`, `timed-regex-finite-lower-bound`, `timed-regex-finite-upper-bound`, `timed-regex-finite-interval`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `call-time-sets`, `mode-switch-costs`, `mode-times`, `at-most-counts` or `inter-arrival` grade algebras?
+  Syntax error: In the `lattice` grade algebra, grades are the elements `Low` and `High` of the grade lattice, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `finite-run-sets`, `finite-run-sets-rational`, `banked-traces-lower-bound`, `banked-traces-upper-bound`, `banked-traces-interval`, `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `regular-trace-languages-symbolic`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-symbolic`, `banked-regex-upper-bound-symbolic`, `banked-regex-interval-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound`, `timed-regex-upper-bound`, `timed-regex-interval`, `timed-regex-lower-bound-rational`, `timed-regex-upper-bound-rational`, `timed-regex-interval-rational`, `timed-regex-finite-lower-bound`, `timed-regex-finite-upper-bound`, `timed-regex-finite-interval`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `call-time-sets`, `mode-switch-costs`, `mode-times`, `at-most-counts` or `inter-arrival` grade algebras?
   ======================================================================
   lattice_time_interval.tpe
   ======================================================================
@@ -3607,14 +3607,14 @@ it names none:
   File "literals_reject_call_time_sets_empty.tpe", line 9, characters 19-25:
   9 | let claim () = box (2, 3) 1
                          ^^^^^^
-  Syntax error: In the `call-time-sets` grade algebra, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `banked-regex-interval-rational-symbolic`, `timed-regex-interval-rational-symbolic`, `timed-regex-finite-interval-rational`, `watermarks` or `inter-arrival` grade algebras?
+  Syntax error: In the `call-time-sets` grade algebra, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `banked-regex-interval-rational-symbolic`, `timed-regex-interval-rational`, `timed-regex-finite-interval-rational`, `watermarks` or `inter-arrival` grade algebras?
   ======================================================================
   literals_reject_complement.tpe
   ======================================================================
   File "literals_reject_complement.tpe", line 9, characters 19-32:
   9 | let claim () = box {Send; ~Read} 1
                          ^^^^^^^^^^^^^
-  Syntax error: In the `banked-traces-upper-bound` grade algebra, sets of traces are built from operation names and delays with `;`, `|` and finite counts `^n`, `^[m, n]` only, without complement `~`; did you mean to use one of the `regular-trace-languages-symbolic`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-symbolic`, `banked-regex-upper-bound-symbolic`, `banked-regex-interval-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound-symbolic`, `timed-regex-upper-bound-symbolic`, `timed-regex-interval-symbolic`, `timed-regex-lower-bound-rational-symbolic`, `timed-regex-upper-bound-rational-symbolic` or `timed-regex-interval-rational-symbolic` grade algebras?
+  Syntax error: In the `banked-traces-upper-bound` grade algebra, sets of traces are built from operation names and delays with `;`, `|` and finite counts `^n`, `^[m, n]` only, without complement `~`; did you mean to use one of the `regular-trace-languages-symbolic`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-symbolic`, `banked-regex-upper-bound-symbolic`, `banked-regex-interval-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound`, `timed-regex-upper-bound`, `timed-regex-interval`, `timed-regex-lower-bound-rational`, `timed-regex-upper-bound-rational` or `timed-regex-interval-rational` grade algebras?
   ======================================================================
   literals_reject_component.tpe
   ======================================================================
@@ -3649,7 +3649,7 @@ it names none:
   File "literals_reject_fraction.tpe", line 8, characters 19-22:
   8 | let claim () = box 3/2 1
                          ^^^
-  Syntax error: In the `time-upper-bound` grade algebra, grades are plain integers or `∞`, not fractions such as `3/2`; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `finite-run-sets-rational`, `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound-rational-symbolic`, `timed-regex-upper-bound-rational-symbolic`, `timed-regex-interval-rational-symbolic`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `mode-times` or `inter-arrival` grade algebras?
+  Syntax error: In the `time-upper-bound` grade algebra, grades are plain integers or `∞`, not fractions such as `3/2`; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `finite-run-sets-rational`, `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound-rational`, `timed-regex-upper-bound-rational`, `timed-regex-interval-rational`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `mode-times` or `inter-arrival` grade algebras?
   ======================================================================
   literals_reject_fraction_operator.tpe
   ======================================================================
@@ -3670,7 +3670,7 @@ it names none:
   File "literals_reject_idle_grade.tpe", line 12, characters 20-34:
   12 | let read () : nat ! {Read; idle 3} =
                            ^^^^^^^^^^^^^^
-  Syntax error: In the `banked-regex-upper-bound-rational-symbolic` grade algebra, idle waits `idle 3` are read by the timed regex grades only, `timed-regex-…`; did you mean to use one of the `timed-regex-lower-bound-symbolic`, `timed-regex-upper-bound-symbolic`, `timed-regex-interval-symbolic`, `timed-regex-lower-bound-rational-symbolic`, `timed-regex-upper-bound-rational-symbolic`, `timed-regex-interval-rational-symbolic`, `timed-regex-finite-lower-bound`, `timed-regex-finite-upper-bound`, `timed-regex-finite-interval`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational` or `timed-regex-finite-interval-rational` grade algebras?
+  Syntax error: In the `banked-regex-upper-bound-rational-symbolic` grade algebra, idle waits `idle 3` are read by the timed regex grades only, `timed-regex-…`; did you mean to use one of the `timed-regex-lower-bound`, `timed-regex-upper-bound`, `timed-regex-interval`, `timed-regex-lower-bound-rational`, `timed-regex-upper-bound-rational`, `timed-regex-interval-rational`, `timed-regex-finite-lower-bound`, `timed-regex-finite-upper-bound`, `timed-regex-finite-interval`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational` or `timed-regex-finite-interval-rational` grade algebras?
   ======================================================================
   literals_reject_idle_operation.tpe
   ======================================================================
@@ -3712,7 +3712,7 @@ it names none:
   File "literals_reject_interval_no_step.tpe", line 8, characters 19-25:
   8 | let claim () = box (1, 2) 1
                          ^^^^^^
-  Syntax error: In the `time-interval` grade algebra, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `banked-regex-interval-rational-symbolic`, `timed-regex-interval-rational-symbolic`, `timed-regex-finite-interval-rational`, `watermarks` or `inter-arrival` grade algebras?
+  Syntax error: In the `time-interval` grade algebra, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `banked-regex-interval-rational-symbolic`, `timed-regex-interval-rational`, `timed-regex-finite-interval-rational`, `watermarks` or `inter-arrival` grade algebras?
   ======================================================================
   literals_reject_interval_reversed.tpe
   ======================================================================
@@ -3810,7 +3810,7 @@ it names none:
   File "literals_reject_star.tpe", line 7, characters 19-31:
   7 | let claim () = box {(Send; 2)*} 1
                          ^^^^^^^^^^^^
-  Syntax error: In the `banked-traces-upper-bound` grade algebra, sets of traces are built from operation names and delays with `;`, `|` and finite counts `^n`, `^[m, n]` only, without repetition `*`; did you mean to use one of the `regular-trace-languages-symbolic`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-symbolic`, `banked-regex-upper-bound-symbolic`, `banked-regex-interval-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound-symbolic`, `timed-regex-upper-bound-symbolic`, `timed-regex-interval-symbolic`, `timed-regex-lower-bound-rational-symbolic`, `timed-regex-upper-bound-rational-symbolic` or `timed-regex-interval-rational-symbolic` grade algebras?
+  Syntax error: In the `banked-traces-upper-bound` grade algebra, sets of traces are built from operation names and delays with `;`, `|` and finite counts `^n`, `^[m, n]` only, without repetition `*`; did you mean to use one of the `regular-trace-languages-symbolic`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-symbolic`, `banked-regex-upper-bound-symbolic`, `banked-regex-interval-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound`, `timed-regex-upper-bound`, `timed-regex-interval`, `timed-regex-lower-bound-rational`, `timed-regex-upper-bound-rational` or `timed-regex-interval-rational` grade algebras?
   ======================================================================
   literals_reject_unknown.tpe
   ======================================================================
@@ -8898,17 +8898,17 @@ single-dash form of the help option is not accepted.
           banked-regex-interval-rational-symbolic    Intervals (rational, symbolic)
               symbolic expressions over letter and delay sets; inclusion by gap derivatives with a closure reader, breadth-first
         Timed regex grades:
-          timed-regex-lower-bound-symbolic           Lower bounds (symbolic)
+          timed-regex-lower-bound                    Lower bounds
               expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
-          timed-regex-upper-bound-symbolic           Upper bounds (symbolic)
+          timed-regex-upper-bound                    Upper bounds
               expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
-          timed-regex-interval-symbolic              Intervals (symbolic)
+          timed-regex-interval                       Intervals
               expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
-          timed-regex-lower-bound-rational-symbolic  Lower bounds (rational, symbolic)
+          timed-regex-lower-bound-rational           Lower bounds (rational)
               expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
-          timed-regex-upper-bound-rational-symbolic  Upper bounds (rational, symbolic)
+          timed-regex-upper-bound-rational           Upper bounds (rational)
               expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
-          timed-regex-interval-rational-symbolic     Intervals (rational, symbolic)
+          timed-regex-interval-rational              Intervals (rational)
               expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
         Finite timed regex grades:
           timed-regex-finite-lower-bound             Lower bounds

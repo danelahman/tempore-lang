@@ -1,9 +1,9 @@
 (* The M5Stack BALA2 driven by radio from a controller over ESP-NOW, under
    timed regex grades
 
-   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
+   Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational \
        --package m5-imu \
        --package m5-display \
        --package m5-speaker \

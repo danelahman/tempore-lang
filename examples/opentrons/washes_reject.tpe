@@ -1,8 +1,8 @@
 (* As the bead clean-up example, with the further ethanol washes sharing a tip.
 
-   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
+   Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational \
        examples/opentrons/washes_reject.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational

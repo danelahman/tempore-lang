@@ -21,22 +21,22 @@ The slowest 20 files:
 
 | file | grades | time (s) |
 |---|---|---:|
-| examples/arduino/bala2-radio-robot/robot.tpe | timed-regex-interval-rational-symbolic | 0.26 |
-| examples/arduino/starter/starter.tpe | timed-regex-interval-rational-symbolic | 0.20 |
+| examples/arduino/bala2-radio-robot/robot.tpe | timed-regex-interval-rational | 0.26 |
+| examples/arduino/starter/starter.tpe | timed-regex-interval-rational | 0.20 |
 | examples/arduino/steps/steps.tpe | inter-arrival | 0.06 |
-| examples/arduino/bala2-radio-controller/controller.tpe | timed-regex-interval-rational-symbolic | 0.05 |
-| examples/arduino/fall/fall.tpe | timed-regex-interval-rational-symbolic | 0.05 |
-| examples/arduino/bala2-regex/balance_regex.tpe | timed-regex-interval-rational-symbolic | 0.05 |
+| examples/arduino/bala2-radio-controller/controller.tpe | timed-regex-interval-rational | 0.05 |
+| examples/arduino/fall/fall.tpe | timed-regex-interval-rational | 0.05 |
+| examples/arduino/bala2-regex/balance_regex.tpe | timed-regex-interval-rational | 0.05 |
 | examples/arduino/bala2/balance.tpe | time-interval-rational | 0.03 |
-| examples/arduino/level/level.tpe | timed-regex-interval-rational-symbolic | 0.03 |
-| examples/arduino/wheels/wheels.tpe | timed-regex-interval-rational-symbolic | 0.02 |
+| examples/arduino/level/level.tpe | timed-regex-interval-rational | 0.03 |
+| examples/arduino/wheels/wheels.tpe | timed-regex-interval-rational | 0.02 |
 | examples/lattice/staged_release.tpe | time-lower-bound-lattice | 0.02 |
 | examples/opentrons/contamination.tpe | time-upper-bound-lattice | 0.01 |
 | examples/arduino/peak/peak.tpe | at-most-counts | 0.01 |
 | examples/arduino/calibrated/calibrated.tpe | time-interval-rational | 0.01 |
-| examples/opentrons/purification_reject.tpe | timed-regex-interval-rational-symbolic | 0.01 |
-| examples/opentrons/purification.tpe | timed-regex-interval-rational-symbolic | 0.01 |
-| examples/opentrons/washes.tpe | timed-regex-interval-rational-symbolic | 0.00 |
+| examples/opentrons/purification_reject.tpe | timed-regex-interval-rational | 0.01 |
+| examples/opentrons/purification.tpe | timed-regex-interval-rational | 0.01 |
+| examples/opentrons/washes.tpe | timed-regex-interval-rational | 0.00 |
 | examples/arduino/tilt/tilt.tpe | time-interval-rational | 0.00 |
 | examples/banked_traces/lower_bounds.tpe | banked-traces-lower-bound | 0.00 |
 | examples/banked_traces/intervals.tpe | banked-traces-interval | 0.00 |

@@ -1,8 +1,8 @@
 (* A bead clean-up on the Opentrons Flex: two or more ethanol washes, each with a fresh tip.
 
-   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
+   Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational \
        examples/opentrons/washes.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
@@ -27,7 +27,7 @@
    A tick is a minute. The protocol for the Flex, with the operations
    performed by the functions of 'washes_bindings.py', is written by
 
-     ./tempore --grades timed-regex-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational \
        --emit-opentrons washes.py \
        --bind examples/opentrons/washes_bindings.py \
        --time-unit minutes \

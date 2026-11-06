@@ -6,9 +6,9 @@
     "banked-regex-lower-bound-rational-symbolic": "m5_imu_timed_ops.tpe",
     "banked-regex-upper-bound-rational-symbolic": "m5_imu_timed_ops.tpe",
     "banked-regex-interval-rational-symbolic": "m5_imu_timed_ops.tpe",
-    "timed-regex-lower-bound-rational-symbolic": "m5_imu_timed_ops.tpe",
-    "timed-regex-upper-bound-rational-symbolic": "m5_imu_timed_regex_upper.tpe",
-    "timed-regex-interval-rational-symbolic": "m5_imu_timed_regex.tpe",
+    "timed-regex-lower-bound-rational": "m5_imu_timed_ops.tpe",
+    "timed-regex-upper-bound-rational": "m5_imu_timed_regex_upper.tpe",
+    "timed-regex-interval-rational": "m5_imu_timed_regex.tpe",
     "inter-arrival": "m5_imu_timed_ops.tpe",
     "at-most-counts": "m5_imu_counts.tpe"
   },

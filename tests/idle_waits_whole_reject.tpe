@@ -1,9 +1,9 @@
-(* Run this test with the 'timed-regex-interval-symbolic' grade algebra, e.g.
+(* Run this test with the 'timed-regex-interval' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-interval-symbolic \
+     ./tempore --grades timed-regex-interval \
        tests/idle_waits_whole_reject.tpe
 
-   Rejected under the 'timed-regex-interval-symbolic' grade algebra:
+   Rejected under the 'timed-regex-interval' grade algebra:
    over whole time steps, an idle wait `idle d` admits waiting only; the
    span form is accepted, the idle form rejected. *)
 

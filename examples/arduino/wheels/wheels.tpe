@@ -1,9 +1,9 @@
 (* A wheel check of the M5Stack BALA2: speeds and spin-up times over windows
    of fixed traces
 
-   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
+   Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational \
        --package m5-imu \
        --package m5-display \
        --package bala2-base \

@@ -1,9 +1,9 @@
-(* Run this test with the 'timed-regex-lower-bound-rational-symbolic' grade algebra, e.g.
+(* Run this test with the 'timed-regex-lower-bound-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-lower-bound-rational-symbolic \
+     ./tempore --grades timed-regex-lower-bound-rational \
        tests/idle_waits_lower_reject.tpe
 
-   Rejected under the 'timed-regex-lower-bound-rational-symbolic' grade
+   Rejected under the 'timed-regex-lower-bound-rational' grade
    algebra: an idle wait of a lower bound demands an undisturbed wait, which
    operations counting at their lower running-time bounds do not cover; the
    second definition is rejected, the others accepted. *)

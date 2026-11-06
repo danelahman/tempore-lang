@@ -1,8 +1,8 @@
 (* A bead purification on the Opentrons Flex: the stages of the beads as boxes.
 
-   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
+   Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational \
        examples/opentrons/purification.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
@@ -16,7 +16,7 @@
 
 (* A tick is a minute. The protocol for the Flex is written and simulated by
 
-     ./tempore --grades timed-regex-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational \
        --emit-opentrons purification.py \
        --bind examples/opentrons/purification_bindings.py \
        --time-unit minutes \

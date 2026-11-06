@@ -6,9 +6,9 @@
     "banked-regex-lower-bound-rational-symbolic": "bala2_base_timed_ops.tpe",
     "banked-regex-upper-bound-rational-symbolic": "bala2_base_timed_ops.tpe",
     "banked-regex-interval-rational-symbolic": "bala2_base_timed_ops.tpe",
-    "timed-regex-lower-bound-rational-symbolic": "bala2_base_timed_ops.tpe",
-    "timed-regex-upper-bound-rational-symbolic": "bala2_base_timed_ops.tpe",
-    "timed-regex-interval-rational-symbolic": "bala2_base_timed_ops.tpe",
+    "timed-regex-lower-bound-rational": "bala2_base_timed_ops.tpe",
+    "timed-regex-upper-bound-rational": "bala2_base_timed_ops.tpe",
+    "timed-regex-interval-rational": "bala2_base_timed_ops.tpe",
     "inter-arrival": "bala2_base_timed_ops.tpe",
     "at-most-counts": "bala2_base_counts.tpe"
   },

@@ -1,6 +1,6 @@
 # The make targets of the example: the grades of its program and the
 # simulated time of its host simulation, in seconds.
-EXAMPLE_GRADES = timed-regex-interval-rational-symbolic
+EXAMPLE_GRADES = timed-regex-interval-rational
 EXAMPLE_SIMULATE = 12
 
 # The encrypted ESP-NOW link of its device builds, bala2-radio, in which

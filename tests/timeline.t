@@ -276,7 +276,7 @@ Long grades of event traces: accumulated grades keep their last events,
 box grades their first; with --timeline-full, which implies --timeline, the
 grades are printed in full. Only the timelines are shown.
 
-  $ ../tempore --grades timed-regex-interval-rational-symbolic --timeline ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
+  $ ../tempore --grades timed-regex-interval-rational --timeline ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
   Run  Start                                     Event           Grade
   1    {skip}                                    box binding     {AddBeads; idle [5, 10]; MagnetOn}
@@ -314,7 +314,7 @@ grades are printed in full. Only the timelines are shown.
   1                                              · delay         {idle 2}
   Run 1 returned () at {…; idle 2; MagnetOn; idle 3; Transfer}.
 
-  $ ../tempore --grades timed-regex-interval-rational-symbolic --timeline-full ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
+  $ ../tempore --grades timed-regex-interval-rational --timeline-full ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
   Run  Start                                                                                                                                        Event           Grade
   1    {skip}                                                                                                                                       box binding     {AddBeads; idle [5, 10]; MagnetOn}

@@ -80,7 +80,7 @@ declarations, and may name a file of definitions, types and functions shared
 by all of them, such as the tilt filters of `m5-imu`. Every package is
 declared under `time-interval-rational`, under the regex grades with banked
 delays over rational delays (`banked-regex-*-rational-symbolic`), the timed
-regex grades (`timed-regex-*-rational-symbolic`) and
+regex grades (`timed-regex-{lower-bound,upper-bound,interval}-rational`) and
 `inter-arrival`, with running-time bounds in milliseconds, and under
 `at-most-counts`, each call counting once.
 

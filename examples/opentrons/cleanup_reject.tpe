@@ -1,9 +1,9 @@
 (* As the bead clean-up by compound operations, with an ethanol wash that
    removes the ethanol before adding it.
 
-   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
+   Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational \
        examples/opentrons/cleanup_reject.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational

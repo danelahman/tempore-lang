@@ -1,9 +1,9 @@
 (* A digital level on the M5Stack CoreS3 Lite: a reference applied only to
    readings that no reconfiguration of the unit precedes unchecked
 
-   Run this example with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
+   Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational \
        --package m5-imu \
        --package m5-display \
        --package m5-touch \

@@ -1,9 +1,9 @@
-(* Run this test with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
+(* Run this test with the 'timed-regex-interval-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational \
        tests/timed_regex_rational_interval_inconsistent_reject.tpe
 
-   Rejected under the 'timed-regex-interval-rational-symbolic' grade
+   Rejected under the 'timed-regex-interval-rational' grade
    algebra: some run of rational lengths must fit a word of the lower end and a
    word of the upper end of an interval, open ends excluded; the first
    definition is accepted, the others rejected. *)

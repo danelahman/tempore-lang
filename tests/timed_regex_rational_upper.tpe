@@ -1,9 +1,9 @@
-(* Run this test with the 'timed-regex-upper-bound-rational-symbolic' grade algebra, e.g.
+(* Run this test with the 'timed-regex-upper-bound-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-upper-bound-rational-symbolic \
+     ./tempore --grades timed-regex-upper-bound-rational \
        tests/timed_regex_rational_upper.tpe
 
-   Accepted under the 'timed-regex-upper-bound-rational-symbolic' grade
+   Accepted under the 'timed-regex-upper-bound-rational' grade
    algebra: every operation of a bound is matched, in order, and the other
    operations are bought within its delays at their upper running-time
    bounds. *)

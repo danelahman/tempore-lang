@@ -273,7 +273,7 @@ endpoint and a parenthesis excludes it, as in `[1, 4]`, `(1, 4)`, `[1, 4)`,
   `[2, 3]` and `(1, ∞)` is `[2, ∞)`.
 - A grade `[L, U]` of the interval grades over traces
   (`banked-traces-interval`, `banked-regex-interval-symbolic`,
-  `timed-regex-interval-symbolic` and their rational variants) is rejected
+  `timed-regex-interval` and their rational variants) is rejected
   unless some run meets both ends at the running times of the operations. For example, `[{Write}, {Read; Read}]` is
   rejected with ``The grade `[…]` admits no run: no run meets both its lower and
   its upper end``, followed by the least duration of the lower end and the
@@ -805,12 +805,12 @@ out. A Kleene star whose round contains a delay then permits every trace: its
 rounds unrolled and their operations left out, the delays add up to any
 duration.
 
-The grade algebras `timed-regex-lower-bound-symbolic`,
-`timed-regex-upper-bound-symbolic` and
-`timed-regex-interval-symbolic`, and their variants
-`timed-regex-lower-bound-rational-symbolic`,
-`timed-regex-upper-bound-rational-symbolic` and
-`timed-regex-interval-rational-symbolic`, are regular expressions over
+The grade algebras `timed-regex-lower-bound`,
+`timed-regex-upper-bound` and
+`timed-regex-interval`, and their variants
+`timed-regex-lower-bound-rational`,
+`timed-regex-upper-bound-rational` and
+`timed-regex-interval-rational`, are regular expressions over
 operations, *time spans* and *idle waits*, ordered so that every operation of
 a bound is demanded, matched in order by the program's trace. A star then
 permits its rounds only.
@@ -869,7 +869,7 @@ The grade of `delay d` is the idle wait `idle d`. Every operation takes a
 positive time: a declaration `within [0, hi]` is rejected, and is written
 `within (0, hi]`.
 
-For example, under `timed-regex-upper-bound-rational-symbolic`, the
+For example, under `timed-regex-upper-bound-rational`, the
 program
 
 ```
@@ -1340,7 +1340,7 @@ sends would be rejected, as they make four:
     This function's body has grade `((Auth, 1), (Send, 4))`, which does not
     match its annotated grade `((Auth, 1), (Send, 3))`
 
-See [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
+See [`examples/at_most_counts/rate_limits.tpe`](examples/at_most_counts/rate_limits.tpe).
 
 ### Inter-arrival grades
 

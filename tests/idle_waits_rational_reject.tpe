@@ -1,9 +1,9 @@
-(* Run this test with the 'timed-regex-interval-rational-symbolic' grade algebra, e.g.
+(* Run this test with the 'timed-regex-interval-rational' grade algebra, e.g.
 
-     ./tempore --grades timed-regex-interval-rational-symbolic \
+     ./tempore --grades timed-regex-interval-rational \
        tests/idle_waits_rational_reject.tpe
 
-   Rejected under the 'timed-regex-interval-rational-symbolic' grade
+   Rejected under the 'timed-regex-interval-rational' grade
    algebra: an idle wait `idle d` admits waiting only. Each span form is
    accepted and the idle form after it rejected; the span restricted to
    the operations other than `Reset` admits readings and waits, and no
