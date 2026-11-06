@@ -16,7 +16,7 @@ Most notably, Tempore adds to Temporal Millet the following:
 
 1. temporally graded algebraic effects and effect handlers that are guaranteed
    to respect the temporal specifications of operation signatures,
-2. [general resource grades](#grading-monoids) in place of only
+2. [general resource grades](#grade-algebras) in place of only
    natural-number-based time grades, which modelled only whole lower time bounds
    of programs,
 3. sub-typing and sub-effecting, 
@@ -109,7 +109,7 @@ runs are still executed after an unhandled operation call.
 
 Command-line options:
 
-- `--grades <grades>` selects the [grading monoid](#grading-monoids) (default
+- `--grades <grades>` selects the [grade algebra](#grade-algebras) (default
   `time-lower-bound`);
 - `--typecheck-only` typechecks the files without running them;
 - `--no-stdlib` skips importing the standard library;
@@ -134,7 +134,7 @@ Command-line options:
   the interpreter performs its operations by their default implementations;
   it cannot be combined with `--device`; with `--board <board>`, the
   operations take the running-time bounds of the packages on that board;
-- `--help` lists the options and the available grading monoids.
+- `--help` lists the options and the available grade algebras.
 
 The [`examples/`](examples/) directory holds example programs grouped by
 topic and backend, each opening with the command that runs it. A reading
@@ -149,27 +149,27 @@ order, one example per concept:
 4. [`handlers/lower_bound.tpe`](examples/handlers/lower_bound.tpe) and
    [`handlers/upper_bound.tpe`](examples/handlers/upper_bound.tpe): the
    continuation as a boxed resource;
-5. [`traces_timed_ops/3d_printing.tpe`](examples/traces_timed_ops/3d_printing.tpe):
+5. [`banked_traces/3d_printing.tpe`](examples/banked_traces/3d_printing.tpe):
    traces of operations with running times;
-6. [`regular/upper_bounds.tpe`](examples/regular/upper_bounds.tpe) and
-   [`regular_timed_ops/intervals_rational.tpe`](examples/regular_timed_ops/intervals_rational.tpe):
+6. [`regular/upper_bounds.tpe`](examples/regular_trace_languages/upper_bounds.tpe) and
+   [`banked_regex/intervals_rational.tpe`](examples/banked_regex/intervals_rational.tpe):
    protocols and windows as regular expressions;
-7. [`regular_timed_rigid/upper_bounds_rational.tpe`](examples/regular_timed_rigid/upper_bounds_rational.tpe):
+7. [`timed_regex/upper_bounds_rational.tpe`](examples/timed_regex/upper_bounds_rational.tpe):
    operations demanded in order;
 8. [`lattice/time_upper.tpe`](examples/lattice/time_upper.tpe): a product
    of time with a grade lattice.
 
 The web interface's gallery lists these and the other examples of each
 concept; the remaining files under `examples/` vary them over the further
-grading monoids of the sections below, which link them.
+grade algebras of the sections below, which link them.
 
 ### Web interface
 
 Open `web/index.html` after building, or use
 <https://tempore-lang.ee/>.
 
-You can load an existing example or write your own program, choose which grading
-monoid to use, typecheck the program, and step through its reductions while
+You can load an existing example or write your own program, choose which grade
+algebra to use, typecheck the program, and step through its reductions while
 watching resource usage.
 
 The documentation page shows this README and those of the Arduino and Opentrons
@@ -192,7 +192,7 @@ editor switches between the program and the binding file and compiled protocol.
 #### Addresses
 
 The address of the page names, in its query parameters, the example
-(`example`, its path relative to `examples`), the grading monoid (`grades`),
+(`example`, its path relative to `examples`), the grade algebra (`grades`),
 the backend (`backend`: `interpreter`, `arduino` or `opentrons`) and a line of
 the example to highlight (`line`, from 1), as in
 <https://tempore-lang.ee/?example=arduino/bala2/balance.tpe&line=42>.
@@ -200,7 +200,7 @@ the example to highlight (`line`, from 1), as in
 ## Temporal resources
 
 A value of modal type `[rho]a` is an `a`-typed resource that may be used only
-once/until the grade `rho` (see [Grading monoids](#grading-monoids) below) has
+once/until the grade `rho` (see [Grade algebras](#grade-algebras) below) has
 accumulated since the resource was created.
 
 ### Boxes and unboxing
@@ -233,31 +233,31 @@ See [`examples/basics/basic_unbox.tpe`](examples/basics/basic_unbox.tpe).
 
 ### Delays
 
-`delay tau` advances the accumulated grade by `tau`. Each [grading
-monoid](#grading-monoids) has its own notion of delays, and maps them to grades
+`delay tau` advances the accumulated grade by `tau`. Each [grade
+algebra](#grade-algebras) has its own notion of delays, and maps them to grades
 by a monoid morphism, so `delay 0` has the unit grade and `delay tau; delay
 tau'` the grade of `delay (tau + tau')`
 ([`delay.mli`](src/01-language/grades/delay.mli)).
 
-`tau` is a non-negative integer or rational fraction, depending on the
-grade. The grades whose names end in `-rational` or `-rational-symbolic`,
-`lattice` and `flow-lattice` have the non-negative rationals as delays
-and accept any, such as `delay 1/3` or `delay 0.25`; the other monoids count
-whole time steps and accept only integers.
-See [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
+`tau` is a non-negative integer or rational fraction, depending on the grade.
+The grades whose names end in `-rational` or `-rational-symbolic`, `lattice` and
+`flow-sensitive-levels` have the non-negative rationals as delays and accept
+any, such as `delay 1/3` or `delay 0.25`; the other grade algebras count whole
+time steps and accept only integers. See
+[`examples/basics/delay.tpe`](examples/basics/delay.tpe).
 
-## Grading monoids
+## Grade algebras
 
-Resources and the effects of computations are graded by an ordered monoid,
-chosen at run time with the `--grades` option or the **Grades** selector in the
-web interface, e.g.,
+Resources and the effects of computations are graded by a grade algebra, an
+ordered monoid, chosen at run time with the `--grades` option or the **Grades**
+selector in the web interface, e.g.,
 
     ./tempore --grades time-interval examples/time/intervals.tpe
 
 ### Grade literals
 
-All monoids share one literal syntax: integers (`3`), fractions (`3/2`, or
-exact decimals such as `1.5`), tuples (`(3, High)`), intervals and brace
+All grade algebras share one literal syntax: integers (`3`), fractions (`3/2`,
+or exact decimals such as `1.5`), tuples (`(3, High)`), intervals and brace
 expressions (`{...}`).
 
 An interval has the standard mathematical meaning: a bracket includes its finite
@@ -269,22 +269,22 @@ endpoint and a parenthesis excludes it, as in `[1, 4]`, `(1, 4)`, `[1, 4)`,
 - An empty interval, such as `(1, 1)`, `[1, 1)` or `[4, 1]`, is rejected.
 - Over whole time steps an open endpoint abbreviates a closed one: `(1, 4)` is
   `[2, 3]` and `(1, ∞)` is `[2, ∞)`.
-- A two-sided grade `[L, U]` of the interval grades over traces
-  (`traces-timed-interval`, `regex-timed-interval-symbolic` and their rigid and
-  rational variants) is rejected unless some run meets both ends at the running
-  times of the operations. For example, `[{Write}, {Read; Read}]` is rejected
-  with ``The grade `[…]` admits no run: no run meets both its lower and its
-  upper end``, followed by the least duration of the lower end and the greatest
-  of the upper end when durations decide it. Under the rigid grades some exact
-  word must lie in both ends, so a consistent grade may still have no
-  computation, as `[{≥2 & A}, {A}]` with `A within [1, 3]`.
+- A grade `[L, U]` of the interval grades over traces
+  (`banked-traces-interval`, `banked-regex-interval-symbolic` and their timed
+  and rational variants) is rejected unless some run meets both ends at the
+  running times of the operations. For example, `[{Write}, {Read; Read}]` is
+  rejected with ``The grade `[…]` admits no run: no run meets both its lower and
+  its upper end``, followed by the least duration of the lower end and the
+  greatest of the upper end when durations decide it. Under the timed regex
+  grades some exact word must lie in both ends, so a consistent grade may still
+  have no computation, as `[{≥2 & A}, {A}]` with `A within [1, 3]`.
 - A literal of `inter-arrival` or `mode-times` that describes no run is
-  rejected likewise (see [Inter-arrival bounds](#inter-arrival-bounds) and
+  rejected likewise (see [Inter-arrival grades](#inter-arrival-grades) and
   `mode-times` under [Semidirect products](#semidirect-products)).
 
-Each monoid accepts the literals it understands; any other literal is a syntax
-error naming the monoids that accept it. The greatest grade is `⊤` (ASCII
-`top`). Negative integers (`-1`) are accepted only by `resource-levels`. A
+Each grade algebra accepts the literals it understands; any other literal is a
+syntax error naming the grade algebras that accept it. The greatest grade is `⊤`
+(ASCII `top`). Negative integers (`-1`) are accepted only by `watermarks`. A
 fraction equal to an integer, such as `4/2` or `2.0`, is that integer.
 
 ### Time
@@ -364,7 +364,7 @@ units:
 See
 [`examples/time/intervals_rational.tpe`](examples/time/intervals_rational.tpe).
 
-### Traces
+### Finite run sets
 
 In this category, a grade is a non-empty finite set of *traces*, the sequences
 of operations and delays a computation may exhibit: `Read; 3; Send` performs
@@ -372,16 +372,16 @@ of operations and delays a computation may exhibit: `Read; 3; Send` performs
 `Read; 1; 2; Send` is the same trace as `Read; 3; Send`. Grades multiply by
 concatenation and join by union. Operations declare no running-time bounds.
 
-In `traces-upper-bound`, a grade is the set of traces a computation is
+In `finite-run-sets`, a grade is the set of traces a computation is
 *allowed*, ordered by set inclusion; a delay pays for no operation, and `{Read}`
 is not below `{3}`. The unit `{skip}`, the empty trace, is not least, and `⊤`,
 any trace, is the top.
 Traces are compared by equality, so only upper bounds are provided. The rational
-variant `traces-upper-bound-rational` has non-negative rational delays.
+variant `finite-run-sets-rational` has non-negative rational delays.
 
-Literals are those of the trace grades of timed operations, below.
+Literals are those of the trace grades with banked delays, below.
 
-For example, under `traces-upper-bound`, a door that opens for three ticks for a
+For example, under `finite-run-sets`, a door that opens for three ticks for a
 known badge and raises an alarm for an unknown one,
 
 ```
@@ -401,9 +401,9 @@ trace not permitted:
     Note: the grade `{Unlock; 3}` is below `{Alarm | Unlock; 3}` but not below
     `{Alarm | Unlock; 3; Lock}`
 
-See [`examples/traces/upper_bounds.tpe`](examples/traces/upper_bounds.tpe).
+See [`examples/finite_run_sets/upper_bounds.tpe`](examples/finite_run_sets/upper_bounds.tpe).
 
-### Traces of timed operations
+### Trace grades with banked delays
 
 The grades are finite sets of traces as above, and every atomic operation
 declares running-time bounds `within [lo, hi]`, which the orders use to trade
@@ -412,14 +412,14 @@ time against operations.
 Literals use `;` for sequence, `|` for union and parentheses: `{(Read | 2);
 Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`.
 
-The grading monoids are:
+The grade algebras are:
 
-- `traces-timed-lower-bound`: the traces a computation must *cover*; an
+- `banked-traces-lower-bound`: the traces a computation must *cover*; an
   operation performed counts as `lo` ticks towards a demanded duration.
   `{skip}` is the top. A lower bound demands a minimum, so a computation may
   perform more than the trace it covers lists.
 
-- `traces-timed-upper-bound`: the traces a computation is *allowed*; a duration
+- `banked-traces-upper-bound`: the traces a computation is *allowed*; a duration
   pays for operations at their `hi`. `{skip}` is least and `⊤` the top.
 
   For example, with `Read` taking between one and three ticks,
@@ -440,7 +440,7 @@ The grading monoids are:
       This function's body has grade `{Read; 3}`, which does not match its
       annotated grade `{5}`
 
-- `traces-timed-interval`: closed intervals `[{...}, {...}]` of a lower and an
+- `banked-traces-interval`: closed intervals `[{...}, {...}]` of a lower and an
   upper bound, the traces at or above the one and at or below the other,
   compared componentwise; `[{...}, ∞)` has no upper bound, `{...}` abbreviates
   `[{...}, {...}]`, `n` is `[{n}, {n}]`, `[n, m]` is `[{n}, {m}]`, and an open
@@ -448,19 +448,19 @@ The grading monoids are:
   top is `[{skip}, ∞)`.
 
 See
-[`examples/traces_timed_ops/lower_bounds.tpe`](examples/traces_timed_ops/lower_bounds.tpe),
-[`examples/traces_timed_ops/upper_bounds.tpe`](examples/traces_timed_ops/upper_bounds.tpe)
+[`examples/banked_traces/lower_bounds.tpe`](examples/banked_traces/lower_bounds.tpe),
+[`examples/banked_traces/upper_bounds.tpe`](examples/banked_traces/upper_bounds.tpe)
 and
-[`examples/traces_timed_ops/intervals.tpe`](examples/traces_timed_ops/intervals.tpe).
+[`examples/banked_traces/intervals.tpe`](examples/banked_traces/intervals.tpe).
 
-The rational variants `traces-timed-lower-bound-rational`,
-`traces-timed-upper-bound-rational` and `traces-timed-interval-rational` have
+The rational variants `banked-traces-lower-bound-rational`,
+`banked-traces-upper-bound-rational` and `banked-traces-interval-rational` have
 the same orders, units and tops, with non-negative rational durations and
 running-time bounds: `{Sample; 1/2; Send}` has a duration of half a unit between
 the two operations, a fraction `q` abbreviates `{q}`, and an operation may
 declare bounds such as `within [1/2, 3/2]`.
 
-For example, under `traces-timed-interval-rational`, the program
+For example, under `banked-traces-interval-rational`, the program
 
 ```
 operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
@@ -481,24 +481,24 @@ rejected, as the body may then take `3.5` units:
 
 An interval with an open numeric endpoint, such as `(1/2, 2]`, denotes
 infinitely many traces and is rejected, because grades are non-empty finite sets
-of traces. The regular expressions of `regex-timed-interval-rational-symbolic`
+of traces. The regular expressions of `banked-regex-interval-rational-symbolic`
 can be used to express such cases instead.
 
 See
-[`examples/traces_timed_ops/intervals_rational.tpe`](examples/traces_timed_ops/intervals_rational.tpe).
+[`examples/banked_traces/intervals_rational.tpe`](examples/banked_traces/intervals_rational.tpe).
 
-The rigid variants `traces-timed-rigid-lower-bound`,
-`traces-timed-rigid-upper-bound`, `traces-timed-rigid-interval` and their
+The finite timed regex grades `timed-regex-finite-lower-bound`,
+`timed-regex-finite-upper-bound`, `timed-regex-finite-interval` and their
 `-rational` variants are the grades of
-[Rigid regular expressions of timed operations](#rigid-regular-expressions-of-timed-operations)
+[Timed regex grades](#timed-regex-grades)
 on finite sets of traces: their literals have operations, finite sets of
 them and the interval letters, with `;`, `|` and finite counts. An upper
 bound's operations are demanded, in order: with `Heat` and `Cool` declared
 with running-time bounds, `{Heat}` is below `{Heat; Cool}` under
-`traces-timed-upper-bound`, the cooling left out, but not under
-`traces-timed-rigid-upper-bound`.
+`banked-traces-upper-bound`, the cooling left out, but not under
+`timed-regex-finite-upper-bound`.
 
-### Regular expressions
+### Regular trace languages
 
 A grade is a non-empty regular language of traces. The order is inclusion, the
 product is concatenation and the join is union; the unit is `{skip}` and the
@@ -528,8 +528,8 @@ Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated
 
 The two variants are:
 
-- `regex-upper-bound-symbolic`: traces are words over the letter `tick` (one
-  time step) and declared operation names. A grade is a symbolic regular
+- `regular-trace-languages-symbolic`: traces are words over the letter `tick`
+  (one time step) and declared operation names. A grade is a symbolic regular
   expression over sets of letters, kept in normal form, with no automaton; an
   inclusion `ρ ≾ ρ′` holds if `ρ & ~ρ′` is empty, found by a depth-first search
   of its gap derivatives, each reading a run of ticks of any length and the
@@ -564,16 +564,16 @@ The two variants are:
       This function's body has grade `{Open; Read; Write; Write}`, which does
       not match its annotated grade `{Open; (Read | Write)*; Close}`
 
-  See [`examples/regular/upper_bounds.tpe`](examples/regular/upper_bounds.tpe).
+  See [`examples/regular_trace_languages/upper_bounds.tpe`](examples/regular_trace_languages/upper_bounds.tpe).
 
-- `regex-upper-bound-rational-symbolic`: traces are *timed words*, operations
-  and non-negative rational delays, a delay being a single letter and adjacent
-  delays added, so that `{1/2; 1/2}` is `{1}`; delays are compared as rationals,
-  not rounded to whole ticks. A grade is a symbolic regular expression over
-  sets of operations and sets of delays, kept in normal form, with no automaton;
-  an inclusion `ρ ≾ ρ′` holds if `ρ & ~ρ′` is empty, found by a depth-first
-  search of its gap derivatives, each reading a delay and the operation after
-  it in one step, by sets of delays and minterms. Literals:
+- `regular-trace-languages-rational-symbolic`: traces are *timed words*,
+  operations and non-negative rational delays, a delay being a single letter and
+  adjacent delays added, so that `{1/2; 1/2}` is `{1}`; delays are compared as
+  rationals, not rounded to whole ticks. A grade is a symbolic regular
+  expression over sets of operations and sets of delays, kept in normal form,
+  with no automaton; an inclusion `ρ ≾ ρ′` holds if `ρ & ~ρ′` is empty, found by
+  a depth-first search of its gap derivatives, each reading a delay and the
+  operation after it in one step, by sets of delays and minterms. Literals:
 
   - delays are written `3`, `1/2` or `1.5`, and a plain number `q` abbreviates
     `{q}`;
@@ -612,7 +612,7 @@ The two variants are:
       its annotated grade `{Sample; [0, 0.5); Send}`
 
   See
-  [`examples/regular/upper_bounds_rational.tpe`](examples/regular/upper_bounds_rational.tpe).
+  [`examples/regular_trace_languages/upper_bounds_rational.tpe`](examples/regular_trace_languages/upper_bounds_rational.tpe).
 
 Further implementations of these grades, kept for benchmarking, are described
 in [`bench/regular/README.md`](bench/regular/README.md).
@@ -624,11 +624,11 @@ A repetition with a count is written `r^n`, `r^[m, n]` or `r^[m, ∞)` (ASCII
 4)` is `r^[2, 3]`. `^` is postfix like `*`. `r^[m, n]` denotes the
 concatenations of `k` words of `r` for `k` from `m` to `n`; `r^0` is `0`, `r^1`
 is `r` and `r^[0, ∞)` is `r*`. It is notation: a repetition and its unrolling
-are the same grade. It is read by every grade of regular expressions, also of
-timed operations and rigid, with strict waits inside, as in `{(idle 2.5;
-ReadImu)^3}`; the grades of finite sets of traces read finite counts only. A
-repetition is decided without unrolling, by derivatives with a counter, in time
-linear in its count.
+are the same grade. It is read by every grade of regular expressions, also those
+with banked delays and the timed regex grades, with idle waits inside, as in
+`{(idle 2.5; ReadImu)^3}`; the grades of finite sets of traces read finite
+counts only. A repetition is decided without unrolling, by derivatives with a
+counter, in time linear in its count.
 
 A grade the typechecker computes, an inferred grade, a counterexample or a
 timeline entry, is printed with every run of two or more equal adjacent factors
@@ -655,8 +655,9 @@ annotates its 200 polls `{(skip | idle 2.5; ReadImu; ReadClock)^200}`.
 #### Implementations for benchmarking
 <!-- web-skip -->
 
-Further implementations of `regex-upper-bound-symbolic`, kept for benchmarking,
-are accepted by `--grades` with one of these suffixes in place of `-symbolic`:
+Further implementations of `regular-trace-languages-symbolic`, kept for
+benchmarking, are accepted by `--grades` with one of these suffixes in place of
+`-symbolic`:
 
 - `-letter-automata`: minimal automata over single letters; inclusion by a
   breadth-first search of the product with the complement;
@@ -665,7 +666,7 @@ are accepted by `--grades` with one of these suffixes in place of `-symbolic`:
 - `-letter-derivatives`: expressions over single letters; inclusion by
   derivatives by single letters.
 
-Likewise, `regex-upper-bound-rational-automata` and the timed
+Likewise, `regular-trace-languages-rational-automata` and the timed
 `-rational-automata` variants below implement the rational grades by minimal
 deterministic symbolic automata over sets of operations and sets of delays;
 inclusion by a breadth-first search of the product with the complement, or with
@@ -677,28 +678,28 @@ They can be compared by running
 the examples and tests are in
 [`bench/typecheck/README.md`](bench/typecheck/README.md).
 
-### Regular expressions of timed operations
+### Regex grades with banked delays
 
 In this category, a grade is a regular language of traces, written as under the
 regular expressions above, and every atomic operation declares running-time
-bounds `within [lo, hi]`. The orders are those of the traces of timed
-operations: a grade stands for its *closure*, the traces that fit inside one of
+bounds `within [lo, hi]`. The orders are those of the trace grades with
+banked delays: a grade stands for its *closure*, the traces that fit inside one of
 its traces (upper bounds, an operation taking `hi`) or that cover one of them
 (lower bounds, an operation taking `lo`).
 
-- `regex-timed-upper-bound-symbolic`: the allowance order; `{skip}` is least
+- `banked-regex-upper-bound-symbolic`: the allowance order; `{skip}` is least
   and `⊤` the top.
-- `regex-timed-lower-bound-symbolic`: the coverage order; `{skip}` is the top,
+- `banked-regex-lower-bound-symbolic`: the coverage order; `{skip}` is the top,
   and so is every grade containing the empty trace, such as
   `{(Bake; Inspect)*}`, which every trace covers.
-- `regex-timed-interval-symbolic`: closed intervals `[{...}, {...}]` of a lower
+- `banked-regex-interval-symbolic`: closed intervals `[{...}, {...}]` of a lower
   and an upper bound, compared componentwise, with the forms and abbreviations
-  of `traces-timed-interval`; the top is `[{skip}, ∞)`.
+  of `banked-traces-interval`; the top is `[{skip}, ∞)`.
 
 Under these:
 
 - delays are whole ticks, and grades are represented as under
-  `regex-upper-bound-symbolic`;
+  `regular-trace-languages-symbolic`;
 - an ordering `ρ ≾ ρ′` holds if no trace of `ρ` lies outside the closure of
   `ρ′`, found as under the rational variants below: by a breadth-first search
   of the automaton of the gap derivatives of `ρ` together with a reader of the
@@ -708,11 +709,11 @@ Under these:
 - the alphabet is the atomic operations declared anywhere in the program, so
   `_` is any tick or atomic operation, and a grade must denote at least one
   trace over it;
-- with `Read` declared `within [1, 3]`, under `regex-timed-upper-bound-symbolic`
-  `{Read}` is below `{3}`, as three ticks allow for `Read`, and `{Read | 3}`
-  equals `{3}`.
+- with `Read` declared `within [1, 3]`, under
+  `banked-regex-upper-bound-symbolic` `{Read}` is below `{3}`, as three ticks
+  allow for `Read`, and `{Read | 3}` equals `{3}`.
 
-For example, under `regex-timed-lower-bound-symbolic`, the program
+For example, under `banked-regex-lower-bound-symbolic`, the program
 
 ```
 operation Fetch : unit ~> nat ! {Fetch} within [2, 3]
@@ -736,7 +737,7 @@ operations of its traces may be left out. With a leading `_*`, a bound allows
 any trace first and permits, without demanding, the rest.
 
 For example, with `Wash` declared `within [1, 2]` and `ChangeTip`
-`within [1, 1]`, under `regex-timed-interval-symbolic` a value boxed with
+`within [1, 1]`, under `banked-regex-interval-symbolic` a value boxed with
 `{_*; Wash; _*; Wash; [2, 5]; ChangeTip}` may be unboxed after the calls
 of `Wash`, `ChangeTip` and `Wash`, a `delay 6` and a call of `ChangeTip`,
 whose gap of six ticks before `ChangeTip` exceeds `[2, 5]`.
@@ -746,27 +747,27 @@ box grade `{Wash; ChangeTip; Wash; [2, 5]; ChangeTip}`, the same unboxing
 is rejected, and accepted after `delay 3` in place of `delay 6`.
 
 See
-[`examples/regular_timed_ops/lower_bounds.tpe`](examples/regular_timed_ops/lower_bounds.tpe),
-[`examples/regular_timed_ops/upper_bounds.tpe`](examples/regular_timed_ops/upper_bounds.tpe)
+[`examples/banked_regex/lower_bounds.tpe`](examples/banked_regex/lower_bounds.tpe),
+[`examples/banked_regex/upper_bounds.tpe`](examples/banked_regex/upper_bounds.tpe)
 and
-[`examples/regular_timed_ops/intervals.tpe`](examples/regular_timed_ops/intervals.tpe).
+[`examples/banked_regex/intervals.tpe`](examples/banked_regex/intervals.tpe).
 
-The rational variants `regex-timed-lower-bound-rational-symbolic`,
-`regex-timed-upper-bound-rational-symbolic` and
-`regex-timed-interval-rational-symbolic` have the same orders over the timed
-words of `regex-upper-bound-rational-symbolic`.
+The rational variants `banked-regex-lower-bound-rational-symbolic`,
+`banked-regex-upper-bound-rational-symbolic` and
+`banked-regex-interval-rational-symbolic` have the same orders over the timed
+words of `regular-trace-languages-rational-symbolic`.
 
 Under these:
 
-- literals are those of `regex-upper-bound-rational-symbolic`, and running-time
-  bounds may be fractional, such as `within [1/2, 3/2]`;
+- literals are those of `regular-trace-languages-rational-symbolic`, and
+  running-time bounds may be fractional, such as `within [1/2, 3/2]`;
 - durations are compared as rationals, not rounded to whole ticks: with `A`
-  declared `within [1, 1]`, under `regex-timed-upper-bound-rational-symbolic`
+  declared `within [1, 1]`, under `banked-regex-upper-bound-rational-symbolic`
   the grade `{(0, 1); A; (0, 1)}` is below `{3}` but below no `{q}` with
   `q < 3`, since the durations of its traces come arbitrarily close to `3`
   without reaching it;
-- grades are represented as under `regex-upper-bound-rational-symbolic`; the
-  closures are not regular, so an ordering `ρ ≾ ρ′` is decided by a
+- grades are represented as under `regular-trace-languages-rational-symbolic`;
+  the closures are not regular, so an ordering `ρ ≾ ρ′` is decided by a
   breadth-first search of the automaton of the gap derivatives of `ρ` together
   with a reader of the closure of `ρ′`, which keeps the longest (upper) or
   shortest (lower) durations of the traces read so far;
@@ -779,10 +780,10 @@ Under these:
   greatest durations of the traces of its grade: with `Sample` declared
   `within [1/2, 3/2]` and `Send` `within [1/4, 1]`, `{Sample; [0, 1/2); Send}`
   takes `[3/4, 3)`;
-- under `regex-timed-interval-rational-symbolic` an open numeric endpoint of an
+- under `banked-regex-interval-rational-symbolic` an open numeric endpoint of an
   interval is a set of durations: `(0.8, 3)` is `[{(0.8, ∞)}, {[0, 3)}]`.
 
-For example, under `regex-timed-upper-bound-rational-symbolic`, the program
+For example, under `banked-regex-upper-bound-rational-symbolic`, the program
 
 ```
 operation Sample : unit ~> nat ! {Sample} within [1/2, 3/2]
@@ -802,24 +803,24 @@ exactly `3` units:
     annotated grade `{[0, 3)}`
 
 See
-[`examples/regular_timed_ops/upper_bounds_rational.tpe`](examples/regular_timed_ops/upper_bounds_rational.tpe)
+[`examples/banked_regex/upper_bounds_rational.tpe`](examples/banked_regex/upper_bounds_rational.tpe)
 and
-[`examples/regular_timed_ops/intervals_rational.tpe`](examples/regular_timed_ops/intervals_rational.tpe).
+[`examples/banked_regex/intervals_rational.tpe`](examples/banked_regex/intervals_rational.tpe).
 
-### Rigid regular expressions of timed operations
+### Timed regex grades
 
 Under the upper bounds above, the operations of a bound's traces may be left
 out. A Kleene star whose round contains a delay then permits every trace: its
 rounds unrolled and their operations left out, the delays add up to any
 duration.
 
-The grading monoids `regex-timed-rigid-lower-bound-symbolic`,
-`regex-timed-rigid-upper-bound-symbolic` and
-`regex-timed-rigid-interval-symbolic`, and their variants
-`regex-timed-rigid-lower-bound-rational-symbolic`,
-`regex-timed-rigid-upper-bound-rational-symbolic` and
-`regex-timed-rigid-interval-rational-symbolic`, are regular expressions over
-*interval letters*, ordered *rigidly*: every operation of a bound is
+The grade algebras `timed-regex-lower-bound-symbolic`,
+`timed-regex-upper-bound-symbolic` and
+`timed-regex-interval-symbolic`, and their variants
+`timed-regex-lower-bound-rational-symbolic`,
+`timed-regex-upper-bound-rational-symbolic` and
+`timed-regex-interval-rational-symbolic`, are regular expressions over
+*interval letters*, ordered so that every operation of a bound is
 demanded, matched in order by the program's trace. A star then permits its
 rounds only.
 
@@ -830,19 +831,19 @@ The letters are:
 - an operation `A`, or a set of operations, such as `(A | B)`, `_`, `~Read`
   or `_ & ~Read`: exactly one operation of the set; `_` is one operation,
   not a delay;
-- a *budget*, a stretch of time in which operations may fall: `d`,
+- a *span*, a stretch of time in which operations may fall: `d`,
   `[a, b]`, `(a, b)`, `≤d`, `<d`, `≥d` or `>d` (ASCII `<=` and `>=`); `≥0`
   is any stretch, and the top;
-- a *strict wait*, a stretch without operations: a budget letter after `idle`,
+- an *idle wait*, a stretch without operations: a span letter after `idle`,
   such as `idle 10`, `idle [2, 3]` or `idle ≤5`;
-- a *restricted budget* `I & S` of a budget `I` and a set of operations
-  `S`, such as `≥0 & ~Read`: a budget whose operations lie in `S`;
+- a *restricted span* `I & S` of a span `I` and a set of operations
+  `S`, such as `≥0 & ~Read`: a span whose operations lie in `S`;
 - `skip`, the empty trace.
 
 Expressions use `;`, `|`, `*`, `^n`, `^[m, n]` and the postfix `r?`, which
 is `r | skip`. The complement `~` and the intersection `&` apply to sets of
-operations and to a budget with a set of operations only: a stretch without
-`Read` is the restricted budget `≥0 & ~Read`, not a complement of
+operations and to a span with a set of operations only: a stretch without
+`Read` is the restricted span `≥0 & ~Read`, not a complement of
 `_*; Read; _*`.
 
 An upper bound reads a letter by its upper end and a lower bound by its
@@ -860,24 +861,24 @@ as one literal where it is the pair of one, as `{idle 10}` for
 As an upper bound:
 
 - an operation letter demands the program's operation at its place;
-- the program's other operations fall within budgets, at their `hi`, and
-  only within budgets whose set admits them;
-- a strict wait admits waits only, of total length within its end.
+- the program's other operations fall within spans, at their `hi`, and
+  only within spans whose set admits them;
+- an idle wait admits waits only, of total length within its end.
 
 As a lower bound:
 
-- a budget `≥d` demands at least `d` units, covered by waits and by
+- a span `≥d` demands at least `d` units, covered by waits and by
   operations at their `lo`;
-- a strict wait `idle ≥d` demands an undisturbed wait of at least `d`;
-- there are no implicit stretches around the letters: `{A; idle 5; B}` demands
+- an idle wait `idle ≥d` demands an undisturbed wait of at least `d`;
+- there are no implicit spans around the letters: `{A; idle 5; B}` demands
   `A`, a wait of at least `5` and `B` with nothing in between, and
   `{≥0; A; ≥0}` an `A` anywhere.
 
-The grade of `delay d` is the strict wait `idle d`. Every operation takes a
+The grade of `delay d` is the idle wait `idle d`. Every operation takes a
 positive time: a declaration `within [0, hi]` is rejected, and is written
 `within (0, hi]`.
 
-For example, under `regex-timed-rigid-upper-bound-rational-symbolic`, the
+For example, under `timed-regex-upper-bound-rational-symbolic`, the
 program
 
 ```
@@ -898,17 +899,17 @@ let polls () =
 ```
 
 is accepted, while `perform Redraw ()` in place of `delay 2.25` is rejected, as
-a redraw of up to `33` units does not fit in a budget of `2.5`:
+a redraw of up to `33` units does not fit in a span of `2.5`:
 
     Variable `p` is unboxed with grade
     `{ReadImu; ReadClock; Redraw; ReadImu; ReadClock}` accumulated since it was
     bound, which is not below its box grade `{(≤2.5; ReadImu; ReadClock)*}`
 
-Under `regex-timed-upper-bound-rational-symbolic` both are accepted.
+Under `banked-regex-upper-bound-rational-symbolic` both are accepted.
 
-#### Strict waits and restricted budgets
+#### Idle waits and restricted spans
 
-A strict wait matters where a budget leaves slack: a range of delays, or a
+An idle wait matters where a span leaves slack: a range of delays, or a
 delay longer than the program's own wait, so that a short operation fits
 beside it. For periodic sampling with a jitter of `δ`,
 `(idle [T - δ, T + δ]; Read)*` permits the readings and waits only, whereas
@@ -930,7 +931,7 @@ let sampled () =
   (first' + a + b) / 3
 ```
 
-the program is rejected, as the beep falls in a strict wait:
+the program is rejected, as the beep falls in an idle wait:
 
     Variable `s` is unboxed with grade
     `{idle ≤10; ReadImu; Beep; idle ≤10; ReadImu}` accumulated since it was
@@ -940,7 +941,7 @@ the program is rejected, as the beep falls in a strict wait:
 With the box grade `{([9.5, 10.5]; ReadImu)*}` it is accepted, the beep of at
 most `0.15` fitting beside the wait of `10`.
 
-A restricted budget excludes operations from a stretch. With `ConfigureImu`
+A restricted span excludes operations from a stretch. With `ConfigureImu`
 declared, the box grade `{≥0 & ~ConfigureImu}` keeps a reading from a
 reconfiguration, and
 
@@ -963,33 +964,33 @@ is rejected with
     which is not below its box grade
     `{≥0 & ~ConfigureImu}`
 
-The Arduino packages declare their operations under the rational rigid grades
-too.
+The Arduino packages declare their operations under the rational timed regex
+grades too.
 
 See
-[`examples/regular_timed_rigid/upper_bounds_rational.tpe`](examples/regular_timed_rigid/upper_bounds_rational.tpe),
-[`examples/regular_timed_rigid/intervals_rational.tpe`](examples/regular_timed_rigid/intervals_rational.tpe),
-[`tests/strict_delays_rational_reject.tpe`](tests/strict_delays_rational_reject.tpe),
-[`tests/strict_delays_lower_reject.tpe`](tests/strict_delays_lower_reject.tpe)
+[`examples/timed_regex/upper_bounds_rational.tpe`](examples/timed_regex/upper_bounds_rational.tpe),
+[`examples/timed_regex/intervals_rational.tpe`](examples/timed_regex/intervals_rational.tpe),
+[`tests/idle_waits_rational_reject.tpe`](tests/idle_waits_rational_reject.tpe),
+[`tests/idle_waits_lower_reject.tpe`](tests/idle_waits_lower_reject.tpe)
 and the Opentrons examples
-[`examples/opentrons/washes.tpe`](examples/opentrons/washes.tpe), with a strict
-binding, a strict air-dry and restricted budgets excluding a removal of liquid
-off the magnet, and
+[`examples/opentrons/washes.tpe`](examples/opentrons/washes.tpe), with idle
+waits for the binding and the air-dry and restricted spans excluding a removal
+of liquid off the magnet, and
 [`examples/opentrons/purification.tpe`](examples/opentrons/purification.tpe),
-with strict ethanol soaks.
+with idle ethanol soaks.
 
-#### The non-rigid grades as instances
+#### The grades with banked delays as instances
 
-The non-rigid grades above embed in the rigid ones, preserving and reflecting
-the order: an upper bound with every operation `A` made optional, `A?`, and
-every delay a budget, `{A; 3; B}` as `{A?; ≤3; B?}`, and a lower bound with
-every operation preceded by `≥0`, every delay a budget and `≥0` at the end,
-`{A; 2; B}` as `{≥0; A; ≥2; B; ≥0}`. The non-rigid grades keep decision
-procedures of their own.
+The grades with banked delays above embed in the timed regex grades, preserving
+and reflecting the order: an upper bound with every operation `A` made optional,
+`A?`, and every delay a span, `{A; 3; B}` as `{A?; ≤3; B?}`, and a lower bound
+with every operation preceded by `≥0`, every delay a span and `≥0` at the end,
+`{A; 2; B}` as `{≥0; A; ≥2; B; ≥0}`. The grades with banked delays keep
+decision procedures of their own.
 
 ### Grade lattices and products
 
-In this category, we have the following grading monoids:
+In this category, we have the following grade algebras:
 
 - `lattice`: the grades are the elements of a finite grade lattice, the simple
   security lattice `Low < High` unless the program declares its own (see
@@ -1052,13 +1053,13 @@ In this category, we have the following grading monoids:
   `((0, 0.1], Low)`; the direct product of `time-interval-rational` and the
   grade lattice, adding the intervals by the Minkowski sum.
 
-- `flow-lattice`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above `l` touched
-  and each output `Sᵢ` written at most at the element `lᵢ` touched before it; `l`
-  alone writes no output, and an entry `(_, l')` bounds every output not listed.
-  An output is a capitalised name, and an operation writing it has a grade such
-  as `(Low, (Board, Low))`; after one of grade `High`, it is written at `High`.
-  This grading monoid is an example of the semidirect product construction (see
-  [Semidirect products](#semidirect-products)).
+- `flow-sensitive-levels`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above
+  `l` touched and each output `Sᵢ` written at most at the element `lᵢ` touched
+  before it; `l` alone writes no output, and an entry `(_, l')` bounds every
+  output not listed. An output is a capitalised name, and an operation writing
+  it has a grade such as `(Low, (Board, Low))`; after one of grade `High`, it is
+  written at `High`. This grade algebra is an example of the semidirect product
+  construction (see [Semidirect products](#semidirect-products)).
 
   For example, where a secret may be read after a public announcement but
   not announced, the program
@@ -1086,14 +1087,14 @@ See
 [`examples/lattice/security.tpe`](examples/lattice/security.tpe),
 [`examples/lattice/time_lower.tpe`](examples/lattice/time_lower.tpe),
 [`examples/lattice/time_upper.tpe`](examples/lattice/time_upper.tpe)
-and [`examples/lattice/flow.tpe`](examples/lattice/flow.tpe), and, as a
+and [`examples/lattice/flow_sensitive_levels.tpe`](examples/lattice/flow_sensitive_levels.tpe), and, as a
 larger programme under `time-lower-bound-lattice`,
 [`examples/lattice/staged_release.tpe`](examples/lattice/staged_release.tpe).
 
 #### Declaring the grade lattice
 
 A program may declare its own finite grade lattice in place of `Low < High`,
-which all five grading monoids above then use. The declaration opens a file,
+which all five grade algebras above then use. The declaration opens a file,
 after its header comment:
 
 ```
@@ -1107,8 +1108,8 @@ Each chain `L1 < L2 < ...` gives covering edges, and the order is their
 reflexive-transitive closure. The elements must form a lattice: no element
 repeated in a chain, no cycle, a least element, and a least upper bound for
 every two elements. The files of one run share one declaration, which a file
-may repeat; a differing one is an error, as is a declaration under a grading
-monoid not built on a grade lattice. Elsewhere `grade` and `lattice` remain
+may repeat; a differing one is an error, as is a declaration under a grade
+algebra not built on a grade lattice. Elsewhere `grade` and `lattice` remain
 ordinary names.
 
 For example, a robot whose tilt conversion must complete while the motors and
@@ -1138,9 +1139,9 @@ In this category, a grade is generally a pair `(m, n)` whose second component is
 acted on by the first components of the grades before it:
 `(m, n) · (m', n') = (m · m', n ⊔ m ▷ n')`, where `m ▷ n'` is a grade-specific
 action of `m` on `n'`. The pairs are compared and joined componentwise. The
-`flow-lattice` monoid from above is an example, as are:
+`flow-sensitive-levels` grade algebra from above is an example, as are:
 
-- `resource-levels`: triples `(t, [d1, d2], h)` bounding a resource held, such
+- `watermarks`: triples `(t, [d1, d2], h)` bounding a resource held, such
   as open files, relative to its level at the start: the trough `t` is the
   lowest level, the range `[d1, d2]` the net change and the peak `h` the highest
   level, with `t <= d1 <= d2 <= h` and `t <= 0 <= h`. It is the semidirect
@@ -1186,7 +1187,7 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
       This function's body has grade `(Files, 1, 2)`, which does not match its
       annotated grade `(Files, 0, 2)`
 
-- `windowed-schedules`: tuples `(T, (A, E_A), …)` of the possible durations `T`
+- `call-time-sets`: tuples `(T, (A, E_A), …)` of the possible durations `T`
   and the times `E_A` at which each operation `A` happens, all sets of numbers
   of ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`
   adding elementwise, and the order is inclusion.
@@ -1194,7 +1195,7 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
   `T` is written `n`, `[n, m]`, `[n, ∞)`, with open endpoints as for
   `time-interval`, or as a brace literal over ticks, `{0 | 10}`, and `T` alone
   performs no operation. An interval inside a brace literal is read as under
-  `regex-upper-bound-symbolic`, in time quadratic in its width. `E_A` is a brace literal, `{(4 | 5); 10*}` being
+  `regular-trace-languages-symbolic`, in time quadratic in its width. `E_A` is a brace literal, `{(4 | 5); 10*}` being
   ticks 4 and 5 of every ten, and an entry `(_, E)` bounds every operation not
   listed. An operation `Send` taking a tick and happening at its start has
   grade `(1, (Send, {0}))`.
@@ -1296,18 +1297,18 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
   [`examples/opentrons/enzyme.tpe`](examples/opentrons/enzyme.tpe).
 
 An (external) operation whose grade no code inside Tempore can meet, such as
-opening or closing a file under `resource-levels`, has no default
+opening or closing a file under `watermarks`, has no default
 implementation, and a run stops at its first call.
 
 See
-[`examples/semidirect/resource_levels.tpe`](examples/semidirect/resource_levels.tpe),
-[`examples/semidirect/windowed_schedules.tpe`](examples/semidirect/windowed_schedules.tpe)
+[`examples/semidirect/watermarks.tpe`](examples/semidirect/watermarks.tpe),
+[`examples/semidirect/call_time_sets.tpe`](examples/semidirect/call_time_sets.tpe)
 and
 [`examples/semidirect/mode_switch_costs.tpe`](examples/semidirect/mode_switch_costs.tpe).
 
-### Operation counts
+### At-most counts
 
-In `counts-upper-bound`, a grade has entries `(A, n)`, at most `n` calls of the
+In `at-most-counts`, a grade has entries `(A, n)`, at most `n` calls of the
 operation `A`, `n` possibly `∞`; sequencing adds the calls of each operation,
 and delays count none. An operation not listed is bounded by `0`, or by the
 entry `(_, n)`, and a plain `n` bounds every operation: `((Auth, 1), (Send, 3))`
@@ -1334,7 +1335,7 @@ sends would be rejected, as they make four:
 
 See [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
 
-### Inter-arrival bounds
+### Inter-arrival grades
 
 In `inter-arrival`, a grade bounds how often each operation recurs: the time
 between the starts of consecutive calls of an operation `X`, at most and at
@@ -1384,7 +1385,7 @@ would be rejected, as a gap may then be 6.5.
 
 Counts add under sequencing, so they suit bounded stretches, such as a box held
 over exactly one new reading, and not loop invariants, which carry no count.
-Unlike `counts-upper-bound`, which bounds the numbers of calls from above,
+Unlike `at-most-counts`, which bounds the numbers of calls from above,
 `inter-arrival` bounds counts together with the times before, between and
 after the occurrences. See
 [`examples/opentrons/binding.tpe`](examples/opentrons/binding.tpe) and
@@ -1396,10 +1397,11 @@ A type is *eternal* if its values stay valid however much grade accumulates as a
 result of computations. Base types, tuples, and algebraic types built from
 eternal types are eternal; function, handler, and box types are not.
 
-A local variable of a non-eternal type may be used only while the grade accumulated
-since its binding is a sub-grade of the unit. Under `time-lower-bound` and
-`traces-timed-lower-bound` this always holds; under the other monoids such a
-variable must be used before any nontrivial delay or operation call.
+A local variable of a non-eternal type may be used only while the grade
+accumulated since its binding is a sub-grade of the unit. Under
+`time-lower-bound` and `banked-traces-lower-bound` this always holds; under the
+other grade algebras such a variable must be used before any nontrivial delay or
+operation call.
 
 ### Schemes and qualifiers
 
@@ -1430,8 +1432,9 @@ operation Read : unit ~> string ! 2
 ```
 
 declares an operation whose call `perform Read ()` has grade `2`. Under the
-trace and regular-expression monoids of timed operations, an *atomic* operation,
-graded by its own name, also declares its running-time bounds (`within [n, m]`):
+trace and regular-expression grade algebras of timed operations, an *atomic*
+operation, graded by its own name, also declares its running-time bounds
+(`within [n, m]`):
 
 ```
 operation Tx : string ~> unit ! {Tx} within [2, 3]
@@ -1443,16 +1446,16 @@ The bounds are durations, written as for `delay` (see [Delays](#delays)), with
 running time is positive: `lo` is above 0, or open at 0, as in
 `within (0, 1]`.
 
-The rational monoids of timed operations accept fractional bounds such as
-`within [1/2, 3/2)`; under the other monoids of timed operations, which count
-whole time steps, `within [1/2, 1]` is a syntax error and an open end
+The rational grade algebras of timed operations accept fractional bounds such as
+`within [1/2, 3/2)`; under the other grade algebras of timed operations, which
+count whole time steps, `within [1/2, 1]` is a syntax error and an open end
 abbreviates a closed one, `within (1, 4)` being `within [2, 3]`.
 
-The rational trace monoids compare traces with exact durations and read the
-value of each end. The rational regular-expression monoids read whether each end
-is attained: with `A` declared `within [1, 2)`, `{A}` is below `{[0, 2)}` under
-`regex-timed-upper-bound-rational-symbolic`, and a default implementation of `A`
-takes less than `2`.
+The rational trace grade algebras compare traces with exact durations and read
+the value of each end. The rational regular-expression grade algebras read
+whether each end is attained: with `A` declared `within [1, 2)`, `{A}` is below
+`{[0, 2)}` under `banked-regex-upper-bound-rational-symbolic`, and a default
+implementation of `A` takes less than `2`.
 
 A *compound* operation names other operations in its grade, and its bounds are
 computed from theirs: `Send : string ~> unit ! {Tx | Tx; Tx}` gets `[2, 6]`.
@@ -1491,11 +1494,11 @@ An operation case is typed with the top grade `⊤` accumulated for the variable
 bound outside it, because operation cases need to be executable anywhere in
 the computation tree when handling.
 
-- Under `time-lower-bound` and `traces-timed-lower-bound` the top is the unit,
+- Under `time-lower-bound` and `banked-traces-lower-bound` the top is the unit,
   which restricts nothing.
-- Under the other monoids an outer variable of non-eternal type, including an
-  outer continuation, cannot be used in the case, and an outer box can be
-  unboxed only if `⊤` is below its grade.
+- Under the other grade algebras an outer variable of non-eternal type,
+  including an outer continuation, cannot be used in the case, and an outer box
+  can be unboxed only if `⊤` is below its grade.
 - The case's own `p` and `k`, and top-level definitions, are unaffected.
 
 See [`examples/handlers/nested.tpe`](examples/handlers/nested.tpe)
@@ -1520,10 +1523,10 @@ Where operations declare running-time bounds:
 - the running-time bounds its grade implies must moreover lie within the
   declared ones, an open end excluded, so that with `A` declared
   `within [1, 2)` the default `default A () = delay 2` is rejected under every
-  monoid of timed operations.
+  grade algebra of timed operations.
 
 Elsewhere a default's grade must be a sub-grade of the operation's grade. See
-[`examples/traces_timed_ops/3d_printing.tpe`](examples/traces_timed_ops/3d_printing.tpe).
+[`examples/banked_traces/3d_printing.tpe`](examples/banked_traces/3d_printing.tpe).
 
 ## Recursion
 
@@ -1542,7 +1545,7 @@ A recursive function has the unit effect unless it is annotated
 `f : A₁ → … → (Aₙ → ty ! ε)`, the outer arrows having the unit effect, and `ε`
 must bound the effect of `c` assuming every recursive call has effect `ε`.
 
-Under `regex-upper-bound-symbolic`,
+Under `regular-trace-languages-symbolic`,
 ```
 let rec read_all n : nat ! {Read*} =
   match n with
@@ -1834,7 +1837,7 @@ for an Extension Development Host with the extension loaded.
 The sources in `src/` are numbered by the stages of the pipeline:
 
 - `00-utils`: locations, diagnostics, errors, symbols and printing.
-- `01-language`: the abstract syntax and the grading monoids.
+- `01-language`: the abstract syntax and the grade algebras.
 - `02-parser`: the lexer and the grammar.
 - `03-desugarer`: the desugaring of parsed programs and the resolution of
   names.
