@@ -1,8 +1,8 @@
-(* A reference decision of the order of the timed grades with interval
-   letters, by exhaustive search over exact words on a grid.
+(* A reference decision of the order of the timed regex grades, by
+   exhaustive search over exact words on a grid.
 
    An exact word is a sequence of operations, each with an exact running time,
-   idle waits and spanes, each with an exact length. A grade
+   idle waits and time spans, each with an exact length. A grade
    [x] is below a grade [y] iff every exact word of [x] fits some exact word
    of [y]. A word fits another when it follows the other's skeleton: the
    operations of the greater word occur in the lesser one at the same time

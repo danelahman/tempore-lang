@@ -1,5 +1,5 @@
 open Grade
-module I = IntervalRegex
+module I = TimedRegex
 module Ops = I.Ops
 
 let extremum = function
@@ -29,8 +29,8 @@ module Make (D : DELAYS) (N : NAMES) = struct
     let whole = D.whole
   end
 
-  module CU = IntervalClosure.Make (I.Upper) (Steps)
-  module CL = IntervalClosure.Make (I.Lower) (Steps)
+  module CU = TimedRegexOrder.Make (I.Upper) (Steps)
+  module CL = TimedRegexOrder.Make (I.Lower) (Steps)
 
   (* {1 Worlds} *)
 
@@ -71,7 +71,7 @@ module Make (D : DELAYS) (N : NAMES) = struct
                   [] others
               in
               let w =
-                IntervalClosure.world
+                TimedRegexOrder.world
                   (List.sort
                      (fun (n, _) (n', _) -> String.compare n n')
                      (List.map (fun n -> (n, time n)) mentioned
@@ -106,17 +106,17 @@ module Make (D : DELAYS) (N : NAMES) = struct
   module Side
       (E : I.S)
       (C : sig
-        val leq : IntervalClosure.world -> E.t -> E.t -> bool
+        val leq : TimedRegexOrder.world -> E.t -> E.t -> bool
 
         val counterexample :
-          IntervalClosure.world ->
+          TimedRegexOrder.world ->
           E.t ->
           E.t ->
-          IntervalClosure.concrete list option
+          TimedRegexOrder.concrete list option
 
-        val max_weight : IntervalClosure.world -> E.t -> I.cut option
-        val min_weight : IntervalClosure.world -> E.t -> I.cut option
-        val inhabited : IntervalClosure.world -> E.t -> bool
+        val max_weight : TimedRegexOrder.world -> E.t -> I.cut option
+        val min_weight : TimedRegexOrder.world -> E.t -> I.cut option
+        val inhabited : TimedRegexOrder.world -> E.t -> bool
       end)
       (S : sig
         val infix : string
@@ -150,8 +150,8 @@ module Make (D : DELAYS) (N : NAMES) = struct
         (fun c acc ->
           E.concat
             (match c with
-            | IntervalClosure.Name n -> E.op (Ops.name n)
-            | IntervalClosure.Length (s, d) -> E.stretch s (I.Finite (d, true)))
+            | TimedRegexOrder.Name n -> E.op (Ops.name n)
+            | TimedRegexOrder.Length (s, d) -> E.stretch s (I.Finite (d, true)))
             acc)
         w E.eps
 
@@ -323,7 +323,7 @@ module Make (D : DELAYS) (N : NAMES) = struct
           []
           (List.sort_uniq String.compare bounds.operations)
       in
-      IntervalConsistency.world
+      TimedRegexConsistency.world
         (List.sort
            (fun (n, _) (n', _) -> String.compare n n')
            (List.map (fun n -> (n, ends n)) names @ others))
@@ -334,9 +334,9 @@ module Make (D : DELAYS) (N : NAMES) = struct
 
     (* [witness bounds (l, u)] is a run fitting a word of [l] and a word of
        [u] at the running times of [bounds], if there is one
-       ({!IntervalConsistency}). *)
+       ({!TimedRegexConsistency}). *)
     let witness bounds (l, u) =
-      IntervalConsistency.witness ~whole:D.whole
+      TimedRegexConsistency.witness ~whole:D.whole
         (interval_world bounds (l, u))
         ~lower:(CL.graph l) ~upper:(CU.graph u)
 
@@ -347,12 +347,12 @@ module Make (D : DELAYS) (N : NAMES) = struct
        off the run. *)
     let consistent bounds (l, u) =
       let world = interval_world bounds (l, u) in
-      let key = (IntervalConsistency.id world, I.Lower.id l, I.Upper.id u) in
+      let key = (TimedRegexConsistency.id world, I.Lower.id l, I.Upper.id u) in
       match Hashtbl.find_opt consistency_found key with
       | Some c -> c
       | None ->
           let c =
-            IntervalConsistency.consistent ~whole:D.whole world
+            TimedRegexConsistency.consistent ~whole:D.whole world
               ~lower:(CL.graph l) ~upper:(CU.graph u)
           in
           Hashtbl.add consistency_found key c;
@@ -496,7 +496,7 @@ include
     (Whole)
     (struct
       let prefix = "timed-regex-"
-      let suffix = "-symbolic"
+      let suffix = ""
       let finite = false
     end)
 
@@ -505,7 +505,7 @@ module Rational =
     (Rationals)
     (struct
       let prefix = "timed-regex-"
-      let suffix = "-rational-symbolic"
+      let suffix = "-rational"
       let finite = false
     end)
 

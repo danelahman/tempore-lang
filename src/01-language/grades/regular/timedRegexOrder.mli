@@ -1,5 +1,5 @@
 (** The order of the timed regex grades, decided on the expressions of
-    {!IntervalRegex}.
+    {!TimedRegex}.
 
     [x ≾ y] iff every exact word of [x] fits some exact word of [y]: the
     operations of the word of [y] occur in that of [x] at the same time spans,
@@ -21,7 +21,7 @@
     world and bound, and the verdicts per world and pair of grades, in
     module-level tables that only ever grow. *)
 
-open IntervalRegex
+open TimedRegex
 
 type world
 (** The operations of a comparison: classes of names, each with its running time
@@ -51,7 +51,7 @@ type graph = {
     [set.(e)] and the cut [cut.(e)] of the side of the expression. *)
 
 module Make
-    (E : IntervalRegex.S)
+    (E : TimedRegex.S)
     (_ : sig
       val whole : bool
       (** Whether the lengths are whole time steps. *)

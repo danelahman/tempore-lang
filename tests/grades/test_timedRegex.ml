@@ -4,7 +4,7 @@
    intervals, and the rejection of the forms they do not read. *)
 
 module Grade = Grades.Grade
-module I = Grades.IntervalRegex
+module I = Grades.TimedRegex
 open LawChecks
 
 (* A grade that records the literal it reads. *)

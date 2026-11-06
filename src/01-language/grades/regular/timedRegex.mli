@@ -1,5 +1,5 @@
-(** Timed regular expressions over operation sets and time spans, the timed
-    regex grades.
+(** The expressions of the timed regex grades, timed regular expressions over
+    operation sets and time spans.
 
     {2 Letters}
 

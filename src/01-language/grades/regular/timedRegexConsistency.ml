@@ -1,4 +1,4 @@
-open IntervalRegex
+open TimedRegex
 
 (* {1 Worlds} *)
 
@@ -185,7 +185,7 @@ type transition = {
   event : event;
 }
 
-type side = { graph : IntervalClosure.graph; lower : bool }
+type side = { graph : TimedRegexOrder.graph; lower : bool }
 
 type context = {
   world : world;
@@ -480,7 +480,7 @@ let greatest cuts =
 
 let context ~whole world ~lower ~upper =
   let times = Array.to_list world.lo @ Array.to_list world.hi in
-  let constant (g : IntervalClosure.graph) =
+  let constant (g : TimedRegexOrder.graph) =
     greatest (Array.to_list g.cut @ times)
   in
   {

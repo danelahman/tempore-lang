@@ -6,11 +6,11 @@
    operations of the grades; and the counterexamples of the order. *)
 
 open LawChecks
-module R = IntervalLettersReference
+module R = TimedRegexReference
 module Grade = Grades.Grade
 module Rat = Grades.Rational
 module G = Grades.TimedRegexGrades
-module C = Grades.IntervalConsistency
+module C = Grades.TimedRegexConsistency
 
 (* The interval grades, with their witnesses. *)
 module type INTERVAL = sig

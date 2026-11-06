@@ -5,7 +5,7 @@
     its bounds, and idle waits. It fits an exact word when the operations of the
     word occur in it at the same time spans, in order, and every other operation
     of the run lies in stretches of the word whose sets contain it, the idle
-    waits of the word holding waiting only (the order of {!IntervalClosure}).
+    waits of the word holding waiting only (the order of {!TimedRegexOrder}).
     The sets of exact words of both bounds are closed downwards, so an interval
     [[L, U]] is consistent iff the two sets meet, iff some run fits a word of
     each.
@@ -21,7 +21,7 @@
     in a timed automaton with two clocks (Alur and Dill, "A theory of timed
     automata", 1994), each measuring the letter of one bound in progress. Its
     locations pair the nodes of the automata of the partial derivatives of the
-    bounds ({!IntervalClosure.graph}), each with the letter in progress, if any,
+    bounds ({!TimedRegexOrder.graph}), each with the letter in progress, if any,
     and the class of its operation. A letter of one bound begins only where the
     letter of the other bound in progress admits it: an operation lies in
     stretches whose sets contain it, or is matched by the same operation over
@@ -42,7 +42,7 @@
     has whole lengths. A run is read off the path found by fixing the times of
     its transitions one after another in their difference-bound matrix. *)
 
-open IntervalRegex
+open TimedRegex
 
 type world
 (** The classes of operations of a decision, each with the lower and the upper
@@ -62,8 +62,8 @@ type item = Op of string * Rational.t | Wait of Rational.t
 val consistent :
   whole:bool ->
   world ->
-  lower:IntervalClosure.graph ->
-  upper:IntervalClosure.graph ->
+  lower:TimedRegexOrder.graph ->
+  upper:TimedRegexOrder.graph ->
   bool
 (** [consistent ~whole world ~lower ~upper] is whether some run fits a word of
     the lower bound of the automaton [lower] and a word of the upper bound of
@@ -73,8 +73,8 @@ val consistent :
 val witness :
   whole:bool ->
   world ->
-  lower:IntervalClosure.graph ->
-  upper:IntervalClosure.graph ->
+  lower:TimedRegexOrder.graph ->
+  upper:TimedRegexOrder.graph ->
   item list option
 (** [witness ~whole world ~lower ~upper] is a run fitting a word of the lower
     bound of the automaton [lower] and a word of the upper bound of [upper],

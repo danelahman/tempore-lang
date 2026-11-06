@@ -19,7 +19,7 @@
 (test
  (name test_grades)
  (modules test_grades)
- (deps interval_letter_star_reference.tsv)
+ (deps timed_regex_star_reference.tsv)
  (libraries utils language grades lawChecks parser sugaredAst zarith))
 
 (test
@@ -72,29 +72,23 @@
  (libraries utils grades lawChecks parser sugaredAst))
 
 (test
- (name test_intervalRegex)
- (modules test_intervalRegex)
+ (name test_timedRegex)
+ (modules test_timedRegex)
  (libraries utils grades lawChecks parser sugaredAst))
 
 (library
- (name intervalLettersReference)
- (modules intervalLettersReference))
+ (name timedRegexReference)
+ (modules timedRegexReference))
 
 (test
- (name test_intervalLetters_reference)
- (modules test_intervalLetters_reference)
- (libraries grades lawChecks intervalLettersReference))
+ (name test_timedRegex_reference)
+ (modules test_timedRegex_reference)
+ (libraries grades lawChecks timedRegexReference))
 
 (test
- (name test_intervalConsistency)
- (modules test_intervalConsistency)
- (libraries
-  utils
-  grades
-  lawChecks
-  intervalLettersReference
-  parser
-  sugaredAst))
+ (name test_timedRegexConsistency)
+ (modules test_timedRegexConsistency)
+ (libraries utils grades lawChecks timedRegexReference parser sugaredAst))
 
 (test
  (name test_banked_instances)

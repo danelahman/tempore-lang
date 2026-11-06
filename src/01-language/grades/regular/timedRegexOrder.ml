@@ -1,4 +1,4 @@
-open IntervalRegex
+open TimedRegex
 module IntMap = Map.Make (Int)
 module IntSet = Set.Make (Int)
 
@@ -49,7 +49,7 @@ type graph = {
    [cut.(e)]. *)
 
 module Make
-    (E : IntervalRegex.S)
+    (E : TimedRegex.S)
     (Steps : sig
       val whole : bool
     end) =

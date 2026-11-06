@@ -3,7 +3,7 @@
    spans and idle waits, upper and lower, open ends and the point rule. *)
 
 open LawChecks
-module R = IntervalLettersReference
+module R = TimedRegexReference
 
 let running_time = function
   | "H" -> R.point 2

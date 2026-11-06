@@ -142,9 +142,9 @@ let whole_step_rejections =
            `banked-regex-lower-bound-rational-symbolic`, \
            `banked-regex-upper-bound-rational-symbolic`, \
            `banked-regex-interval-rational-symbolic`, \
-           `timed-regex-lower-bound-rational-symbolic`, \
-           `timed-regex-upper-bound-rational-symbolic`, \
-           `timed-regex-interval-rational-symbolic`, \
+           `timed-regex-lower-bound-rational`, \
+           `timed-regex-upper-bound-rational`, \
+           `timed-regex-interval-rational`, \
            `timed-regex-finite-lower-bound-rational`, \
            `timed-regex-finite-upper-bound-rational`, \
            `timed-regex-finite-interval-rational` or `inter-arrival` grade \

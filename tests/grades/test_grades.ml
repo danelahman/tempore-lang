@@ -1205,8 +1205,8 @@ let registry =
           "banked-traces-interval-rational";
           "banked-regex-interval-symbolic";
           "banked-regex-interval-rational-symbolic";
-          "timed-regex-interval-symbolic";
-          "timed-regex-interval-rational-symbolic";
+          "timed-regex-interval";
+          "timed-regex-interval-rational";
           "timed-regex-finite-interval";
           "timed-regex-finite-interval-rational";
           "call-time-sets";
@@ -1221,8 +1221,8 @@ let registry =
           "banked-traces-interval-rational";
           "banked-regex-interval-symbolic";
           "banked-regex-interval-rational-symbolic";
-          "timed-regex-interval-symbolic";
-          "timed-regex-interval-rational-symbolic";
+          "timed-regex-interval";
+          "timed-regex-interval-rational";
           "timed-regex-finite-interval";
           "timed-regex-finite-interval-rational";
         ]
@@ -1244,8 +1244,8 @@ let registry =
           "banked-traces-interval";
           "banked-regex-interval-symbolic";
           "banked-regex-interval-rational-symbolic";
-          "timed-regex-interval-symbolic";
-          "timed-regex-interval-rational-symbolic";
+          "timed-regex-interval";
+          "timed-regex-interval-rational";
           "timed-regex-finite-interval";
           "timed-regex-finite-interval-rational";
           "watermarks";
@@ -1269,9 +1269,9 @@ let registry =
           "banked-regex-lower-bound-rational-symbolic";
           "banked-regex-upper-bound-rational-symbolic";
           "banked-regex-interval-rational-symbolic";
-          "timed-regex-lower-bound-rational-symbolic";
-          "timed-regex-upper-bound-rational-symbolic";
-          "timed-regex-interval-rational-symbolic";
+          "timed-regex-lower-bound-rational";
+          "timed-regex-upper-bound-rational";
+          "timed-regex-interval-rational";
           "timed-regex-finite-lower-bound-rational";
           "timed-regex-finite-upper-bound-rational";
           "timed-regex-finite-interval-rational";
@@ -1290,9 +1290,9 @@ let registry =
           "banked-regex-lower-bound-rational-symbolic";
           "banked-regex-upper-bound-rational-symbolic";
           "banked-regex-interval-rational-symbolic";
-          "timed-regex-lower-bound-rational-symbolic";
-          "timed-regex-upper-bound-rational-symbolic";
-          "timed-regex-interval-rational-symbolic";
+          "timed-regex-lower-bound-rational";
+          "timed-regex-upper-bound-rational";
+          "timed-regex-interval-rational";
           "timed-regex-finite-lower-bound-rational";
           "timed-regex-finite-upper-bound-rational";
           "timed-regex-finite-interval-rational";
@@ -1308,9 +1308,9 @@ let registry =
           "banked-regex-lower-bound-rational-symbolic";
           "banked-regex-upper-bound-rational-symbolic";
           "banked-regex-interval-rational-symbolic";
-          "timed-regex-lower-bound-rational-symbolic";
-          "timed-regex-upper-bound-rational-symbolic";
-          "timed-regex-interval-rational-symbolic";
+          "timed-regex-lower-bound-rational";
+          "timed-regex-upper-bound-rational";
+          "timed-regex-interval-rational";
           "timed-regex-finite-lower-bound-rational";
           "timed-regex-finite-upper-bound-rational";
           "timed-regex-finite-interval-rational";
@@ -1332,9 +1332,9 @@ let registry =
           "banked-regex-lower-bound-rational-symbolic";
           "banked-regex-upper-bound-rational-symbolic";
           "banked-regex-interval-rational-symbolic";
-          "timed-regex-lower-bound-rational-symbolic";
-          "timed-regex-upper-bound-rational-symbolic";
-          "timed-regex-interval-rational-symbolic";
+          "timed-regex-lower-bound-rational";
+          "timed-regex-upper-bound-rational";
+          "timed-regex-interval-rational";
           "timed-regex-finite-lower-bound-rational";
           "timed-regex-finite-upper-bound-rational";
           "timed-regex-finite-interval-rational";
@@ -1366,12 +1366,12 @@ let registry =
           "banked-regex-lower-bound-rational-symbolic";
           "banked-regex-upper-bound-rational-symbolic";
           "banked-regex-interval-rational-symbolic";
-          "timed-regex-lower-bound-symbolic";
-          "timed-regex-upper-bound-symbolic";
-          "timed-regex-interval-symbolic";
-          "timed-regex-lower-bound-rational-symbolic";
-          "timed-regex-upper-bound-rational-symbolic";
-          "timed-regex-interval-rational-symbolic";
+          "timed-regex-lower-bound";
+          "timed-regex-upper-bound";
+          "timed-regex-interval";
+          "timed-regex-lower-bound-rational";
+          "timed-regex-upper-bound-rational";
+          "timed-regex-interval-rational";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
     expect "registry: grades reading an interval of delays" show_names
@@ -1381,9 +1381,9 @@ let registry =
           "banked-regex-lower-bound-rational-symbolic";
           "banked-regex-upper-bound-rational-symbolic";
           "banked-regex-interval-rational-symbolic";
-          "timed-regex-lower-bound-rational-symbolic";
-          "timed-regex-upper-bound-rational-symbolic";
-          "timed-regex-interval-rational-symbolic";
+          "timed-regex-lower-bound-rational";
+          "timed-regex-upper-bound-rational";
+          "timed-regex-interval-rational";
           "timed-regex-finite-lower-bound-rational";
           "timed-regex-finite-upper-bound-rational";
           "timed-regex-finite-interval-rational";
@@ -1937,7 +1937,11 @@ let family name =
   | "finite-run-sets" -> Some Inclusion_traces
   | "finite-run-sets-rational" -> Some Rational_inclusion_traces
   | "regular-trace-languages-rational-symbolic" -> Some Rational_regex
-  | _ when timed_regex && String.ends_with ~suffix:"-rational-symbolic" name ->
+  | _
+    when timed_regex
+         && (String.ends_with ~suffix:"-rational-symbolic" name
+            || prefix "timed-regex-"
+               && String.ends_with ~suffix:"-rational" name) ->
       Some Rational_banked_regex
   | _ when prefix "regular-trace-languages-" || timed_regex -> Some Regex
   | _ when banked_traces && String.ends_with ~suffix:"-rational" name ->
@@ -2918,7 +2922,7 @@ end
    delays as a monoid morphism on either side; the unit, which is not the top
    of the lower bounds; and the verdicts on time spans and idle waits, the
    guarantees of the lower bounds given explicit flanks [≥0]. *)
-let interval_letter_laws =
+let timed_regex_laws =
   let module G = Grades.TimedRegexGrades in
   let running_times =
     let table =
@@ -3116,7 +3120,7 @@ let interval_letter_laws =
    without [A] admits no overflow. The interval instance reads the same
    literals by their hulls; its lower components are ordered, every stretch
    being [≥0]. *)
-let interval_letter_overflow =
+let timed_regex_overflow =
   let module G = Grades.TimedRegexGrades in
   (* [running_times hi] is the running time [[1, hi]] of [A] and [[1, 1]] of
      [B]. *)
@@ -3224,7 +3228,7 @@ let star_running_times =
    over whole steps [<1] is [0], and both orders hold. An unbounded stretch is
    below the star of a bounded one, but below no word of it. The star-free cases
    hold of the finite traces likewise. *)
-let interval_letter_star =
+let timed_regex_star =
   let module G = Grades.TimedRegexGrades in
   let checks (type a) (module M : Grade.S with type t = a) cases =
     let module P = Reader (M) in
@@ -3289,8 +3293,8 @@ let interval_letter_star =
 (* The timed regex orders over the rationals with star against the verdicts of
    an independent reference decision over the rationals, computed offline on
    random pairs of expressions and their perturbations
-   ([interval_letter_star_reference.tsv]), at {!star_running_times}. *)
-let interval_letter_star_reference =
+   ([timed_regex_star_reference.tsv]), at {!star_running_times}. *)
+let timed_regex_star_reference =
   let module G = Grades.TimedRegexGrades in
   let decide (type a) (module M : Grade.S with type t = a) x y =
     let module P = Reader (M) in
@@ -3299,7 +3303,7 @@ let interval_letter_star_reference =
     | Error e, _ | _, Error e -> Error e
   in
   let rows =
-    In_channel.with_open_text "interval_letter_star_reference.tsv"
+    In_channel.with_open_text "timed_regex_star_reference.tsv"
       In_channel.input_lines
     |> List.filter (fun line -> line <> "" && line.[0] <> '#')
   in
@@ -3316,7 +3320,7 @@ let interval_letter_star_reference =
             if verdict = Ok expected then
               (disagreements, if expected then accepted + 1 else accepted)
             else ((side, x, y, expected, verdict) :: disagreements, accepted)
-        | _ -> failwith ("interval_letter_star_reference.tsv: " ^ line))
+        | _ -> failwith ("timed_regex_star_reference.tsv: " ^ line))
       ([], 0) rows
   in
   let name =
@@ -4359,9 +4363,8 @@ let () =
     @ inclusion_laws @ indexed @ mode_laws @ resource_laws @ interval_read_back
     @ time_grade_laws @ schedule_laws @ resource_construction_laws @ finite_laws
     @ declared_lattice_laws @ declared_lattice_structure @ ranges @ flow_tops
-    @ duration_bounds @ mode_time_laws @ interval_letter_laws
-    @ interval_letter_overflow @ interval_letter_star
-    @ interval_letter_star_reference
+    @ duration_bounds @ mode_time_laws @ timed_regex_laws @ timed_regex_overflow
+    @ timed_regex_star @ timed_regex_star_reference
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;
