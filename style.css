@@ -978,6 +978,7 @@ select option {
 }
 
 .example-group h3 {
+  flex: none;
   margin: 0;
   font-size: 15px;
   font-weight: 600;
