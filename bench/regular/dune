@@ -1,6 +1,6 @@
-; A benchmark of the four implementations of the regular trace languages, by
-; automata and by three kinds of derivatives; it is built but not run by the
-; tests:
+; A benchmark of the regular grades: the regular trace languages, the regex
+; grades with banked delays and the timed regex grades; it is built but not run
+; by the tests:
 ;
 ;   dune exec --profile release bench/regular/bench_regular.exe
 
@@ -14,4 +14,6 @@
   sugaredAst
   loader
   cliInterpreter
+  testSupport
+  testPrograms
   unix))
