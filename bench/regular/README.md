@@ -38,8 +38,8 @@ names" mention many names within one letter set, where the minterms are few
 and the letters many; "k names told apart" mentions each name on its own,
 where the minterms are the letters. The delays of up to 1024 ticks exercise the
 runs of ticks as counters (45cd85f), and the 512 declared names, of three running
-times, the stepping of the symbolic grades of timed operations by classes of
-names of equal running time (bcce0dc). Run from the root of the repository:
+times, the stepping of the symbolic regex grades with banked delays by classes
+of names of equal running time (bcce0dc). Run from the root of the repository:
 
     dune exec --profile release bench/regular/bench_regular.exe
 
@@ -59,21 +59,22 @@ denominator is below the resolution of the clock.
 - `--profile release`
 - Total run time: 18 min 9 s
 - Changes to the benchmark since 2026-09-27: the families "delays" and
-  "declared names" of the grades of timed operations gain n = 1024 and k = 512,
+  "declared names" of the regex grades with banked delays gain n = 1024 and
+  k = 512,
   and the alarm is lowered from 20 s to 10 s. All five `> 10 s` cells are of
   the automata.
 
 ## Summary
 
 Geometric means of the ratios of the cold times over the rows in which all
-four implementations take at least 5 us (the rows of the grades of timed
-operations include the new families):
+four implementations take at least 5 us (the rows of the regex grades with
+banked delays include the new families):
 
 | rows                                | count | automata / plain | plain / letters | letters / symbolic | automata / symbolic |
 |-------------------------------------|------:|-----------------:|----------------:|-------------------:|--------------------:|
 | typechecking                        |    25 |             1.08 |            1.05 |               0.99 |                1.12 |
 | operations of the plain grade       |    53 |             2.86 |            1.54 |               1.21 |                5.34 |
-| operations of the timed grades      |   131 |             3.45 |            1.41 |               1.55 |                7.54 |
+| operations of the banked grades     |   131 |             3.45 |            1.41 |               1.55 |                7.54 |
 
 Change since the run of 2026-09-27 (at baa89f1): geometric means of new / old
 cold times over the rows of both runs in which both take at least 5 us. Below
@@ -85,7 +86,7 @@ for all four implementations.
 |-------------------------------------|---------:|------:|--------:|---------:|
 | typechecking (25 rows)              |     0.77 |  0.71 |    0.71 |     0.72 |
 | operations of the plain grade       |     0.80 |  0.91 |    0.76 |     0.81 |
-| operations of the timed grades      |     1.03 |  0.55 |    0.52 |     0.38 |
+| operations of the banked grades     |     1.03 |  0.55 |    0.52 |     0.38 |
 
 How the derivatives fare:
 
@@ -129,8 +130,8 @@ How the derivatives fare:
 
 ## Comparison of 2026-10-19
 
-OLD is 58d1d6b, the main before the redesign of the timed regex grades as
-interval-letter grades; NEW is ba1d380. Same machine and settings as above
+OLD is 58d1d6b, the main before the redesign of the timed regex grades over
+time spans and idle waits; NEW is ba1d380. Same machine and settings as above
 (macOS 15.7.7, arm64, OCaml 5.5.0, `--profile release`); one run of this
 benchmark per revision, best of 3 for the other measurements. Times of the
 typechecking benchmark are printed to 10 ms.
@@ -141,15 +142,15 @@ geometric means of new / old cold times over the rows in which both take at
 least 5 us are 0.98 to 1.00 for typechecking (25 rows per implementation)
 and 0.97 to 1.01 for the operations (193 to 237 rows). Total run time:
 17 min 47 s (OLD), 17 min 58 s (NEW). Two rows are more than 20 % and 50 ms
-slower, `leq C* <= E2` at n = 8 of the upper-bound grade of timed operations,
-by plain derivatives (316 ms to 427 ms) and by letters (339 ms to 443 ms):
-the known cold-path cost of that row, not attributed to the redesign.
+slower, `leq C* <= E2` at n = 8 of the upper-bound regex grade with banked
+delays, by plain derivatives (316 ms to 427 ms) and by letters (339 ms to
+443 ms): the known cold-path cost of that row, not attributed to the redesign.
 
 Retired in NEW, not measured by this benchmark: the alternative implementations
 `timed-regex-{upper-bound,lower-bound,interval}` with the suffixes
 `-letter-automata`, `-letter-derivatives` and `-symbolic-by-letters` (nine grade
 names). The timed regex grades remain with the suffixes `-symbolic` and
-`-rational-symbolic`, now as interval-letter grades.
+`-rational-symbolic`, now over time spans and idle waits.
 
 Typechecking of the timed regex grades (`bench/typecheck`, 3 processes, best of
 3 runs; the files of the examples changed between the revisions):
@@ -328,7 +329,7 @@ warm: mean of repeated runs; ratios of the cold times: automata / plain
 | tests/banked_regex_interval.tpe           |   38.19 ms |   35.79 ms |   32.80 ms |   33.95 ms |       1.07 |       1.09 |       0.97 |   35.94 ms |   32.46 ms |   30.37 ms |   31.11 ms |
 | tests/banked_regex_interval_reject.tpe    |   37.79 ms |   34.98 ms |   32.15 ms |   33.31 ms |       1.08 |       1.09 |       0.97 |   35.01 ms |   31.69 ms |   29.53 ms |   30.19 ms |
 | tests/banked_regex_interval_ticks_reject.tpe |   35.31 ms |   33.03 ms |   30.69 ms |   31.11 ms |       1.07 |       1.08 |       0.99 |   32.87 ms |   30.39 ms |   28.35 ms |   28.89 ms |
-| **banked-regex-upper-bound-letter-automata: timed corpus (15 literals)** |            |            |            |            |            |            |            |            |            |            |            |
+| **banked-regex-upper-bound-letter-automata: banked corpus (15 literals)** |            |            |            |            |            |            |            |            |            |            |            |
 | elaborate                                |   464.2 us |   149.0 us |   136.9 us |   129.9 us |       3.12 |       1.09 |       1.05 |   186.9 us |    13.3 us |    12.4 us |    12.4 us |
 | leq, all pairs                           |    9.77 ms |   10.44 ms |   10.04 ms |    5.49 ms |       0.94 |       1.04 |       1.83 |   274.7 us |   525.3 us |   241.2 us |   255.8 us |
 | equal, all pairs                         |    9.81 ms |   10.72 ms |   10.04 ms |    5.68 ms |       0.91 |       1.07 |       1.77 |   391.2 us |   729.5 us |   343.0 us |   361.1 us |
@@ -391,7 +392,7 @@ warm: mean of repeated runs; ratios of the cold times: automata / plain
 | leq (B \| C)* <= E                        |    3.74 ms |    8.64 ms |    8.71 ms |    6.30 ms |       0.43 |       0.99 |       1.38 |    17.3 us |     3.4 us |     0.9 us |     1.0 us |
 | counterexample (B \| C)*; A; (B \| C)^n, E |    3.95 ms |    8.39 ms |    8.82 ms |    6.71 ms |       0.47 |       0.95 |       1.31 |    17.7 us |     3.2 us |     1.4 us |     1.4 us |
 | leq C* <= E2                             |    3.68 ms |  444.42 ms |  460.08 ms |  457.69 ms |       0.01 |       0.97 |       1.01 |    20.3 us |     3.9 us |     1.1 us |     1.2 us |
-| **banked-regex-lower-bound-letter-automata: timed corpus (15 literals)** |            |            |            |            |            |            |            |            |            |            |            |
+| **banked-regex-lower-bound-letter-automata: banked corpus (15 literals)** |            |            |            |            |            |            |            |            |            |            |            |
 | elaborate                                |   875.9 us |   145.9 us |   134.0 us |   137.1 us |       6.00 |       1.09 |       0.98 |   187.0 us |    13.4 us |    12.4 us |    12.4 us |
 | leq, all pairs                           |    2.21 ms |    2.85 ms |    2.17 ms |    2.11 ms |       0.78 |       1.31 |       1.03 |   274.0 us |   525.3 us |   243.5 us |   255.5 us |
 | equal, all pairs                         |    2.24 ms |    3.07 ms |    2.37 ms |    2.30 ms |       0.73 |       1.30 |       1.03 |   406.1 us |   767.0 us |   357.7 us |   377.1 us |
@@ -454,7 +455,7 @@ warm: mean of repeated runs; ratios of the cold times: automata / plain
 | leq (B \| C)* <= E                        |    1.66 ms |    70.1 us |    47.0 us |    53.2 us |      23.72 |       1.49 |       0.88 |    17.2 us |     3.3 us |     0.9 us |     1.0 us |
 | counterexample (B \| C)*; A; (B \| C)^n, E |    1.62 ms |    80.1 us |    62.0 us |    62.0 us |      20.22 |       1.29 |       1.00 |    17.6 us |     3.1 us |     1.4 us |     1.4 us |
 | leq C* <= E2                             |    1.36 ms |    78.2 us |    52.0 us |    58.9 us |      17.44 |       1.50 |       0.88 |    19.9 us |     3.7 us |     1.1 us |     1.2 us |
-| **banked-regex-interval-letter-automata: timed corpus (20 literals)** |            |            |            |            |            |            |            |            |            |            |            |
+| **banked-regex-interval-letter-automata: banked corpus (20 literals)** |            |            |            |            |            |            |            |            |            |            |            |
 | elaborate                                |    1.01 ms |   175.0 us |   158.1 us |   158.1 us |       5.78 |       1.11 |       1.00 |   351.2 us |    20.7 us |    19.1 us |    19.1 us |
 | leq, all pairs                           |    7.13 ms |    7.98 ms |    6.92 ms |    5.39 ms |       0.89 |       1.15 |       1.28 |   695.8 us |    1.27 ms |   606.5 us |   645.6 us |
 | equal, all pairs                         |    7.48 ms |    8.20 ms |    7.10 ms |    5.68 ms |       0.91 |       1.15 |       1.25 |   824.9 us |    1.50 ms |   720.0 us |   764.6 us |

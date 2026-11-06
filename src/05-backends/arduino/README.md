@@ -75,7 +75,7 @@ is specified by the application, which boxes it.
 
 ### Declarations and definitions
 
-The descriptor maps each grade system the package supports to a file of
+The descriptor maps each grade algebra the package supports to a file of
 declarations, and may name a file of definitions, types and functions shared
 by all of them, such as the tilt filters of `m5-imu`. Every package is
 declared under `time-interval-rational`, under the regex grades with banked
@@ -165,7 +165,7 @@ closed intervals in the time unit of the declarations:
     }
 
 For the board of a manifest, these bounds replace those of the declarations
-under every grade system that bounds durations: the interval grade of the
+under every grade algebra that bounds durations: the interval grade of the
 operation under `time-interval-rational`, and its `within` bounds under the
 banked and timed regex grades and `inter-arrival`.
 
@@ -316,7 +316,7 @@ durations of its effect must lie below the period, as for
 `step : float -> float ! [0, 20)`, and under the timed regex grades for
 `watch : float -> float ! {ReadImu; Publish}`, whose durations
 are those of the operations of its trace. Under grades that bound no
-durations, such as the operation counts, the period is checked by the
+durations, such as the at-most counts, the period is checked by the
 monitor only, and the operations have no running-time bounds.
 
 Boxes specify how long a reading may be used and, under other grades, which
@@ -730,7 +730,7 @@ port variable `PORT_M5STACK_CORES3_RADIO`.
   - the step finishes within its 20 ms period;
   - the tilt shown was read less than 20 ms earlier.
 - [`peak`](../../../examples/arduino/peak/peak.tpe): a recorder of the peak
-  tilt in the flash memory, under the operation counts. The typechecker
+  tilt in the flash memory, under the at-most counts. The typechecker
   proves:
   - the step reads the unit once, publishes once and never writes the flash
     memory;
@@ -900,7 +900,7 @@ battery too weak for the motors, charged through the USB-C port of the Gray.
 
 - A board is a profile `boards/NAME.json`.
 - A package is a directory `libraries/NAME/` with a descriptor
-  `package.json`, which maps each grade system to a file of declarations and
+  `package.json`, which maps each grade algebra to a file of declarations and
   may name a file of definitions, give running-time bounds per board and
   name, by `packages`, the packages whose operations it performs, which a
   program lists before it, and the declarations, C++ sources and host
