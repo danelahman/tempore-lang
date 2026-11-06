@@ -7,17 +7,17 @@
 
     - ["description"] (required): a string describing the package;
     - ["definitions"]: a Tempore file of types and of functions that perform no
-      operation, read under every grade system and loaded before the
+      operation, read under every grade algebra and loaded before the
       declarations;
     - ["declarations"] (required): the Tempore files of the package, each
-      declaring its operations under a grade system, with grades and default
+      declaring its operations under a grade algebra, with grades and default
       implementations, and possibly defining types and functions; an object
-      mapping the name of each grade system under which the package is read (as
+      mapping the name of each grade algebra under which the package is read (as
       [--grades] accepts it) to its file, several names possibly sharing one
-      file, or the name of a single file, read under the grade systems listed by
-      ["grades"];
+      file, or the name of a single file, read under the grade algebras listed
+      by ["grades"];
     - ["grades"]: with a single file of declarations, the names of the grade
-      systems under which it is read;
+      algebras under which it is read;
     - ["requires"]: the capabilities of the board the package needs
       ({!ArduinoBoard.t.capabilities}, default none);
     - ["packages"]: the other packages whose operations its files perform, which
@@ -45,16 +45,16 @@
     enclosed in [#ifdef TEMPORE_PERFORMS_Op], since the types of an operation
     the program does not perform are not generated.
 
-    Under a grade system that bounds durations, the declarations give each
+    Under a grade algebra that bounds durations, the declarations give each
     operation the bounds of its running time, as an interval grade [[lo, hi]] or
     by [within [lo, hi]], and a default implementation that simulates that time
     by a delay; the monitors of a device check these bounds. Under the other
-    grade systems an operation has no running-time bounds, and its calls are not
-    checked by a monitor.
+    grade algebras an operation has no running-time bounds, and its calls are
+    not checked by a monitor.
 
     The bounds the declarations give hold on every board the package supports.
     For a board named by ["bounds"], the bounds given there replace, under each
-    grade system that bounds durations, those the declarations give to the
+    grade algebra that bounds durations, those the declarations give to the
     operations it names ({!file.running_times}): the bounds of the interval
     grade of an operation, or those of its [within]. A program for a device is
     typed and monitored under the bounds of the board of its manifest; one run
@@ -62,7 +62,7 @@
     those of the declarations. The default implementations take a time within
     the bounds of every board.
 
-    A program under the grade system [g] is preceded by the definitions and the
+    A program under the grade algebra [g] is preceded by the definitions and the
     declarations under [g] of each of its packages ({!files_for}). *)
 
 type file = {
@@ -81,8 +81,8 @@ type t = {
   description : string;
   definitions : file option;
   declarations : (string * file) list;
-      (** the declarations under each grade system, by its name, in the order of
-          the descriptor *)
+      (** the declarations under each grade algebra, by its name, in the order
+          of the descriptor *)
   requires : string list;
   packages : string list;
       (** the packages it needs, listed before it ({!missing_package}) *)
@@ -141,7 +141,7 @@ val running_times :
 val files_for :
   grades:string -> ?board:string -> t -> (file list, string) result
 (** [files_for ~grades ?board package] is the files of [package] that precede a
-    program under the grade system named [grades]: its definitions, if any, and
+    program under the grade algebra named [grades]: its definitions, if any, and
     its declarations under [grades], with the running-time bounds of the board
     named [board] ({!running_times}); an error message if it has none under
     [grades]. *)

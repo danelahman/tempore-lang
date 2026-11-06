@@ -173,7 +173,7 @@ val files : input -> ArduinoFragment.program -> (string * string) list
       model, or a package binding an operation that another package of the
       manifest binds.
 
-    Under a grade system that does not bound durations
+    Under a grade algebra that does not bound durations
     ({!Grades.Grade.Untimed}), the durations of the functions of periodic and
     repeated free tasks are not checked: the period of a step is checked only by
     the monitor of the device, and a repeated free task is not shown to yield.
