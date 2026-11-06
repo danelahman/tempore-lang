@@ -1,529 +1,833 @@
 # Regular grades benchmark
 
-Compares the four implementations of the regular trace languages, and of the
-three regex grades with banked delays built over each
-(`banked-regex-upper-bound`, `banked-regex-lower-bound`,
-`banked-regex-interval`, with the same suffixes). They differ one design choice
-at a time:
-
-| implementation | grade suffix           | construction     | letters of the expressions | letters derived by |
-|----------------|------------------------|------------------|----------------------------|--------------------|
-| automata       | `-letter-automata`     | minimal automata | —                          | —                  |
-| plain          | `-letter-derivatives`  | derivatives      | single letters             | letters            |
-| letters        | `-symbolic-by-letters` | derivatives      | letter sets                | letters            |
-| symbolic       | `-symbolic`            | derivatives      | letter sets                | minterms           |
-
-The automata implementation (`RegularTraceLanguages`) builds canonical minimal
-automata; the other three share the normal form, interning, memoisation,
-decision procedures (depth-first emptiness, breadth-first shortest
-counterexamples, Hopcroft–Karp equality) and printing of `SymbolicRegex` and
-`RegularTraceLanguagesDerivative`. The symbolic implementation derives by the
-minterms of the letter sets, as RE#. The letters implementation derives by
-the concrete letters of the expressions compared instead: `tick`, each name
-mentioned and one catch-all letter for the others. The plain implementation
-(`RegularTraceLanguagesPlain`) moreover has no letter sets: its expressions are
-over single letters, `_` is the union of the letters of the grade's alphabet,
-and grades over different names are re-expressed over the union of their
-names before they are combined or compared, as the automata implementation
-aligns its alphabets. The three ratios thus read off the three effects:
-automata / plain the construction, plain / letters the representation of
-letters, and letters / symbolic the minterms; their product is automata /
-symbolic.
-
-The workloads are the typechecking of the examples and tests that use each
-grade, the standard library included, and the grade operations (elaboration,
-`mul`, `join`, `leq`, `equal`, `counterexample`, `inhabited`) on families of
-grades of increasing size. The families "alphabet of k names" and "k declared
-names" mention many names within one letter set, where the minterms are few
-and the letters many; "k names told apart" mentions each name on its own,
-where the minterms are the letters. The delays of up to 1024 ticks exercise the
-runs of ticks as counters (45cd85f), and the 512 declared names, of three running
-times, the stepping of the symbolic regex grades with banked delays by classes
-of names of equal running time (bcce0dc). Run from the root of the repository:
+Times the grade operations and the typechecking of the regular trace
+languages, the regex grades with banked delays and the timed regex grades,
+comparing the implementations of each grade where there are several. Run from
+the root of the repository:
 
     dune exec --profile release bench/regular/bench_regular.exe
 
-Each measurement runs in a fresh child process, so that the tables the
-derivatives keep start empty: it prepares its inputs untimed, then times the
-operation once (cold) and then repeatedly (warm, the mean of the repeated
-runs). The table shows the medians over 5 processes (fewer past 10 s of total
-measurement); a cell reads `> 10 s` when a single run was killed at that
-alarm. The ratios are of the cold times; a ratio is left empty when its
-denominator is below the resolution of the clock.
+A full run takes about 14 minutes. With `--quick` each family is timed at its
+least size only, in about 3 minutes.
+
+## Grades and implementations
+
+The implementations other than `-symbolic`, `-rational-symbolic` and the timed
+regex grades are hidden: `--grades` accepts them for benchmarking, and
+`./tempore --help` lists only the others.
+
+| `--grades` names | representation | inclusion |
+|---|---|---|
+| `regular-trace-languages-letter-automata` | minimal automata over single letters | product with the complement, breadth-first |
+| `regular-trace-languages-letter-derivatives` | expressions over single letters | derivatives by single letters, depth-first |
+| `regular-trace-languages-symbolic-by-letters` | symbolic expressions over letter sets | derivatives by single letters, depth-first |
+| `regular-trace-languages-symbolic` | symbolic expressions over letter sets | gap derivatives by minterms, depth-first |
+| `banked-regex-{lower-bound,upper-bound,interval}-letter-automata` | minimal automata over single letters | product with the closure, breadth-first |
+| `banked-regex-{lower-bound,upper-bound,interval}-letter-derivatives` | expressions over single letters | derivatives by single letters with closures, depth-first |
+| `banked-regex-{lower-bound,upper-bound,interval}-symbolic-by-letters` | symbolic expressions over letter sets | derivatives by single letters with closures, depth-first |
+| `banked-regex-{lower-bound,upper-bound,interval}-symbolic` | symbolic expressions over letter sets | gap derivatives with a closure reader, breadth-first |
+| `regular-trace-languages-rational-automata` | minimal symbolic automata over letter and delay sets | product with the complement, breadth-first |
+| `regular-trace-languages-rational-symbolic` | symbolic expressions over letter and delay sets | gap derivatives by minterms, depth-first |
+| `banked-regex-{lower-bound,upper-bound,interval}-rational-automata` | minimal symbolic automata over letter and delay sets | product with a closure reader, breadth-first |
+| `banked-regex-{lower-bound,upper-bound,interval}-rational-symbolic` | symbolic expressions over letter and delay sets | gap derivatives with a closure reader, breadth-first |
+| `timed-regex-{lower-bound,upper-bound,interval}[-rational]`, `timed-regex-finite-…` | expressions over time spans, idle waits and operation sets | partial derivatives with a time span reader, breadth-first |
+
+The tables name the four whole-step implementations automata, plain, letters
+and symbolic, in the order of the table, and the two rational ones automata
+and symbolic. Each ratio of consecutive columns mixes several choices:
+
+- automata / plain: automata built with the grade against expressions decided
+  on the fly, a breadth-first product against a depth-first search, and
+  canonical against derived equality and printing;
+- plain / letters: single letters, with the alphabets of two grades aligned,
+  against letter sets; the decision procedures are the same;
+- letters / symbolic: derivatives by single letters, a run of ticks taken in
+  one step, against gap derivatives by minterms, a delay of any length in one
+  step; breadth-first against Dijkstra counterexamples, and equality by the
+  derivatives against a bisimulation of the gap derivatives; for the regex
+  grades with banked delays also a depth-first search with the closure stepped
+  alongside against a breadth-first search with a closure reader;
+- rational automata / symbolic: minimal symbolic automata and a product
+  against expressions and gap derivatives.
+
+The timed regex grades have one implementation, timed alone.
+
+## Workloads
+
+Each family is timed at increasing sizes; each row names its workload.
+
+Whole time steps, four columns:
+
+- Typechecking: the standard library alone, then with each example and test
+  whose header names the `-symbolic` grade, under every implementation.
+- Corpus of the regular trace languages: 41 literals of those files; elaborate,
+  `mul`, `join`, `leq`, `equal`, `counterexample` over all pairs, `show` of
+  each.
+- Protocol `P^k` (k = 8, 32) and nested protocol `N_d` (d = 3, 6): products,
+  joins and inclusions of repeated sessions.
+- n-th letter from the end (n = 4, 8, 12, 16): complement and intersection,
+  where automata determinise; `show` of `E2` at n = 8, 12.
+- Alphabet of k names (k = 8, 32, 128): one letter set of many names, few
+  minterms; k names told apart (k = 32, 128): every name on its own, the
+  minterms being the letters.
+- Gaps (`(100 | 101)*`, `(1000 | 1001)*`, `(97 | 89)*`): long sums of whole
+  delays, `(a | b)*` against `a*; b*` and against `(a | b + 1)*`.
+- Corpus of each regex grade with banked delays: 24 one-sided literals of the
+  examples and tests of these grades, 34 with the interval literals, under the
+  running times those files declare; elaborate, `leq`, `equal`,
+  `counterexample` over all pairs, `inhabited` and `show` of each.
+- Delays (n = 8, 128, 1024), k declared names of three running times (k = 8,
+  128, 512) and n-th letter from the end (n = 4, 8): the runs of ticks, the
+  classes of names of equal running time, and complements, over running times
+  with open ends.
+- Interval consistency (n = 10, 100), interval grade only: an interval of n
+  reads with a common run, one whose upper end permits no run of its lower
+  end, and one whose ends last apart.
+
+Rational delays, two columns:
+
+- Typechecking as above, for the `-rational-symbolic` grades.
+- Corpora of the rational files: 17 literals of the regular trace languages,
+  23 one-sided and 31 with intervals of the regex grades with banked delays.
+- Delay sets: nine grades whose sets of delays have long finite parts, or of
+  the same shape and small; elaborate, `leq` of a delay below, `equal` with
+  the join of that delay, `counterexample`.
+- Delays, declared names and interval consistency as above, for the upper
+  bound and the interval, over fractional running times with open ends.
+
+Timed regex grades, one column:
+
+- Case-study corpus: 34 literals of the Arduino and Opentrons case studies and
+  of `examples/timed_regex`, under the running times their files and packages
+  declare on their boards; all pairs as above, `duration_bounds`, `inhabited`
+  and `show` of each, under `timed-regex-interval-rational`.
+- Calibration window of the balancing robot,
+  `[{≥1000 & ~Move}, {≤600000 & ~Move}]`, against two grades of unbounded
+  durations; kept out of the corpus, whose all-pairs rows it would dominate.
+- Interval consistency (n = 10, 40, 160, 640): a common run found by zones,
+  none, and ends whose durations are apart.
+- Bounded repetitions (n = 20, 80, 320, 1280): `{(A; idle 25/2)^n}` against
+  time spans of 27/2 and of 12 after each `A`, and against a star; the counts
+  are not unrolled.
+- Time spans absorbing items (k = 10, 100, 1000): `{(Reading; idle 10)^k}`
+  against one time span of its greatest length, on the upper side, and against
+  `{≥1000 & ~Move}` on the lower side.
+- n-th operation from the end (n = 4, 8, 12, 16), whole time steps: the
+  nondeterminism of the reader.
+- k declared names of three running times (k = 32, 512), whole time steps:
+  the classes of names of a world.
+- Finite timed regex grades: the 22 literals of the case-study corpus that
+  `timed-regex-finite-interval-rational` reads, as a parity check.
+
+The typechecking of the timed regex grades, which needs the packages of the
+Arduino backend, is timed by `bench/typecheck`.
+
+## Method
+
+Each measurement runs in a fresh child process, so that the tables the grades
+keep start empty. It prepares its inputs untimed and times the operation once
+(cold); a typechecking is then repeated for 0.1 s (warm, the mean). The tables
+show the medians over 5 processes, fewer once 10 s have been spent; a process
+is stopped after 10 s, and the cell then reads `> 10 s`. The ratios are of the
+cold times; a ratio is left empty when its denominator is below the
+resolution of the clock. The running times of the corpora are read from their
+files in a separate child process.
 
 ## Measured
 
-- 2026-09-28, at bcce0dc on `v2`, with the workloads extended as below
-- macOS 15.7.7 (Darwin 24.6.0, arm64)
-- OCaml 5.5.0, dune 3.24.2
-- `--profile release`
-- Total run time: 18 min 9 s
-- Changes to the benchmark since 2026-09-27: the families "delays" and
-  "declared names" of the regex grades with banked delays gain n = 1024 and
-  k = 512,
-  and the alarm is lowered from 20 s to 10 s. All five `> 10 s` cells are of
-  the automata.
+- 2026-11-07, at 8b8ebe9a
+- Apple M3 Pro, macOS 15.8.2 (Darwin 24.6.0, arm64)
+- OCaml 5.5.0, dune 3.24.2, `--profile release`
+- Total run time: 13 min 38 s
 
 ## Summary
 
-Geometric means of the ratios of the cold times over the rows in which all
-four implementations take at least 5 us (the rows of the regex grades with
-banked delays include the new families):
+Geometric means of the ratios of the cold times, over the rows in which every
+implementation takes at least 5 us and none times out: the mean of the
+logarithms of the ratios, exponentiated.
 
-| rows                                | count | automata / plain | plain / letters | letters / symbolic | automata / symbolic |
-|-------------------------------------|------:|-----------------:|----------------:|-------------------:|--------------------:|
-| typechecking                        |    25 |             1.08 |            1.05 |               0.99 |                1.12 |
-| operations of the plain grade       |    53 |             2.86 |            1.54 |               1.21 |                5.34 |
-| operations of the banked grades     |   131 |             3.45 |            1.41 |               1.55 |                7.54 |
+| rows | count | automata / plain | plain / letters | letters / symbolic | automata / symbolic |
+|---|---:|---:|---:|---:|---:|
+| whole time steps, typechecking | 34 | 1.07 | 1.04 | 1.00 | 1.11 |
+| whole time steps, operations | 204 | 3.92 | 1.19 | 0.93 | 4.34 |
+| of which regular trace languages | 68 | 4.03 | 1.16 | 0.47 | 2.22 |
+| of which `banked-regex-lower-bound` | 44 | 5.28 | 1.57 | 0.66 | 5.46 |
+| of which `banked-regex-upper-bound` | 43 | 3.29 | 0.98 | 1.94 | 6.26 |
+| of which `banked-regex-interval` | 49 | 3.35 | 1.14 | 1.71 | 6.53 |
+| rational delays, typechecking | 22 | | | | 1.03 |
+| rational delays, operations | 113 | | | | 0.60 |
+| of which regular trace languages | 29 | | | | 0.49 |
+| of which regex grades with banked delays | 84 | | | | 0.63 |
 
-Change since the run of 2026-09-27 (at baa89f1): geometric means of new / old
-cold times over the rows of both runs in which both take at least 5 us. Below
-1 is faster. The typechecking rows also gain from the inference work between
-the runs (incremental elimination, per-grade comparison and hashing), equally
-for all four implementations.
+Typechecking differs little between the implementations: the standard
+library dominates it, 13 to 29 ms. The slow cases, not investigated:
 
-| rows                                | automata | plain | letters | symbolic |
-|-------------------------------------|---------:|------:|--------:|---------:|
-| typechecking (25 rows)              |     0.77 |  0.71 |    0.71 |     0.72 |
-| operations of the plain grade       |     0.80 |  0.91 |    0.76 |     0.81 |
-| operations of the banked grades     |     1.03 |  0.55 |    0.52 |     0.38 |
-
-How the derivatives fare:
-
-- Runs of ticks as counters. At n = 1024 ticks every derivative implementation
-  decides the delay workloads in 22 us to 0.8 ms, mostly as fast as at n = 8
-  (the interval grade's `leq R <= T` and `equal T = T | R` grow from 0.1 ms to
-  0.55 and 0.81 ms), where the automata take 0.26 to 8.9 s or exceed 10 s (up
-  to 54,000 times slower). The exception is `leq S <= T (false)` and its
-  counterexample under the upper bound, which still grow linearly in n: 2.2 ms
-  at n = 128 (35 ms on 2026-09-27) and 18 to 29 ms at n = 1024.
-- Classes of names of equal running time, upper bound. The symbolic grade stays
-  at 0.1 to 1.2 ms from 128 to 512 declared names, where the letters and plain
-  implementations take 33 to 230 ms on the comparisons: up to 2,090 times on
-  `leq Y <= {8}` and 100 times on `leq W <= X (false)`. On 2026-09-27 the
-  symbolic grade took 31 ms on `leq Y <= {8}` at 128 names; it now takes 0.13
-  ms.
-- Classes of names of equal running time, lower bound and interval: the gain
-  is smaller, and some rows are slower. At 512 names the lower symbolic grade
-  takes 4.6 to 4.9 ms on every row, 21 times slower than the letters
-  implementation on `leq W <= X (false)` and its counterexample (0.22 ms). The
-  interval symbolic grade at 32 names takes 0.44 ms on the same rows, against
-  0.04 ms for the letters implementation and 0.04 ms for itself on 2026-09-27.
-  The warm times are unchanged, so the added cost is paid once per comparison.
-  This regression needs investigating.
-- Minterms in the plain grade: unchanged in kind. They pay off where one
-  letter set names many operations (11 and 26 times on `leq X <= W` and `equal
-  W = W | X` over 128 names). Where every name is told apart they cost (0.09
-  on `leq V <= U (false)` over 128 names).
-- Construction: the automata still lose by up to four orders of magnitude on
-  complements and intersections ("n-th letter from the end", up to 32,700
-  times at n = 16, and two `> 10 s` cells), but win on small inclusions and
-  equalities of canonical automata.
-- Regression in the cold path of all three derivative implementations: `leq C*
-  <= E2` at n = 8 under the upper and interval grades with banked delays takes
-  445 to 460 ms, 3.4 to 3.9 times slower than on 2026-09-27, while the automata
-  take 3.7 ms. The warm times are unchanged. Several first operations also show a
-  cold-start overhead of about 1 to 5 ms with unchanged warm times (e.g.
-  elaborating the corpus by plain derivatives, 5.26 ms against 0.27 ms, and
-  "n-th letter from the end, n = 12, elaborate E", 1.4 ms against 0.12 to 0.16
-  ms). The cause is not yet identified.
-
-## Comparison of 2026-10-19
-
-OLD is 58d1d6b, the main before the redesign of the timed regex grades over
-time spans and idle waits; NEW is ba1d380. Same machine and settings as above
-(macOS 15.7.7, arm64, OCaml 5.5.0, `--profile release`); one run of this
-benchmark per revision, best of 3 for the other measurements. Times of the
-typechecking benchmark are printed to 10 ms.
-
-The grades of this benchmark (`regular-trace-languages-*` and `banked-regex-*`)
-are unchanged by the redesign, and the workloads are the same 349 rows: the
-geometric means of new / old cold times over the rows in which both take at
-least 5 us are 0.98 to 1.00 for typechecking (25 rows per implementation)
-and 0.97 to 1.01 for the operations (193 to 237 rows). Total run time:
-17 min 47 s (OLD), 17 min 58 s (NEW). Two rows are more than 20 % and 50 ms
-slower, `leq C* <= E2` at n = 8 of the upper-bound regex grade with banked
-delays, by plain derivatives (316 ms to 427 ms) and by letters (339 ms to
-443 ms): the known cold-path cost of that row, not attributed to the redesign.
-
-Retired in NEW, not measured by this benchmark: the alternative implementations
-`timed-regex-{upper-bound,lower-bound,interval}` with the suffixes
-`-letter-automata`, `-letter-derivatives` and `-symbolic-by-letters` (nine grade
-names). The timed regex grades remain, named without a suffix and with
-`-rational`, now over time spans and idle waits.
-
-Typechecking of the timed regex grades (`bench/typecheck`, 3 processes, best of
-3 runs; the files of the examples changed between the revisions):
-
-| file | OLD (s) | NEW (s) |
-|---|---:|---:|
-| examples/arduino/bala2-radio-robot/robot.tpe | 1.10 | 0.30 |
-| examples/arduino/starter/starter.tpe | 0.58 | 0.22 |
-| examples/arduino/bala2-radio-controller/controller.tpe | 0.09 | 0.05 |
-| examples/arduino/fall/fall.tpe | 0.09 | 0.05 |
-| examples/arduino/bala2-regex/balance_regex.tpe | 0.05 | 0.05 |
-| examples/opentrons/washes.tpe | < 0.01 | < 0.01 |
-| examples/timed_regex/*.tpe (2 files) | < 0.01 | < 0.01 |
-| whole corpus (348 files OLD, 349 NEW; sum of the files) | 2.2 | 0.9 |
-
-Other measurements of the same revisions:
-
-| measurement | OLD | NEW |
-|---|---:|---:|
-| `--emit-arduino` of robot, native (s) | 1.23 | 0.36 |
-| `--emit-arduino` of controller, native (s) | 0.12 | 0.07 |
-| web typecheck of robot, headless Chrome (s) | 3.1 | 0.9 |
-| web typecheck of controller (s) | 0.6 | 0.4 |
-| web typecheck of washes (s) | 0.3 | 0.3 |
-
-The web times include the polling interval of 0.25 s.
+- Automata unroll delays into ticks: `(1000 | 1001)*` takes over 10 s in every
+  row, the delays of 1024 ticks 0.15 to 7.5 s against at most 11 ms for the
+  derivatives, and the n-th letter from the end at n = 16 over 10 s for `E2`.
+- Derivatives by single letters, plain and letters, take over 10 s on
+  `a*; b* <= (1000 | 1001)*` and the equality, where gap derivatives take 39
+  and 13 ms; on the false inclusion of the same family the gap derivatives
+  take 38 ms against 25 us.
+- Gap derivatives are the slowest on complements of the regex grades with
+  banked delays: at n = 8 of the n-th letter from the end, the upper bound and
+  the interval take 3.4 s on `leq (B | C)* <= E`, 7.0 to 7.2 s on its
+  counterexample and over 10 s on `leq C* <= E2`, where letters take 7 ms and
+  305 ms and automata 2.3 to 2.5 ms; the lower bound takes 1.2 s on `leq C* <= E2`.
+  Under the regular trace languages, deciding `E = E'` at n = 16 takes over 10
+  s, against 2.3 to 3.0 s for the others.
+- Rational delays: no cell reaches 1 s. On the delay sets the automata decide
+  inclusion and equality in 3 to 106 us, the symbolic expressions in 1 us to
+  7.7 ms, which elaborate them 1.0 to 8.4 times faster.
+- Timed regex grades: the case-study corpus takes 32 ms for `leq` over all
+  1156 pairs, 133 ms for `counterexample`. The calibration window takes over
+  10 s on `(ReadEncoders | Setpoints)*` and 206 ms on `(Reading; idle 10)*`.
+  Interval consistency by zones grows fast: 0.46 s and 2.3 s at n = 160 and
+  over 10 s at n = 640, where the durations decide the third interval in
+  5.5 ms. The n-th operation from the end takes 0.09 ms, 3.1 ms, 42 ms and
+  1.42 s at n = 4, 8, 12, 16. The true inclusion of the bounded repetitions
+  grows superlinearly, 0.66 ms to 208 ms from n = 20 to 1280.
 
 ## Results
 
-Median over 5 processes (fewer past 10 s); cold: first run in a fresh process,
-warm: mean of repeated runs; ratios of the cold times: automata / plain
-(construction), plain / letters (representation), letters / symbolic
-(minterms).
+Median over 5 processes (fewer past 10 s), each stopped after 10 s; cold: first run in a fresh process; warm: mean of repeated runs, for the typechecking; ratios of the cold times of consecutive columns.
+
+### Whole time steps
+
+#### Typechecking
 
 | workload                                 |   automata |      plain |    letters |   symbolic |  aut/plain |  plain/let |   let/symb |  aut. warm |   pl. warm |  let. warm |  sym. warm |
 |------------------------------------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|
-| **typechecking, regular-trace-languages-letter-automata**      |            |            |            |            |            |            |            |            |            |            |            |
-| standard library alone                   |   34.98 ms |   29.44 ms |   28.47 ms |   28.52 ms |       1.19 |       1.03 |       1.00 |   28.67 ms |   25.04 ms |   24.35 ms |   24.37 ms |
-| examples/regular_trace_languages/upper_bounds.tpe      |   39.58 ms |   34.09 ms |   31.82 ms |   32.24 ms |       1.16 |       1.07 |       0.99 |   34.89 ms |   29.09 ms |   26.93 ms |   26.91 ms |
-| tests/literals_regular.tpe               |   33.79 ms |   29.67 ms |   29.04 ms |   29.26 ms |       1.14 |       1.02 |       0.99 |   28.74 ms |   25.17 ms |   24.40 ms |   24.63 ms |
-| tests/regular_auth.tpe                   |   36.92 ms |   32.11 ms |   30.78 ms |   31.72 ms |       1.15 |       1.04 |       0.97 |   31.56 ms |   26.97 ms |   26.50 ms |   26.27 ms |
-| tests/regular_protocol.tpe               |   39.42 ms |   34.77 ms |   32.51 ms |   32.42 ms |       1.13 |       1.07 |       1.00 |   32.89 ms |   28.56 ms |   26.71 ms |   26.79 ms |
-| tests/regular_reject_auth.tpe            |   37.32 ms |   32.53 ms |   31.41 ms |   31.69 ms |       1.15 |       1.04 |       0.99 |   30.68 ms |   26.69 ms |   25.71 ms |   25.77 ms |
-| tests/regular_reject_bounds.tpe          |   35.07 ms |   30.22 ms |   29.42 ms |   29.21 ms |       1.16 |       1.03 |       1.01 |   28.77 ms |   25.35 ms |   24.42 ms |   24.39 ms |
-| tests/regular_reject_counterexample.tpe  |   37.12 ms |   31.90 ms |   31.35 ms |   30.47 ms |       1.16 |       1.02 |       1.03 |   30.93 ms |   26.42 ms |   25.67 ms |   25.57 ms |
-| tests/regular_reject_protocol.tpe        |   37.00 ms |   32.45 ms |   31.48 ms |   30.19 ms |       1.14 |       1.03 |       1.04 |   30.55 ms |   26.41 ms |   25.42 ms |   25.34 ms |
-| **corpus (29 literals)**                 |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate                                |    6.07 ms |    5.26 ms |   244.1 us |   315.0 us |       1.15 |      21.56 |       0.78 |   422.7 us |    33.0 us |    29.7 us |    30.1 us |
-| mul, all pairs                           |    9.86 ms |    1.67 ms |    94.2 us |    95.8 us |       5.92 |      17.70 |       0.98 |    9.84 ms |    1.15 ms |    53.7 us |    53.6 us |
-| join, all pairs                          |    7.88 ms |    1.68 ms |   255.1 us |   257.0 us |       4.69 |       6.58 |       0.99 |    7.88 ms |    1.19 ms |   173.7 us |   175.7 us |
-| leq, all pairs                           |    3.78 ms |    3.39 ms |    2.14 ms |    2.38 ms |       1.11 |       1.58 |       0.90 |    3.71 ms |    1.14 ms |   172.2 us |   173.7 us |
-| equal, all pairs                         |    21.9 us |    1.89 ms |   608.0 us |   732.9 us |       0.01 |       3.12 |       0.83 |    20.7 us |   967.4 us |    18.0 us |    18.0 us |
-| counterexample, all pairs                |    7.08 ms |    3.43 ms |    2.13 ms |    2.20 ms |       2.07 |       1.61 |       0.97 |    7.13 ms |    2.01 ms |   934.1 us |    1.08 ms |
-| **protocol P^k, k = 2**                  |            |            |            |            |            |            |            |            |            |            |            |
-| mul P^k                                  |    16.0 us |     3.1 us |     1.9 us |     1.9 us |       5.15 |       1.62 |       1.00 |     8.1 us |     0.3 us |     0.1 us |     0.1 us |
-| join J = P \| ... \| P^k                   |    29.1 us |     6.0 us |     5.0 us |     4.1 us |       4.88 |       1.19 |       1.24 |    14.6 us |     0.6 us |     0.2 us |     0.2 us |
-| leq P^k <= P*                            |     7.9 us |    10.0 us |    14.1 us |    11.0 us |       0.79 |       0.71 |       1.28 |     1.7 us |     0.3 us |     0.1 us |     0.1 us |
-| leq P; P* <= J (false)                   |     6.9 us |    23.1 us |    23.1 us |    19.1 us |       0.30 |       1.00 |       1.21 |     2.1 us |     0.3 us |     0.1 us |     0.1 us |
-| counterexample P; P*, J                  |    44.8 us |    21.0 us |    26.0 us |    19.1 us |       2.14 |       0.81 |       1.36 |    24.2 us |     3.7 us |     3.5 us |     3.2 us |
-| equal J \| P; P* = P; P*                  |    14.1 us |    20.0 us |    19.1 us |    16.0 us |       0.70 |       1.05 |       1.19 |     6.7 us |     0.5 us |     0.2 us |     0.2 us |
-| **protocol P^k, k = 8**                  |            |            |            |            |            |            |            |            |            |            |            |
-| mul P^k                                  |    1.78 ms |     8.1 us |     6.0 us |     6.0 us |     219.47 |       1.36 |       1.00 |   210.3 us |     4.1 us |     2.9 us |     2.9 us |
-| join J = P \| ... \| P^k                   |    2.71 ms |    30.0 us |    20.0 us |    21.9 us |      90.34 |       1.50 |       0.91 |   801.3 us |    16.9 us |    11.1 us |    11.1 us |
-| leq P^k <= P*                            |    10.0 us |    45.1 us |    42.9 us |    35.0 us |       0.22 |       1.05 |       1.22 |     5.7 us |     0.3 us |     0.1 us |     0.1 us |
-| leq P; P* <= J (false)                   |    11.0 us |    88.0 us |    89.9 us |    65.1 us |       0.12 |       0.98 |       1.38 |     6.6 us |     0.3 us |     0.1 us |     0.1 us |
-| counterexample P; P*, J                  |   181.2 us |   105.1 us |    93.9 us |    66.0 us |       1.72 |       1.12 |       1.42 |   138.2 us |     9.6 us |     9.4 us |     7.9 us |
-| equal J \| P; P* = P; P*                  |    17.9 us |    64.8 us |    70.1 us |    54.1 us |       0.28 |       0.93 |       1.30 |    15.7 us |     0.9 us |     0.6 us |     0.6 us |
-| **protocol P^k, k = 32**                 |            |            |            |            |            |            |            |            |            |            |            |
-| mul P^k                                  |   11.29 ms |   107.8 us |    88.9 us |    89.9 us |     104.80 |       1.21 |       0.99 |    9.22 ms |    65.5 us |    58.3 us |    58.2 us |
-| join J = P \| ... \| P^k                   |   92.13 ms |    2.97 ms |    2.92 ms |    2.37 ms |      31.03 |       1.02 |       1.23 |   89.21 ms |   777.3 us |   667.6 us |   670.1 us |
-| leq P^k <= P*                            |    30.0 us |   155.9 us |   111.8 us |    77.0 us |       0.19 |       1.39 |       1.45 |    24.8 us |     0.3 us |     0.1 us |     0.1 us |
-| leq P; P* <= J (false)                   |    32.9 us |   634.9 us |   654.9 us |   384.1 us |       0.05 |       0.97 |       1.71 |    27.4 us |     0.3 us |     0.2 us |     0.2 us |
-| counterexample P; P*, J                  |    2.12 ms |   659.9 us |   668.0 us |   387.0 us |       3.20 |       0.99 |       1.73 |    1.75 ms |    39.3 us |    36.4 us |    29.9 us |
-| equal J \| P; P* = P; P*                  |    57.9 us |   533.1 us |   556.0 us |   340.2 us |       0.11 |       0.96 |       1.63 |    56.4 us |     4.4 us |     4.2 us |     4.2 us |
-| **nested protocol N_d, d = 1**           |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate N_d                            |   217.0 us |   110.1 us |   123.0 us |   100.1 us |       1.97 |       0.90 |       1.23 |    65.0 us |     3.0 us |     2.8 us |     2.8 us |
-| leq N_d <= N_d+1                         |     8.1 us |    19.1 us |    13.8 us |    11.9 us |       0.42 |       1.38 |       1.16 |     1.4 us |     0.3 us |     0.1 us |     0.1 us |
-| counterexample N_d+1, N_d                |    47.0 us |    21.0 us |    24.1 us |    16.9 us |       2.24 |       0.87 |       1.42 |    24.8 us |     3.9 us |     3.5 us |     3.2 us |
-| equal N_d = N_d \| P                      |     1.2 us |    13.8 us |    11.9 us |    10.0 us |       0.09 |       1.16 |       1.19 |     0.2 us |     0.2 us |     0.0 us |     0.0 us |
-| **nested protocol N_d, d = 3**           |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate N_d                            |    1.85 ms |   100.1 us |   101.1 us |   117.1 us |      18.45 |       0.99 |       0.86 |   163.4 us |     5.6 us |     5.3 us |     5.3 us |
-| leq N_d <= N_d+1                         |     6.9 us |    36.0 us |    31.2 us |    20.0 us |       0.19 |       1.15 |       1.56 |     2.2 us |     0.3 us |     0.1 us |     0.1 us |
-| counterexample N_d+1, N_d                |    59.8 us |    33.1 us |    33.1 us |    26.0 us |       1.81 |       1.00 |       1.28 |    51.7 us |     5.8 us |     5.4 us |     4.7 us |
-| equal N_d = N_d \| P                      |     1.0 us |    15.0 us |    15.0 us |    13.8 us |       0.06 |       1.00 |       1.09 |     0.3 us |     0.2 us |     0.0 us |     0.0 us |
-| **nested protocol N_d, d = 6**           |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate N_d                            |    2.64 ms |   100.9 us |   108.0 us |   114.9 us |      26.13 |       0.93 |       0.94 |   404.8 us |    10.0 us |     9.4 us |     9.5 us |
-| leq N_d <= N_d+1                         |     6.9 us |    57.0 us |    57.0 us |    46.0 us |       0.12 |       1.00 |       1.24 |     3.3 us |     0.3 us |     0.1 us |     0.1 us |
-| counterexample N_d+1, N_d                |   124.0 us |    74.9 us |    68.9 us |    46.0 us |       1.66 |       1.09 |       1.50 |   113.4 us |     9.2 us |     8.6 us |     7.3 us |
-| equal N_d = N_d \| P                      |     0.0 us |    13.1 us |    13.8 us |    11.9 us |       0.00 |       0.95 |       1.16 |     0.3 us |     0.2 us |     0.0 us |     0.0 us |
-| **n-th letter from the end, n = 4**      |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate E                              |    2.02 ms |    99.9 us |   100.9 us |    83.0 us |      20.18 |       0.99 |       1.22 |   142.0 us |     3.0 us |     1.8 us |     1.8 us |
-| elaborate E2                             |    3.26 ms |   124.9 us |    91.1 us |    89.9 us |      26.10 |       1.37 |       1.01 |   607.2 us |     7.3 us |     3.3 us |     3.3 us |
-| leq (B \| C)* <= E                        |    95.1 us |    23.1 us |    13.1 us |    11.2 us |       4.11 |       1.76 |       1.17 |    45.4 us |     2.2 us |     0.1 us |     0.1 us |
-| counterexample (B \| C)*; A; (B \| C)^n, E |   379.1 us |    39.1 us |    31.9 us |    21.9 us |       9.70 |       1.22 |       1.46 |    62.5 us |     4.5 us |     2.8 us |     2.5 us |
-| leq C* <= E2                             |    52.0 us |    38.1 us |    22.9 us |    22.2 us |       1.36 |       1.67 |       1.03 |    45.1 us |     2.4 us |     0.2 us |     0.2 us |
-| elaborate E', decide E = E'              |   783.9 us |    1.76 ms |    1.79 ms |    1.94 ms |       0.44 |       0.98 |       0.93 |   240.6 us |     6.9 us |     4.2 us |     4.2 us |
-| **n-th letter from the end, n = 8**      |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate E                              |    7.53 ms |    83.0 us |    83.9 us |    94.2 us |      90.71 |       0.99 |       0.89 |    4.55 ms |     5.3 us |     3.3 us |     3.3 us |
-| elaborate E2                             |   70.03 ms |   129.9 us |    83.0 us |    90.1 us |     538.93 |       1.57 |       0.92 |   64.08 ms |    13.0 us |     6.4 us |     6.3 us |
-| leq (B \| C)* <= E                        |    1.74 ms |    24.1 us |    16.0 us |    16.0 us |      72.30 |       1.51 |       1.00 |    1.46 ms |     2.4 us |     0.1 us |     0.1 us |
-| counterexample (B \| C)*; A; (B \| C)^n, E |    1.92 ms |    1.85 ms |    1.87 ms |    1.64 ms |       1.04 |       0.99 |       1.14 |    1.55 ms |     6.4 us |     4.3 us |     3.7 us |
-| leq C* <= E2                             |    1.48 ms |    1.73 ms |    19.8 us |    21.9 us |       0.85 |      87.57 |       0.90 |    1.43 ms |     2.6 us |     0.2 us |     0.2 us |
-| elaborate E', decide E = E'              |    7.64 ms |    7.54 ms |    7.19 ms |    6.20 ms |       1.01 |       1.05 |       1.16 |    6.85 ms |    13.3 us |     8.6 us |     8.5 us |
-| **n-th letter from the end, n = 12**     |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate E                              |  131.17 ms |    1.54 ms |    1.82 ms |    1.41 ms |      85.01 |       0.85 |       1.29 |  129.18 ms |     8.0 us |     5.4 us |     5.3 us |
-| elaborate E2                             |     7.32 s |    1.43 ms |    1.41 ms |   107.0 us |    5103.38 |       1.02 |      13.18 |          - |    19.6 us |    10.5 us |    10.4 us |
-| leq (B \| C)* <= E                        |   42.24 ms |    23.8 us |    15.0 us |    15.0 us |    1771.76 |       1.59 |       1.00 |   40.33 ms |     2.9 us |     0.1 us |     0.1 us |
-| counterexample (B \| C)*; A; (B \| C)^n, E |   42.62 ms |    79.2 us |    62.0 us |    41.0 us |     538.41 |       1.28 |       1.51 |   40.45 ms |     8.5 us |     6.1 us |     5.2 us |
-| leq C* <= E2                             |   33.52 ms |    33.1 us |    23.1 us |    25.0 us |    1011.35 |       1.43 |       0.92 |   51.31 ms |     3.1 us |     0.2 us |     0.2 us |
-| elaborate E', decide E = E'              |  191.64 ms |   87.75 ms |   83.35 ms |   66.97 ms |       2.18 |       1.05 |       1.24 |  194.33 ms |    23.2 us |    15.5 us |    16.8 us |
-| **n-th letter from the end, n = 16**     |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate E                              |     3.06 s |    98.0 us |    82.0 us |    83.2 us |   31190.43 |       1.19 |       0.99 |          - |    11.3 us |     8.0 us |     7.9 us |
-| elaborate E2                             |     > 10 s |   167.8 us |   126.8 us |   136.1 us |    > 59578 |       1.32 |       0.93 |            |    27.3 us |    15.9 us |    15.7 us |
-| leq (B \| C)* <= E                        |  952.19 ms |    29.1 us |    17.9 us |    19.1 us |   32735.96 |       1.63 |       0.94 |  958.31 ms |     3.2 us |     0.1 us |     0.1 us |
-| counterexample (B \| C)*; A; (B \| C)^n, E |  977.81 ms |    93.2 us |    74.1 us |    48.9 us |   10489.13 |       1.26 |       1.52 |  981.89 ms |    10.7 us |     7.7 us |     6.4 us |
-| leq C* <= E2                             |     > 10 s |    38.1 us |    21.9 us |    21.2 us |   > 262144 |       1.74 |       1.03 |            |     3.4 us |     0.2 us |     0.2 us |
-| elaborate E', decide E = E'              |     4.56 s |     2.59 s |     2.55 s |     1.90 s |       1.76 |       1.02 |       1.34 |          - |          - |          - |          - |
-| **alphabet of k = 8 names**              |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate W, X                           |   387.0 us |   120.2 us |   114.9 us |   113.0 us |       3.22 |       1.05 |       1.02 |   139.4 us |     8.9 us |     6.6 us |     6.6 us |
-| mul X W                                  |    20.0 us |     4.1 us |     0.0 us |     0.0 us |       4.94 |            |            |     8.4 us |     0.6 us |     0.1 us |     0.1 us |
-| join X W                                 |    11.0 us |     1.9 us |     1.2 us |     1.0 us |       5.75 |       1.60 |       1.25 |     4.7 us |     0.6 us |     0.1 us |     0.1 us |
-| leq X <= W                               |     8.1 us |    22.2 us |    13.1 us |     5.0 us |       0.37 |       1.69 |       2.62 |     1.9 us |     0.7 us |     0.1 us |     0.1 us |
-| leq W <= X (false)                       |     4.1 us |     6.9 us |     3.1 us |     5.0 us |       0.59 |       2.23 |       0.62 |     0.6 us |     0.7 us |     0.1 us |     0.1 us |
-| counterexample W, X                      |     7.9 us |     2.1 us |     3.1 us |     2.1 us |       3.67 |       0.69 |       1.44 |     3.6 us |     0.7 us |     0.1 us |     0.1 us |
-| equal W = W \| X                          |     1.0 us |    30.0 us |    23.1 us |    11.9 us |       0.03 |       1.30 |       1.94 |     0.1 us |     0.5 us |     0.0 us |     0.0 us |
-| **alphabet of k = 32 names**             |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate W, X                           |    2.19 ms |   384.1 us |   180.0 us |   153.1 us |       5.69 |       2.13 |       1.18 |    1.31 ms |   125.2 us |    39.1 us |    39.2 us |
-| mul X W                                  |    27.9 us |     6.0 us |     1.0 us |     0.0 us |       4.68 |       6.25 |            |    26.4 us |     2.7 us |     0.1 us |     0.1 us |
-| join X W                                 |    18.8 us |     4.1 us |     1.9 us |     1.0 us |       4.65 |       2.12 |       2.00 |    16.6 us |     2.7 us |     0.1 us |     0.1 us |
-| leq X <= W                               |    10.0 us |    82.0 us |    41.0 us |    10.0 us |       0.12 |       2.00 |       4.10 |     6.6 us |     2.8 us |     0.1 us |     0.1 us |
-| leq W <= X (false)                       |     5.0 us |    18.8 us |    11.0 us |     4.1 us |       0.27 |       1.72 |       2.71 |     2.9 us |     2.8 us |     0.1 us |     0.1 us |
-| counterexample W, X                      |    13.1 us |     6.9 us |     2.9 us |     3.1 us |       1.90 |       2.42 |       0.92 |    12.0 us |     2.8 us |     0.1 us |     0.1 us |
-| equal W = W \| X                          |     1.0 us |   103.0 us |    71.0 us |    15.0 us |       0.01 |       1.45 |       4.73 |     0.4 us |     2.4 us |     0.0 us |     0.0 us |
-| **alphabet of k = 128 names**            |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate W, X                           |   19.95 ms |   10.09 ms |    1.35 ms |    1.13 ms |       1.98 |       7.49 |       1.19 |   17.32 ms |    4.34 ms |   408.8 us |   410.2 us |
-| mul X W                                  |   139.0 us |    15.0 us |     0.0 us |     0.0 us |       9.25 |            |            |   142.5 us |    13.4 us |     0.1 us |     0.1 us |
-| join X W                                 |   105.1 us |    16.0 us |     1.0 us |     1.2 us |       6.58 |      16.75 |       0.80 |   107.5 us |    13.4 us |     0.1 us |     0.1 us |
-| leq X <= W                               |    33.1 us |    1.43 ms |   191.9 us |    17.2 us |       0.02 |       7.47 |      11.18 |    31.5 us |    13.5 us |     0.1 us |     0.1 us |
-| leq W <= X (false)                       |    16.9 us |    57.9 us |    36.0 us |     9.1 us |       0.29 |       1.61 |       3.97 |    13.9 us |    13.4 us |     0.1 us |     0.1 us |
-| counterexample W, X                      |    88.9 us |    14.1 us |     3.1 us |     1.9 us |       6.32 |       4.54 |       1.62 |    87.8 us |    13.4 us |     0.1 us |     0.1 us |
-| equal W = W \| X                          |     3.1 us |    1.79 ms |   562.0 us |    21.9 us |       0.00 |       3.19 |      25.62 |     1.3 us |    12.5 us |     0.0 us |     0.0 us |
-| **k = 8 names told apart**               |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate U, V                           |    1.13 ms |   107.0 us |   113.0 us |   109.0 us |      10.53 |       0.95 |       1.04 |   327.9 us |     6.0 us |     5.4 us |     5.4 us |
-| leq U <= V                               |    11.9 us |    32.9 us |    28.1 us |    35.0 us |       0.36 |       1.17 |       0.80 |     4.2 us |     0.7 us |     0.1 us |     0.1 us |
-| leq V <= U (false)                       |     2.1 us |     5.0 us |     3.1 us |     8.1 us |       0.43 |       1.62 |       0.38 |     0.7 us |     0.7 us |     0.1 us |     0.1 us |
-| counterexample V, U                      |    10.0 us |     4.1 us |     2.9 us |     2.1 us |       2.47 |       1.42 |       1.33 |     3.6 us |     0.7 us |     0.1 us |     0.1 us |
-| equal V = 0 \| U; V                       |   138.0 us |    26.0 us |    17.2 us |    18.1 us |       5.31 |       1.51 |       0.95 |    74.2 us |     3.0 us |     0.4 us |     0.4 us |
-| **k = 32 names told apart**              |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate U, V                           |   19.99 ms |   801.1 us |   747.9 us |   845.2 us |      24.96 |       1.07 |       0.88 |   18.81 ms |    51.7 us |    46.4 us |    46.4 us |
-| leq U <= V                               |    45.1 us |   441.1 us |   402.0 us |   458.0 us |       0.10 |       1.10 |       0.88 |    41.8 us |     2.8 us |     0.1 us |     0.1 us |
-| leq V <= U (false)                       |     5.0 us |    19.1 us |    15.0 us |    64.1 us |       0.26 |       1.27 |       0.23 |     3.0 us |     2.8 us |     0.1 us |     0.1 us |
-| counterexample V, U                      |    14.1 us |     5.0 us |     2.9 us |     1.9 us |       2.81 |       1.75 |       1.50 |    12.2 us |     2.8 us |     0.1 us |     0.1 us |
-| equal V = 0 \| U; V                       |    2.16 ms |    73.0 us |    44.1 us |    90.1 us |      29.59 |       1.65 |       0.49 |    2.11 ms |    14.6 us |     1.2 us |     1.2 us |
-| **k = 128 names told apart**             |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate U, V                           |     3.59 s |   12.79 ms |   13.31 ms |   15.17 ms |     280.68 |       0.96 |       0.88 |          - |   793.4 us |   744.0 us |   743.0 us |
-| leq U <= V                               |   720.0 us |    9.14 ms |    9.82 ms |   10.21 ms |       0.08 |       0.93 |       0.96 |   667.8 us |    13.5 us |     0.1 us |     0.1 us |
-| leq V <= U (false)                       |    24.8 us |    69.1 us |    58.2 us |   669.0 us |       0.36 |       1.19 |       0.09 |    14.6 us |    13.3 us |     0.1 us |     0.1 us |
-| counterexample V, U                      |   101.1 us |    21.0 us |     6.0 us |     4.1 us |       4.82 |       3.52 |       1.47 |    88.5 us |    13.3 us |     0.1 us |     0.1 us |
-| equal V = 0 \| U; V                       |  109.12 ms |   216.0 us |   121.1 us |   676.9 us |     505.17 |       1.78 |       0.18 |  109.51 ms |    96.1 us |     5.4 us |     5.4 us |
-| **typechecking, banked-regex-upper-bound-letter-automata** |            |            |            |            |            |            |            |            |            |            |            |
-| standard library alone                   |   28.27 ms |   28.78 ms |   27.12 ms |   27.97 ms |       0.98 |       1.06 |       0.97 |   26.22 ms |   26.38 ms |   25.39 ms |   25.98 ms |
-| examples/banked_regex/upper_bounds.tpe |   39.03 ms |   38.77 ms |   35.91 ms |   36.49 ms |       1.01 |       1.08 |       0.98 |   38.82 ms |   35.05 ms |   33.40 ms |   34.58 ms |
-| tests/banked_regex_upper.tpe              |   34.88 ms |   35.25 ms |   34.28 ms |   35.98 ms |       0.99 |       1.03 |       0.95 |   33.78 ms |   32.15 ms |   31.62 ms |   32.75 ms |
-| tests/banked_regex_upper_reject.tpe       |   34.81 ms |   33.96 ms |   32.40 ms |   33.04 ms |       1.02 |       1.05 |       0.98 |   32.90 ms |   30.72 ms |   29.56 ms |   30.32 ms |
-| tests/banked_regex_upper_ticks.tpe         |   31.97 ms |   32.96 ms |   31.31 ms |   32.21 ms |       0.97 |       1.05 |       0.97 |   29.59 ms |   29.25 ms |   28.00 ms |   29.08 ms |
-| tests/banked_regex_upper_ticks_reject.tpe  |   31.01 ms |   30.94 ms |   29.53 ms |   30.18 ms |       1.00 |       1.05 |       0.98 |   27.79 ms |   27.38 ms |   26.30 ms |   26.86 ms |
-| **typechecking, banked-regex-lower-bound-letter-automata** |            |            |            |            |            |            |            |            |            |            |            |
-| standard library alone                   |   23.42 ms |   21.78 ms |   21.69 ms |   21.67 ms |       1.08 |       1.00 |       1.00 |   21.33 ms |   20.13 ms |   19.39 ms |   19.39 ms |
-| examples/banked_regex/lower_bounds.tpe |   26.40 ms |   25.56 ms |   23.87 ms |   23.85 ms |       1.03 |       1.07 |       1.00 |   24.33 ms |   22.82 ms |   21.69 ms |   21.40 ms |
-| tests/banked_regex_lower.tpe              |   25.83 ms |   24.14 ms |   23.12 ms |   23.29 ms |       1.07 |       1.04 |       0.99 |   23.52 ms |   22.04 ms |   20.85 ms |   20.96 ms |
-| tests/banked_regex_lower_reject.tpe       |   27.83 ms |   24.56 ms |   23.59 ms |   22.69 ms |       1.13 |       1.04 |       1.04 |   24.57 ms |   21.87 ms |   20.70 ms |   20.66 ms |
-| tests/banked_regex_lower_ticks_reject.tpe  |   22.81 ms |   21.59 ms |   21.12 ms |   22.52 ms |       1.06 |       1.02 |       0.94 |   21.15 ms |   19.64 ms |   19.17 ms |   20.73 ms |
-| **typechecking, banked-regex-interval-letter-automata**    |            |            |            |            |            |            |            |            |            |            |            |
-| standard library alone                   |   34.24 ms |   32.28 ms |   30.07 ms |   30.76 ms |       1.06 |       1.07 |       0.98 |   31.94 ms |   29.61 ms |   27.54 ms |   28.43 ms |
-| examples/banked_regex/intervals.tpe |   45.14 ms |   41.20 ms |   37.50 ms |   38.65 ms |       1.10 |       1.10 |       0.97 |   41.96 ms |   38.69 ms |   34.56 ms |   35.39 ms |
-| tests/banked_regex_interval.tpe           |   38.19 ms |   35.79 ms |   32.80 ms |   33.95 ms |       1.07 |       1.09 |       0.97 |   35.94 ms |   32.46 ms |   30.37 ms |   31.11 ms |
-| tests/banked_regex_interval_reject.tpe    |   37.79 ms |   34.98 ms |   32.15 ms |   33.31 ms |       1.08 |       1.09 |       0.97 |   35.01 ms |   31.69 ms |   29.53 ms |   30.19 ms |
-| tests/banked_regex_interval_ticks_reject.tpe |   35.31 ms |   33.03 ms |   30.69 ms |   31.11 ms |       1.07 |       1.08 |       0.99 |   32.87 ms |   30.39 ms |   28.35 ms |   28.89 ms |
-| **banked-regex-upper-bound-letter-automata: banked corpus (15 literals)** |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate                                |   464.2 us |   149.0 us |   136.9 us |   129.9 us |       3.12 |       1.09 |       1.05 |   186.9 us |    13.3 us |    12.4 us |    12.4 us |
-| leq, all pairs                           |    9.77 ms |   10.44 ms |   10.04 ms |    5.49 ms |       0.94 |       1.04 |       1.83 |   274.7 us |   525.3 us |   241.2 us |   255.8 us |
-| equal, all pairs                         |    9.81 ms |   10.72 ms |   10.04 ms |    5.68 ms |       0.91 |       1.07 |       1.77 |   391.2 us |   729.5 us |   343.0 us |   361.1 us |
-| counterexample, all pairs                |   12.78 ms |   10.56 ms |   10.21 ms |    5.66 ms |       1.21 |       1.03 |       1.81 |    3.20 ms |   599.0 us |   290.3 us |   304.0 us |
-| **banked-regex-upper-bound-letter-automata: delays, n = 8** |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |    93.0 us |    76.1 us |    64.8 us |    57.9 us |       1.22 |       1.17 |       1.12 |     1.1 us |     1.5 us |     0.9 us |     1.0 us |
-| leq S <= T (false)                       |   233.9 us |   113.0 us |   105.9 us |    81.1 us |       2.07 |       1.07 |       1.31 |     1.1 us |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |   531.0 us |   110.1 us |   112.1 us |    92.0 us |       4.82 |       0.98 |       1.22 |    45.0 us |     2.3 us |     1.7 us |     1.8 us |
-| leq R <= T                               |   276.1 us |    79.9 us |    66.0 us |    62.9 us |       3.46 |       1.21 |       1.05 |     1.5 us |     1.4 us |     0.9 us |     1.0 us |
-| equal T = T \| R                          |    1.13 ms |   124.0 us |   117.1 us |   104.2 us |       9.09 |       1.06 |       1.12 |    50.8 us |     3.4 us |     2.0 us |     2.1 us |
-| **banked-regex-upper-bound-letter-automata: delays, n = 32** |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |   256.1 us |    72.0 us |    60.8 us |    57.9 us |       3.56 |       1.18 |       1.05 |     1.8 us |     1.5 us |     0.9 us |     1.0 us |
-| leq S <= T (false)                       |    3.30 ms |   528.1 us |   537.9 us |   367.9 us |       6.25 |       0.98 |       1.46 |     1.8 us |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |    3.91 ms |   544.1 us |   565.1 us |   386.0 us |       7.18 |       0.96 |       1.46 |   459.6 us |     6.7 us |     5.8 us |     5.9 us |
-| leq R <= T                               |    3.63 ms |    73.9 us |    69.1 us |    66.0 us |      49.07 |       1.07 |       1.05 |     3.1 us |     1.4 us |     0.9 us |     1.0 us |
-| equal T = T \| R                          |   12.49 ms |   137.1 us |   118.0 us |   111.1 us |      91.07 |       1.16 |       1.06 |   510.0 us |     3.4 us |     2.0 us |     2.2 us |
-| **banked-regex-upper-bound-letter-automata: delays, n = 128** |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |    3.35 ms |    74.1 us |    67.0 us |    59.8 us |      45.14 |       1.11 |       1.12 |     4.5 us |     1.5 us |     0.9 us |     1.0 us |
-| leq S <= T (false)                       |   64.61 ms |    3.05 ms |    3.17 ms |    2.21 ms |      21.15 |       0.96 |       1.43 |     4.5 us |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |   80.90 ms |    3.09 ms |    3.29 ms |    2.31 ms |      26.21 |       0.94 |       1.42 |   15.48 ms |    62.0 us |    59.1 us |    59.2 us |
-| leq R <= T                               |   67.75 ms |    88.0 us |    81.1 us |    80.8 us |     770.06 |       1.09 |       1.00 |     9.5 us |     1.4 us |     0.9 us |     1.0 us |
-| equal T = T \| R                          |  210.48 ms |   148.1 us |   132.1 us |   114.9 us |    1421.59 |       1.12 |       1.15 |    8.43 ms |     3.4 us |     2.0 us |     2.1 us |
-| **banked-regex-upper-bound-letter-automata: delays, n = 1024** |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |  260.18 ms |    93.9 us |    79.2 us |    75.1 us |    2769.76 |       1.19 |       1.05 |    29.2 us |     1.5 us |     0.9 us |     1.0 us |
-| leq S <= T (false)                       |     5.37 s |   24.62 ms |   25.94 ms |   17.96 ms |     218.21 |       0.95 |       1.44 |          - |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |     > 10 s |   29.22 ms |   30.22 ms |   22.44 ms |      > 342 |       0.97 |       1.35 |            |    3.77 ms |    3.70 ms |    3.67 ms |
-| leq R <= T                               |     5.62 s |   134.0 us |   129.0 us |   123.0 us |   41956.83 |       1.04 |       1.05 |          - |     1.4 us |     0.9 us |     1.0 us |
-| equal T = T \| R                          |     > 10 s |   240.1 us |   221.0 us |   208.1 us |    > 41651 |       1.09 |       1.06 |            |     3.4 us |     2.0 us |     2.1 us |
-| **banked-regex-upper-bound-letter-automata: 8 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |   295.9 us |    79.2 us |    57.9 us |    49.1 us |       3.74 |       1.37 |       1.18 |     1.9 us |     2.6 us |     1.9 us |     1.9 us |
-| leq W <= X (false)                       |   316.9 us |   121.1 us |    96.8 us |    57.2 us |       2.62 |       1.25 |       1.69 |     1.9 us |     2.6 us |     1.9 us |     1.9 us |
-| counterexample W, X                      |    86.8 us |   124.9 us |   103.0 us |    72.0 us |       0.69 |       1.21 |       1.43 |    17.3 us |     3.0 us |     2.2 us |     2.2 us |
-| leq Y <= {8}                             |   250.8 us |   151.9 us |   147.1 us |    72.0 us |       1.65 |       1.03 |       2.04 |     1.0 us |     0.8 us |     0.7 us |     0.6 us |
-| inhabited X                              |    25.0 us |    46.0 us |    29.1 us |    37.9 us |       0.54 |       1.58 |       0.77 |     1.5 us |     2.8 us |     2.7 us |     1.7 us |
-| **banked-regex-upper-bound-letter-automata: 32 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |    87.0 us |   687.1 us |   219.1 us |    67.0 us |       0.13 |       3.14 |       3.27 |     7.9 us |    11.7 us |     8.1 us |     7.7 us |
-| leq W <= X (false)                       |   178.8 us |    1.41 ms |   966.1 us |    80.1 us |       0.13 |       1.46 |      12.06 |     7.9 us |    11.7 us |     8.1 us |     7.8 us |
-| counterexample W, X                      |   198.1 us |    1.36 ms |   976.8 us |    78.0 us |       0.15 |       1.40 |      12.53 |    23.4 us |    12.1 us |     8.4 us |     8.1 us |
-| leq Y <= {8}                             |    1.32 ms |    1.52 ms |    1.53 ms |    99.9 us |       0.87 |       0.99 |      15.35 |     2.9 us |     2.7 us |     2.7 us |     2.0 us |
-| inhabited X                              |    34.1 us |    80.1 us |    45.1 us |    41.0 us |       0.43 |       1.78 |       1.10 |     6.2 us |    11.4 us |    10.8 us |     5.4 us |
-| **banked-regex-upper-bound-letter-automata: 128 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |   518.1 us |    3.14 ms |    3.01 ms |   664.0 us |       0.17 |       1.04 |       4.53 |    34.6 us |    55.5 us |    38.6 us |    36.2 us |
-| leq W <= X (false)                       |    1.11 ms |    7.44 ms |    7.31 ms |   136.9 us |       0.15 |       1.02 |      53.45 |    34.7 us |    55.6 us |    38.6 us |    36.2 us |
-| counterexample W, X                      |    1.12 ms |    7.44 ms |    7.32 ms |   141.9 us |       0.15 |       1.02 |      51.61 |    50.6 us |    56.1 us |    39.0 us |    36.6 us |
-| leq Y <= {8}                             |   13.30 ms |    9.30 ms |   14.02 ms |   134.9 us |       1.43 |       0.66 |     103.86 |    12.8 us |    12.6 us |    12.6 us |     8.9 us |
-| inhabited X                              |   113.0 us |   286.1 us |   134.0 us |    73.0 us |       0.40 |       2.14 |       1.84 |    27.3 us |    52.4 us |    48.7 us |    22.8 us |
-| **banked-regex-upper-bound-letter-automata: 512 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |    5.72 ms |   37.88 ms |   33.03 ms |    1.13 ms |       0.15 |       1.15 |      29.28 |   156.9 us |   273.9 us |   190.8 us |   180.4 us |
-| leq W <= X (false)                       |   13.18 ms |  116.79 ms |  116.49 ms |    1.16 ms |       0.11 |       1.00 |     100.34 |   156.3 us |   268.2 us |   189.8 us |   180.6 us |
-| counterexample W, X                      |   13.58 ms |  116.72 ms |  116.37 ms |    1.18 ms |       0.12 |       1.00 |      98.53 |   172.2 us |   271.0 us |   190.6 us |   180.6 us |
-| leq Y <= {8}                             |  188.98 ms |  113.35 ms |  229.74 ms |   109.9 us |       1.67 |       0.49 |    2090.19 |    54.3 us |    53.7 us |    53.1 us |    37.7 us |
-| inhabited X                              |   838.0 us |    2.90 ms |    2.59 ms |    1.09 ms |       0.29 |       1.12 |       2.38 |   118.5 us |   262.2 us |   249.3 us |   108.6 us |
-| **banked-regex-upper-bound-letter-automata: n-th letter from the end, n = 4** |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate E, E2                          |    1.60 ms |    99.2 us |    87.0 us |    93.9 us |      16.16 |       1.14 |       0.93 |   751.6 us |    10.2 us |     5.0 us |     5.0 us |
-| leq (B \| C)* <= E                        |   203.8 us |   791.1 us |   760.1 us |   634.2 us |       0.26 |       1.04 |       1.20 |     1.5 us |     2.9 us |     0.8 us |     0.8 us |
-| counterexample (B \| C)*; A; (B \| C)^n, E |   208.9 us |   835.9 us |   762.9 us |   659.0 us |       0.25 |       1.10 |       1.16 |     1.8 us |     2.6 us |     1.1 us |     1.1 us |
-| leq C* <= E2                             |   139.0 us |    4.22 ms |    3.80 ms |    3.88 ms |       0.03 |       1.11 |       0.98 |     1.7 us |     3.3 us |     1.0 us |     1.0 us |
-| **banked-regex-upper-bound-letter-automata: n-th letter from the end, n = 8** |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate E, E2                          |   70.57 ms |   124.0 us |    90.1 us |    91.1 us |     569.26 |       1.38 |       0.99 |   66.84 ms |    18.4 us |     9.5 us |     9.5 us |
-| leq (B \| C)* <= E                        |    3.74 ms |    8.64 ms |    8.71 ms |    6.30 ms |       0.43 |       0.99 |       1.38 |    17.3 us |     3.4 us |     0.9 us |     1.0 us |
-| counterexample (B \| C)*; A; (B \| C)^n, E |    3.95 ms |    8.39 ms |    8.82 ms |    6.71 ms |       0.47 |       0.95 |       1.31 |    17.7 us |     3.2 us |     1.4 us |     1.4 us |
-| leq C* <= E2                             |    3.68 ms |  444.42 ms |  460.08 ms |  457.69 ms |       0.01 |       0.97 |       1.01 |    20.3 us |     3.9 us |     1.1 us |     1.2 us |
-| **banked-regex-lower-bound-letter-automata: banked corpus (15 literals)** |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate                                |   875.9 us |   145.9 us |   134.0 us |   137.1 us |       6.00 |       1.09 |       0.98 |   187.0 us |    13.4 us |    12.4 us |    12.4 us |
-| leq, all pairs                           |    2.21 ms |    2.85 ms |    2.17 ms |    2.11 ms |       0.78 |       1.31 |       1.03 |   274.0 us |   525.3 us |   243.5 us |   255.5 us |
-| equal, all pairs                         |    2.24 ms |    3.07 ms |    2.37 ms |    2.30 ms |       0.73 |       1.30 |       1.03 |   406.1 us |   767.0 us |   357.7 us |   377.1 us |
-| counterexample, all pairs                |    3.44 ms |    2.85 ms |    2.19 ms |    2.30 ms |       1.21 |       1.30 |       0.95 |    1.49 ms |   563.6 us |   265.2 us |   279.0 us |
-| **banked-regex-lower-bound-letter-automata: delays, n = 8** |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |    74.9 us |    42.9 us |    29.8 us |    34.1 us |       1.74 |       1.44 |       0.87 |     1.1 us |     1.5 us |     0.9 us |     1.0 us |
-| leq S <= T (false)                       |    64.1 us |    36.0 us |    23.8 us |    26.0 us |       1.78 |       1.51 |       0.92 |     1.1 us |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |    64.1 us |    34.1 us |    23.8 us |    27.2 us |       1.88 |       1.43 |       0.88 |     1.9 us |     1.5 us |     1.0 us |     1.0 us |
-| leq R <= T                               |   260.1 us |   390.1 us |   412.9 us |    48.9 us |       0.67 |       0.94 |       8.45 |     1.4 us |     1.4 us |     0.9 us |     1.0 us |
-| equal T = T \| R                          |   693.8 us |    83.9 us |    66.0 us |    66.0 us |       8.27 |       1.27 |       1.00 |    50.6 us |     3.4 us |     2.0 us |     2.1 us |
-| **banked-regex-lower-bound-letter-automata: delays, n = 32** |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |   279.9 us |    41.0 us |    29.8 us |    36.0 us |       6.83 |       1.38 |       0.83 |     1.8 us |     1.5 us |     0.9 us |     1.0 us |
-| leq S <= T (false)                       |   237.9 us |    36.0 us |    22.2 us |    26.9 us |       6.61 |       1.62 |       0.82 |     1.8 us |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |   236.0 us |    36.0 us |    22.2 us |    29.1 us |       6.56 |       1.62 |       0.76 |     2.6 us |     1.5 us |     1.0 us |     1.0 us |
-| leq R <= T                               |    2.43 ms |    65.1 us |    52.0 us |    48.9 us |      37.27 |       1.25 |       1.06 |     3.1 us |     1.4 us |     0.9 us |     1.0 us |
-| equal T = T \| R                          |    7.27 ms |    84.2 us |    72.0 us |    72.0 us |      86.41 |       1.17 |       1.00 |   509.0 us |     3.4 us |     2.0 us |     2.1 us |
-| **banked-regex-lower-bound-letter-automata: delays, n = 128** |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |    3.28 ms |    43.9 us |    31.9 us |    37.0 us |      74.72 |       1.37 |       0.86 |     4.5 us |     1.5 us |     0.9 us |     1.0 us |
-| leq S <= T (false)                       |    3.21 ms |    35.0 us |    21.9 us |    26.9 us |      91.56 |       1.60 |       0.81 |     4.5 us |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |    3.18 ms |    33.9 us |    22.9 us |    26.0 us |      93.85 |       1.48 |       0.88 |     5.3 us |     1.5 us |     1.0 us |     1.0 us |
-| leq R <= T                               |   38.46 ms |    67.9 us |    52.9 us |    57.0 us |     566.05 |       1.28 |       0.93 |     9.4 us |     1.4 us |     0.9 us |     1.0 us |
-| equal T = T \| R                          |  111.40 ms |    97.0 us |    77.0 us |    73.9 us |    1148.02 |       1.26 |       1.04 |    8.35 ms |     3.4 us |     2.0 us |     2.1 us |
-| **banked-regex-lower-bound-letter-automata: delays, n = 1024** |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |  260.20 ms |    59.1 us |    43.9 us |    48.2 us |    4400.69 |       1.35 |       0.91 |    29.2 us |     1.5 us |     0.9 us |     1.0 us |
-| leq S <= T (false)                       |  258.57 ms |    36.0 us |    23.8 us |    26.0 us |    7182.28 |       1.51 |       0.92 |    29.4 us |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |  258.13 ms |    37.9 us |    21.9 us |    29.1 us |    6809.18 |       1.73 |       0.75 |    30.5 us |     1.5 us |     1.0 us |     1.0 us |
-| leq R <= T                               |     2.90 s |   104.9 us |    96.1 us |    96.1 us |   27664.42 |       1.09 |       1.00 |          - |     1.4 us |     0.9 us |     1.0 us |
-| equal T = T \| R                          |     8.85 s |   165.0 us |   141.1 us |   141.1 us |   53651.60 |       1.17 |       1.00 |          - |     3.4 us |     2.0 us |     2.1 us |
-| **banked-regex-lower-bound-letter-automata: 8 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |    43.9 us |    62.0 us |    52.9 us |    52.9 us |       0.71 |       1.17 |       1.00 |     1.9 us |     2.6 us |     1.9 us |     1.9 us |
-| leq W <= X (false)                       |    37.0 us |    43.2 us |    29.1 us |    33.9 us |       0.86 |       1.48 |       0.86 |     1.9 us |     2.6 us |     1.9 us |     1.9 us |
-| counterexample W, X                      |    37.9 us |    47.9 us |    27.2 us |    34.1 us |       0.79 |       1.76 |       0.80 |     2.7 us |     2.7 us |     1.9 us |     1.9 us |
-| leq Y <= {8}                             |    87.0 us |    68.9 us |    58.2 us |    55.1 us |       1.26 |       1.18 |       1.06 |     1.0 us |     0.8 us |     0.7 us |     0.6 us |
-| inhabited X                              |    24.8 us |    42.2 us |    26.0 us |    32.9 us |       0.59 |       1.62 |       0.79 |     1.5 us |     2.8 us |     2.7 us |     1.7 us |
-| **banked-regex-lower-bound-letter-automata: 32 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |    64.1 us |   134.9 us |    77.0 us |    58.9 us |       0.48 |       1.75 |       1.31 |     7.8 us |    11.7 us |     8.1 us |     7.7 us |
-| leq W <= X (false)                       |    49.1 us |    92.0 us |    37.0 us |    41.0 us |       0.53 |       2.49 |       0.90 |     7.8 us |    11.6 us |     8.0 us |     7.7 us |
-| counterexample W, X                      |    48.9 us |    88.9 us |    40.1 us |    42.0 us |       0.55 |       2.22 |       0.95 |     8.6 us |    11.7 us |     8.1 us |     7.7 us |
-| leq Y <= {8}                             |   201.9 us |   147.1 us |   150.9 us |    60.1 us |       1.37 |       0.97 |       2.51 |     2.9 us |     2.7 us |     2.7 us |     2.0 us |
-| inhabited X                              |    73.9 us |    73.9 us |    41.0 us |    37.9 us |       1.00 |       1.80 |       1.08 |     6.2 us |    11.4 us |    10.7 us |     5.4 us |
-| **banked-regex-lower-bound-letter-automata: 128 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |   227.0 us |    1.10 ms |   709.1 us |   110.1 us |       0.21 |       1.56 |       6.44 |    34.7 us |    55.1 us |    38.7 us |    36.1 us |
-| leq W <= X (false)                       |   177.1 us |   400.1 us |    96.1 us |    93.9 us |       0.44 |       4.16 |       1.02 |    34.5 us |    55.5 us |    38.9 us |    36.2 us |
-| counterexample W, X                      |   182.2 us |   413.9 us |    98.9 us |    97.0 us |       0.44 |       4.18 |       1.02 |    35.5 us |    55.6 us |    39.1 us |    36.2 us |
-| leq Y <= {8}                             |   902.2 us |   976.1 us |    1.16 ms |    85.1 us |       0.92 |       0.84 |      13.61 |    12.8 us |    12.6 us |    12.6 us |     8.8 us |
-| inhabited X                              |   108.0 us |   284.9 us |   130.9 us |    76.1 us |       0.38 |       2.18 |       1.72 |    27.2 us |    52.0 us |    48.8 us |    22.9 us |
-| **banked-regex-lower-bound-letter-automata: 512 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |    1.81 ms |    6.02 ms |    3.03 ms |    4.93 ms |       0.30 |       1.99 |       0.61 |   155.1 us |   273.1 us |   191.2 us |   179.4 us |
-| leq W <= X (false)                       |    1.55 ms |    4.68 ms |   221.0 us |    4.77 ms |       0.33 |      21.17 |       0.05 |   154.9 us |   274.1 us |   193.1 us |   179.2 us |
-| counterexample W, X                      |    1.59 ms |    4.93 ms |   223.9 us |    4.74 ms |       0.32 |      22.03 |       0.05 |   155.3 us |   274.2 us |   192.7 us |   179.3 us |
-| leq Y <= {8}                             |    4.43 ms |    2.46 ms |    3.96 ms |    4.58 ms |       1.80 |       0.62 |       0.86 |    52.2 us |    54.3 us |    53.4 us |    37.3 us |
-| inhabited X                              |   788.9 us |    2.82 ms |    1.55 ms |    4.64 ms |       0.28 |       1.81 |       0.34 |   117.8 us |   258.7 us |   246.0 us |   107.0 us |
-| **banked-regex-lower-bound-letter-automata: n-th letter from the end, n = 4** |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate E, E2                          |    1.50 ms |   106.1 us |    84.9 us |    88.0 us |      14.15 |       1.25 |       0.96 |   746.0 us |    10.2 us |     5.0 us |     5.0 us |
-| leq (B \| C)* <= E                        |    95.8 us |    66.0 us |    42.0 us |    47.9 us |       1.45 |       1.57 |       0.88 |     1.5 us |     2.9 us |     0.8 us |     0.8 us |
-| counterexample (B \| C)*; A; (B \| C)^n, E |   111.8 us |    64.8 us |    50.8 us |    52.9 us |       1.72 |       1.28 |       0.96 |     1.8 us |     2.6 us |     1.1 us |     1.1 us |
-| leq C* <= E2                             |    60.1 us |    74.9 us |    57.0 us |    62.9 us |       0.80 |       1.31 |       0.91 |     1.7 us |     3.3 us |     1.0 us |     1.0 us |
-| **banked-regex-lower-bound-letter-automata: n-th letter from the end, n = 8** |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate E, E2                          |   70.69 ms |   126.8 us |   102.0 us |    99.2 us |     557.30 |       1.24 |       1.03 |   67.04 ms |    18.3 us |     9.6 us |     9.5 us |
-| leq (B \| C)* <= E                        |    1.66 ms |    70.1 us |    47.0 us |    53.2 us |      23.72 |       1.49 |       0.88 |    17.2 us |     3.3 us |     0.9 us |     1.0 us |
-| counterexample (B \| C)*; A; (B \| C)^n, E |    1.62 ms |    80.1 us |    62.0 us |    62.0 us |      20.22 |       1.29 |       1.00 |    17.6 us |     3.1 us |     1.4 us |     1.4 us |
-| leq C* <= E2                             |    1.36 ms |    78.2 us |    52.0 us |    58.9 us |      17.44 |       1.50 |       0.88 |    19.9 us |     3.7 us |     1.1 us |     1.2 us |
-| **banked-regex-interval-letter-automata: banked corpus (20 literals)** |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate                                |    1.01 ms |   175.0 us |   158.1 us |   158.1 us |       5.78 |       1.11 |       1.00 |   351.2 us |    20.7 us |    19.1 us |    19.1 us |
-| leq, all pairs                           |    7.13 ms |    7.98 ms |    6.92 ms |    5.39 ms |       0.89 |       1.15 |       1.28 |   695.8 us |    1.27 ms |   606.5 us |   645.6 us |
-| equal, all pairs                         |    7.48 ms |    8.20 ms |    7.10 ms |    5.68 ms |       0.91 |       1.15 |       1.25 |   824.9 us |    1.50 ms |   720.0 us |   764.6 us |
-| counterexample, all pairs                |   12.96 ms |    8.33 ms |    7.15 ms |    5.59 ms |       1.55 |       1.16 |       1.28 |    6.14 ms |    1.41 ms |   698.2 us |   739.7 us |
-| **banked-regex-interval-letter-automata: delays, n = 8**   |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |   444.9 us |    85.8 us |    66.0 us |    62.9 us |       5.18 |       1.30 |       1.05 |     2.3 us |     2.9 us |     1.9 us |     2.1 us |
-| leq S <= T (false)                       |    62.9 us |    35.0 us |    21.9 us |    30.0 us |       1.80 |       1.60 |       0.73 |     1.1 us |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |    64.1 us |    34.1 us |    24.1 us |    29.1 us |       1.88 |       1.42 |       0.83 |     1.9 us |     1.5 us |     1.0 us |     1.0 us |
-| leq R <= T                               |   747.0 us |    93.0 us |    80.8 us |    75.8 us |       8.03 |       1.15 |       1.07 |     2.9 us |     2.8 us |     1.8 us |     2.0 us |
-| equal T = T \| R                          |    1.55 ms |   158.1 us |   140.9 us |   118.0 us |       9.84 |       1.12 |       1.19 |   101.6 us |     6.9 us |     4.0 us |     4.3 us |
-| **banked-regex-interval-letter-automata: delays, n = 32**  |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |   313.0 us |    81.1 us |    67.9 us |    61.0 us |       3.86 |       1.19 |       1.11 |     3.6 us |     2.9 us |     1.9 us |     2.0 us |
-| leq S <= T (false)                       |   242.9 us |    32.9 us |    21.0 us |    29.1 us |       7.38 |       1.57 |       0.72 |     1.8 us |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |   242.0 us |    35.0 us |    26.0 us |    30.0 us |       6.90 |       1.35 |       0.87 |     2.6 us |     1.5 us |     1.0 us |     1.0 us |
-| leq R <= T                               |    5.69 ms |    91.1 us |    83.9 us |    74.9 us |      62.46 |       1.09 |       1.12 |     6.1 us |     2.8 us |     1.8 us |     2.0 us |
-| equal T = T \| R                          |   18.67 ms |   162.1 us |   145.0 us |   127.1 us |     115.13 |       1.12 |       1.14 |    1.02 ms |     6.9 us |     4.0 us |     4.3 us |
-| **banked-regex-interval-letter-automata: delays, n = 128** |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |    3.43 ms |    88.0 us |    74.1 us |    65.1 us |      39.01 |       1.19 |       1.14 |     9.0 us |     2.9 us |     1.9 us |     2.1 us |
-| leq S <= T (false)                       |    3.23 ms |    34.1 us |    21.9 us |    28.1 us |      94.77 |       1.55 |       0.78 |     4.5 us |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |    3.20 ms |    36.0 us |    22.9 us |    30.0 us |      88.85 |       1.57 |       0.76 |     5.3 us |     1.5 us |     1.0 us |     1.0 us |
-| leq R <= T                               |   96.68 ms |   108.0 us |    88.9 us |    85.1 us |     895.18 |       1.21 |       1.04 |    19.1 us |     2.8 us |     1.8 us |     2.0 us |
-| equal T = T \| R                          |  307.69 ms |   180.0 us |   154.0 us |   142.1 us |    1709.34 |       1.17 |       1.08 |   16.72 ms |     6.9 us |     4.0 us |     4.3 us |
-| **banked-regex-interval-letter-automata: delays, n = 1024** |            |            |            |            |            |            |            |            |            |            |            |
-| leq T <= S                               |  259.43 ms |   121.1 us |   100.9 us |    98.9 us |    2141.94 |       1.20 |       1.02 |    58.5 us |     2.9 us |     1.9 us |     2.0 us |
-| leq S <= T (false)                       |  258.31 ms |    35.0 us |    22.9 us |    30.0 us |    7370.28 |       1.53 |       0.76 |    29.4 us |     1.5 us |     0.9 us |     1.0 us |
-| counterexample S, T                      |  258.29 ms |    35.0 us |    25.0 us |    29.1 us |    7369.76 |       1.40 |       0.86 |    30.3 us |     1.5 us |     1.0 us |     1.0 us |
-| leq R <= T                               |     7.97 s |   564.1 us |   568.2 us |   546.0 us |   14127.19 |       0.99 |       1.04 |          - |     2.8 us |     1.8 us |     2.0 us |
-| equal T = T \| R                          |     > 10 s |   813.0 us |   771.0 us |   745.1 us |    > 12300 |       1.05 |       1.03 |            |     6.9 us |     4.0 us |     4.4 us |
-| **banked-regex-interval-letter-automata: 8 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |    58.2 us |   103.0 us |    78.9 us |    72.0 us |       0.56 |       1.31 |       1.10 |     3.8 us |     5.3 us |     3.8 us |     3.8 us |
-| leq W <= X (false)                       |    37.2 us |    52.0 us |    34.1 us |    44.1 us |       0.72 |       1.52 |       0.77 |     1.9 us |     2.7 us |     1.9 us |     1.9 us |
-| counterexample W, X                      |    40.1 us |    61.0 us |    33.9 us |    42.9 us |       0.66 |       1.80 |       0.79 |     2.7 us |     2.7 us |     1.9 us |     1.9 us |
-| leq Y <= {8}                             |    92.0 us |    86.1 us |    70.1 us |    60.1 us |       1.07 |       1.23 |       1.17 |     1.0 us |     0.8 us |     0.7 us |     0.6 us |
-| inhabited X                              |    28.1 us |    55.1 us |    40.1 us |    47.0 us |       0.51 |       1.38 |       0.85 |     3.1 us |     5.7 us |     5.5 us |     3.4 us |
-| **banked-regex-interval-letter-automata: 32 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |   110.9 us |   395.1 us |   660.9 us |   467.1 us |       0.28 |       0.60 |       1.42 |    15.8 us |    23.4 us |    16.2 us |    15.5 us |
-| leq W <= X (false)                       |    52.0 us |    90.1 us |    38.9 us |   438.0 us |       0.58 |       2.32 |       0.09 |     7.8 us |    11.7 us |     8.1 us |     7.7 us |
-| counterexample W, X                      |    51.0 us |    89.9 us |    39.1 us |   417.0 us |       0.57 |       2.30 |       0.09 |     8.7 us |    11.7 us |     8.1 us |     7.7 us |
-| leq Y <= {8}                             |   170.0 us |   144.0 us |   141.9 us |    62.0 us |       1.18 |       1.02 |       2.29 |     2.9 us |     2.7 us |     2.6 us |     2.0 us |
-| inhabited X                              |    37.9 us |    95.8 us |    57.2 us |    47.0 us |       0.40 |       1.68 |       1.22 |    12.4 us |    22.9 us |    21.5 us |    10.8 us |
-| **banked-regex-interval-letter-automata: 128 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |   615.1 us |    3.58 ms |    3.28 ms |   192.9 us |       0.17 |       1.09 |      17.02 |    69.4 us |   110.3 us |    77.0 us |    72.8 us |
-| leq W <= X (false)                       |   200.0 us |   629.2 us |    99.9 us |    93.0 us |       0.32 |       6.30 |       1.07 |    34.8 us |    55.9 us |    39.3 us |    36.2 us |
-| counterexample W, X                      |   198.8 us |   653.0 us |   105.9 us |    96.1 us |       0.30 |       6.17 |       1.10 |    35.7 us |    56.5 us |    39.3 us |    36.4 us |
-| leq Y <= {8}                             |   891.0 us |   669.0 us |    1.14 ms |   101.1 us |       1.33 |       0.58 |      11.33 |    12.9 us |    12.9 us |    12.8 us |     8.9 us |
-| inhabited X                              |   155.0 us |   572.9 us |   226.0 us |   114.9 us |       0.27 |       2.53 |       1.97 |    55.1 us |   105.1 us |    97.9 us |    45.6 us |
-| **banked-regex-interval-letter-automata: 512 declared names** |            |            |            |            |            |            |            |            |            |            |            |
-| leq X <= W                               |    6.09 ms |   39.10 ms |   32.41 ms |    5.66 ms |       0.16 |       1.21 |       5.73 |   314.7 us |   545.8 us |   381.2 us |   355.4 us |
-| leq W <= X (false)                       |    1.63 ms |    4.71 ms |   850.9 us |   201.0 us |       0.35 |       5.53 |       4.23 |   155.4 us |   276.0 us |   191.9 us |   188.5 us |
-| counterexample W, X                      |    1.69 ms |    4.93 ms |   881.2 us |   207.9 us |       0.34 |       5.60 |       4.24 |   156.9 us |   275.0 us |   191.9 us |   189.3 us |
-| leq Y <= {8}                             |    4.52 ms |    2.27 ms |    3.94 ms |    83.2 us |       1.99 |       0.58 |      47.36 |    52.7 us |    54.9 us |    53.6 us |    39.0 us |
-| inhabited X                              |    1.00 ms |    3.44 ms |    1.63 ms |    5.78 ms |       0.29 |       2.11 |       0.28 |   238.7 us |   523.3 us |   498.6 us |   215.7 us |
-| **banked-regex-interval-letter-automata: n-th letter from the end, n = 4** |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate E, E2                          |    1.51 ms |   154.0 us |   126.8 us |   119.0 us |       9.80 |       1.21 |       1.07 |   755.5 us |    10.2 us |     5.0 us |     5.1 us |
-| leq (B \| C)* <= E                        |   220.8 us |   458.0 us |   449.9 us |   351.0 us |       0.48 |       1.02 |       1.28 |     3.1 us |     5.9 us |     1.6 us |     1.7 us |
-| counterexample (B \| C)*; A; (B \| C)^n, E |   242.0 us |   472.1 us |   464.0 us |   353.1 us |       0.51 |       1.02 |       1.31 |     3.7 us |     5.3 us |     2.1 us |     2.2 us |
-| leq C* <= E2                             |   160.0 us |    3.97 ms |    3.67 ms |    3.84 ms |       0.04 |       1.08 |       0.96 |     3.5 us |     6.6 us |     1.9 us |     2.1 us |
-| **banked-regex-interval-letter-automata: n-th letter from the end, n = 8** |            |            |            |            |            |            |            |            |            |            |            |
-| elaborate E, E2                          |   71.97 ms |   167.8 us |   133.0 us |   132.1 us |     428.76 |       1.26 |       1.01 |   68.27 ms |    18.5 us |     9.6 us |     9.6 us |
-| leq (B \| C)* <= E                        |    3.99 ms |    8.34 ms |    8.66 ms |    6.58 ms |       0.48 |       0.96 |       1.32 |    34.7 us |     6.7 us |     1.9 us |     2.0 us |
-| counterexample (B \| C)*; A; (B \| C)^n, E |    4.17 ms |    8.36 ms |    8.83 ms |    6.33 ms |       0.50 |       0.95 |       1.40 |    35.3 us |     6.3 us |     2.8 us |     2.9 us |
-| leq C* <= E2                             |    3.80 ms |  453.38 ms |  454.84 ms |  458.89 ms |       0.01 |       1.00 |       0.99 |    40.0 us |     8.0 us |     2.2 us |     2.4 us |
+| **typechecking, regular-trace-languages** |            |            |            |            |            |            |            |            |            |            |            |
+| standard library alone                   |   21.25 ms |   20.09 ms |   19.81 ms |   20.10 ms |       1.06 |       1.01 |       0.99 |   17.39 ms |   16.43 ms |   16.22 ms |   16.23 ms |
+| examples/regular_trace_languages/upper_bounds.tpe |   24.35 ms |   23.01 ms |   22.04 ms |   21.92 ms |       1.06 |       1.04 |       1.01 |   20.40 ms |   19.15 ms |   17.95 ms |   18.02 ms |
+| tests/literals_regular.tpe               |   21.75 ms |   20.59 ms |   20.00 ms |   20.50 ms |       1.06 |       1.03 |       0.98 |   17.80 ms |   16.68 ms |   16.47 ms |   16.57 ms |
+| tests/literals_reject_empty.tpe          |   353.1 us |   340.9 us |   345.0 us |   325.0 us |       1.04 |       0.99 |       1.06 |   133.2 us |   125.0 us |   124.8 us |   125.7 us |
+| tests/recursion_effect_regular.tpe       |   20.86 ms |   20.22 ms |   19.39 ms |   19.48 ms |       1.03 |       1.04 |       1.00 |   18.20 ms |   17.33 ms |   16.94 ms |   16.92 ms |
+| tests/recursion_effect_reject_unannotated_regular.tpe |   20.49 ms |   19.62 ms |   19.01 ms |   19.03 ms |       1.04 |       1.03 |       1.00 |   17.96 ms |   16.94 ms |   16.58 ms |   16.58 ms |
+| tests/regular_auth.tpe                   |   20.94 ms |   20.18 ms |   19.65 ms |   19.71 ms |       1.04 |       1.03 |       1.00 |   18.69 ms |   17.65 ms |   16.95 ms |   16.94 ms |
+| tests/regular_protocol.tpe               |   22.26 ms |   21.34 ms |   20.01 ms |   20.05 ms |       1.04 |       1.07 |       1.00 |   19.49 ms |   18.42 ms |   17.52 ms |   17.49 ms |
+| tests/regular_reject_auth.tpe            |   20.97 ms |   20.28 ms |   19.61 ms |   19.71 ms |       1.03 |       1.03 |       1.00 |   18.67 ms |   17.53 ms |   16.87 ms |   16.86 ms |
+| tests/regular_reject_bounds.tpe          |   20.39 ms |   19.05 ms |   18.68 ms |   18.53 ms |       1.07 |       1.02 |       1.01 |   17.44 ms |   16.44 ms |   16.21 ms |   16.19 ms |
+| tests/regular_reject_counterexample.tpe  |   21.54 ms |   21.10 ms |   19.72 ms |   20.13 ms |       1.02 |       1.07 |       0.98 |   19.30 ms |   17.88 ms |   17.20 ms |   17.21 ms |
+| tests/regular_reject_protocol.tpe        |   21.45 ms |   20.20 ms |   19.33 ms |   19.51 ms |       1.06 |       1.05 |       0.99 |   18.92 ms |   17.57 ms |   16.92 ms |   16.91 ms |
+| **typechecking, banked-regex-lower-bound** |            |            |            |            |            |            |            |            |            |            |            |
+| standard library alone                   |   17.55 ms |   17.24 ms |   16.97 ms |   16.80 ms |       1.02 |       1.02 |       1.01 |   13.48 ms |   12.85 ms |   12.63 ms |   12.61 ms |
+| examples/banked_regex/lower_bounds.tpe   |   20.03 ms |   18.90 ms |   17.79 ms |   17.82 ms |       1.06 |       1.06 |       1.00 |   15.84 ms |   14.57 ms |   13.54 ms |   13.51 ms |
+| tests/banked_regex_lower.tpe             |   19.32 ms |   19.13 ms |   17.83 ms |   18.20 ms |       1.01 |       1.07 |       0.98 |   15.19 ms |   14.20 ms |   13.38 ms |   13.38 ms |
+| tests/banked_regex_lower_reject.tpe      |   19.80 ms |   18.57 ms |   17.74 ms |   17.67 ms |       1.07 |       1.05 |       1.00 |   15.58 ms |   14.22 ms |   13.52 ms |   13.52 ms |
+| tests/banked_regex_lower_ticks_reject.tpe |   17.73 ms |   17.26 ms |   16.82 ms |   17.03 ms |       1.03 |       1.03 |       0.99 |   13.65 ms |   12.97 ms |   12.68 ms |   12.72 ms |
+| **typechecking, banked-regex-upper-bound** |            |            |            |            |            |            |            |            |            |            |            |
+| standard library alone                   |   21.88 ms |   20.62 ms |   19.95 ms |   19.95 ms |       1.06 |       1.03 |       1.00 |   17.02 ms |   15.41 ms |   15.05 ms |   15.08 ms |
+| examples/banked_regex/mail_session.tpe   |   28.78 ms |   27.27 ms |   24.86 ms |   24.54 ms |       1.06 |       1.10 |       1.01 |   23.68 ms |   21.48 ms |   18.70 ms |   18.68 ms |
+| examples/banked_regex/upper_bounds.tpe   |   25.46 ms |   23.55 ms |   22.23 ms |   22.19 ms |       1.08 |       1.06 |       1.00 |   20.68 ms |   18.07 ms |   16.85 ms |   16.88 ms |
+| tests/banked_regex_upper.tpe             |   24.36 ms |   22.54 ms |   21.47 ms |   21.51 ms |       1.08 |       1.05 |       1.00 |   19.33 ms |   17.19 ms |   16.07 ms |   16.13 ms |
+| tests/banked_regex_upper_open.tpe        |   22.47 ms |   20.78 ms |   20.25 ms |   20.35 ms |       1.08 |       1.03 |       0.99 |   17.63 ms |   15.82 ms |   15.30 ms |   15.29 ms |
+| tests/banked_regex_upper_open_reject.tpe |   23.15 ms |   21.11 ms |   20.71 ms |   20.28 ms |       1.10 |       1.02 |       1.02 |   17.70 ms |   15.90 ms |   15.38 ms |   15.33 ms |
+| tests/banked_regex_upper_reject.tpe      |   24.63 ms |   22.57 ms |   21.34 ms |   21.55 ms |       1.09 |       1.06 |       0.99 |   19.44 ms |   17.36 ms |   16.11 ms |   16.16 ms |
+| tests/banked_regex_upper_ticks.tpe       |   23.02 ms |   21.39 ms |   20.46 ms |   20.41 ms |       1.08 |       1.05 |       1.00 |   17.79 ms |   16.00 ms |   15.41 ms |   15.40 ms |
+| tests/banked_regex_upper_ticks_reject.tpe |   22.19 ms |   20.46 ms |   19.98 ms |   20.23 ms |       1.08 |       1.02 |       0.99 |   17.20 ms |   15.56 ms |   15.12 ms |   15.18 ms |
+| **typechecking, banked-regex-interval**  |            |            |            |            |            |            |            |            |            |            |            |
+| standard library alone                   |   25.15 ms |   22.20 ms |   20.78 ms |   20.70 ms |       1.13 |       1.07 |       1.00 |   19.86 ms |   17.60 ms |   16.63 ms |   16.64 ms |
+| examples/banked_regex/intervals.tpe      |   28.32 ms |   24.89 ms |   23.57 ms |   23.52 ms |       1.14 |       1.06 |       1.00 |   23.12 ms |   19.82 ms |   18.08 ms |   18.12 ms |
+| tests/banked_regex_compound_named_later_reject.tpe |   25.07 ms |   22.17 ms |   20.81 ms |   20.87 ms |       1.13 |       1.07 |       1.00 |   20.03 ms |   17.62 ms |   16.76 ms |   16.82 ms |
+| tests/banked_regex_compound_wildcard.tpe |   24.80 ms |   21.92 ms |   21.29 ms |   21.76 ms |       1.13 |       1.03 |       0.98 |   20.28 ms |   17.72 ms |   16.95 ms |   17.06 ms |
+| tests/banked_regex_interval.tpe          |   26.14 ms |   22.77 ms |   21.78 ms |   21.77 ms |       1.15 |       1.05 |       1.00 |   21.25 ms |   18.36 ms |   17.27 ms |   17.27 ms |
+| tests/banked_regex_interval_no_common_run_reject.tpe |   24.52 ms |   21.85 ms |   21.55 ms |   21.67 ms |       1.12 |       1.01 |       0.99 |   20.16 ms |   17.68 ms |   16.95 ms |   16.91 ms |
+| tests/banked_regex_interval_reject.tpe   |   25.58 ms |   22.42 ms |   21.74 ms |   21.77 ms |       1.14 |       1.03 |       1.00 |   20.88 ms |   18.26 ms |   17.19 ms |   17.17 ms |
+| tests/banked_regex_interval_ticks_reject.tpe |   24.36 ms |   21.82 ms |   21.62 ms |   21.71 ms |       1.12 |       1.01 |       1.00 |   20.03 ms |   17.49 ms |   16.81 ms |   16.85 ms |
 
-## Slow delay sets of the rational grade
+#### Grade operations
 
-The benchmark ends with a table timing `regular-trace-languages-rational-symbolic` on grades
-whose sets of delays have long finite parts before their periodic tails
-(sums and repetitions of large nearly coprime constants, and a point with a
-narrow interval), with a limit of 60 s per measurement. No results are recorded
-yet; the costs of the operations on sets of delays are stated in
-[`src/01-language/grades/delaySet.mli`](../../src/01-language/grades/delaySet.mli).
+| workload                                 |   automata |      plain |    letters |   symbolic |  aut/plain |  plain/let |   let/symb |
+|------------------------------------------|------------|------------|------------|------------|------------|------------|------------|
+| **regular-trace-languages: corpus (41 literals)** |            |            |            |            |            |            |            |
+| elaborate                                |    3.56 ms |    2.65 ms |   185.0 us |    2.76 ms |       1.35 |      14.31 |       0.07 |
+| mul, all pairs                           |   15.65 ms |    3.66 ms |   167.1 us |   329.0 us |       4.27 |      21.92 |       0.51 |
+| join, all pairs                          |   12.56 ms |    3.85 ms |    1.44 ms |    1.40 ms |       3.26 |       2.67 |       1.03 |
+| leq, all pairs                           |    6.10 ms |    6.66 ms |    4.36 ms |    5.70 ms |       0.92 |       1.53 |       0.77 |
+| equal, all pairs                         |    21.0 us |    3.92 ms |    1.21 ms |    1.58 ms |       0.01 |       3.23 |       0.77 |
+| counterexample, all pairs                |   10.89 ms |    6.55 ms |    4.37 ms |    6.99 ms |       1.66 |       1.50 |       0.62 |
+| show, each                               |    1.24 ms |    1.18 ms |    1.09 ms |    1.08 ms |       1.05 |       1.08 |       1.01 |
+| **regular-trace-languages: protocol P^k, k = 8** |            |            |            |            |            |            |            |
+| mul P^k                                  |    2.56 ms |     7.9 us |     6.9 us |     5.0 us |     324.88 |       1.14 |       1.38 |
+| join J = P \| ... \| P^k                 |    3.52 ms |    33.9 us |    30.0 us |    28.8 us |     103.85 |       1.13 |       1.04 |
+| leq P^k <= P*                            |     6.0 us |    2.16 ms |    2.23 ms |    2.24 ms |       0.00 |       0.97 |       1.00 |
+| leq P; P* <= J (false)                   |     6.9 us |    2.32 ms |    2.29 ms |    2.32 ms |       0.00 |       1.01 |       0.99 |
+| counterexample P; P*, J                  |   101.1 us |    92.0 us |    2.45 ms |    2.38 ms |       1.10 |       0.04 |       1.03 |
+| equal J \| P; P* = P; P*                 |    13.1 us |    73.9 us |    2.28 ms |    2.32 ms |       0.18 |       0.03 |       0.98 |
+| **regular-trace-languages: protocol P^k, k = 32** |            |            |            |            |            |            |            |
+| mul P^k                                  |    9.55 ms |    2.35 ms |    2.32 ms |    2.30 ms |       4.06 |       1.01 |       1.01 |
+| join J = P \| ... \| P^k                 |   64.32 ms |    4.18 ms |    4.05 ms |    4.28 ms |      15.41 |       1.03 |       0.95 |
+| leq P^k <= P*                            |    18.8 us |   256.1 us |   318.1 us |   352.9 us |       0.07 |       0.81 |       0.90 |
+| leq P; P* <= J (false)                   |    21.0 us |    1.54 ms |    1.91 ms |    1.59 ms |       0.01 |       0.81 |       1.20 |
+| counterexample P; P*, J                  |    1.23 ms |    1.52 ms |    1.81 ms |    1.64 ms |       0.81 |       0.84 |       1.11 |
+| equal J \| P; P* = P; P*                 |    56.0 us |    1.49 ms |    1.64 ms |    1.95 ms |       0.04 |       0.90 |       0.84 |
+| **regular-trace-languages: nested protocol N_d, d = 3** |            |            |            |            |            |            |            |
+| elaborate N_d                            |    2.60 ms |    69.1 us |    75.1 us |    2.41 ms |      37.59 |       0.92 |       0.03 |
+| leq N_d <= N_d+1                         |     3.1 us |    31.9 us |    31.0 us |    37.0 us |       0.10 |       1.03 |       0.84 |
+| counterexample N_d+1, N_d                |    40.8 us |    33.9 us |    34.1 us |    43.9 us |       1.20 |       0.99 |       0.78 |
+| equal N_d = N_d \| P                     |     0.0 us |     8.1 us |     8.1 us |    10.0 us |       0.00 |       1.00 |       0.81 |
+| **regular-trace-languages: nested protocol N_d, d = 6** |            |            |            |            |            |            |            |
+| elaborate N_d                            |    2.96 ms |    2.41 ms |    2.42 ms |    2.48 ms |       1.23 |       1.00 |       0.98 |
+| leq N_d <= N_d+1                         |     4.1 us |    39.1 us |    36.0 us |    66.0 us |       0.10 |       1.09 |       0.55 |
+| counterexample N_d+1, N_d                |   104.0 us |    46.0 us |    39.1 us |    86.1 us |       2.26 |       1.18 |       0.45 |
+| equal N_d = N_d \| P                     |     1.0 us |    10.0 us |    10.0 us |    12.2 us |       0.10 |       1.00 |       0.82 |
+| **regular-trace-languages: n-th letter from the end, n = 4** |            |            |            |            |            |            |            |
+| elaborate E                              |   241.0 us |    56.0 us |    50.1 us |    55.1 us |       4.30 |       1.12 |       0.91 |
+| elaborate E2                             |    2.82 ms |    60.1 us |    54.1 us |    56.0 us |      46.97 |       1.11 |       0.97 |
+| leq (B \| C)* <= E                       |    2.01 ms |    21.9 us |    14.1 us |   100.1 us |      91.54 |       1.56 |       0.14 |
+| counterexample (B \| C)*; A; (B \| C)^n, E |    76.8 us |    51.0 us |    37.0 us |   121.1 us |       1.50 |       1.38 |       0.31 |
+| leq C* <= E2                             |   288.0 us |    29.1 us |    22.9 us |   122.1 us |       9.90 |       1.27 |       0.19 |
+| elaborate E', decide E = E'              |    2.32 ms |    2.31 ms |    2.14 ms |    5.18 ms |       1.01 |       1.08 |       0.41 |
+| **regular-trace-languages: n-th letter from the end, n = 8** |            |            |            |            |            |            |            |
+| elaborate E                              |    6.31 ms |    67.9 us |    52.9 us |    52.9 us |      92.85 |       1.28 |       1.00 |
+| elaborate E2                             |   43.97 ms |    83.0 us |    62.0 us |    62.0 us |     529.94 |       1.34 |       1.00 |
+| leq (B \| C)* <= E                       |   899.1 us |    23.8 us |    17.2 us |    2.06 ms |      37.71 |       1.39 |       0.01 |
+| counterexample (B \| C)*; A; (B \| C)^n, E |    1.05 ms |    86.1 us |    62.0 us |    2.32 ms |      12.15 |       1.39 |       0.03 |
+| leq C* <= E2                             |    1.02 ms |    30.0 us |    22.9 us |    2.24 ms |      33.95 |       1.31 |       0.01 |
+| elaborate E', decide E = E'              |    4.50 ms |    8.57 ms |    7.97 ms |   93.88 ms |       0.53 |       1.08 |       0.08 |
+| show E2                                  |     7.2 us |    58.9 us |    42.0 us |    43.9 us |       0.12 |       1.40 |       0.96 |
+| **regular-trace-languages: n-th letter from the end, n = 12** |            |            |            |            |            |            |            |
+| elaborate E                              |   85.32 ms |    63.9 us |    58.2 us |    57.9 us |    1335.32 |       1.10 |       1.00 |
+| elaborate E2                             |     4.81 s |    90.1 us |    63.2 us |    64.8 us |   53317.16 |       1.43 |       0.97 |
+| leq (B \| C)* <= E                       |   26.55 ms |    25.0 us |    16.9 us |    2.65 ms |    1060.44 |       1.48 |       0.01 |
+| counterexample (B \| C)*; A; (B \| C)^n, E |   26.82 ms |   104.9 us |    86.1 us |    3.45 ms |     255.65 |       1.22 |       0.02 |
+| leq C* <= E2                             |   27.07 ms |    30.0 us |    23.8 us |    3.13 ms |     901.17 |       1.26 |       0.01 |
+| elaborate E', decide E = E'              |  125.08 ms |  109.09 ms |  103.14 ms |     3.31 s |       1.15 |       1.06 |       0.03 |
+| show E2                                  |    11.0 us |    65.1 us |    46.0 us |    47.0 us |       0.17 |       1.41 |       0.98 |
+| **regular-trace-languages: n-th letter from the end, n = 16** |            |            |            |            |            |            |            |
+| elaborate E                              |     2.00 s |    67.0 us |    59.1 us |    56.0 us |   29830.68 |       1.13 |       1.06 |
+| elaborate E2                             |     > 10 s |   111.1 us |    72.0 us |    72.0 us |    > 90007 |       1.54 |       1.00 |
+| leq (B \| C)* <= E                       |  632.15 ms |    25.0 us |    16.0 us |    4.09 ms |   25251.54 |       1.57 |       0.00 |
+| counterexample (B \| C)*; A; (B \| C)^n, E |  629.64 ms |    1.87 ms |    1.97 ms |    4.82 ms |     336.38 |       0.95 |       0.41 |
+| leq C* <= E2                             |     > 10 s |    28.1 us |    21.9 us |    4.57 ms |   > 355449 |       1.28 |       0.00 |
+| elaborate E', decide E = E'              |     2.99 s |     2.43 s |     2.28 s |     > 10 s |       1.23 |       1.07 |     < 0.23 |
+| **regular-trace-languages: alphabet of k = 8 names** |            |            |            |            |            |            |            |
+| elaborate W, X                           |    2.12 ms |    92.0 us |    73.2 us |   107.0 us |      23.02 |       1.26 |       0.68 |
+| mul X W                                  |    11.2 us |     1.0 us |     0.0 us |     1.0 us |      11.75 |            |       0.00 |
+| join X W                                 |     7.9 us |     1.0 us |     0.0 us |     0.0 us |       8.25 |            |            |
+| leq X <= W                               |     4.1 us |    14.1 us |     8.1 us |    14.8 us |       0.29 |       1.74 |       0.55 |
+| leq W <= X (false)                       |     1.0 us |     4.1 us |     4.1 us |     2.1 us |       0.24 |       1.00 |       1.89 |
+| counterexample W, X                      |     6.9 us |     1.9 us |     2.1 us |     1.9 us |       3.62 |       0.89 |       1.12 |
+| equal W = W \| X                         |     1.0 us |    24.1 us |    18.8 us |    17.9 us |       0.04 |       1.28 |       1.05 |
+| **regular-trace-languages: alphabet of k = 32 names** |            |            |            |            |            |            |            |
+| elaborate W, X                           |    3.90 ms |    2.03 ms |   140.9 us |   140.9 us |       1.92 |      14.41 |       1.00 |
+| mul X W                                  |    19.1 us |     4.1 us |     1.0 us |     0.0 us |       4.71 |       4.25 |            |
+| join X W                                 |    12.9 us |     5.0 us |     0.0 us |     1.0 us |       2.57 |            |       0.00 |
+| leq X <= W                               |     6.2 us |    63.9 us |    1.71 ms |    15.0 us |       0.10 |       0.04 |     113.92 |
+| leq W <= X (false)                       |     3.1 us |    11.2 us |     7.9 us |     3.1 us |       0.28 |       1.42 |       2.54 |
+| counterexample W, X                      |    10.0 us |     4.1 us |     1.0 us |     2.1 us |       2.47 |       4.25 |       0.44 |
+| equal W = W \| X                         |     0.0 us |   299.9 us |    1.77 ms |    19.1 us |       0.00 |       0.17 |      92.59 |
+| **regular-trace-languages: alphabet of k = 128 names** |            |            |            |            |            |            |            |
+| elaborate W, X                           |   15.05 ms |    6.97 ms |    2.70 ms |    2.24 ms |       2.16 |       2.58 |       1.21 |
+| mul X W                                  |   104.0 us |    11.0 us |     0.0 us |     0.0 us |       9.48 |            |            |
+| join X W                                 |    73.2 us |    11.0 us |     2.1 us |     0.0 us |       6.67 |       5.11 |            |
+| leq X <= W                               |    21.9 us |   426.1 us |   126.1 us |    18.1 us |       0.05 |       3.38 |       6.96 |
+| leq W <= X (false)                       |    11.2 us |    42.0 us |    30.0 us |     6.2 us |       0.27 |       1.40 |       4.85 |
+| counterexample W, X                      |    62.0 us |    11.0 us |     1.9 us |     1.0 us |       5.65 |       5.75 |       2.00 |
+| equal W = W \| X                         |     1.9 us |   469.2 us |   579.8 us |    21.0 us |       0.00 |       0.81 |      27.64 |
+| **regular-trace-languages: k = 32 names told apart** |            |            |            |            |            |            |            |
+| elaborate U, V                           |   16.20 ms |    2.08 ms |    1.99 ms |    2.56 ms |       7.79 |       1.05 |       0.78 |
+| leq U <= V                               |    26.9 us |   576.0 us |   579.1 us |    1.61 ms |       0.05 |       0.99 |       0.36 |
+| leq V <= U (false)                       |     4.1 us |    11.9 us |     9.1 us |   321.9 us |       0.34 |       1.32 |       0.03 |
+| counterexample V, U                      |    11.9 us |     5.0 us |     1.0 us |     1.9 us |       2.38 |       5.25 |       0.50 |
+| equal V = skip \| U; V                   |    1.40 ms |    51.0 us |    34.1 us |   887.2 us |      27.46 |       1.50 |       0.04 |
+| **regular-trace-languages: k = 128 names told apart** |            |            |            |            |            |            |            |
+| elaborate U, V                           |     2.47 s |    9.36 ms |    9.27 ms |   11.22 ms |     264.37 |       1.01 |       0.83 |
+| leq U <= V                               |   405.1 us |    6.93 ms |    6.92 ms |   12.07 ms |       0.06 |       1.00 |       0.57 |
+| leq V <= U (false)                       |    16.0 us |    52.9 us |    38.9 us |   412.9 us |       0.30 |       1.36 |       0.09 |
+| counterexample V, U                      |    69.1 us |    13.8 us |     1.9 us |     3.8 us |       5.00 |       7.25 |       0.50 |
+| equal V = skip \| U; V                   |   74.69 ms |   146.9 us |    93.0 us |    2.84 ms |     508.57 |       1.58 |       0.03 |
+| **regular-trace-languages: gaps, (a \| b)*, a = 100, b = 101** |            |            |            |            |            |            |            |
+| elaborate G                              |  260.29 ms |    52.9 us |    51.0 us |    51.0 us |    4917.65 |       1.04 |       1.00 |
+| leq a*; b* <= G                          |    2.91 ms |  131.75 ms |  135.85 ms |    1.26 ms |       0.02 |       0.97 |     108.24 |
+| equal G = a*; b*                         |   185.0 us |  121.91 ms |  125.47 ms |   169.0 us |       0.00 |       0.97 |     742.27 |
+| leq (a \| b + 1)* <= G (false)           |    75.1 us |    24.1 us |    26.9 us |    2.47 ms |       3.12 |       0.89 |       0.01 |
+| counterexample (a \| b + 1)*, G          |    1.33 ms |    35.0 us |    35.0 us |    2.64 ms |      37.89 |       1.00 |       0.01 |
+| **regular-trace-languages: gaps, (a \| b)*, a = 1000, b = 1001** |            |            |            |            |            |            |            |
+| elaborate G                              |     > 10 s |    68.9 us |    51.0 us |    51.0 us |   > 145132 |       1.35 |       1.00 |
+| leq a*; b* <= G                          |     > 10 s |     > 10 s |     > 10 s |   39.17 ms |            |            |      > 255 |
+| equal G = a*; b*                         |     > 10 s |     > 10 s |     > 10 s |   13.06 ms |            |            |      > 766 |
+| leq (a \| b + 1)* <= G (false)           |     > 10 s |    25.0 us |    25.0 us |   38.31 ms |   > 399458 |       1.00 |       0.00 |
+| counterexample (a \| b + 1)*, G          |     > 10 s |   114.0 us |   114.9 us |   38.47 ms |    > 87747 |       0.99 |       0.00 |
+| **regular-trace-languages: gaps, (a \| b)*, a = 97, b = 89** |            |            |            |            |            |            |            |
+| elaborate G                              |  211.23 ms |    57.0 us |    52.0 us |    49.8 us |    3706.97 |       1.10 |       1.04 |
+| leq a*; b* <= G                          |    2.52 ms |  122.78 ms |  127.00 ms |   283.0 us |       0.02 |       0.97 |     448.75 |
+| equal G = a*; b*                         |   253.2 us |  112.53 ms |  115.75 ms |   173.1 us |       0.00 |       0.97 |     668.74 |
+| leq (a \| b + 1)* <= G (false)           |   137.1 us |    21.0 us |    20.0 us |    2.46 ms |       6.53 |       1.05 |       0.01 |
+| counterexample (a \| b + 1)*, G          |   892.9 us |    30.0 us |    29.8 us |    2.66 ms |      29.72 |       1.01 |       0.01 |
+| **banked-regex-lower-bound: corpus (24 literals)** |            |            |            |            |            |            |            |
+| elaborate                                |    1.11 ms |   158.1 us |   121.1 us |   165.2 us |       7.02 |       1.31 |       0.73 |
+| leq, all pairs                           |    6.89 ms |    7.07 ms |    5.77 ms |    5.41 ms |       0.97 |       1.22 |       1.07 |
+| equal, all pairs                         |    7.02 ms |    7.48 ms |    5.87 ms |    5.40 ms |       0.94 |       1.27 |       1.09 |
+| counterexample, all pairs                |    7.53 ms |    7.00 ms |    5.87 ms |    5.26 ms |       1.08 |       1.19 |       1.12 |
+| inhabited, each                          |    1.85 ms |   140.9 us |   139.0 us |   120.9 us |      13.11 |       1.01 |       1.15 |
+| show, each                               |    1.93 ms |    2.65 ms |    2.38 ms |    2.36 ms |       0.73 |       1.11 |       1.01 |
+| **banked-regex-lower-bound: delays, n = 8** |            |            |            |            |            |            |            |
+| leq T <= S                               |    51.0 us |    44.8 us |    31.0 us |    36.0 us |       1.14 |       1.45 |       0.86 |
+| leq S <= T (false)                       |    43.2 us |    41.0 us |    28.1 us |    36.0 us |       1.05 |       1.46 |       0.78 |
+| counterexample S, T                      |    43.2 us |    40.1 us |    28.1 us |    36.0 us |       1.08 |       1.42 |       0.78 |
+| leq R <= T                               |   769.9 us |    57.0 us |    41.0 us |    30.0 us |      13.51 |       1.39 |       1.37 |
+| equal T = T \| R                         |   807.0 us |    67.2 us |    53.2 us |    36.0 us |      12.00 |       1.26 |       1.48 |
+| **banked-regex-lower-bound: delays, n = 128** |            |            |            |            |            |            |            |
+| leq T <= S                               |    1.62 ms |    49.1 us |    32.9 us |    37.0 us |      33.06 |       1.49 |       0.89 |
+| leq S <= T (false)                       |    1.58 ms |    41.0 us |    28.1 us |    39.1 us |      38.51 |       1.46 |       0.72 |
+| counterexample S, T                      |    1.59 ms |    42.0 us |    30.0 us |    43.9 us |      37.82 |       1.40 |       0.68 |
+| leq R <= T                               |    8.32 ms |    57.0 us |    45.1 us |    31.2 us |     145.94 |       1.26 |       1.44 |
+| equal T = T \| R                         |   26.03 ms |    73.0 us |    58.9 us |    38.9 us |     356.80 |       1.24 |       1.52 |
+| **banked-regex-lower-bound: delays, n = 1024** |            |            |            |            |            |            |            |
+| leq T <= S                               |  145.04 ms |    54.1 us |    39.8 us |    37.9 us |    2679.86 |       1.36 |       1.05 |
+| leq S <= T (false)                       |  145.15 ms |    45.1 us |    28.8 us |    42.9 us |    3221.20 |       1.56 |       0.67 |
+| counterexample S, T                      |  144.86 ms |    43.2 us |    29.1 us |    42.0 us |    3356.75 |       1.48 |       0.69 |
+| leq R <= T                               |  706.66 ms |    62.0 us |    47.0 us |    31.0 us |   11399.81 |       1.32 |       1.52 |
+| equal T = T \| R                         |     2.27 s |    98.9 us |    78.2 us |    40.1 us |   22908.52 |       1.27 |       1.95 |
+| **banked-regex-lower-bound: k = 8 declared names** |            |            |            |            |            |            |            |
+| leq X <= W                               |    24.1 us |    62.9 us |    52.0 us |    38.1 us |       0.38 |       1.21 |       1.36 |
+| leq W <= X (false)                       |    25.0 us |    51.0 us |    32.2 us |    40.1 us |       0.49 |       1.59 |       0.80 |
+| counterexample W, X                      |    21.0 us |    48.9 us |    30.0 us |    37.0 us |       0.43 |       1.63 |       0.81 |
+| leq Y <= {8}                             |    57.9 us |    67.9 us |    63.2 us |    41.0 us |       0.85 |       1.08 |       1.54 |
+| inhabited X                              |    16.9 us |    48.2 us |    35.0 us |    23.1 us |       0.35 |       1.37 |       1.52 |
+| **banked-regex-lower-bound: k = 128 declared names** |            |            |            |            |            |            |            |
+| leq X <= W                               |   165.9 us |   379.1 us |   172.9 us |    62.0 us |       0.44 |       2.19 |       2.79 |
+| leq W <= X (false)                       |   133.0 us |   286.1 us |    57.9 us |    59.8 us |       0.47 |       4.94 |       0.97 |
+| counterexample W, X                      |   133.0 us |   284.2 us |    57.0 us |    59.8 us |       0.47 |       4.99 |       0.95 |
+| leq Y <= {8}                             |   401.0 us |   211.0 us |   521.9 us |    38.9 us |       1.90 |       0.40 |      13.43 |
+| inhabited X                              |    74.9 us |   191.9 us |   119.9 us |    33.1 us |       0.39 |       1.60 |       3.62 |
+| **banked-regex-lower-bound: k = 512 declared names** |            |            |            |            |            |            |            |
+| leq X <= W                               |    1.22 ms |    4.24 ms |    2.47 ms |   365.0 us |       0.29 |       1.71 |       6.77 |
+| leq W <= X (false)                       |    1.04 ms |    3.36 ms |    1.82 ms |   370.0 us |       0.31 |       1.85 |       4.91 |
+| counterexample W, X                      |    1.05 ms |    3.36 ms |    1.78 ms |   361.0 us |       0.31 |       1.89 |       4.93 |
+| leq Y <= {8}                             |    1.75 ms |    1.09 ms |    3.22 ms |   282.0 us |       1.61 |       0.34 |      11.42 |
+| inhabited X                              |   565.1 us |    2.07 ms |    2.23 ms |   294.9 us |       0.27 |       0.93 |       7.55 |
+| **banked-regex-lower-bound: n-th letter from the end, n = 4** |            |            |            |            |            |            |            |
+| elaborate E, E2                          |    3.32 ms |    72.0 us |    57.9 us |    61.0 us |      46.17 |       1.24 |       0.95 |
+| leq (B \| C)* <= E                       |    59.1 us |    71.0 us |    44.8 us |    3.22 ms |       0.83 |       1.59 |       0.01 |
+| counterexample (B \| C)*; A; (B \| C)^n, E |    72.0 us |   772.0 us |    45.1 us |    3.08 ms |       0.09 |      17.13 |       0.01 |
+| leq C* <= E2                             |    39.8 us |   727.9 us |    59.1 us |    8.45 ms |       0.05 |      12.31 |       0.01 |
+| **banked-regex-lower-bound: n-th letter from the end, n = 8** |            |            |            |            |            |            |            |
+| elaborate E, E2                          |   46.70 ms |   927.9 us |    64.8 us |    63.2 us |      50.32 |      14.31 |       1.03 |
+| leq (B \| C)* <= E                       |   938.9 us |   762.0 us |    53.9 us |   28.55 ms |       1.23 |      14.14 |       0.00 |
+| counterexample (B \| C)*; A; (B \| C)^n, E |   962.0 us |    32.2 us |    26.9 us |   27.92 ms |      29.89 |       1.19 |       0.00 |
+| leq C* <= E2                             |    1.00 ms |    31.9 us |   755.1 us |     1.21 s |      31.31 |       0.04 |       0.00 |
+| **banked-regex-upper-bound: corpus (24 literals)** |            |            |            |            |            |            |            |
+| elaborate                                |    2.57 ms |    2.01 ms |    1.97 ms |    2.04 ms |       1.28 |       1.02 |       0.97 |
+| leq, all pairs                           |   41.48 ms |   29.21 ms |   29.69 ms |    5.46 ms |       1.42 |       0.98 |       5.44 |
+| equal, all pairs                         |   42.10 ms |   29.73 ms |   30.00 ms |    5.38 ms |       1.42 |       0.99 |       5.58 |
+| counterexample, all pairs                |   45.00 ms |   29.76 ms |   30.02 ms |    6.54 ms |       1.51 |       0.99 |       4.59 |
+| inhabited, each                          |   926.0 us |   142.1 us |   132.1 us |   109.9 us |       6.52 |       1.08 |       1.20 |
+| show, each                               |   874.0 us |   778.9 us |   726.9 us |   720.0 us |       1.12 |       1.07 |       1.01 |
+| **banked-regex-upper-bound: delays, n = 8** |            |            |            |            |            |            |            |
+| leq T <= S                               |    53.9 us |    52.9 us |    48.9 us |    37.9 us |       1.02 |       1.08 |       1.29 |
+| leq S <= T (false)                       |    83.9 us |    64.1 us |    57.0 us |    42.9 us |       1.31 |       1.13 |       1.33 |
+| counterexample S, T                      |   119.9 us |    64.1 us |    57.0 us |    48.2 us |       1.87 |       1.13 |       1.18 |
+| leq R <= T                               |    96.1 us |    53.9 us |    46.0 us |    31.0 us |       1.78 |       1.17 |       1.48 |
+| equal T = T \| R                         |   622.0 us |    75.1 us |    62.9 us |    41.0 us |       8.28 |       1.19 |       1.53 |
+| **banked-regex-upper-bound: delays, n = 128** |            |            |            |            |            |            |            |
+| leq T <= S                               |    1.63 ms |    52.0 us |    43.9 us |    37.9 us |      31.40 |       1.18 |       1.16 |
+| leq S <= T (false)                       |    9.82 ms |    1.43 ms |    1.41 ms |    1.17 ms |       6.88 |       1.01 |       1.21 |
+| counterexample S, T                      |   21.79 ms |    1.73 ms |    1.68 ms |    1.47 ms |      12.58 |       1.03 |       1.14 |
+| leq R <= T                               |   11.17 ms |    58.2 us |    48.9 us |    32.9 us |     192.08 |       1.19 |       1.49 |
+| equal T = T \| R                         |   35.64 ms |    81.1 us |    78.0 us |    50.1 us |     439.71 |       1.04 |       1.56 |
+| **banked-regex-upper-bound: delays, n = 1024** |            |            |            |            |            |            |            |
+| leq T <= S                               |  145.03 ms |    68.2 us |    51.0 us |    41.0 us |    2126.86 |       1.34 |       1.24 |
+| leq S <= T (false)                       |  797.41 ms |    6.85 ms |    6.78 ms |    4.67 ms |     116.39 |       1.01 |       1.45 |
+| counterexample S, T                      |     7.51 s |   10.65 ms |   10.55 ms |    8.37 ms |     704.76 |       1.01 |       1.26 |
+| leq R <= T                               |  939.34 ms |    77.0 us |    65.1 us |    39.8 us |   12197.71 |       1.18 |       1.63 |
+| equal T = T \| R                         |     3.27 s |   119.0 us |   103.0 us |    44.8 us |   27482.05 |       1.16 |       2.30 |
+| **banked-regex-upper-bound: k = 8 declared names** |            |            |            |            |            |            |            |
+| leq X <= W                               |    34.1 us |    67.9 us |    51.0 us |    42.9 us |       0.50 |       1.33 |       1.19 |
+| leq W <= X (false)                       |    37.0 us |    93.2 us |    80.1 us |    52.0 us |       0.40 |       1.16 |       1.54 |
+| counterexample W, X                      |    47.9 us |    98.0 us |    86.8 us |    60.1 us |       0.49 |       1.13 |       1.44 |
+| leq Y <= {8}                             |   172.1 us |   160.0 us |   164.0 us |    54.1 us |       1.08 |       0.98 |       3.03 |
+| inhabited X                              |    21.9 us |    42.9 us |    32.9 us |    21.0 us |       0.51 |       1.30 |       1.57 |
+| **banked-regex-upper-bound: k = 128 declared names** |            |            |            |            |            |            |            |
+| leq X <= W                               |   360.0 us |    1.78 ms |    2.44 ms |    66.0 us |       0.20 |       0.73 |      36.97 |
+| leq W <= X (false)                       |   781.1 us |    4.70 ms |    5.53 ms |    74.1 us |       0.17 |       0.85 |      74.55 |
+| counterexample W, X                      |   793.9 us |    4.72 ms |    5.56 ms |    88.0 us |       0.17 |       0.85 |      63.21 |
+| leq Y <= {8}                             |    8.53 ms |    5.96 ms |    9.92 ms |    52.9 us |       1.43 |       0.60 |     187.38 |
+| inhabited X                              |    75.8 us |   191.9 us |   660.9 us |    37.0 us |       0.40 |       0.29 |      17.88 |
+| **banked-regex-upper-bound: k = 512 declared names** |            |            |            |            |            |            |            |
+| leq X <= W                               |    4.09 ms |   26.71 ms |   23.37 ms |    1.77 ms |       0.15 |       1.14 |      13.21 |
+| leq W <= X (false)                       |    8.92 ms |   82.07 ms |   82.02 ms |    1.79 ms |       0.11 |       1.00 |      45.92 |
+| counterexample W, X                      |    9.01 ms |   82.57 ms |   81.48 ms |    1.79 ms |       0.11 |       1.01 |      45.62 |
+| leq Y <= {8}                             |  113.65 ms |   81.26 ms |  160.38 ms |    79.2 us |       1.40 |       0.51 |    2026.11 |
+| inhabited X                              |   722.9 us |    1.98 ms |    2.26 ms |    1.68 ms |       0.36 |       0.88 |       1.35 |
+| **banked-regex-upper-bound: n-th letter from the end, n = 4** |            |            |            |            |            |            |            |
+| elaborate E, E2                          |    1.57 ms |    67.0 us |    56.0 us |    57.0 us |      23.39 |       1.20 |       0.98 |
+| leq (B \| C)* <= E                       |   133.0 us |   648.0 us |   944.9 us |    6.94 ms |       0.21 |       0.69 |       0.14 |
+| counterexample (B \| C)*; A; (B \| C)^n, E |   448.0 us |   675.0 us |   975.8 us |   12.42 ms |       0.66 |       0.69 |       0.08 |
+| leq C* <= E2                             |   114.0 us |    3.48 ms |    3.29 ms |  417.06 ms |       0.03 |       1.06 |       0.01 |
+| **banked-regex-upper-bound: n-th letter from the end, n = 8** |            |            |            |            |            |            |            |
+| elaborate E, E2                          |   45.74 ms |    79.9 us |    60.1 us |    62.9 us |     572.67 |       1.33 |       0.95 |
+| leq (B \| C)* <= E                       |    2.35 ms |    6.71 ms |    7.03 ms |     3.36 s |       0.35 |       0.95 |       0.00 |
+| counterexample (B \| C)*; A; (B \| C)^n, E |    2.45 ms |    6.62 ms |    7.09 ms |     7.04 s |       0.37 |       0.93 |       0.00 |
+| leq C* <= E2                             |    2.33 ms |  303.23 ms |  304.67 ms |     > 10 s |       0.01 |       1.00 |     < 0.03 |
+| **banked-regex-interval: corpus (34 literals)** |            |            |            |            |            |            |            |
+| elaborate                                |    1.47 ms |   808.0 us |   742.9 us |   769.9 us |       1.82 |       1.09 |       0.97 |
+| leq, all pairs                           |   74.09 ms |   55.31 ms |   54.41 ms |    8.33 ms |       1.34 |       1.02 |       6.53 |
+| equal, all pairs                         |   71.54 ms |   54.85 ms |   53.59 ms |    7.25 ms |       1.30 |       1.02 |       7.39 |
+| counterexample, all pairs                |   23.23 ms |   25.08 ms |   21.94 ms |    9.88 ms |       0.93 |       1.14 |       2.22 |
+| inhabited, each                          |    1.87 ms |    1.92 ms |    1.85 ms |   626.8 us |       0.97 |       1.04 |       2.95 |
+| show, each                               |   792.0 us |   735.0 us |   685.9 us |   683.1 us |       1.08 |       1.07 |       1.00 |
+| **banked-regex-interval: delays, n = 8** |            |            |            |            |            |            |            |
+| leq T <= S                               |    31.0 us |    53.9 us |    44.1 us |    42.9 us |       0.58 |       1.22 |       1.03 |
+| leq S <= T (false)                       |    51.0 us |   623.0 us |   606.1 us |   616.1 us |       0.08 |       1.03 |       0.98 |
+| counterexample S, T                      |    21.0 us |    34.1 us |    21.9 us |    33.9 us |       0.62 |       1.55 |       0.65 |
+| leq R <= T                               |    57.0 us |    47.9 us |    42.2 us |    29.1 us |       1.19 |       1.14 |       1.45 |
+| equal T = T \| R                         |   543.8 us |   625.1 us |   600.1 us |   586.0 us |       0.87 |       1.04 |       1.02 |
+| **banked-regex-interval: delays, n = 128** |            |            |            |            |            |            |            |
+| leq T <= S                               |    1.66 ms |   618.0 us |   595.8 us |   609.9 us |       2.69 |       1.04 |       0.98 |
+| leq S <= T (false)                       |    9.91 ms |    1.55 ms |    1.53 ms |   693.1 us |       6.39 |       1.01 |       2.21 |
+| counterexample S, T                      |    1.59 ms |    10.0 us |     6.0 us |    19.1 us |     158.29 |       1.68 |       0.31 |
+| leq R <= T                               |   11.15 ms |    23.8 us |    45.1 us |    31.9 us |     467.50 |       0.53 |       1.41 |
+| equal T = T \| R                         |   41.32 ms |    82.0 us |    66.0 us |    42.9 us |     503.77 |       1.24 |       1.54 |
+| **banked-regex-interval: delays, n = 1024** |            |            |            |            |            |            |            |
+| leq T <= S                               |  146.01 ms |    73.0 us |    61.0 us |    47.0 us |    2001.34 |       1.20 |       1.30 |
+| leq S <= T (false)                       |  794.23 ms |    6.77 ms |    6.79 ms |    4.63 ms |     117.23 |       1.00 |       1.47 |
+| counterexample S, T                      |  145.23 ms |    39.1 us |    26.0 us |    39.8 us |    3714.13 |       1.50 |       0.65 |
+| leq R <= T                               |  935.95 ms |    74.1 us |    65.1 us |    34.1 us |   12622.72 |       1.14 |       1.91 |
+| equal T = T \| R                         |     3.75 s |   118.0 us |    94.2 us |    44.1 us |   31795.24 |       1.25 |       2.14 |
+| **banked-regex-interval: k = 8 declared names** |            |            |            |            |            |            |            |
+| leq X <= W                               |   732.2 us |    74.1 us |    59.8 us |    53.9 us |       9.87 |       1.24 |       1.11 |
+| leq W <= X (false)                       |   699.0 us |    91.1 us |    78.0 us |    52.0 us |       7.68 |       1.17 |       1.50 |
+| counterexample W, X                      |   683.1 us |    41.0 us |    27.2 us |    35.0 us |      16.66 |       1.51 |       0.78 |
+| leq Y <= {8}                             |   919.1 us |   176.0 us |   179.1 us |    63.2 us |       5.22 |       0.98 |       2.83 |
+| inhabited X                              |   690.0 us |    42.9 us |    34.1 us |    23.1 us |      16.08 |       1.26 |       1.47 |
+| **banked-regex-interval: k = 128 declared names** |            |            |            |            |            |            |            |
+| leq X <= W                               |   424.9 us |    1.82 ms |    2.47 ms |   114.9 us |       0.23 |       0.74 |      21.51 |
+| leq W <= X (false)                       |   747.9 us |    4.71 ms |    5.26 ms |    88.0 us |       0.16 |       0.90 |      59.76 |
+| counterexample W, X                      |   134.0 us |   284.9 us |    58.2 us |    69.9 us |       0.47 |       4.90 |       0.83 |
+| leq Y <= {8}                             |    8.46 ms |    6.39 ms |    9.87 ms |    79.2 us |       1.32 |       0.65 |     124.70 |
+| inhabited X                              |    95.8 us |   222.9 us |   420.1 us |    51.0 us |       0.43 |       0.53 |       8.23 |
+| **banked-regex-interval: k = 512 declared names** |            |            |            |            |            |            |            |
+| leq X <= W                               |    3.98 ms |   27.11 ms |   22.48 ms |   830.9 us |       0.15 |       1.21 |      27.06 |
+| leq W <= X (false)                       |    8.69 ms |   80.63 ms |   80.54 ms |   757.9 us |       0.11 |       1.00 |     106.26 |
+| counterexample W, X                      |    1.08 ms |    3.36 ms |   403.9 us |   759.1 us |       0.32 |       8.32 |       0.53 |
+| leq Y <= {8}                             |  114.73 ms |   80.36 ms |  158.20 ms |   122.1 us |       1.43 |       0.51 |    1296.00 |
+| inhabited X                              |   666.9 us |    2.16 ms |   818.0 us |   736.0 us |       0.31 |       2.64 |       1.11 |
+| **banked-regex-interval: n-th letter from the end, n = 4** |            |            |            |            |            |            |            |
+| elaborate E, E2                          |    1.79 ms |    71.0 us |    58.2 us |    59.1 us |      25.25 |       1.22 |       0.98 |
+| leq (B \| C)* <= E                       |   135.9 us |   985.9 us |    1.02 ms |    7.40 ms |       0.14 |       0.96 |       0.14 |
+| counterexample (B \| C)*; A; (B \| C)^n, E |   266.1 us |   962.0 us |    1.15 ms |   12.68 ms |       0.28 |       0.84 |       0.09 |
+| leq C* <= E2                             |    94.2 us |    3.56 ms |    3.42 ms |  408.91 ms |       0.03 |       1.04 |       0.01 |
+| **banked-regex-interval: n-th letter from the end, n = 8** |            |            |            |            |            |            |            |
+| elaborate E, E2                          |   45.61 ms |    82.0 us |    63.9 us |    62.9 us |     556.11 |       1.28 |       1.02 |
+| leq (B \| C)* <= E                       |    2.38 ms |    6.80 ms |    7.19 ms |     3.37 s |       0.35 |       0.95 |       0.00 |
+| counterexample (B \| C)*; A; (B \| C)^n, E |    2.43 ms |    6.78 ms |    7.25 ms |     7.22 s |       0.36 |       0.94 |       0.00 |
+| leq C* <= E2                             |    2.50 ms |  301.15 ms |  304.97 ms |     > 10 s |       0.01 |       0.99 |     < 0.03 |
+| **banked-regex-interval: interval consistency, n = 10** |            |            |            |            |            |            |            |
+| inhabited C                              |   469.0 us |   917.9 us |   905.0 us |   761.0 us |       0.51 |       1.01 |       1.19 |
+| vacuous I (no common run)                |   103.0 us |   140.0 us |   132.1 us |    99.9 us |       0.74 |       1.06 |       1.32 |
+| vacuous T (durations apart)              |   352.9 us |   742.0 us |   766.0 us |    57.0 us |       0.48 |       0.97 |      13.44 |
+| **banked-regex-interval: interval consistency, n = 100** |            |            |            |            |            |            |            |
+| inhabited C                              |   19.18 ms |   23.21 ms |   22.30 ms |    1.26 ms |       0.83 |       1.04 |      17.66 |
+| vacuous I (no common run)                |    4.46 ms |    6.69 ms |    6.54 ms |   783.9 us |       0.67 |       1.02 |       8.35 |
+| vacuous T (durations apart)              |   43.27 ms |    6.62 ms |    6.49 ms |   448.0 us |       6.54 |       1.02 |      14.49 |
+
+### Rational delays
+
+#### Typechecking
+
+| workload                                 |   automata |   symbolic |   aut/symb |  aut. warm |  sym. warm |
+|------------------------------------------|------------|------------|------------|------------|------------|
+| **typechecking, regular-trace-languages-rational** |            |            |            |            |            |
+| standard library alone                   |   18.36 ms |   18.78 ms |       0.98 |   15.64 ms |   16.13 ms |
+| examples/introduction/stale_calibration.tpe |   19.19 ms |   19.41 ms |       0.99 |   16.51 ms |   16.73 ms |
+| examples/regular_trace_languages/upper_bounds_rational.tpe |   20.05 ms |   19.91 ms |       1.01 |   17.39 ms |   17.22 ms |
+| tests/regex_rational.tpe                 |   19.70 ms |   19.60 ms |       1.01 |   16.94 ms |   17.01 ms |
+| tests/regex_rational_reject.tpe          |   20.01 ms |   19.85 ms |       1.01 |   17.22 ms |   17.22 ms |
+| **typechecking, banked-regex-lower-bound-rational** |            |            |            |            |            |
+| standard library alone                   |   15.52 ms |   15.61 ms |       0.99 |   12.43 ms |   12.46 ms |
+| tests/banked_regex_rational_lower.tpe    |   17.42 ms |   16.67 ms |       1.05 |   14.45 ms |   13.67 ms |
+| tests/banked_regex_rational_lower_reject.tpe |   16.81 ms |   16.52 ms |       1.02 |   14.02 ms |   13.50 ms |
+| **typechecking, banked-regex-upper-bound-rational** |            |            |            |            |            |
+| standard library alone                   |   18.05 ms |   17.90 ms |       1.01 |   15.13 ms |   15.16 ms |
+| examples/banked_regex/upper_bounds_rational.tpe |   22.66 ms |   20.48 ms |       1.11 |   19.25 ms |   16.98 ms |
+| tests/banked_regex_rational_upper.tpe    |   21.93 ms |   20.01 ms |       1.10 |   18.40 ms |   16.81 ms |
+| tests/banked_regex_rational_upper_open.tpe |   18.70 ms |   18.54 ms |       1.01 |   15.76 ms |   15.45 ms |
+| tests/banked_regex_rational_upper_open_reject.tpe |   18.82 ms |   18.61 ms |       1.01 |   15.90 ms |   15.49 ms |
+| tests/banked_regex_rational_upper_reject.tpe |   22.02 ms |   20.48 ms |       1.08 |   18.88 ms |   17.09 ms |
+| tests/literals_reject_idle_grade.tpe     |   372.2 us |   316.1 us |       1.18 |   152.3 us |   132.7 us |
+| **typechecking, banked-regex-interval-rational** |            |            |            |            |            |
+| standard library alone                   |   20.25 ms |   20.47 ms |       0.99 |   16.43 ms |   16.52 ms |
+| examples/banked_regex/intervals_rational.tpe |   25.08 ms |   23.04 ms |       1.09 |   21.23 ms |   18.45 ms |
+| tests/banked_regex_rational_interval.tpe |   22.17 ms |   21.45 ms |       1.03 |   17.90 ms |   17.20 ms |
+| tests/banked_regex_rational_interval_default_open_reject.tpe |   21.16 ms |   20.72 ms |       1.02 |   17.10 ms |   16.71 ms |
+| tests/banked_regex_rational_interval_no_common_run_reject.tpe |   20.84 ms |   20.57 ms |       1.01 |   16.87 ms |   16.72 ms |
+| tests/banked_regex_rational_interval_open_reject.tpe |   21.06 ms |   20.71 ms |       1.02 |   16.90 ms |   16.69 ms |
+| tests/banked_regex_rational_interval_reject.tpe |   21.69 ms |   21.26 ms |       1.02 |   17.83 ms |   17.19 ms |
+
+#### Grade operations
+
+| workload                                 |   automata |   symbolic |   aut/symb |
+|------------------------------------------|------------|------------|------------|
+| **regular-trace-languages-rational: corpus (17 literals)** |            |            |            |
+| elaborate                                |    2.46 ms |   150.2 us |      16.38 |
+| leq, all pairs                           |   515.0 us |    1.98 ms |       0.26 |
+| equal, all pairs                         |     6.0 us |    1.46 ms |       0.00 |
+| counterexample, all pairs                |    2.47 ms |    2.60 ms |       0.95 |
+| show, each                               |    15.0 us |    37.9 us |       0.40 |
+| **regular-trace-languages-rational: delay set {(100 \| 101)*}** |            |            |            |
+| elaborate G                              |    2.00 ms |   239.8 us |       8.36 |
+| leq 201 <= G                             |     3.8 us |    57.9 us |       0.07 |
+| equal G = G \| 201                       |     5.0 us |    57.9 us |       0.09 |
+| counterexample G, 201                    |   546.0 us |   104.2 us |       5.24 |
+| **regular-trace-languages-rational: delay set {(300 \| 301)*}** |            |            |            |
+| elaborate G                              |    7.32 ms |    3.46 ms |       2.11 |
+| leq 601 <= G                             |     3.1 us |   749.8 us |       0.00 |
+| equal G = G \| 601                       |     3.1 us |   735.0 us |       0.00 |
+| counterexample G, 601                    |   306.1 us |    1.18 ms |       0.26 |
+| **regular-trace-languages-rational: delay set {(1000 \| 1001)*}** |            |            |            |
+| elaborate G                              |   53.33 ms |   17.83 ms |       2.99 |
+| leq 2001 <= G                            |     5.0 us |    7.67 ms |       0.00 |
+| equal G = G \| 2001                      |     5.0 us |    7.69 ms |       0.00 |
+| counterexample G, 2001                   |    4.50 ms |   12.55 ms |       0.36 |
+| **regular-trace-languages-rational: delay set {97*; 89*}** |            |            |            |
+| elaborate G                              |    1.96 ms |   242.0 us |       8.09 |
+| leq 186 <= G                             |     5.0 us |    48.9 us |       0.10 |
+| equal G = G \| 186                       |     3.1 us |    52.0 us |       0.06 |
+| counterexample G, 186                    |   519.0 us |    92.0 us |       5.64 |
+| **regular-trace-languages-rational: delay set {997*; 991*}** |            |            |            |
+| elaborate G                              |   53.46 ms |   18.43 ms |       2.90 |
+| leq 1988 <= G                            |     6.0 us |    7.68 ms |       0.00 |
+| equal G = G \| 1988                      |     6.2 us |    7.58 ms |       0.00 |
+| counterexample G, 1988                   |    4.47 ms |   12.45 ms |       0.36 |
+| **regular-trace-languages-rational: delay set {(1 \| (10, 10.001))*}** |            |            |            |
+| elaborate G                              |   47.11 ms |   45.23 ms |       1.04 |
+| leq 1 <= G                               |     4.1 us |   113.0 us |       0.04 |
+| equal G = G \| 1                         |     3.1 us |   115.9 us |       0.03 |
+| counterexample G, 1                      |   325.9 us |   839.0 us |       0.39 |
+| **regular-trace-languages-rational: delay set {(1/97 \| 1/89)*}** |            |            |            |
+| elaborate G                              |    2.73 ms |   436.1 us |       6.25 |
+| leq 1 <= G                               |   105.9 us |    1.49 ms |       0.07 |
+| equal G = G \| 1                         |   104.9 us |    1.47 ms |       0.07 |
+| counterexample G, 1                      |   147.1 us |    1.70 ms |       0.09 |
+| **regular-trace-languages-rational: delay set {~((300 \| 301)*)}** |            |            |            |
+| elaborate G                              |    7.21 ms |    4.41 ms |       1.63 |
+| leq 1/2 <= G                             |     3.8 us |     1.0 us |       4.00 |
+| equal G = G \| 1/2                       |     3.1 us |     1.0 us |       3.25 |
+| counterexample G, 1/2                    |    1.28 ms |    1.69 ms |       0.76 |
+| **regular-trace-languages-rational: delay set {[1, 1.001]*}** |            |            |            |
+| elaborate G                              |    2.54 ms |    2.15 ms |       1.18 |
+| leq 500 <= G                             |    11.0 us |    17.2 us |       0.64 |
+| equal G = G \| 500                       |    10.0 us |    17.2 us |       0.58 |
+| counterexample G, 500                    |    29.1 us |    67.0 us |       0.43 |
+| **banked-regex-lower-bound-rational: corpus (23 literals)** |            |            |            |
+| elaborate                                |    2.54 ms |    1.53 ms |       1.67 |
+| leq, all pairs                           |    1.24 ms |    1.24 ms |       1.00 |
+| equal, all pairs                         |    1.33 ms |    1.83 ms |       0.73 |
+| counterexample, all pairs                |    2.61 ms |    2.11 ms |       1.24 |
+| inhabited, each                          |    21.0 us |    63.9 us |       0.33 |
+| show, each                               |    20.0 us |    42.9 us |       0.47 |
+| **banked-regex-upper-bound-rational: corpus (23 literals)** |            |            |            |
+| elaborate                                |    1.83 ms |   124.0 us |      14.75 |
+| leq, all pairs                           |    2.16 ms |    2.67 ms |       0.81 |
+| equal, all pairs                         |    2.23 ms |    2.67 ms |       0.83 |
+| counterexample, all pairs                |    5.94 ms |    3.40 ms |       1.75 |
+| inhabited, each                          |    20.0 us |    62.2 us |       0.32 |
+| show, each                               |    16.9 us |    42.9 us |       0.39 |
+| **banked-regex-upper-bound-rational: delays, n = 8** |            |            |            |
+| leq T <= S                               |    21.2 us |    36.0 us |       0.59 |
+| leq S <= T (false)                       |    32.9 us |    50.8 us |       0.65 |
+| counterexample S, T                      |   445.1 us |    60.1 us |       7.41 |
+| leq R <= T                               |    21.0 us |    29.8 us |       0.70 |
+| equal T = T \| R                         |    54.1 us |    42.0 us |       1.29 |
+| **banked-regex-upper-bound-rational: delays, n = 128** |            |            |            |
+| leq T <= S                               |    21.0 us |    33.9 us |       0.62 |
+| leq S <= T (false)                       |    1.51 ms |    2.57 ms |       0.59 |
+| counterexample S, T                      |    4.70 ms |    2.75 ms |       1.71 |
+| leq R <= T                               |    21.9 us |    27.9 us |       0.79 |
+| equal T = T \| R                         |    55.1 us |    42.0 us |       1.31 |
+| **banked-regex-upper-bound-rational: delays, n = 1024** |            |            |            |
+| leq T <= S                               |    20.0 us |    36.0 us |       0.56 |
+| leq S <= T (false)                       |    6.63 ms |   11.94 ms |       0.56 |
+| counterexample S, T                      |  242.75 ms |   18.81 ms |      12.91 |
+| leq R <= T                               |    23.1 us |    30.0 us |       0.77 |
+| equal T = T \| R                         |    57.0 us |    42.9 us |       1.33 |
+| **banked-regex-upper-bound-rational: k = 8 declared names** |            |            |            |
+| leq X <= W                               |   658.0 us |    56.0 us |      11.74 |
+| leq W <= X (false)                       |    32.2 us |   430.1 us |       0.07 |
+| counterexample W, X                      |    77.0 us |   432.0 us |       0.18 |
+| leq Y <= {8}                             |    15.0 us |    42.2 us |       0.36 |
+| inhabited X                              |    11.0 us |    27.9 us |       0.39 |
+| **banked-regex-upper-bound-rational: k = 128 declared names** |            |            |            |
+| leq X <= W                               |   501.9 us |    2.49 ms |       0.20 |
+| leq W <= X (false)                       |    1.04 ms |    3.78 ms |       0.28 |
+| counterexample W, X                      |    1.07 ms |    3.93 ms |       0.27 |
+| leq Y <= {8}                             |    25.0 us |    52.9 us |       0.47 |
+| inhabited X                              |   181.2 us |   742.0 us |       0.24 |
+| **banked-regex-upper-bound-rational: k = 512 declared names** |            |            |            |
+| leq X <= W                               |    6.54 ms |   12.98 ms |       0.50 |
+| leq W <= X (false)                       |   14.02 ms |   32.21 ms |       0.44 |
+| counterexample W, X                      |   13.62 ms |   32.42 ms |       0.42 |
+| leq Y <= {8}                             |    72.0 us |    73.0 us |       0.99 |
+| inhabited X                              |    2.06 ms |    2.82 ms |       0.73 |
+| **banked-regex-interval-rational: corpus (31 literals)** |            |            |            |
+| elaborate                                |    2.24 ms |   175.0 us |      12.78 |
+| leq, all pairs                           |    4.06 ms |    3.57 ms |       1.14 |
+| equal, all pairs                         |    3.57 ms |    3.38 ms |       1.05 |
+| counterexample, all pairs                |   11.99 ms |    4.98 ms |       2.41 |
+| inhabited, each                          |   119.0 us |   711.0 us |       0.17 |
+| show, each                               |    31.9 us |    75.8 us |       0.42 |
+| **banked-regex-interval-rational: delays, n = 8** |            |            |            |
+| leq T <= S                               |    19.1 us |    38.1 us |       0.50 |
+| leq S <= T (false)                       |    24.1 us |    52.0 us |       0.46 |
+| counterexample S, T                      |    14.1 us |    31.9 us |       0.44 |
+| leq R <= T                               |    14.1 us |    27.9 us |       0.50 |
+| equal T = T \| R                         |    42.0 us |    41.0 us |       1.02 |
+| **banked-regex-interval-rational: delays, n = 128** |            |            |            |
+| leq T <= S                               |    16.0 us |    37.2 us |       0.43 |
+| leq S <= T (false)                       |    1.50 ms |    2.45 ms |       0.61 |
+| counterexample S, T                      |    16.9 us |    32.9 us |       0.51 |
+| leq R <= T                               |    16.0 us |    26.0 us |       0.61 |
+| equal T = T \| R                         |    44.8 us |    40.1 us |       1.12 |
+| **banked-regex-interval-rational: delays, n = 1024** |            |            |            |
+| leq T <= S                               |    18.8 us |    37.0 us |       0.51 |
+| leq S <= T (false)                       |    6.42 ms |   11.72 ms |       0.55 |
+| counterexample S, T                      |    19.1 us |    34.1 us |       0.56 |
+| leq R <= T                               |    16.0 us |    27.9 us |       0.57 |
+| equal T = T \| R                         |    47.0 us |    42.9 us |       1.09 |
+| **banked-regex-interval-rational: k = 8 declared names** |            |            |            |
+| leq X <= W                               |    45.1 us |    66.0 us |       0.68 |
+| leq W <= X (false)                       |    43.2 us |    78.2 us |       0.55 |
+| counterexample W, X                      |    26.0 us |    44.1 us |       0.59 |
+| leq Y <= {8}                             |    16.0 us |    40.1 us |       0.40 |
+| inhabited X                              |    16.0 us |    28.8 us |       0.55 |
+| **banked-regex-interval-rational: k = 128 declared names** |            |            |            |
+| leq X <= W                               |   915.1 us |    2.66 ms |       0.34 |
+| leq W <= X (false)                       |    1.03 ms |    3.68 ms |       0.28 |
+| counterexample W, X                      |   285.1 us |    1.37 ms |       0.21 |
+| leq Y <= {8}                             |    29.1 us |    34.8 us |       0.84 |
+| inhabited X                              |   273.0 us |   998.0 us |       0.27 |
+| **banked-regex-interval-rational: k = 512 declared names** |            |            |            |
+| leq X <= W                               |   10.95 ms |   19.38 ms |       0.56 |
+| leq W <= X (false)                       |   13.58 ms |   32.46 ms |       0.42 |
+| counterexample W, X                      |    2.71 ms |    6.86 ms |       0.40 |
+| leq Y <= {8}                             |    69.9 us |   262.0 us |       0.27 |
+| inhabited X                              |    2.76 ms |    4.22 ms |       0.65 |
+| **banked-regex-interval-rational: interval consistency, n = 10** |            |            |            |
+| inhabited C                              |    86.1 us |   600.1 us |       0.14 |
+| vacuous I (no common run)                |    42.9 us |   508.1 us |       0.08 |
+| vacuous T (durations apart)              |    35.0 us |    49.8 us |       0.70 |
+| **banked-regex-interval-rational: interval consistency, n = 100** |            |            |            |
+| inhabited C                              |   690.9 us |    1.19 ms |       0.58 |
+| vacuous I (no common run)                |   292.8 us |    1.39 ms |       0.21 |
+| vacuous T (durations apart)              |   199.1 us |   324.0 us |       0.61 |
+
+### Timed regex grades
+
+#### Grade operations
+
+| workload                                 |       time |
+|------------------------------------------|------------|
+| **timed-regex-interval-rational: case-study corpus (34 literals)** |            |
+| elaborate                                |   698.1 us |
+| leq, all pairs                           |   32.32 ms |
+| equal, all pairs                         |   29.10 ms |
+| counterexample, all pairs                |  133.46 ms |
+| duration_bounds, each                    |    7.36 ms |
+| inhabited, each                          |    9.66 ms |
+| show, each                               |    32.9 us |
+| **timed-regex-interval-rational: calibration window W = [{≥1000 & ~Move}, {≤600000 & ~Move}]** |            |
+| duration_bounds W                        |    42.9 us |
+| inhabited W                              |    35.0 us |
+| leq S <= W (false)                       |  205.68 ms |
+| leq E <= W (false)                       |     > 10 s |
+| **timed-regex-interval-rational: interval consistency, n = 10** |            |
+| inhabited C                              |    2.52 ms |
+| vacuous I (no common run)                |    9.51 ms |
+| vacuous T (durations apart)              |    60.1 us |
+| **timed-regex-interval-rational: interval consistency, n = 40** |            |
+| inhabited C                              |   20.60 ms |
+| vacuous I (no common run)                |  135.78 ms |
+| vacuous T (durations apart)              |   747.9 us |
+| **timed-regex-interval-rational: interval consistency, n = 160** |            |
+| inhabited C                              |  460.73 ms |
+| vacuous I (no common run)                |     2.31 s |
+| vacuous T (durations apart)              |    2.41 ms |
+| **timed-regex-interval-rational: interval consistency, n = 640** |            |
+| inhabited C                              |     > 10 s |
+| vacuous I (no common run)                |     > 10 s |
+| vacuous T (durations apart)              |    5.49 ms |
+| **timed-regex-upper-bound-rational: bounded repetitions, n = 20** |            |
+| leq W <= (A; ≤27/2)^n                    |   664.2 us |
+| leq W <= (A; ≤12)^n (false)              |   557.9 us |
+| counterexample W, (A; ≤12)^n             |   556.9 us |
+| leq W <= (A \| B \| ≤14)*                |    42.9 us |
+| **timed-regex-upper-bound-rational: bounded repetitions, n = 80** |            |
+| leq W <= (A; ≤27/2)^n                    |    2.39 ms |
+| leq W <= (A; ≤12)^n (false)              |   672.1 us |
+| counterexample W, (A; ≤12)^n             |   679.0 us |
+| leq W <= (A \| B \| ≤14)*                |   564.1 us |
+| **timed-regex-upper-bound-rational: bounded repetitions, n = 320** |            |
+| leq W <= (A; ≤27/2)^n                    |   14.85 ms |
+| leq W <= (A; ≤12)^n (false)              |    2.37 ms |
+| counterexample W, (A; ≤12)^n             |    2.54 ms |
+| leq W <= (A \| B \| ≤14)*                |    1.59 ms |
+| **timed-regex-upper-bound-rational: bounded repetitions, n = 1280** |            |
+| leq W <= (A; ≤27/2)^n                    |  208.00 ms |
+| leq W <= (A; ≤12)^n (false)              |    7.44 ms |
+| counterexample W, (A; ≤12)^n             |    7.87 ms |
+| leq W <= (A \| B \| ≤14)*                |    3.96 ms |
+| **timed-regex-upper-bound-rational: time spans absorbing items, k = 10** |            |
+| duration_bounds A                        |   545.0 us |
+| leq A <= ≤L & ~Move                      |   521.9 us |
+| leq A <= <L & ~Move (false)              |   513.1 us |
+| counterexample A, <L & ~Move             |   505.0 us |
+| **timed-regex-upper-bound-rational: time spans absorbing items, k = 100** |            |
+| duration_bounds A                        |   675.2 us |
+| leq A <= ≤L & ~Move                      |   674.0 us |
+| leq A <= <L & ~Move (false)              |   666.9 us |
+| counterexample A, <L & ~Move             |   701.0 us |
+| **timed-regex-upper-bound-rational: time spans absorbing items, k = 1000** |            |
+| duration_bounds A                        |    4.43 ms |
+| leq A <= ≤L & ~Move                      |    4.95 ms |
+| leq A <= <L & ~Move (false)              |    5.00 ms |
+| counterexample A, <L & ~Move             |    5.43 ms |
+| **timed-regex-lower-bound-rational: time spans absorbing items, k = 10** |            |
+| duration_bounds A                        |   548.1 us |
+| leq A <= ≥1000 & ~Move                   |   515.0 us |
+| counterexample A, ≥1000 & ~Move          |    23.8 us |
+| **timed-regex-lower-bound-rational: time spans absorbing items, k = 100** |            |
+| duration_bounds A                        |   172.9 us |
+| leq A <= ≥1000 & ~Move                   |   178.1 us |
+| counterexample A, ≥1000 & ~Move          |   173.1 us |
+| **timed-regex-lower-bound-rational: time spans absorbing items, k = 1000** |            |
+| duration_bounds A                        |    4.12 ms |
+| leq A <= ≥1000 & ~Move                   |    3.09 ms |
+| counterexample A, ≥1000 & ~Move          |    3.06 ms |
+| **timed-regex-upper-bound: n-th operation from the end, n = 4** |            |
+| leq L <= R                               |    91.1 us |
+| leq L <= R' (false)                      |    88.0 us |
+| counterexample L, R'                     |    85.8 us |
+| **timed-regex-upper-bound: n-th operation from the end, n = 8** |            |
+| leq L <= R                               |    3.14 ms |
+| leq L <= R' (false)                      |    3.08 ms |
+| counterexample L, R'                     |    3.06 ms |
+| **timed-regex-upper-bound: n-th operation from the end, n = 12** |            |
+| leq L <= R                               |   41.79 ms |
+| leq L <= R' (false)                      |   42.02 ms |
+| counterexample L, R'                     |   42.21 ms |
+| **timed-regex-upper-bound: n-th operation from the end, n = 16** |            |
+| leq L <= R                               |     1.42 s |
+| leq L <= R' (false)                      |     1.42 s |
+| counterexample L, R'                     |     1.43 s |
+| **timed-regex-upper-bound: k = 32 declared names** |            |
+| leq X <= S                               |    87.0 us |
+| leq X <= Op1; (Op2 \| ... \| ≤3)*; Op1   |    76.1 us |
+| leq S <= X (false)                       |    48.9 us |
+| counterexample S, X                      |    52.0 us |
+| **timed-regex-upper-bound: k = 512 declared names** |            |
+| leq X <= S                               |    3.88 ms |
+| leq X <= Op1; (Op2 \| ... \| ≤3)*; Op1   |    3.62 ms |
+| leq S <= X (false)                       |    2.29 ms |
+| counterexample S, X                      |    2.30 ms |
+| **timed-regex-finite-interval-rational: star-free case-study corpus (22 literals)** |            |
+| elaborate                                |   110.9 us |
+| leq, all pairs                           |   22.32 ms |
+| equal, all pairs                         |   18.81 ms |
+| counterexample, all pairs                |   69.39 ms |
+| duration_bounds, each                    |    7.46 ms |
+| inhabited, each                          |    8.01 ms |
+| show, each                               |    21.0 us |
