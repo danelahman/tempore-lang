@@ -1,6 +1,6 @@
 (* The package bala2-base: the drive of a motor of the base of the M5Stack
-   BALA2 from a float, under every grade system of the package. The
-   operations are declared under each grade system by a file of their own. *)
+   BALA2 from a float, under every grade algebra of the package. The
+   operations are declared under each grade algebra by a file of their own. *)
 
 (* The largest magnitude of a drive. *)
 let bala2_full_drive = 1023i

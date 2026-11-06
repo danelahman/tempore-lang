@@ -55,7 +55,7 @@ let uvCure' cooledObject =
   UvCured cooledObject
 
 (* Correctly accepted by the typechecker: the run above with the
-   generic-effect form of 'unbox', banking the same ticks. *)
+   generic-effect form of 'unbox', accumulating the same ticks. *)
 run
     let freshSword = printResinModel' (Model "Sword") in
     let freshHammer = printResinModel' (Model "Hammer") in

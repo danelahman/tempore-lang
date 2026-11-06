@@ -6,8 +6,8 @@
        examples/timed_regex/intervals_rational.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
-   durations, in the timed regex order: operations are matched in order, spans
-   admit operations within their time, idle waits admit none, a
+   durations, in the timed regex order: operations are matched in order, time
+   spans admit the operations that fit in them, idle waits admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {skip}: the empty trace
@@ -77,7 +77,7 @@ let window_short () =
 *)
 
 (* Correctly rejected by the typechecker: the screen is redrawn between the
-   second and the third poll, which no delay of 2.5 milliseconds pays for.
+   second and the third poll, and fits in no time span of 2.5 milliseconds.
    Under 'banked-regex-interval-rational-symbolic', with the lower bound
    {(ReadImu; ReadClock)^3}, it is accepted, the delays of further rounds of
    the upper bound paying for the redraw:

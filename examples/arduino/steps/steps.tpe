@@ -11,10 +11,10 @@
        --board m5stack-cores3 \
        examples/arduino/steps/steps.tpe
 
-   Grades (X, lead, gaps, tail): the times before the first X, between the
-   starts of consecutive Xs and from the start of the last X to the end;
-   (X, [s, t]): gaps in [s, t] and lead and tail at most t; (n, X, lead,
-   gaps, tail): exactly n Xs, the counts added by the product
+   Grades (X, lead, gaps, tail): the lead time before the first X, the gaps
+   between the starts of consecutive Xs and the tail from the start of the last
+   X to the end; (X, [s, t]): gaps in [s, t], lead time and tail at most t;
+   (n, X, lead, gaps, tail): exactly n Xs, the counts added by the product
      - Unit 0: no operation, no time spent
      - Top ⊤: any times before, between and after the operations
      - Product: (a, G, b) · (a', G', b') = (a, G ∪ G' ∪ {b + a'}, b') *)

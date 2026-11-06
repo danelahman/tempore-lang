@@ -1,4 +1,4 @@
-(* The package m5-imu under the operation counts: the inertial measurement
+(* The package m5-imu under the at-most counts: the inertial measurement
    unit of an M5Stack core, read through M5Unified. Grades: at-most-counts;
    a call counts once, and its running time is not bounded. ReadImu,
    ConfigureImu, CheckAtRest and their default implementations are those of

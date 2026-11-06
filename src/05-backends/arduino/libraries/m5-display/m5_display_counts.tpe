@@ -1,8 +1,8 @@
-(* The package m5-display under the operation counts: lines of text and
-   numbers, buttons, bars and a bubble level on the display of an M5Stack
-   core, through M5Unified. Grades: at-most-counts; each call counts
-   once, and running times are not bounded. The operations are those of
-   m5_display.tpe; their default implementations show nothing. *)
+(* The package m5-display under the at-most counts: lines of text and numbers,
+   buttons, bars and a bubble level on the display of an M5Stack core, through
+   M5Unified. Grades: at-most-counts; each call counts once, and running times
+   are not bounded. The operations are those of m5_display.tpe; their default
+   implementations show nothing. *)
 
 operation ShowText : string ~> unit ! (ShowText, 1)
 default ShowText _ = ()

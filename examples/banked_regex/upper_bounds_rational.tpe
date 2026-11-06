@@ -1,4 +1,4 @@
-(* A sensor station timed in seconds: sample, transmit and calibrate, paced by fractional budgets.
+(* A sensor station timed in seconds: sample, transmit and calibrate, paced by fractional banked delays.
 
    Run this example with the 'banked-regex-upper-bound-rational-symbolic' grade algebra, e.g.
 
@@ -125,8 +125,8 @@ let slow_calibration () =
 *)
 
 (* Correctly rejected by the typechecker: the five and a half seconds come
-   after the transmission, and the match resets the budget, so they cannot pay
-   for a calibration before it:
+   after the transmission, and the match resets the banked delays, so they
+   cannot pay for a calibration before it:
 
      Typing error: Variable `r` is unboxed with grade `{Calibrate; Send}`
        accumulated since it was bound, which is not below its box grade

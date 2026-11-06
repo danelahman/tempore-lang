@@ -6,8 +6,8 @@
        examples/timed_regex/upper_bounds_rational.tpe
 
    Grades {...}: upper bounds on the traces with rational durations, in the
-   timed regex order: operations are matched in order, spans admit operations
-   within their time, idle waits admit none, a literal is read by the
+   timed regex order: operations are matched in order, time spans admit the
+   operations that fit in them, idle waits admit none, a literal is read by the
    upper end of its hull, and operations take positive time
      - Unit {skip}: the empty trace, not the least grade
      - Top {≥0}: every trace
@@ -52,9 +52,9 @@ let polls () =
 
 (* Correctly accepted by the typechecker: the lane of the athlete is boxed,
    and the start is recorded for it, with its time stamp, only if the time
-   stamp follows the start signal at once, without a delay that could buy
-   another operation between them, and the first poll follows within 750
-   milliseconds. *)
+   stamp follows the start signal at once, without a time span in which
+   another operation could fit between them, and the first poll follows
+   within 750 milliseconds. *)
 let stamped (lane : nat) =
   box {Beep; ReadClock; [0, 750]} lane as s in
   perform Beep ();
@@ -66,8 +66,8 @@ let stamped (lane : nat) =
 
 (* Correctly accepted by the typechecker: as 'stamped', the time stamp read
    within 40 milliseconds of the start signal. The redraw is not in the
-   bound, and is bought within its delay of at most 40 milliseconds before
-   the time stamp, at its upper running-time bound of 33. *)
+   bound, and fits in its time span of at most 40 milliseconds before the
+   time stamp, at its upper running-time bound of 33. *)
 let redrawn (lane : nat) =
   box {Beep; [0, 40]; ReadClock} lane as s in
   perform Beep ();

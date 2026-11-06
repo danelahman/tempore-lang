@@ -1,8 +1,8 @@
-(* The package i2c under the operation counts: transactions with the
-   registers of devices on the I2C bus Wire of the board. Grades:
-   at-most-counts; each transaction counts once, and running times are
-   not bounded. The operations are those of i2c.tpe; the default
-   implementations read zeros. *)
+(* The package i2c under the at-most counts: transactions with the registers
+   of devices on the I2C bus Wire of the board. Grades: at-most-counts; each
+   transaction counts once, and running times are not bounded. The
+   operations are those of i2c.tpe; the default implementations read zeros.
+   *)
 
 operation I2cWrite8 : nat * nat * nat ~> unit ! (I2cWrite8, 1)
 default I2cWrite8 _ = ()

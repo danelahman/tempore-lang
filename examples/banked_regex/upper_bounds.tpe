@@ -1,4 +1,4 @@
-(* A sensor station: sample, transmit and calibrate, paced by tick budgets.
+(* A sensor station: sample, transmit and calibrate, paced by banked ticks.
 
    Run this example with the 'banked-regex-upper-bound-symbolic' grade algebra, e.g.
 
@@ -100,7 +100,7 @@ let slow_calibration () =
 *)
 
 (* Correctly rejected by the typechecker: the six ticks come after the
-   transmission, and the match resets the budget, so they cannot pay for a
+   transmission, and the match resets the banked ticks, so they cannot pay for a
    calibration before it:
 
      Typing error: Variable `r` is unboxed with grade `{Calibrate; Send}`

@@ -6,8 +6,8 @@
        examples/opentrons/washes.tpe
 
    Grades [L, U]: a lower and an upper bound on the traces with rational
-   durations, in the timed regex order: operations are matched in order, spans
-   admit operations within their time, idle waits admit none, a
+   durations, in the timed regex order: operations are matched in order, time
+   spans admit the operations that fit in them, idle waits admit none, a
    literal is read by its hull on each side, and operations take positive
    time
      - Unit {skip}: the empty trace
@@ -180,7 +180,7 @@ let elute_off_magnet (beads : beads)
 
 (* Correctly rejected by the typechecker: the residual ethanol is removed
    within the air-dry, which leaves a minute of drying. Under
-   'banked-regex-interval-symbolic', and with the spans `2` and `[2, 3]` in
+   'banked-regex-interval-symbolic', and with the time spans `2` and `[2, 3]` in
    place of `idle 2` and `idle [2, 3]`, the function is accepted, the
    removal counting towards the air-dry:
 

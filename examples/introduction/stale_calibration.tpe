@@ -20,7 +20,7 @@
    A trace of a computation is the sequence of operations it performs and delays
    it makes, in order, e.g. 'Calibrate; Configure; 2; SelfTest'; here operations
    take no time, and adjacent delays add. For operations that take time, see the
-   examples under 'Regex grades with banked delays'.
+   gallery group 'Regex grades with banked delays'.
 
    Each grade is a set of traces: the grade of a computation contains every
    trace it may have, and a box's grade specifies the traces permitted between

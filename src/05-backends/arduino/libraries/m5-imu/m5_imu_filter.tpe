@@ -1,6 +1,6 @@
 (* The package m5-imu: the types of the readings of the inertial measurement
-   unit of an M5Stack core, and an attitude filter, under every grade system
-   of the package. The operation ReadImu is declared under each grade system
+   unit of an M5Stack core, and an attitude filter, under every grade algebra
+   of the package. The operation ReadImu is declared under each grade algebra
    by a file of its own. *)
 
 type vector = float * float * float
