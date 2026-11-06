@@ -230,8 +230,8 @@ module Make (D : DELAYS) (N : NAMES) = struct
         let lower = true
       end)
 
-  (* The time shadows: the budget up to the upper end of the running-time
-     bounds, and the budget from their lower end. *)
+  (* The time shadows: the span up to the upper end of the running-time
+     bounds, and the span from their lower end. *)
   let upper_shadow hi =
     match hi with
     | Unbounded -> UpperSide.top
@@ -260,13 +260,13 @@ module Make (D : DELAYS) (N : NAMES) = struct
         in
         I.Lower.stretch Ops.all c
 
-  module Upper = struct
+  module UpperBound = struct
     include UpperSide
 
     let of_bounds (_lo, hi) = upper_shadow hi
   end
 
-  module Lower = struct
+  module LowerBound = struct
     include LowerSide
 
     let of_bounds (lo, _hi) = lower_shadow lo
@@ -275,30 +275,31 @@ module Make (D : DELAYS) (N : NAMES) = struct
   (* {1 Intervals} *)
 
   module Interval = struct
-    type t = Lower.t * Upper.t
+    type t = LowerBound.t * UpperBound.t
 
     module Delay = D.Delay
 
     let name = N.prefix ^ "interval" ^ N.suffix
-    let one = (Lower.one, Upper.one)
-    let mul (l, u) (l', u') = (Lower.mul l l', Upper.mul u u')
-    let join (l, u) (l', u') = (Lower.join l l', Upper.join u u')
-    let top = (Lower.top, Upper.top)
+    let one = (LowerBound.one, UpperBound.one)
+    let mul (l, u) (l', u') = (LowerBound.mul l l', UpperBound.mul u u')
+    let join (l, u) (l', u') = (LowerBound.join l l', UpperBound.join u u')
+    let top = (LowerBound.top, UpperBound.top)
     let leq_symbol = "<="
 
     (* Componentwise, the upper bounds first. *)
     let leq bounds (l, u) (l', u') =
-      Upper.leq bounds u u' && Lower.leq bounds l l'
+      UpperBound.leq bounds u u' && LowerBound.leq bounds l l'
 
     let equal bounds (l, u) (l', u') =
-      Upper.equal bounds u u' && Lower.equal bounds l l'
+      UpperBound.equal bounds u u' && LowerBound.equal bounds l l'
 
-    let is_top bounds (l, u) = Lower.is_top bounds l && Upper.is_top bounds u
+    let is_top bounds (l, u) =
+      LowerBound.is_top bounds l && UpperBound.is_top bounds u
 
     let compare (l, u) (l', u') =
-      match Lower.compare l l' with 0 -> Upper.compare u u' | c -> c
+      match LowerBound.compare l l' with 0 -> UpperBound.compare u u' | c -> c
 
-    let hash (l, u) = Hashing.combine (Lower.hash l) (Upper.hash u)
+    let hash (l, u) = Hashing.combine (LowerBound.hash l) (UpperBound.hash u)
 
     (* {2 Run consistency} *)
 
@@ -362,7 +363,9 @@ module Make (D : DELAYS) (N : NAMES) = struct
        its operations at the lower ends of their running times, above the
        greatest of [u], at the upper ends. *)
     let too_long bounds (l, u) =
-      match (Lower.min_weight bounds l, Upper.max_weight bounds u) with
+      match
+        (LowerBound.min_weight bounds l, UpperBound.max_weight bounds u)
+      with
       | Some (I.Finite (a, at_a)), Some (I.Finite (b, at_b)) ->
           let c = Rational.compare a b in
           if c > 0 || (c = 0 && not (at_a && at_b)) then
@@ -384,7 +387,8 @@ module Make (D : DELAYS) (N : NAMES) = struct
     let joint_vacuous bounds (l, u) =
       if
         Option.is_some (I.zip l u)
-        || I.Lower.equal l Lower.top || I.Upper.equal u Upper.top
+        || I.Lower.equal l LowerBound.top
+        || I.Upper.equal u UpperBound.top
       then None
       else
         match too_long bounds (l, u) with
@@ -393,10 +397,10 @@ module Make (D : DELAYS) (N : NAMES) = struct
             if consistent bounds (l, u) then None else Some (no_common_run None)
 
     let vacuous bounds (l, u) =
-      match Lower.vacuous bounds l with
+      match LowerBound.vacuous bounds l with
       | Some _ as reason -> reason
       | None -> (
-          match Upper.vacuous bounds u with
+          match UpperBound.vacuous bounds u with
           | Some _ as reason -> reason
           | None -> joint_vacuous bounds (l, u))
 
@@ -410,10 +414,10 @@ module Make (D : DELAYS) (N : NAMES) = struct
         if Option.is_none (joint_vacuous bounds e) then e else (l, u)
       in
       Option.map consistent
-        (match Lower.counterexample bounds l l' with
+        (match LowerBound.counterexample bounds l l' with
         | Some e -> Some (e, u)
         | None ->
-            Option.map (fun e -> (l, e)) (Upper.counterexample bounds u u'))
+            Option.map (fun e -> (l, e)) (UpperBound.counterexample bounds u u'))
 
     let unit_least = false
     let plus _ = None
@@ -422,23 +426,25 @@ module Make (D : DELAYS) (N : NAMES) = struct
     let duration_ends = Both_ends
 
     let duration_bounds bounds (l, u) =
-      to_durations (Lower.min_weight bounds l) (Upper.max_weight bounds u)
+      to_durations
+        (LowerBound.min_weight bounds l)
+        (UpperBound.max_weight bounds u)
 
     let events (l, u) =
-      List.sort_uniq String.compare (Lower.events l @ Upper.events u)
+      List.sort_uniq String.compare (LowerBound.events l @ UpperBound.events u)
 
     let single = function Int _ | Rat _ | Braces _ -> true | _ -> false
 
-    (* A numeric endpoint is the budget from it or up to it, [0] being [≥0]. *)
+    (* A numeric endpoint is the span from it or up to it, [0] being [≥0]. *)
     let lower_end lit =
       match numeric lit with
-      | Some q -> Lower.of_lit (Braces (Above (Closed q)))
-      | None -> Lower.of_lit lit
+      | Some q -> LowerBound.of_lit (Braces (Above (Closed q)))
+      | None -> LowerBound.of_lit lit
 
     let upper_end lit =
       match numeric lit with
-      | Some q -> Upper.of_lit (Braces (Below (Closed q)))
-      | None -> Upper.of_lit lit
+      | Some q -> UpperBound.of_lit (Braces (Below (Closed q)))
+      | None -> UpperBound.of_lit lit
 
     let close ~lower a =
       match numeric a with
@@ -448,22 +454,26 @@ module Make (D : DELAYS) (N : NAMES) = struct
 
     let of_lit = function
       | Top -> top
-      | lit when single lit -> (Lower.of_lit lit, Upper.of_lit lit)
+      | lit when single lit -> (LowerBound.of_lit lit, UpperBound.of_lit lit)
       | lit ->
           bounds_of_lit lit ~number:numeric ~close ~lower:lower_end
-            ~upper:upper_end ~unbounded:Upper.top ~bounds:"regular expressions"
+            ~upper:upper_end ~unbounded:UpperBound.top
+            ~bounds:"regular expressions"
 
     let accepts = reads_lit of_lit
-    let of_delay d = (Lower.of_delay d, Upper.of_delay d)
+    let of_delay d = (LowerBound.of_delay d, UpperBound.of_delay d)
     let of_bounds (lo, hi) = (lower_shadow lo, upper_shadow hi)
-    let is_atomic n (l, u) = Lower.is_atomic n l && Upper.is_atomic n u
+
+    let is_atomic n (l, u) =
+      LowerBound.is_atomic n l && UpperBound.is_atomic n u
 
     let show (l, u) =
       match I.zip l u with
       | Some s -> "{" ^ s ^ "}"
       | None ->
-          show_bounds (Lower.show l)
-            (if I.Upper.equal u Upper.top then None else Some (Upper.show u))
+          show_bounds (LowerBound.show l)
+            (if I.Upper.equal u UpperBound.top then None
+             else Some (UpperBound.show u))
 
     let witnesses ~degree:_ _bounds = sampled mul
   end
@@ -481,38 +491,40 @@ module Rationals = struct
   let whole = false
 end
 
-module Regex =
+include
   Make
     (Whole)
     (struct
-      let prefix = "regex-timed-rigid-"
+      let prefix = "timed-regex-"
       let suffix = "-symbolic"
       let finite = false
     end)
 
-module RegexRational =
+module Rational =
   Make
     (Rationals)
     (struct
-      let prefix = "regex-timed-rigid-"
+      let prefix = "timed-regex-"
       let suffix = "-rational-symbolic"
       let finite = false
     end)
 
-module Traces =
-  Make
-    (Whole)
-    (struct
-      let prefix = "traces-timed-rigid-"
-      let suffix = ""
-      let finite = true
-    end)
+module Finite = struct
+  include
+    Make
+      (Whole)
+      (struct
+        let prefix = "timed-regex-finite-"
+        let suffix = ""
+        let finite = true
+      end)
 
-module TracesRational =
-  Make
-    (Rationals)
-    (struct
-      let prefix = "traces-timed-rigid-"
-      let suffix = "-rational"
-      let finite = true
-    end)
+  module Rational =
+    Make
+      (Rationals)
+      (struct
+        let prefix = "timed-regex-finite-"
+        let suffix = "-rational"
+        let finite = true
+      end)
+end

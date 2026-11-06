@@ -1,6 +1,6 @@
 (* The package i2c under the operation counts: transactions with the
    registers of devices on the I2C bus Wire of the board. Grades:
-   counts-upper-bound; each transaction counts once, and running times are
+   at-most-counts; each transaction counts once, and running times are
    not bounded. The operations are those of i2c.tpe; the default
    implementations read zeros. *)
 

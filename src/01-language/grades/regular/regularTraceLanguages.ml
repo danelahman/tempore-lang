@@ -1,15 +1,15 @@
 open Grade
 module Letters = SymbolicRegex.Letters
-module Expression = RegularTraceGradeDerivative
+module Expression = RegularTraceLanguagesDerivative
 
 type t = { names : string list; dfa : Dfa.t; expression : SymbolicRegex.t }
 (* The letters of the automaton [dfa] are [tick], the operation [names] in
    increasing order, and the catch-all letter. Only names whose letter the
    language tells apart from the catch-all letter are kept. The [expression]
    denotes the same language: it is built alongside [dfa] by the operations of
-   {!RegularTraceGradeDerivative}, and read only by the printing. *)
+   {!RegularTraceLanguagesDerivative}, and read only by the printing. *)
 
-let name = "regex-upper-bound-letter-automata"
+let name = "regular-trace-languages-letter-automata"
 let tick = 0
 let other names = List.length names + 1
 let size names = List.length names + 2

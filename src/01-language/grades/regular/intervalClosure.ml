@@ -226,8 +226,8 @@ struct
      reached between items, and for the stretches of [m] entered, the least
      (upper side) or greatest (lower side) weight poured into each. An item is
      an operation, matched by an operation transition or poured into a
-     stretch whose set contains it, a strict wait, poured into any stretch, or
-     a budget, poured into a stretch whose set contains its own. The part of
+     stretch whose set contains it, an idle wait, poured into any stretch, or
+     a span, poured into a stretch whose set contains its own. The part of
      an item beyond the end of a stretch flows on into the stretches after it
      that admit it, through those of length [0] that do not: on the upper
      side by the longest path of the capacities of these stretches, which

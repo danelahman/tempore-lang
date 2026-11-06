@@ -1,5 +1,5 @@
 (* The package m5-imu under the operation counts: the inertial measurement
-   unit of an M5Stack core, read through M5Unified. Grades: counts-upper-bound;
+   unit of an M5Stack core, read through M5Unified. Grades: at-most-counts;
    a call counts once, and its running time is not bounded. ReadImu,
    ConfigureImu, CheckAtRest and their default implementations are those of
    m5_imu.tpe, and the types and the attitude filter are defined in

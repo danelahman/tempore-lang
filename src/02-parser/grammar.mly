@@ -37,11 +37,11 @@
     let quote name = "`" ^ name ^ "`" in
     match List.rev_map quote names with
     | [] -> ""
-    | [ name ] -> "; did you mean to use the " ^ name ^ " grading monoid?"
+    | [ name ] -> "; did you mean to use the " ^ name ^ " grade algebra?"
     | last :: rest ->
         "; did you mean to use one of the "
         ^ String.concat ", " (List.rev rest)
-        ^ " or " ^ last ^ " grading monoids?"
+        ^ " or " ^ last ^ " grade algebras?"
 
   (* [grade ~loc name of_lit lit] is the grade [of_lit] reads the literal [lit]
      as. A rejection, the usual symptom of running a file under the wrong
@@ -50,7 +50,7 @@
   let grade ~loc name of_lit lit =
     try of_lit lit with
     | Grade.Invalid_literal (lit, reason) ->
-      Error.syntax ~loc "In the `%s` grading monoid, %s%s" name reason
+      Error.syntax ~loc "In the `%s` grade algebra, %s%s" name reason
         (suggestion (Grades.GradeRegistry.accepting ?lattice:GS.lattice lit))
     | Error.Error ({ Diagnostic.primary = None; _ } as d) ->
       raise (Error.Error { d with Diagnostic.primary = Some loc })
@@ -62,7 +62,7 @@
     match GS.R.Delay.read lit with
     | Some _ -> q
     | None ->
-        Error.syntax ~loc "In the `%s` grading monoid, %s%s" GS.R.name
+        Error.syntax ~loc "In the `%s` grade algebra, %s%s" GS.R.name
           (GS.R.Delay.rejection lit)
           (suggestion (Grades.GradeRegistry.accepting_delay ?lattice:GS.lattice lit))
 
@@ -77,7 +77,7 @@
     | None when not GS.E.needs_op_bounds -> q
     | None ->
         Error.syntax ~loc
-          "In the `%s` grading monoid, running-time bounds are delays, and %s%s"
+          "In the `%s` grade algebra, running-time bounds are delays, and %s%s"
           GS.E.name
           (GS.E.Delay.rejection lit)
           (suggestion (Grades.GradeRegistry.accepting_bounds ?lattice:GS.lattice lit))
@@ -96,7 +96,7 @@
         match Grade.emptiness lo' hi' with
         | Some _ ->
             Error.syntax ~loc
-              "In the `%s` grading monoid, the interval `%s` contains no \
+              "In the `%s` grade algebra, the interval `%s` contains no \
                whole number of time steps"
               GS.E.name
               (Grade.show_interval Rational.show lo hi)
@@ -772,7 +772,7 @@ sum_case:
 
 (* The running-time bounds an operation declares, an interval of durations with
    finite ends, each closed or open; [within n] is sugar for [within [n, n]].
-   Only the grading monoids of timed operations read them. *)
+   Only the grade algebras of timed operations read them. *)
 op_bounds:
   | WITHIN n = running_time_bound
     { (Grade.Closed n, Grade.Closed n) }
@@ -890,10 +890,10 @@ minus_infinity:
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] and repetition
    [*], bounded repetition [r^n], [r^[m, n]] or [r^[m, ∞)] and the optional
-   [r?], which is [(r | skip)], the strict delay [idle] binding as the
+   [r?], which is [(r | skip)], the idle wait [idle] binding as the
    complement but applying to the operand of a repetition [*]; [idle r^c] is
-   the strict delay of the delays of [r^c], and [(idle r)^c] a repetition of
-   strict delays.
+   the idle wait of the delays of [r^c], and [(idle r)^c] a repetition of
+   idle waits.
    Braces group as parentheses do. An atom is an operation name, a delay,
    the empty word [skip], the wildcard [_], an interval of delays [[a, b]],
    [(a, b)], [[a, b)], [(a, b]], [[a, ∞)] or [(a, ∞)], or a one-sided
@@ -928,7 +928,7 @@ regex_unary:
         | r when r = Grade.Any || Grade.delays_only r -> Grade.Strict r
         | r ->
             Error.syntax ~loc:(location $loc(r))
-              "A strict wait `idle` applies to a length or an interval of \
+              "An idle wait applies to a length or an interval of \
                lengths, not to `%s`" (Grade.show_regex r)
       in
       strict r }

@@ -1,8 +1,7 @@
-(** The regular trace grades of timed operations over rational delays: the timed
-    regular languages of {!RegularTraceGradeRational}, ordered as the trace
-    grades of {!TimedTraceGrades} order finite sets of traces, trading time
-    against operations at their declared running-time bounds, which may be
-    fractional.
+(** The regex grades with banked delays over rational delays: the timed regular
+    languages of {!RegularTraceLanguagesRational}, ordered as the trace grades
+    of {!BankedTraceGrades} order finite sets of traces, trading time against
+    operations at their declared running-time bounds, which may be fractional.
 
     {2 Orders}
 
@@ -10,14 +9,14 @@
     rational delays, adjacent delays added. The orders on single traces are
     allowance and coverage, as characterised in {!DelayTimedClosure}. A grade is
     ordered below another through the closure of the greater one:
-    - upper bounds, ["regex-timed-upper-bound-rational-symbolic"]: [ρ ≾ ρ'] iff
+    - upper bounds, ["banked-regex-upper-bound-rational-symbolic"]: [ρ ≾ ρ'] iff
       every trace of [ρ] is permitted by some trace of [ρ'], i.e. [ρ ⊆ ↓ρ'],
       operations counting at their upper running-time bound [hi];
-    - lower bounds, ["regex-timed-lower-bound-rational-symbolic"]: [ρ ≾ ρ'] iff
+    - lower bounds, ["banked-regex-lower-bound-rational-symbolic"]: [ρ ≾ ρ'] iff
       every trace of [ρ] covers some trace of [ρ'], i.e. [ρ ⊆ ↑ρ'], operations
       counting at their lower running-time bound [lo];
-    - intervals, ["regex-timed-interval-rational-symbolic"]: closed intervals of
-      a lower and an upper bound, compared componentwise.
+    - intervals, ["banked-regex-interval-rational-symbolic"]: closed intervals
+      of a lower and an upper bound, compared componentwise.
 
     All are preorders, [equal] being mutual [≾]: if [Read] declares
     [within [1/2, 3/2]], then [{Read} ≾ {3/2}] but not conversely under the
@@ -35,8 +34,8 @@
 
     {2 Closed world}
 
-    As for {!RegularTimedTraceGrades}: the operations of a comparison are those
-    the whole program declares with running-time bounds and the names the grades
+    As for {!BankedRegexGrades}: the operations of a comparison are those the
+    whole program declares with running-time bounds and the names the grades
     compared mention; the catch-all [_] stands for each declared operation a
     grade does not name, and for every positive delay. A grade must denote at
     least one trace over them ({!Grade.S.inhabited}). The unit [{skip}] is least
@@ -45,7 +44,7 @@
     {2 Grades}
 
     The literals, the unit [{skip}], the product, the join, [of_delay] and the
-    printing are those of {!RegularTraceGradeRational}: timed regular
+    printing are those of {!RegularTraceLanguagesRational}: timed regular
     expressions with rational delays, the intervals of delays such as [\[0, q)]
     and [(q, ∞)], [_], intersection and complement over all timed words, a
     number [q] abbreviating [{q}] and [⊤] the language of all traces, which is
@@ -90,15 +89,15 @@
     of these values. *)
 
 (** Lower bounds, in the coverage order at [lo]. *)
-module Lower :
+module LowerBound :
   Grade.S
-    with type t = RegularTraceGradeRational.t
+    with type t = RegularTraceLanguagesRational.t
      and type Delay.t = Delay.Rational.t
 
 (** Upper bounds, in the allowance order at [hi]. *)
-module Upper :
+module UpperBound :
   Grade.S
-    with type t = RegularTraceGradeRational.t
+    with type t = RegularTraceLanguagesRational.t
      and type Delay.t = Delay.Rational.t
 
 (** Closed intervals of a lower and an upper bound, compared componentwise,
@@ -109,30 +108,31 @@ module Upper :
     pair, is [\[{(q, ∞)}, {[0, r)}]], and so on for the half-open intervals. *)
 module Interval :
   Grade.S
-    with type t = RegularTraceGradeRational.t * RegularTraceGradeRational.t
+    with type t =
+      RegularTraceLanguagesRational.t * RegularTraceLanguagesRational.t
      and type Delay.t = Delay.Rational.t
 
-(** The same grades over {!RegularTraceGradeRational.Automata}, decided on the
-    automata of the grades by {!DelayTimedClosure.allowance} and
+(** The same grades over {!RegularTraceLanguagesRational.Automata}, decided on
+    the automata of the grades by {!DelayTimedClosure.allowance} and
     {!DelayTimedClosure.coverage}, the events of a grade being the names its
-    automaton tells apart, named ["regex-timed-lower-bound-rational-automata"],
-    ["regex-timed-upper-bound-rational-automata"] and
-    ["regex-timed-interval-rational-automata"]. *)
+    automaton tells apart, named ["banked-regex-lower-bound-rational-automata"],
+    ["banked-regex-upper-bound-rational-automata"] and
+    ["banked-regex-interval-rational-automata"]. *)
 module Automata : sig
-  module Lower :
+  module LowerBound :
     Grade.S
-      with type t = RegularTraceGradeRational.Automata.t
+      with type t = RegularTraceLanguagesRational.Automata.t
        and type Delay.t = Delay.Rational.t
 
-  module Upper :
+  module UpperBound :
     Grade.S
-      with type t = RegularTraceGradeRational.Automata.t
+      with type t = RegularTraceLanguagesRational.Automata.t
        and type Delay.t = Delay.Rational.t
 
   module Interval :
     Grade.S
       with type t =
-        RegularTraceGradeRational.Automata.t
-        * RegularTraceGradeRational.Automata.t
+        RegularTraceLanguagesRational.Automata.t
+        * RegularTraceLanguagesRational.Automata.t
        and type Delay.t = Delay.Rational.t
 end

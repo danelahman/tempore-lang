@@ -2,14 +2,14 @@
   "description": "The touch screen of an M5Stack core through M5Unified",
   "declarations": {
     "time-interval-rational": "m5_touch.tpe",
-    "regex-timed-lower-bound-rational-symbolic": "m5_touch_timed_ops.tpe",
-    "regex-timed-upper-bound-rational-symbolic": "m5_touch_timed_ops.tpe",
-    "regex-timed-interval-rational-symbolic": "m5_touch_timed_ops.tpe",
-    "regex-timed-rigid-lower-bound-rational-symbolic": "m5_touch_timed_ops.tpe",
-    "regex-timed-rigid-upper-bound-rational-symbolic": "m5_touch_timed_ops.tpe",
-    "regex-timed-rigid-interval-rational-symbolic": "m5_touch_timed_ops.tpe",
+    "banked-regex-lower-bound-rational-symbolic": "m5_touch_timed_ops.tpe",
+    "banked-regex-upper-bound-rational-symbolic": "m5_touch_timed_ops.tpe",
+    "banked-regex-interval-rational-symbolic": "m5_touch_timed_ops.tpe",
+    "timed-regex-lower-bound-rational-symbolic": "m5_touch_timed_ops.tpe",
+    "timed-regex-upper-bound-rational-symbolic": "m5_touch_timed_ops.tpe",
+    "timed-regex-interval-rational-symbolic": "m5_touch_timed_ops.tpe",
     "inter-arrival": "m5_touch_timed_ops.tpe",
-    "counts-upper-bound": "m5_touch_counts.tpe"
+    "at-most-counts": "m5_touch_counts.tpe"
   },
   "requires": ["m5unified", "touch"],
   "sources": ["m5_touch.cpp"],

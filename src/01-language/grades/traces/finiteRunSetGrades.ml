@@ -1,13 +1,13 @@
 open Grade
 
-module Make (D : Delay.S) (N : TimedTraceGrades.NAMES) = struct
+module Make (D : Delay.S) (N : BankedTraceGrades.NAMES) = struct
   module Trace = TimedTrace.Base (D)
 
   module UpperBound = struct
-    include TimedTraceGrades.Bounded (D)
+    include BankedTraceGrades.Bounded (D)
     module Delay = D
 
-    let name = "traces-upper-bound" ^ N.suffix
+    let name = "finite-run-sets" ^ N.suffix
 
     let leq _bounds p q =
       match (p, q) with

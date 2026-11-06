@@ -94,7 +94,7 @@ let preamble =
    the page is opened. *)\n\n\
    type example = {\n\
   \  title : string;  (** shown on its card, without the group's prefix *)\n\
-  \  grade : string;  (** the grading monoid the web interface switches to *)\n\
+  \  grade : string;  (** the grade algebra the web interface switches to *)\n\
   \  source : string;\n\
   \  description : string;  (** shown on its card *)\n\
   \  path : string;  (** relative to the project root, for links from the \

@@ -1,13 +1,14 @@
-(** The regular trace grade decided by automata,
-    ["regex-upper-bound-letter-automata"]: non-empty regular languages of words
-    over delays and operations, multiplied by concatenation.
+(** The regular trace languages decided by automata,
+    ["regular-trace-languages-letter-automata"]: non-empty regular languages of
+    words over delays and operations, multiplied by concatenation.
 
-    {!RegularTraceGradeDerivative}, ["regex-upper-bound-symbolic"], implements
-    the same grade by symbolic derivatives;
-    {!RegularTraceGradeDerivative.Concrete},
-    ["regex-upper-bound-symbolic-by-letters"], by derivatives by letters, and
-    {!RegularTraceGradePlain}, ["regex-upper-bound-letter-derivatives"], by
-    derivatives of expressions over single letters.
+    {!RegularTraceLanguagesDerivative}, ["regular-trace-languages-symbolic"],
+    implements the same grade by symbolic derivatives;
+    {!RegularTraceLanguagesDerivative.Concrete},
+    ["regular-trace-languages-symbolic-by-letters"], by derivatives by letters,
+    and {!RegularTraceLanguagesPlain},
+    ["regular-trace-languages-letter-derivatives"], by derivatives of
+    expressions over single letters.
 
     {2 Traces as words}
 
@@ -34,31 +35,30 @@
     {!Dfa}. A delay of [n] time steps is unrolled into [n] transitions: the
     minimal automaton of [tickⁿ] has [n + 2] states, and every construction and
     comparison explores them, as do the closures of the grades of timed
-    operations over it ({!RegularTimedTraceGrades.Automata}). Grades denoting
-    the same language thus have equal names and automata, which
-    {!Grade.S.equal}, {!Grade.S.compare}, {!Grade.S.hash} and {!Grade.S.is_top}
-    read. A grade also keeps the normal form of the expression it was built
-    from, by the operations of {!RegularTraceGradeDerivative}, for its printing
-    only.
+    operations over it ({!BankedRegexGrades.Automata}). Grades denoting the same
+    language thus have equal names and automata, which {!Grade.S.equal},
+    {!Grade.S.compare}, {!Grade.S.hash} and {!Grade.S.is_top} read. A grade also
+    keeps the normal form of the expression it was built from, by the operations
+    of {!RegularTraceLanguagesDerivative}, for its printing only.
 
     {2 Counterexamples and printing}
 
     {!Grade.S.counterexample} [bounds rho rho'] is the grade of a shortest word
     of [rho] not in [rho'], in which the catch-all letter, if it occurs, stands
     for any operation neither grade names. A grade is printed as
-    {!RegularTraceGradeDerivative} prints the normal form [e] of its expression,
-    within the budget [b], the {!LetterRegex.size} of {!LetterRegex.of_symbolic}
-    [e], but from its own automaton, over letter sets whose labels join the
-    letters of each transition, the catch-all letter standing for the names not
-    mentioned: as the canonical candidate {!SymbolicAutomaton.canonical}
-    [~budget:b] of that automaton, and otherwise as [e]. The printing thus falls
-    back to [e] iff no canonical candidate of the language costs at most [b],
-    which is the case if the automaton has more than [b] states; it takes time
-    polynomial in [b] besides that of {!LetterRegex.of_symbolic}. Grades
-    denoting the same language print alike unless the printing of one of them
-    falls back, and a grade prints as under {!RegularTraceGradeDerivative}
-    unless the printing falls back there, which it also does when [e] has more
-    than [b] derivatives.
+    {!RegularTraceLanguagesDerivative} prints the normal form [e] of its
+    expression, within the budget [b], the {!LetterRegex.size} of
+    {!LetterRegex.of_symbolic} [e], but from its own automaton, over letter sets
+    whose labels join the letters of each transition, the catch-all letter
+    standing for the names not mentioned: as the canonical candidate
+    {!SymbolicAutomaton.canonical} [~budget:b] of that automaton, and otherwise
+    as [e]. The printing thus falls back to [e] iff no canonical candidate of
+    the language costs at most [b], which is the case if the automaton has more
+    than [b] states; it takes time polynomial in [b] besides that of
+    {!LetterRegex.of_symbolic}. Grades denoting the same language print alike
+    unless the printing of one of them falls back, and a grade prints as under
+    {!RegularTraceLanguagesDerivative} unless the printing falls back there,
+    which it also does when [e] has more than [b] derivatives.
 
     {2 Witnesses}
 
@@ -78,9 +78,9 @@
     [{n}], and [⊤] (ASCII [top]) is [Σ*]. A literal denoting the empty language
     is rejected, since grades are non-empty.
 
-    Every implementation of the grade, and those of {!RegularTimedTraceGrades},
-    reads an interval atom [[n, m]] in time quadratic in [m - n]: under
-    ["regex-upper-bound-symbolic"], [{Read; [10000, 30000]}] takes about a
+    Every implementation of the grade, and those of {!BankedRegexGrades}, reads
+    an interval atom [[n, m]] in time quadratic in [m - n]: under
+    ["regular-trace-languages-symbolic"], [{Read; [10000, 30000]}] takes about a
     minute. {!Grade.S.accepts} decides a literal free of intersections and
     complements without reading it.
 

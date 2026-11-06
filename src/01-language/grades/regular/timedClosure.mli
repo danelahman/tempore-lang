@@ -9,8 +9,8 @@
     running times of its operations. A letter may stand for a class of
     operations of equal running time for which the language closed is saturated,
     the closure then being saturated for it too
-    ({!RegularTimedTraceGrades.Derivatives}): the closures step by one letter
-    per class.
+    ({!BankedRegexGrades.Derivatives}): the closures step by one letter per
+    class.
 
     {2 Orders}
 

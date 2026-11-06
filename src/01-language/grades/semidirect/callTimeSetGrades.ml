@@ -14,7 +14,7 @@ let from lo = R.concat (R.ticks lo) naturals
 let show_times rho =
   LetterRegex.numbers
     (Option.value
-       (RegularTraceGradeDerivative.canonical rho)
+       (RegularTraceLanguagesDerivative.canonical rho)
        ~default:(LetterRegex.of_symbolic rho))
 
 (** [of_braces lit r] is the set of the numbers the brace literal [lit] with
@@ -28,8 +28,8 @@ let of_braces lit r =
   let rec go = function
     | Grade.Letter name ->
         Grade.invalid_lit lit
-          "the times of windowed schedules are sets of numbers of ticks, and \
-           name no operation such as `%s`"
+          "the times of call-time sets are sets of numbers of ticks, and name \
+           no operation such as `%s`"
           name
     | Grade.Skip -> R.eps
     | Grade.Tick n -> R.ticks n
@@ -194,10 +194,10 @@ module Indexed = GradeConstructions.Indexed
 module TimesByName = Indexed.OfSemilattice (Times)
 module ShiftByName = Indexed.Action (Times) (Shift)
 
-module WindowedSchedules = struct
+module CallTimeSets = struct
   include GradeConstructions.SemiDirect (Durations) (TimesByName) (ShiftByName)
 
-  let name = "windowed-schedules"
+  let name = "call-time-sets"
 
   (* The literals of entries [(Name, ...)], the times of an operation. *)
   let is_entry = function

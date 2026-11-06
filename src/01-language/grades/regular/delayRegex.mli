@@ -24,7 +24,7 @@
 val automaton : GradeLiteral.regex -> DelayAutomaton.t
 (** [automaton r] is the language [r] denotes, built by recursion on [r] with
     the constructions of {!DelayAutomaton}, a bounded repetition unrolled
-    ({!GradeLiteral.unrolled}); a strict delay [idle r] is rejected. A
+    ({!GradeLiteral.unrolled}); an idle wait [idle r] is rejected. A
     subexpression without names, [_] or complements denotes single delays only,
     and its automaton is the single transition on its {!delays}. *)
 

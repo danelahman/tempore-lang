@@ -162,8 +162,8 @@ let show_regex r =
             operand ~bounded:true r;
             add "^";
             add (Count.show c))
-  (* The operand of a repetition, itself a repetition unparenthesised and a
-     strict delay parenthesised under a bounded repetition, which [idle] does
+  (* The operand of a repetition, itself a repetition unparenthesised and an
+     idle wait parenthesised under a bounded repetition, which [idle] does
      not enter. *)
   and operand ?(bounded = false) r =
     match r with
@@ -219,14 +219,13 @@ let distinct_entries lit ~compare ~twice entries =
 
 let strict_unsupported r =
   invalid_lit (Braces r)
-    "strict delays `%s` are read by the rigid grades of timed operations only, \
-     `regex-timed-rigid-…` and `traces-timed-rigid-…`"
+    "idle waits `%s` are read by the timed regex grades only, `timed-regex-…`"
     (show_regex r)
 
 let one_sided_unsupported r =
   invalid_lit (Braces r)
-    "one-sided lengths `%s` are read by the rigid grades of timed operations \
-     only, `regex-timed-rigid-…` and `traces-timed-rigid-…`"
+    "one-sided lengths `%s` are read by the timed regex grades only, \
+     `timed-regex-…`"
     (show_regex r)
 
 let rational_lit q =

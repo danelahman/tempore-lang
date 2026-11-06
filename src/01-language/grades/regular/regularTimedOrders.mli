@@ -1,9 +1,9 @@
-(** The three regular trace grades of timed operations over a regular trace
-    grade, lower bounds, upper bounds and intervals, given the decisions of the
-    orders on traces over the worlds of comparisons. They are shared by
-    {!RegularTimedTraceGrades}, over whole time steps, and
-    {!RegularTimedTraceGradesRational}, over rational delays, which differ in
-    their worlds, decisions, time shadows and literals of intervals.
+(** The three regex grades with banked delays over an implementation of the
+    regular trace languages, lower bounds, upper bounds and intervals, given the
+    decisions of the orders on traces over the worlds of comparisons. They are
+    shared by {!BankedRegexGrades}, over whole time steps, and
+    {!BankedRegexGradesRational}, over rational delays, which differ in their
+    worlds, decisions, time shadows and literals of intervals.
 
     [ρ ≾ ρ'] holds if [ρ] and [ρ'] are equal under the underlying grade or [ρ']
     is represented as the top, and otherwise iff the decision of the order holds
@@ -70,8 +70,8 @@ module type WORLD = sig
       names of equal pairs of running times. *)
 
   val literal_of_word : word -> lit
-  (** [literal_of_word w] is the literal of the single trace [w], its strict
-      delays written [idle d]. *)
+  (** [literal_of_word w] is the literal of the single trace [w], its idle waits
+      written [idle d]. *)
 
   val single : lit -> bool
   (** [single lit] is whether the literal [lit] of an interval abbreviates the
@@ -94,8 +94,8 @@ module type WORLD = sig
       running-time bounds. *)
 end
 
-(** The grades over [L] in the world [W], named ["regex-timed-lower-bound"],
-    ["regex-timed-upper-bound"] and ["regex-timed-interval"], each followed by
+(** The grades over [L] in the world [W], named ["banked-regex-lower-bound"],
+    ["banked-regex-upper-bound"] and ["banked-regex-interval"], each followed by
     [W.suffix].
 
     An interval admits a run ({!Grade.S.vacuous}) iff each of its ends has a
@@ -108,10 +108,10 @@ module Make
     (L : Grade.S)
     (W : WORLD with type grade = L.t and type delay = L.Delay.t) : sig
   (** Lower bounds, in the coverage order at [lo]. *)
-  module Lower : Grade.S with type t = L.t and type Delay.t = L.Delay.t
+  module LowerBound : Grade.S with type t = L.t and type Delay.t = L.Delay.t
 
   (** Upper bounds, in the allowance order at [hi]. *)
-  module Upper : Grade.S with type t = L.t and type Delay.t = L.Delay.t
+  module UpperBound : Grade.S with type t = L.t and type Delay.t = L.Delay.t
 
   (** Closed intervals of a lower and an upper bound, compared componentwise. *)
   module Interval : Grade.S with type t = L.t * L.t and type Delay.t = L.Delay.t

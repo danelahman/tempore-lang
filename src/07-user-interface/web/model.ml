@@ -699,7 +699,7 @@ let errors_of_exception stage exn =
           [
             fatal
               "The available stack was exhausted while checking this program, \
-               e.g. by a grade too large to decide under this grading monoid";
+               e.g. by a grade too large to decide under this grade algebra";
           ]
       | Running ->
           [

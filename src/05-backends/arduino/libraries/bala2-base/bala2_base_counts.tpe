@@ -1,6 +1,6 @@
 (* The package bala2-base under the operation counts: the two motors and
    wheel encoders of the base of the M5Stack BALA2. Grades:
-   counts-upper-bound; each call counts once, and running times are not
+   at-most-counts; each call counts once, and running times are not
    bounded. The operations and the watchdog of the motor setpoints are those
    of bala2_base.tpe; the default implementations read zeros. *)
 

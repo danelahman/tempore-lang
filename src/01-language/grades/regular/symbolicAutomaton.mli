@@ -104,7 +104,7 @@ val to_regex : budget:int -> t -> LetterRegex.t option
 
 (** {1 Printing}
 
-    The regular trace grades print a language by one of three expressions
+    The regular trace languages print a language by one of three expressions
     determined by the language, its {e canonical candidates}, with [A] its
     automaton and [Aᴿ] that of its reversal ({!reverse}):
 

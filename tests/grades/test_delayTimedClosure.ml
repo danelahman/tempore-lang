@@ -1,12 +1,12 @@
 (* Unit tests of the closures of timed regular languages under allowance and
-   coverage over rational delays and running times, and of the regular trace
-   grades of timed operations over rational delays: worked examples of the
+   coverage over rational delays and running times, and of the regex grades
+   with banked delays over rational delays: worked examples of the
    orders, including traces of open delays whose sums approach a bound; the
    readers of the closures and the inclusion decisions with their
    counterexamples against the recursions of the timed traces over rational
    delays, on bounds with finitely many paths; the implied running-time bounds,
-   the closed world and the literals; and the agreement with the regular trace
-   grades of timed operations over whole time steps on integer instances, scaled
+   the closed world and the literals; and the agreement with the regex grades
+   with banked delays over whole time steps on integer instances, scaled
    to a resolution of fractions of a time step as the grades over whole steps of
    a program resolution read them; the decisions on graphs given by their rows
    against those on automata; and the grades decided on the graphs of the gap
@@ -17,9 +17,9 @@ module Rational = Grades.Rational
 module DelaySet = Grades.DelaySet
 module A = Grades.DelayAutomaton
 module C = Grades.DelayTimedClosure
-module Plain = Grades.RegularTraceGradeRational.Automata
-module G = Grades.RegularTimedTraceGradesRational.Automata
-module W = Grades.RegularTimedTraceGrades.Symbolic
+module Plain = Grades.RegularTraceLanguagesRational.Automata
+module G = Grades.BankedRegexGradesRational.Automata
+module W = Grades.BankedRegexGrades.Symbolic
 module Trace = Grades.TimedTrace.Make (Grades.Delay.Rational)
 
 type check = { name : string; passed : bool; detail : string }
@@ -86,8 +86,8 @@ let bounds =
          ("T", (q 1 4, qi 1));
        ])
 
-let upper a b = G.Upper.leq bounds (lit a) (lit b)
-let lower a b = G.Lower.leq bounds (lit a) (lit b)
+let upper a b = G.UpperBound.leq bounds (lit a) (lit b)
+let lower a b = G.LowerBound.leq bounds (lit a) (lit b)
 let show_counterexample show = function Some e -> show e | None -> "none"
 
 (* {1 Worked examples} *)
@@ -103,11 +103,11 @@ let examples =
     is "upper: a match resets the budget" (not (upper "{S; T}" "{T; 2}"));
     is "upper: the unit is least" (upper "{skip}" "{A; B}");
     is "upper: delays of the bound buy any operation"
-      (G.Upper.is_top bounds (lit "{(_ & ~A)*}"));
+      (G.UpperBound.is_top bounds (lit "{(_ & ~A)*}"));
     is "upper: a complement of a delay is the top"
-      (G.Upper.is_top bounds (lit "{~1}"));
+      (G.UpperBound.is_top bounds (lit "{~1}"));
     is "upper: a bound without delays buys none"
-      (not (G.Upper.is_top bounds (lit "{(A | B | S)*}")));
+      (not (G.UpperBound.is_top bounds (lit "{(A | B | S)*}")));
     is "upper: open delays approach their sum"
       (not (upper "{[0, 1); [0, 1)}" "{1.99}"));
     is "upper: open delays stay below it" (upper "{[0, 1); A; [0, 1)}" "{3}");
@@ -131,24 +131,27 @@ let examples =
     is "lower: a demanded operation is performed" (not (lower "{1}" "{S}"));
     is "lower: open delays above a bound cover it" (lower "{(1/2, ∞)}" "{1/2}");
     is "lower: open delays near 0 cover none" (not (lower "{(0, 1)}" "{1/2}"));
-    is "lower: the unit is the top" (G.Lower.is_top bounds (lit "{skip}"));
-    is "lower: all traces are the top" (G.Lower.is_top bounds (lit "⊤"));
+    is "lower: the unit is the top" (G.LowerBound.is_top bounds (lit "{skip}"));
+    is "lower: all traces are the top" (G.LowerBound.is_top bounds (lit "⊤"));
     is "lower: A; _* is not the top"
-      (not (G.Lower.is_top bounds (lit "{A; _*}")));
+      (not (G.LowerBound.is_top bounds (lit "{A; _*}")));
     expect "upper: counterexample of open delays" Fun.id
       ~expected:"{2/3; A; 2/3}"
-      (show_counterexample G.Upper.show
-         (G.Upper.counterexample bounds (lit "{[0, 1); A; [0, 1)}") (lit "{2}")));
+      (show_counterexample G.UpperBound.show
+         (G.UpperBound.counterexample bounds
+            (lit "{[0, 1); A; [0, 1)}")
+            (lit "{2}")));
     expect "upper: counterexample of an unbounded delay" Fun.id
       ~expected:"{A; 10}"
-      (show_counterexample G.Upper.show
-         (G.Upper.counterexample bounds (lit "{A; [1/2, ∞)}") (lit "{A; 5 | 9}")));
+      (show_counterexample G.UpperBound.show
+         (G.UpperBound.counterexample bounds (lit "{A; [1/2, ∞)}")
+            (lit "{A; 5 | 9}")));
     expect "lower: counterexample of an open delay" Fun.id ~expected:"{0.5}"
-      (show_counterexample G.Lower.show
-         (G.Lower.counterexample bounds (lit "{(0, 1)}") (lit "{3/4}")));
+      (show_counterexample G.LowerBound.show
+         (G.LowerBound.counterexample bounds (lit "{(0, 1)}") (lit "{3/4}")));
     expect "lower: counterexample of a missed operation" Fun.id ~expected:"{B}"
-      (show_counterexample G.Lower.show
-         (G.Lower.counterexample bounds (lit "{B | S}") (lit "{S | 1/2}")));
+      (show_counterexample G.LowerBound.show
+         (G.LowerBound.counterexample bounds (lit "{B | S}") (lit "{S | 1/2}")));
   ]
 
 (* The traces [(0, 1); A; (0, 1); ⋯] of [k] open delays and [k - 1] operations
@@ -188,7 +191,9 @@ let show_bounds = function
   | None -> "none"
 
 let implied =
-  let implied text = show_bounds (G.Upper.duration_bounds bounds (lit text)) in
+  let implied text =
+    show_bounds (G.UpperBound.duration_bounds bounds (lit text))
+  in
   [
     expect "implied: a compound operation" Fun.id ~expected:"[1, 2.75]"
       (implied "{S; 1/4; T}");
@@ -225,22 +230,22 @@ let open_running_times =
   in
   [
     is "open running times: within [1, 2) is below {[0, 2)}"
-      (G.Upper.leq half_open (lit "{X}") (lit "{[0, 2)}"));
+      (G.UpperBound.leq half_open (lit "{X}") (lit "{[0, 2)}"));
     is "open running times: within [1, 2] is not below {[0, 2)}"
-      (not (G.Upper.leq closed_x (lit "{X}") (lit "{[0, 2)}")));
+      (not (G.UpperBound.leq closed_x (lit "{X}") (lit "{[0, 2)}")));
     is "open running times: within [1, 2) is below {2}"
-      (G.Upper.leq half_open (lit "{X}") (lit "{2}"));
+      (G.UpperBound.leq half_open (lit "{X}") (lit "{2}"));
     is "open running times: within [1, 2) is not below {1.99}"
-      (not (G.Upper.leq half_open (lit "{X}") (lit "{1.99}")));
+      (not (G.UpperBound.leq half_open (lit "{X}") (lit "{1.99}")));
     is
       "open running times: a strict running time and a delay below a strict sum"
-      (G.Upper.leq half_open (lit "{X; 1/2}") (lit "{[0, 5/2)}"));
+      (G.UpperBound.leq half_open (lit "{X; 1/2}") (lit "{[0, 5/2)}"));
     is "open running times: within (1, 2] covers {(1, ∞)}"
-      (G.Lower.leq open_below (lit "{X}") (lit "{(1, ∞)}"));
+      (G.LowerBound.leq open_below (lit "{X}") (lit "{(1, ∞)}"));
     is "open running times: within [1, 2] does not cover {(1, ∞)}"
-      (not (G.Lower.leq closed_x (lit "{X}") (lit "{(1, ∞)}")));
+      (not (G.LowerBound.leq closed_x (lit "{X}") (lit "{(1, ∞)}")));
     is "open running times: within (1, 2] covers {1}"
-      (G.Lower.leq open_below (lit "{X}") (lit "{1}"));
+      (G.LowerBound.leq open_below (lit "{X}") (lit "{1}"));
     is "open running times: the allowance closure reads a strict running time"
       (Option.is_none
          (C.allowance
@@ -253,13 +258,13 @@ let open_running_times =
             (automaton "{X}") (automaton "{[0, 2)}")));
     expect "open running times: counterexample of a strict running time" Fun.id
       ~expected:"{X; 0.5}"
-      (show_counterexample G.Upper.show
-         (G.Upper.counterexample half_open (lit "{X; 1/2}") (lit "{2}")));
+      (show_counterexample G.UpperBound.show
+         (G.UpperBound.counterexample half_open (lit "{X; 1/2}") (lit "{2}")));
     expect "open running times: implied bounds" Fun.id ~expected:"[2, 3)"
-      (show_bounds (G.Upper.duration_bounds half_open (lit "{X; 1}")));
+      (show_bounds (G.UpperBound.duration_bounds half_open (lit "{X; 1}")));
     expect "open running times: implied bounds of a choice" Fun.id
       ~expected:"[1, 2]"
-      (show_bounds (G.Upper.duration_bounds half_open (lit "{X | 2}")));
+      (show_bounds (G.UpperBound.duration_bounds half_open (lit "{X | 2}")));
     expect "open running times: implied bounds of an interval" Fun.id
       ~expected:"(1.5, 2.5]"
       (show_bounds
@@ -271,13 +276,17 @@ let open_running_times =
                          (Grade.Seq (Grade.Letter "X", Grade.Frac (q 1 2)))),
                     Grade.Closed (Grade.Braces (Grade.Frac (q 5 2))) )))));
     shows
-      (module G.Upper)
+      (module G.UpperBound)
       "upper shadow"
       (Grade.Closed (qi 1), Grade.Open (qi 2))
       "{[0, 2)}";
-    shows (module G.Upper) "closed upper shadow" (closed (qi 1, qi 2)) "{2}";
     shows
-      (module G.Lower)
+      (module G.UpperBound)
+      "closed upper shadow"
+      (closed (qi 1, qi 2))
+      "{2}";
+    shows
+      (module G.LowerBound)
       "lower shadow"
       (Grade.Open (qi 1), Grade.Closed (qi 2))
       "{(1, ∞)}";
@@ -289,28 +298,28 @@ let open_running_times =
     is
       "open running times: a default of exactly 2 is not below the upper shadow"
       (not
-         (G.Upper.leq half_open (lit "{2}")
-            (G.Upper.of_bounds (Grade.Closed (qi 1), Grade.Open (qi 2)))));
+         (G.UpperBound.leq half_open (lit "{2}")
+            (G.UpperBound.of_bounds (Grade.Closed (qi 1), Grade.Open (qi 2)))));
     is "open running times: a default of 1.9 is"
-      (G.Upper.leq half_open (lit "{1.9}")
-         (G.Upper.of_bounds (Grade.Closed (qi 1), Grade.Open (qi 2))));
+      (G.UpperBound.leq half_open (lit "{1.9}")
+         (G.UpperBound.of_bounds (Grade.Closed (qi 1), Grade.Open (qi 2))));
     is
       "open running times: a default of exactly 1 does not cover the lower \
        shadow"
       (not
-         (G.Lower.leq open_below (lit "{1}")
-            (G.Lower.of_bounds (Grade.Open (qi 1), Grade.Closed (qi 2)))));
+         (G.LowerBound.leq open_below (lit "{1}")
+            (G.LowerBound.of_bounds (Grade.Open (qi 1), Grade.Closed (qi 2)))));
   ]
 
 let closed_world =
   let only_a = bounds_of [ ("A", closed (qi 1, qi 1)) ] in
   [
     is "closed world: an operation other than A and a delay"
-      (G.Upper.inhabited only_a (lit "{_ & ~A}"));
+      (G.UpperBound.inhabited only_a (lit "{_ & ~A}"));
     is "closed world: no operation other than A"
-      (not (G.Upper.inhabited only_a (lit "{_ & ~(0, ∞) & ~A}")));
+      (not (G.UpperBound.inhabited only_a (lit "{_ & ~(0, ∞) & ~A}")));
     is "closed world: the catch-all matches A"
-      (G.Upper.leq only_a (lit "{A}") (lit "{(_ & ~(0, ∞))*}"));
+      (G.UpperBound.leq only_a (lit "{A}") (lit "{(_ & ~(0, ∞))*}"));
     is "closed world: a declared operation bought"
       (upper "{T}" "{(_ & ~(0, ∞) & ~S)*}");
     is "closed world: a declared operation not bought"
@@ -366,9 +375,9 @@ let literals =
   in
   let frac n d = Grade.Rat (q n d) in
   [
-    reads (module G.Upper) (frac 3 2) "{1.5}";
-    reads (module G.Upper) Grade.Top "⊤";
-    reads (module G.Lower) Grade.Top "{skip}";
+    reads (module G.UpperBound) (frac 3 2) "{1.5}";
+    reads (module G.UpperBound) Grade.Top "⊤";
+    reads (module G.LowerBound) Grade.Top "{skip}";
     reads
       (module G.Interval)
       (Grade.Interval (Grade.Closed (frac 1 2), Grade.Closed (frac 3 2)))
@@ -399,9 +408,9 @@ let literals =
       (module G.Interval)
       "empty open interval"
       (Grade.Tuple [ frac 1 2; frac 1 2 ]);
-    rejects (module G.Upper) "negative delay" (frac (-1) 2);
+    rejects (module G.UpperBound) "negative delay" (frac (-1) 2);
     rejects
-      (module G.Upper)
+      (module G.UpperBound)
       "empty language"
       (Grade.Braces (Grade.Inter (Grade.Letter "A", Grade.Tick 1)));
   ]
@@ -684,8 +693,8 @@ let recursions =
    lesser grade outside the closure of the greater one, with no more
    operations than those of the automata. *)
 
-module Gaps = Grades.RegularTimedTraceGradesRational
-module Expr = Grades.RegularTraceGradeRational
+module Gaps = Grades.BankedRegexGradesRational
+module Expr = Grades.RegularTraceLanguagesRational
 
 let gap_bounds =
   [
@@ -738,13 +747,13 @@ let gap_agreement =
       [
         every "gaps: upper verdicts as by automata" show_case
           (fun ((_, x, a), (_, y, b)) ->
-            Gaps.Upper.leq bounds x y = G.Upper.leq bounds a b
-            && Gaps.Upper.equal bounds x y = G.Upper.equal bounds a b)
+            Gaps.UpperBound.leq bounds x y = G.UpperBound.leq bounds a b
+            && Gaps.UpperBound.equal bounds x y = G.UpperBound.equal bounds a b)
           gap_cases;
         every "gaps: lower verdicts as by automata" show_case
           (fun ((_, x, a), (_, y, b)) ->
-            Gaps.Lower.leq bounds x y = G.Lower.leq bounds a b
-            && Gaps.Lower.equal bounds x y = G.Lower.equal bounds a b)
+            Gaps.LowerBound.leq bounds x y = G.LowerBound.leq bounds a b
+            && Gaps.LowerBound.equal bounds x y = G.LowerBound.equal bounds a b)
           gap_cases;
         every "gaps: interval verdicts as by automata" show_case
           (fun ((_, x, a), (_, y, b)) ->
@@ -754,23 +763,24 @@ let gap_agreement =
         every "gaps: tops, implied bounds and inhabitation as by automata"
           show_case
           (fun ((_, x, a), _) ->
-            Gaps.Upper.is_top bounds x = G.Upper.is_top bounds a
-            && Gaps.Lower.is_top bounds x = G.Lower.is_top bounds a
-            && Gaps.Upper.duration_bounds bounds x
-               = G.Upper.duration_bounds bounds a
+            Gaps.UpperBound.is_top bounds x = G.UpperBound.is_top bounds a
+            && Gaps.LowerBound.is_top bounds x = G.LowerBound.is_top bounds a
+            && Gaps.UpperBound.duration_bounds bounds x
+               = G.UpperBound.duration_bounds bounds a
             && Gaps.Interval.duration_bounds bounds (x, x)
                = G.Interval.duration_bounds bounds (a, a)
-            && Gaps.Upper.inhabited bounds x = G.Upper.inhabited bounds a)
+            && Gaps.UpperBound.inhabited bounds x
+               = G.UpperBound.inhabited bounds a)
           (List.filteri (fun i _ -> i mod 50 = 0) gap_cases);
         every "gaps: upper counterexamples valid and no longer" show_case
           (fun ((_, x, a), (_, y, b)) ->
             match
-              ( Gaps.Upper.counterexample bounds x y,
-                G.Upper.counterexample bounds a b )
+              ( Gaps.UpperBound.counterexample bounds x y,
+                G.UpperBound.counterexample bounds a b )
             with
             | None, None -> true
             | Some c, Some c' ->
-                valid G.Upper.leq bounds c a b
+                valid G.UpperBound.leq bounds c a b
                 && operations (Expr.expression c)
                    <= operations (Plain.expression c')
             | _ -> false)
@@ -778,12 +788,12 @@ let gap_agreement =
         every "gaps: lower counterexamples valid and no longer" show_case
           (fun ((_, x, a), (_, y, b)) ->
             match
-              ( Gaps.Lower.counterexample bounds x y,
-                G.Lower.counterexample bounds a b )
+              ( Gaps.LowerBound.counterexample bounds x y,
+                G.LowerBound.counterexample bounds a b )
             with
             | None, None -> true
             | Some c, Some c' ->
-                valid G.Lower.leq bounds c a b
+                valid G.LowerBound.leq bounds c a b
                 && operations (Expr.expression c)
                    <= operations (Plain.expression c')
             | _ -> false)
@@ -836,8 +846,8 @@ let preorders =
 
 (* {1 Whole time steps}
 
-   On integer instances the orders agree with those of the regular trace grades
-   of timed operations over whole time steps through the translation [ι] of
+   On integer instances the orders agree with those of the regex grades
+   with banked delays over whole time steps through the translation [ι] of
    [test_delayRegex]: [ι(_) = 1 | ops] and [ι(~r) = ~ι(r) & (ops | 1)*], [ops]
    the operations [_ & ~(>0)], the identity elsewhere. Scaling every delay and
    every running time by [1/N] keeps the verdicts: the grades over whole steps
@@ -919,12 +929,12 @@ let whole_steps =
     (fun n ->
       [
         agree "upper" "allowance"
-          (module W.Upper : Grade.S)
-          (module G.Upper : Grade.S)
+          (module W.UpperBound : Grade.S)
+          (module G.UpperBound : Grade.S)
           n;
         agree "lower" "coverage"
-          (module W.Lower : Grade.S)
-          (module G.Lower : Grade.S)
+          (module W.LowerBound : Grade.S)
+          (module G.LowerBound : Grade.S)
           n;
       ])
     [ 1; 3 ]

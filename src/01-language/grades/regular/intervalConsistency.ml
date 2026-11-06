@@ -439,7 +439,7 @@ let times path =
   Array.of_list (Rational.zero :: assign d 1 [])
 
 (* [run world path] is the run of [path]: its operations at the spans of
-   their transitions, in order, and strict waits between them and to the
+   their transitions, in order, and idle waits between them and to the
    end. *)
 let run world path =
   let t = times path in

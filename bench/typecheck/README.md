@@ -22,23 +22,23 @@ The slowest 20 files:
 
 | file | grades | time (s) |
 |---|---|---:|
-| examples/arduino/bala2-regex/balance_regex.tpe | regex-timed-interval-rational-symbolic | 0.36 |
-| examples/arduino/fall/fall.tpe | regex-timed-interval-rational-symbolic | 0.31 |
-| examples/arduino/level/level.tpe | regex-timed-interval-rational-symbolic | 0.14 |
-| examples/arduino/wheels/wheels.tpe | regex-timed-interval-rational-symbolic | 0.12 |
+| examples/arduino/bala2-regex/balance_regex.tpe | banked-regex-interval-rational-symbolic | 0.36 |
+| examples/arduino/fall/fall.tpe | banked-regex-interval-rational-symbolic | 0.31 |
+| examples/arduino/level/level.tpe | banked-regex-interval-rational-symbolic | 0.14 |
+| examples/arduino/wheels/wheels.tpe | banked-regex-interval-rational-symbolic | 0.12 |
 | examples/arduino/steps/steps.tpe | inter-arrival | 0.08 |
 | examples/arduino/bala2/balance.tpe | time-interval-rational | 0.05 |
-| examples/opentrons/washes.tpe | regex-timed-interval-symbolic | 0.03 |
+| examples/opentrons/washes.tpe | banked-regex-interval-symbolic | 0.03 |
 | examples/lattice/staged_release.tpe | time-lower-bound-lattice | 0.03 |
-| examples/opentrons/purification.tpe | regex-timed-interval-rational-symbolic | 0.02 |
-| examples/opentrons/purification_reject.tpe | regex-timed-interval-rational-symbolic | 0.01 |
+| examples/opentrons/purification.tpe | banked-regex-interval-rational-symbolic | 0.02 |
+| examples/opentrons/purification_reject.tpe | banked-regex-interval-rational-symbolic | 0.01 |
 | examples/opentrons/contamination.tpe | time-upper-bound-lattice | 0.01 |
-| examples/regular_timed_ops/upper_bounds_rational.tpe | regex-timed-upper-bound-rational-symbolic | 0.01 |
-| examples/opentrons/cleanup.tpe | regex-timed-interval-symbolic | 0.01 |
-| examples/traces_timed_ops/upper_bounds.tpe | traces-timed-upper-bound | 0.01 |
+| examples/banked_regex/upper_bounds_rational.tpe | banked-regex-upper-bound-rational-symbolic | 0.01 |
+| examples/opentrons/cleanup.tpe | banked-regex-interval-symbolic | 0.01 |
+| examples/banked_traces/upper_bounds.tpe | banked-traces-upper-bound | 0.01 |
 | examples/arduino/calibrated/calibrated.tpe | time-interval-rational | 0.01 |
-| examples/arduino/peak/peak.tpe | counts-upper-bound | 0.01 |
-| examples/regular_timed_ops/mail_session.tpe | regex-timed-upper-bound-symbolic | 0.01 |
-| tests/regex_timed_rational_upper.tpe | regex-timed-upper-bound-rational-symbolic | 0.01 |
+| examples/arduino/peak/peak.tpe | at-most-counts | 0.01 |
+| examples/banked_regex/mail_session.tpe | banked-regex-upper-bound-symbolic | 0.01 |
+| tests/banked_regex_rational_upper.tpe | banked-regex-upper-bound-rational-symbolic | 0.01 |
 | examples/arduino/tilt/tilt.tpe | time-interval-rational | 0.01 |
-| examples/regular_timed_ops/upper_bounds.tpe | regex-timed-upper-bound-symbolic | 0.01 |
+| examples/banked_regex/upper_bounds.tpe | banked-regex-upper-bound-symbolic | 0.01 |

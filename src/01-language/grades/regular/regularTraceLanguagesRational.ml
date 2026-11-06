@@ -3,7 +3,7 @@ open Grade
 (* [concatenation r s] is the expression [r; s], the factors of both
    concatenations listed in turn, [skip] and the delays [0] left out, adjacent budget
    delays added and runs of factors of the same base joined into bounded
-   repetitions ({!Grade.sequence}); adjacent strict delays stay apart, as
+   repetitions ({!Grade.sequence}); adjacent idle waits stay apart, as
    distinct words. *)
 let concatenation r s =
   let rec factors = function
@@ -13,7 +13,7 @@ let concatenation r s =
   let value = function
     | Tick n -> Rational.of_int n
     | Frac q -> q
-    | _ -> invalid_arg "RegularTraceGradeRational.concatenation: no delay"
+    | _ -> invalid_arg "RegularTraceLanguagesRational.concatenation: no delay"
   in
   let sum x y = rational_tick (Rational.add (value x) (value y)) in
   let rec merge = function
@@ -155,7 +155,7 @@ module Automata = struct
         let is_top a = equal a universal
       end)
       (struct
-        let name = "regex-upper-bound-rational-automata"
+        let name = "regular-trace-languages-rational-automata"
       end)
 
   let automaton = language
@@ -172,7 +172,7 @@ include
       let compare = compare_form
     end)
     (struct
-      let name = "regex-upper-bound-rational-symbolic"
+      let name = "regular-trace-languages-rational-symbolic"
     end)
 
 let form = language

@@ -3,7 +3,7 @@
 
      (* <summary of the example, on one or more lines>
 
-        Run this example with the '<grade>' grading monoid, e.g.
+        Run this example with the '<grade>' grade algebra, e.g.
 
           ./tempore --grades <grade> examples/<dir>/<file>.tpe
 
@@ -27,9 +27,9 @@
           - Top <literal>: <meaning>
           - Product: <formula or a few words> *)
 
-   naming what the example is about, its grading monoid, the command that
+   naming what the example is about, its grade algebra, the command that
    runs it, and its grades: what a grade denotes, and the unit, top and
-   product of the monoid. Silent on success. *)
+   product of the grade algebra. Silent on success. *)
 
 let fail = TestSupport.Failures.fail
 
@@ -87,7 +87,7 @@ let grade_of_intro line =
       | Some i ->
           let grade = String.sub rest 0 i in
           let tail = String.sub rest i (String.length rest - i) in
-          if tail = "' grading monoid, e.g." then Some grade else None)
+          if tail = "' grade algebra, e.g." then Some grade else None)
 
 (* Checks that [line] is not [None], starts with [prefix], has non-empty
    content after it, does not end with " *)" unless [closing], and does not
@@ -176,8 +176,8 @@ let check_header name path =
       match grade_of_intro line3 with
       | None ->
           fail
-            "%s: expected \"   Run this example with the '<grade>' grading \
-             monoid, e.g.\" after the summary"
+            "%s: expected \"   Run this example with the '<grade>' grade \
+             algebra, e.g.\" after the summary"
             name
       | Some grade ->
           (match nth 3 with

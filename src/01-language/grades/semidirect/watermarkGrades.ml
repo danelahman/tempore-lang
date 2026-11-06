@@ -157,7 +157,7 @@ module Make (D : Delay.S) = struct
   module OneResource = struct
     include GradeConstructions.Product (Lower) (Upper)
 
-    let name = "one-resource-levels"
+    let name = "one-watermark"
     let one = ((Fin 0, Fin 0), (Fin 0, Fin 0))
     let leq_symbol = "<="
     let of_delay _ = one
@@ -291,10 +291,10 @@ module Make (D : Delay.S) = struct
       (List.sort_uniq compare (List.concat_map at grid), Grade.Partial)
   end
 
-  module ResourceLevels = struct
+  module Watermarks = struct
     include GradeConstructions.Indexed.OfGrade (OneResource)
 
-    let name = "resource-levels"
+    let name = "watermarks"
   end
 end
 

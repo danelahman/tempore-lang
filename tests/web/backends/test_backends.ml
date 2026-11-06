@@ -972,12 +972,12 @@ let () =
   | Ok _ -> fail "m5-imu loaded under time-interval");
   (match
      BackendRegistry.arduino.declarations (gray {|["m5-imu"]|})
-       ~grades:"counts-upper-bound"
+       ~grades:"at-most-counts"
    with
   | Ok [ _; declarations ]
     when contains ~sub:"m5_imu_counts.tpe" declarations.filename ->
       ()
-  | _ -> fail "the declarations of m5-imu under counts-upper-bound");
+  | _ -> fail "the declarations of m5-imu under at-most-counts");
   match
     BackendRegistry.arduino.declarations
       (manifest "not a manifest")

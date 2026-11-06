@@ -529,21 +529,21 @@ module Make (C : Constraint.S) = struct
     match (GS.E.needs_op_bounds, grade, bounds) with
     | false, _, Some _ ->
         Error.typing ~loc
-          "Running-time bounds must not be declared under the `%s` grading \
-           monoid, which does not use them"
+          "Running-time bounds must not be declared under the `%s` grade \
+           algebra, which does not use them"
           GS.E.name
     | false, _, None -> env.op_bounds
     | true, (Ast.EpsAdd _ | Ast.EpsVar _), _ ->
         Error.typing ~loc
-          "The grade of operation `%s` must be a literal under the `%s` \
-           grading monoid"
+          "The grade of operation `%s` must be a literal under the `%s` grade \
+           algebra"
           op_name GS.E.name
     | true, Ast.EpsConst (c, _), _ when GS.E.is_atomic op_name c -> (
         match bounds with
         | None ->
             Error.typing ~loc
               "Atomic operation `%s` needs running-time bounds `within [lo, \
-               hi]` under the `%s` grading monoid"
+               hi]` under the `%s` grade algebra"
               op_name GS.E.name
         | Some (lo, hi)
           when Grades.Rational.compare

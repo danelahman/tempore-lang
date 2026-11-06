@@ -13,7 +13,7 @@ module type LATTICE = sig
   val show : t -> string
 end
 
-(* A bounded join-semilattice as a grading monoid, its join the product. *)
+(* A bounded join-semilattice as a grade algebra, its join the product. *)
 module OfLattice (D : Delay.S) (L : LATTICE) = struct
   type t = L.t
 
@@ -51,7 +51,7 @@ module OfLattice (D : Delay.S) (L : LATTICE) = struct
   let witnesses ~degree:_ _bounds _ = (L.elements, Grade.Complete)
 end
 
-(* The product of two grading monoids, ordered componentwise. *)
+(* The product of two grade algebras, ordered componentwise. *)
 module Product (G1 : Grade.S) (G2 : Grade.S with type Delay.t = G1.Delay.t) =
 struct
   type t = G1.t * G2.t
@@ -171,7 +171,7 @@ module type ACTION = sig
   val act : m -> n -> n
 end
 
-(* The semidirect product of a grading monoid and a semilattice, ordered
+(* The semidirect product of a grade algebra and a semilattice, ordered
    componentwise. *)
 module SemiDirect
     (M : Grade.S)

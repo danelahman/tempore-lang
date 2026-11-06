@@ -3,13 +3,13 @@
     upper bound.
 
     A run is a sequence of operations, each with an exact running time within
-    its bounds, and strict waits. It fits an exact word when the operations of
-    the word occur in it at the same time spans, in order, and every other
-    operation of the run lies in stretches of the word whose sets contain it,
-    the strict waits of the word holding waiting only (the order of
-    {!IntervalClosure}). The sets of exact words of both bounds are closed
-    downwards, so an interval [[L, U]] is consistent iff the two sets meet, iff
-    some run fits a word of each.
+    its bounds, and idle waits. It fits an exact word when the operations of the
+    word occur in it at the same time spans, in order, and every other operation
+    of the run lies in stretches of the word whose sets contain it, the idle
+    waits of the word holding waiting only (the order of {!IntervalClosure}).
+    The sets of exact words of both bounds are closed downwards, so an interval
+    [[L, U]] is consistent iff the two sets meet, iff some run fits a word of
+    each.
 
     Consistency concerns words, not programs: with [A] within [[1, 3]], the
     interval [[{(≥2 & A)}, {A}]] is consistent, by the run performing [A] for
@@ -57,7 +57,7 @@ val world : (string * (cut * cut)) list -> world
 val id : world -> int
 (** [id w] is the number of [w]. *)
 
-(** An item of a run: an operation with its running time, or a strict wait. *)
+(** An item of a run: an operation with its running time, or an idle wait. *)
 type item = Op of string * Rational.t | Wait of Rational.t
 
 val consistent :

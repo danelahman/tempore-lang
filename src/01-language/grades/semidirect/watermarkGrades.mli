@@ -1,5 +1,5 @@
-(** The resource-level grades: the levels reached by each resource held, such as
-    the number of open files.
+(** The watermark grades: the levels reached by each system resource held, such
+    as the number of open files.
 
     A grade [(t, [d1, d2], h)] records, relative to the level at the start of a
     computation, its trough [t], the lowest level reached; the range [[d1, d2]]
@@ -18,22 +18,22 @@ type bound =
   | Fin of int  (** an integer *)
   | Plus_inf  (** the greatest element [∞] *)
 
-(** The resource-level grades over any delays [D], which change nothing. *)
+(** The watermark grades over any delays [D], which change nothing. *)
 module Make (D : Delay.S) : sig
-  (** {!ResourceLevelGrades.Upper} over [D]. *)
+  (** {!WatermarkGrades.Upper} over [D]. *)
   module Upper : Grade.S with type t = bound * bound and type Delay.t = D.t
 
-  (** {!ResourceLevelGrades.Lower} over [D]. *)
+  (** {!WatermarkGrades.Lower} over [D]. *)
   module Lower : Grade.S with type t = bound * bound and type Delay.t = D.t
 
-  (** {!ResourceLevelGrades.OneResource} over [D]. *)
+  (** {!WatermarkGrades.OneResource} over [D]. *)
   module OneResource :
     Grade.S
       with type t = (bound * bound) * (bound * bound)
        and type Delay.t = D.t
 
-  (** {!ResourceLevelGrades.ResourceLevels} over [D]. *)
-  module ResourceLevels :
+  (** {!WatermarkGrades.Watermarks} over [D]. *)
+  module Watermarks :
     Grade.S
       with type t = OneResource.t GradeConstructions.Indexed.t
        and type Delay.t = D.t
@@ -59,7 +59,7 @@ module Upper :
 module Lower :
   Grade.S with type t = bound * bound and type Delay.t = Delay.Nat.t
 
-(** The levels of one resource, ["one-resource-levels"]: the product
+(** The levels of one resource, ["one-watermark"]: the product
     {!GradeConstructions.Product} [(Lower) (Upper)] on the pairs
     [((d1, t), (d2, h))] of the grades [(t, [d1, d2], h)] above, whose unit is
     [(0, [0, 0], 0)] and top [(-∞, (-∞, ∞), ∞)].
@@ -99,8 +99,8 @@ module OneResource :
     with type t = (bound * bound) * (bound * bound)
      and type Delay.t = Delay.Nat.t
 
-(** The resource-level grade, ["resource-levels"]: the levels of each resource,
-    by its name, {!GradeConstructions.Indexed.OfGrade} [(OneResource)].
+(** The watermark grade, ["watermarks"]: the levels of each resource, by its
+    name, {!GradeConstructions.Indexed.OfGrade} [(OneResource)].
 
     An entry [(R, d, h)], [(R, [d1, d2], h)], [(R, t, d, h)] or
     [(R, t, [d1, d2], h)] bounds the resource [R], and a plain grade of
@@ -109,7 +109,7 @@ module OneResource :
     one socket at a time, releasing them all, [(Files, -1, 0, 0)] releases a
     file before acquiring one, and [(1, 1)] holds one more of each resource. The
     witnesses are partial, as those of {!OneResource} are. *)
-module ResourceLevels :
+module Watermarks :
   Grade.S
     with type t = OneResource.t GradeConstructions.Indexed.t
      and type Delay.t = Delay.Nat.t

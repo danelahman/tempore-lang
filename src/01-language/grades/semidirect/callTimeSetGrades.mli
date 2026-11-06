@@ -1,5 +1,5 @@
-(** The windowed-schedule grades: the durations of a computation paired with the
-    times at which each operation happens.
+(** The call-time sets: the durations of a computation paired with the times at
+    which each operation happens.
 
     A grade [(T, E)] is "takes a number of time steps in [T], and performs each
     operation [A] only at times in [E(A)]", all sets of natural numbers counted
@@ -12,10 +12,10 @@
 
     The sets are the regular languages over the letter [tick] alone, a number
     [n] being the word of [n] ticks, in the representation of
-    {!RegularTraceGradeDerivative}: [+] is concatenation and [∪] union. In a
+    {!RegularTraceLanguagesDerivative}: [+] is concatenation and [∪] union. In a
     brace literal [skip] is the empty word, the number [0], which is printed
     [0]. An interval atom [[n, m]] of a brace literal is read in time quadratic
-    in [m - n], as in {!RegularTraceGrade}. *)
+    in [m - n], as in {!RegularTraceLanguages}. *)
 
 (** The durations, ["durations"]: non-empty sets of natural numbers under
     elementwise addition, ordered by inclusion, the join being the union; the
@@ -49,7 +49,7 @@ module TimesByName :
 module ShiftByName :
   GradeConstructions.ACTION with type m = Durations.t and type n = TimesByName.t
 
-(** The windowed-schedule grade, ["windowed-schedules"]: the semidirect product
+(** The call-time sets, ["call-time-sets"]: the semidirect product
     {!GradeConstructions.SemiDirect} [(Durations) (TimesByName) (ShiftByName)].
 
     - The order is componentwise inclusion, so the unit [({0}, ∅)] is not least.
@@ -62,7 +62,7 @@ module ShiftByName :
       brace literals name no operation, [_] being a single tick. [show] prints
       alike, and the top as [⊤].
     - No counterexample is offered, and the witnesses are partial. *)
-module WindowedSchedules :
+module CallTimeSets :
   Grade.S
     with type t = Durations.t * TimesByName.t
      and type Delay.t = Delay.Nat.t

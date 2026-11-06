@@ -15,7 +15,7 @@ module type S = sig
   module Make (D : Delay.S) : sig
     module Lattice : Grade.S with type t = element and type Delay.t = D.t
 
-    module FlowLattice :
+    module FlowSensitiveLevels :
       Grade.S with type t = element * Outputs.t and type Delay.t = D.t
   end
 
@@ -37,7 +37,7 @@ module type S = sig
       with type t = RationalTimeGrades.Interval.t * element
        and type Delay.t = Delay.Rational.t
 
-  module FlowLattice :
+  module FlowSensitiveLevels :
     Grade.S
       with type t = element * Outputs.t
        and type Delay.t = Delay.Rational.t
@@ -152,10 +152,10 @@ struct
   module Make (D : Delay.S) = struct
     module Lattice = GradeConstructions.OfLattice (D) (Elements)
 
-    module FlowLattice = struct
+    module FlowSensitiveLevels = struct
       include GradeConstructions.SemiDirect (Lattice) (Outputs) (Raise)
 
-      let name = "flow-lattice"
+      let name = "flow-sensitive-levels"
 
       let of_lit = function
         | Grade.Top -> top

@@ -1,4 +1,4 @@
-(** Regular expressions over letter sets, as the regular trace grade prints
+(** Regular expressions over letter sets, as the regular trace languages print
     them: normalised by a terminating rewrite system of Kleene-algebra
     identities, measured by their size, and printed in the literal syntax.
 
@@ -98,8 +98,8 @@ val to_string : t -> string
     quoting it. *)
 
 val literal : t -> string
-(** [literal r] is the literal of the regular trace grade [r]: [⊤] if [r] is
-    [_*], and otherwise {!to_string} [r] in braces. *)
+(** [literal r] is the literal of the grade [r] of the regular trace languages:
+    [⊤] if [r] is [_*], and otherwise {!to_string} [r] in braces. *)
 
 val numbers : t -> string
 (** [numbers r] prints the expression [r] over the letter [tick] alone as a

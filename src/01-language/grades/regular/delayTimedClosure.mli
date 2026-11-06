@@ -75,9 +75,8 @@
 
     The operations of a comparison are given as a list of names with their
     running times; a name may stand for a class of names of equal running time
-    that the languages compared do not tell apart, as in
-    {!RegularTimedTraceGrades}. The words considered, of [L] and of [M], perform
-    only these operations. *)
+    that the languages compared do not tell apart, as in {!BankedRegexGrades}.
+    The words considered, of [L] and of [M], perform only these operations. *)
 
 type world = (string * DelaySet.extremum) list
 (** The operations of a comparison, each name with its running time, finite and

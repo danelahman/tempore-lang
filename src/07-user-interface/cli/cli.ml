@@ -1116,7 +1116,7 @@ let run_with (module G : Grades.Grade.S) lattice config =
   | Stack_overflow ->
       prerr_endline
         "Fatal error: the available stack was exhausted, e.g. by a grade too \
-         large to decide under this grading monoid";
+         large to decide under this grade algebra";
       exit 2
 
 let main () =

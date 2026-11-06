@@ -409,8 +409,8 @@ let four_grades =
   [
     "time-lower-bound";
     "time-upper-bound";
-    "traces-timed-lower-bound";
-    "traces-timed-upper-bound";
+    "banked-traces-lower-bound";
+    "banked-traces-upper-bound";
   ]
 
 let print_expected ppf = function
@@ -436,7 +436,7 @@ let compare_schemes grades actual expected =
 let check grades =
   let (module G) = TestPrograms.grade_module grades in
   let module T = Programs (G) in
-  let traces = String.starts_with ~prefix:"traces" grades in
+  let traces = String.starts_with ~prefix:"banked-traces" grades in
   let lit n = if traces then Printf.sprintf "{%d}" n else string_of_int n in
   let delay k = G.of_delay (Option.get (G.Delay.read (Grade.Int k))) in
   let g =

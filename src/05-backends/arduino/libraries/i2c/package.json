@@ -2,14 +2,14 @@
   "description": "Register transactions with devices on the I2C bus Wire",
   "declarations": {
     "time-interval-rational": "i2c.tpe",
-    "regex-timed-lower-bound-rational-symbolic": "i2c_timed_ops.tpe",
-    "regex-timed-upper-bound-rational-symbolic": "i2c_timed_ops.tpe",
-    "regex-timed-interval-rational-symbolic": "i2c_timed_ops.tpe",
-    "regex-timed-rigid-lower-bound-rational-symbolic": "i2c_timed_ops.tpe",
-    "regex-timed-rigid-upper-bound-rational-symbolic": "i2c_timed_ops.tpe",
-    "regex-timed-rigid-interval-rational-symbolic": "i2c_timed_ops.tpe",
+    "banked-regex-lower-bound-rational-symbolic": "i2c_timed_ops.tpe",
+    "banked-regex-upper-bound-rational-symbolic": "i2c_timed_ops.tpe",
+    "banked-regex-interval-rational-symbolic": "i2c_timed_ops.tpe",
+    "timed-regex-lower-bound-rational-symbolic": "i2c_timed_ops.tpe",
+    "timed-regex-upper-bound-rational-symbolic": "i2c_timed_ops.tpe",
+    "timed-regex-interval-rational-symbolic": "i2c_timed_ops.tpe",
     "inter-arrival": "i2c_timed_ops.tpe",
-    "counts-upper-bound": "i2c_counts.tpe"
+    "at-most-counts": "i2c_counts.tpe"
   },
   "requires": ["i2c"],
   "sources": ["i2c.cpp"],

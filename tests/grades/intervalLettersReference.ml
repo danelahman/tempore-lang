@@ -2,12 +2,12 @@
    letters, by exhaustive search over exact words on a grid.
 
    An exact word is a sequence of operations, each with an exact running time,
-   strict waits and budget stretches, each with an exact length. A grade
+   idle waits and spanes, each with an exact length. A grade
    [x] is below a grade [y] iff every exact word of [x] fits some exact word
    of [y]. A word fits another when it follows the other's skeleton: the
    operations of the greater word occur in the lesser one at the same time
-   spans, in order; a strict wait of the greater word holds waiting only; a
-   budget stretch holds any items whose operations belong to its set, an item
+   spans, in order; an idle wait of the greater word holds waiting only; a
+   span holds any items whose operations belong to its set, an item
    overlapping several stretches belonging to the set of each (the window
    rule). A stretch of length [0] vanishes. Running times are positive.
 
@@ -266,7 +266,7 @@ let rec show = function
 
    An interval [[x, y]] of a lower bound [x] and an upper bound [y] is
    consistent iff some run fits a word of each. A run is a sequence of
-   operations, each with a running time within its interval, and strict
+   operations, each with a running time within its interval, and idle
    waits; it is enumerated on a grid of [k] units per base unit, [k] above
    the number of the letters of the two words, up to a horizon: the greatest
    duration of the upper bound where it is bounded, and above the sum of the

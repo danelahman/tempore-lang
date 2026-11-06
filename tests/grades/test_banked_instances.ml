@@ -1,6 +1,6 @@
-(* The non-rigid grades of timed operations as instances of the grades with
-   interval letters, on random literals with a fixed seed. A literal of a
-   non-rigid grade is translated into one of the rigid grade of the same
+(* The grades with banked delays as instances of the grades with interval
+   letters, on random literals with a fixed seed. A literal of a grade with
+   banked delays is translated into one of the timed regex grade of the same
    family, side and delays:
 
    - upper bounds: an operation [A] is the skippable [A?], a delay or a set of
@@ -12,13 +12,14 @@
 
    The translation is structural on [;], [|], [*] and [^c], and the literals
    have no wildcard, which also ranges over delays, and no intersection or
-   complement, which the rigid grades do not take on whole expressions. Checked: the two grades decide [≤] alike on
-   every pair; the translation of the concatenation and of the union of two
-   literals is the product and the join of their translations, and the
-   concatenation and the union are the product and the join of the non-rigid
-   grade, so that the translation preserves products and joins of grades;
-   under the upper translation the unit is preserved, under the lower one it is
-   mapped to the top, which is not the unit. *)
+   complement, which the timed regex grades do not take on whole expressions.
+   Checked: the two grades decide [≤] alike on every pair; the translation of
+   the concatenation and of the union of two literals is the product and the
+   join of their translations, and the concatenation and the union are the
+   product and the join of the grade with banked delays, so that the translation
+   preserves products and joins of grades; under the upper translation the unit
+   is preserved, under the lower one it is mapped to the top, which is not the
+   unit. *)
 
 module Grade = Grades.Grade
 module Rat = Grades.Rational
@@ -168,8 +169,8 @@ type family = {
   whole : bool;
   finite : bool;
   side : side;
-  nonrigid : (module Grade.S);
-  rigid : (module Grade.S);
+  banked : (module Grade.S);
+  timed : (module Grade.S);
 }
 
 (* A literal of a side: one expression, or the two ends of an interval. *)
@@ -217,7 +218,7 @@ let unit_literal = function
 
 (* [run f n] checks the family [f] on [n] random pairs. *)
 let run f n =
-  let (module N : Grade.S) = f.nonrigid and (module R : Grade.S) = f.rigid in
+  let (module N : Grade.S) = f.banked and (module R : Grade.S) = f.timed in
   let bounds = bounds ~whole:f.whole in
   let nr l = N.of_lit (lit_of l)
   and rg l = R.of_lit (lit_of (translate f.side l)) in
@@ -282,7 +283,7 @@ let run f n =
           true ""
     | (x, y, verdict) :: _ as failures ->
         check (name "order") false
-          (Printf.sprintf "%d disagreements, e.g. %s: non-rigid %b"
+          (Printf.sprintf "%d disagreements, e.g. %s: banked %b"
              (List.length failures)
              (pair (x, y))
              verdict));
@@ -291,52 +292,52 @@ let run f n =
     unit_check;
   ]
 
-module RS = Grades.RegularTimedTraceGrades.Symbolic
-module RQ = Grades.RegularTimedTraceGradesRational
-module T = Grades.TimedTraceGrades
-module I = Grades.IntervalGrades
+module RS = Grades.BankedRegexGrades.Symbolic
+module RQ = Grades.BankedRegexGradesRational
+module T = Grades.BankedTraceGrades
+module I = Grades.TimedRegexGrades
 
-let family name ~whole ~finite side nonrigid rigid =
-  { label = name; whole; finite; side; nonrigid; rigid }
+let family name ~whole ~finite side banked timed =
+  { label = name; whole; finite; side; banked; timed }
 
 let families =
   [
     family "regex upper" ~whole:true ~finite:false Upper
-      (module RS.Upper)
-      (module I.Regex.Upper);
+      (module RS.UpperBound)
+      (module I.UpperBound);
     family "regex lower" ~whole:true ~finite:false Lower
-      (module RS.Lower)
-      (module I.Regex.Lower);
+      (module RS.LowerBound)
+      (module I.LowerBound);
     family "regex interval" ~whole:true ~finite:false Interval
       (module RS.Interval)
-      (module I.Regex.Interval);
+      (module I.Interval);
     family "regex rational upper" ~whole:false ~finite:false Upper
-      (module RQ.Upper)
-      (module I.RegexRational.Upper);
+      (module RQ.UpperBound)
+      (module I.Rational.UpperBound);
     family "regex rational lower" ~whole:false ~finite:false Lower
-      (module RQ.Lower)
-      (module I.RegexRational.Lower);
+      (module RQ.LowerBound)
+      (module I.Rational.LowerBound);
     family "regex rational interval" ~whole:false ~finite:false Interval
       (module RQ.Interval)
-      (module I.RegexRational.Interval);
+      (module I.Rational.Interval);
     family "traces upper" ~whole:true ~finite:true Upper
       (module T.UpperBound)
-      (module I.Traces.Upper);
+      (module I.Finite.UpperBound);
     family "traces lower" ~whole:true ~finite:true Lower
       (module T.LowerBound)
-      (module I.Traces.Lower);
+      (module I.Finite.LowerBound);
     family "traces interval" ~whole:true ~finite:true Interval
       (module T.Interval)
-      (module I.Traces.Interval);
+      (module I.Finite.Interval);
     family "traces rational upper" ~whole:false ~finite:true Upper
       (module T.Rational.UpperBound)
-      (module I.TracesRational.Upper);
+      (module I.Finite.Rational.UpperBound);
     family "traces rational lower" ~whole:false ~finite:true Lower
       (module T.Rational.LowerBound)
-      (module I.TracesRational.Lower);
+      (module I.Finite.Rational.LowerBound);
     family "traces rational interval" ~whole:false ~finite:true Interval
       (module T.Rational.Interval)
-      (module I.TracesRational.Interval);
+      (module I.Finite.Rational.Interval);
   ]
 
 let () =

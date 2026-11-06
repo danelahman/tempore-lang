@@ -1,5 +1,5 @@
 (** The grades of a grade lattice, their products with the time grades, and the
-    flow-sensitive outputs, over the grade lattice that a program declares, or
+    flow-sensitive levels, over the grade lattice that a program declares, or
     else [Low < High].
 
     The grade of a computation is the highest element it touches; a box with
@@ -37,8 +37,8 @@ module type S = sig
     (** {!LatticeGrades.Lattice} over [D]. *)
     module Lattice : Grade.S with type t = element and type Delay.t = D.t
 
-    (** {!LatticeGrades.FlowLattice} over [D]. *)
-    module FlowLattice :
+    (** {!LatticeGrades.FlowSensitiveLevels} over [D]. *)
+    module FlowSensitiveLevels :
       Grade.S with type t = element * Outputs.t and type Delay.t = D.t
   end
 
@@ -74,11 +74,12 @@ module type S = sig
       with type t = RationalTimeGrades.Interval.t * element
        and type Delay.t = Delay.Rational.t
 
-  (** The flow-sensitive outputs, ["flow-lattice"]: the semidirect product
-      {!GradeConstructions.SemiDirect} [(Lattice) (Outputs) (Raise)]. [(l, W)]
-      is "touches nothing above [l], and writes each sink at most at the element
-      [W] gives it", and [(l, W) · (l', W') = (l ⊔ l', W ⊔ raise_l W')]: the
-      later outputs are written after [l] has been touched.
+  (** The flow-sensitive levels, ["flow-sensitive-levels"]: the semidirect
+      product {!GradeConstructions.SemiDirect} [(Lattice) (Outputs) (Raise)].
+      [(l, W)] is "touches nothing above [l], and writes each sink at most at
+      the element [W] gives it", and
+      [(l, W) · (l', W') = (l ⊔ l', W ⊔ raise_l W')]: the later outputs are
+      written after [l] has been touched.
 
       - The order is componentwise, the unit [(⊥, ∅)] is least, and [mul] does
         not commute.
@@ -95,7 +96,7 @@ module type S = sig
         ordering is the conjunction of its projections [(l, W) ↦ (l, W(s))] on
         the sinks, morphisms preserving the joins, so that it fails at a rigid
         iff it fails at the witness of the element and one sink of the rigid. *)
-  module FlowLattice :
+  module FlowSensitiveLevels :
     Grade.S
       with type t = element * Outputs.t
        and type Delay.t = Delay.Rational.t

@@ -1,7 +1,6 @@
-(* Tests of the run consistency of the intervals of the rigid grades of timed
-   operations with interval letters: the verdicts and reasons on chosen
+(* Tests of the run consistency of the intervals of the timed regex grades, with interval letters: the verdicts and reasons on chosen
    literals, over whole time steps and rationals, with open ends, restricted
-   budgets, repetitions and stars; random intervals against the reference
+   spans, repetitions and stars; random intervals against the reference
    by enumeration of runs, with the runs found checked by the reference; the
    preservation of consistency by the operations of the grades; and the
    counterexamples of the order. *)
@@ -10,7 +9,7 @@ open LawChecks
 module R = IntervalLettersReference
 module Grade = Grades.Grade
 module Rat = Grades.Rational
-module G = Grades.IntervalGrades
+module G = Grades.TimedRegexGrades
 module C = Grades.IntervalConsistency
 
 (* The interval grades, with their witnesses. *)
@@ -20,10 +19,10 @@ module type INTERVAL = sig
   val witness : Grade.bounds -> t -> C.item list option
 end
 
-let regex = (module G.Regex.Interval : INTERVAL)
-let regex_rational = (module G.RegexRational.Interval : INTERVAL)
-let traces = (module G.Traces.Interval : INTERVAL)
-let traces_rational = (module G.TracesRational.Interval : INTERVAL)
+let regex = (module G.Interval : INTERVAL)
+let regex_rational = (module G.Rational.Interval : INTERVAL)
+let traces = (module G.Finite.Interval : INTERVAL)
+let traces_rational = (module G.Finite.Rational.Interval : INTERVAL)
 
 module Reader (M : Grade.S) = struct
   module Grammar = Parser.Grammar.Make (Grades.GradeSystem.Identity (M))
@@ -87,7 +86,7 @@ let chosen =
       all "[{(≥4 & A)}, {A}]" a13
         (because "its lower end lasts at least 4 and its upper end at most 3");
       (* A budget of the lower end pays for the operation of the upper end,
-         a strict wait does not. *)
+         an idle wait does not. *)
       all "[{2}, {Write}]" wr None;
       all "[{idle 2}, {Write}]" wr (Some common);
       all "[{Write}, {Read; Read; Read}]" wr (Some common);
@@ -351,7 +350,7 @@ let cross_check ~whole ~size ~traces n =
     match (whole, traces) with
     | true, false -> regex
     | false, false -> regex_rational
-    | true, true -> (module G.Traces.Interval : INTERVAL)
+    | true, true -> (module G.Finite.Interval : INTERVAL)
     | false, true -> traces_rational
   in
   let running_time = random_running_time ~whole in
@@ -458,10 +457,10 @@ let counterexamples =
 let () =
   Random.init 2026;
   let whole = cross_check ~whole:true ~size:4 ~traces:false 400 in
-  let whole_traces = cross_check ~whole:true ~size:3 ~traces:true 500 in
+  let whole_finite = cross_check ~whole:true ~size:3 ~traces:true 500 in
   let rational = cross_check ~whole:false ~size:2 ~traces:false 100 in
-  let rational_traces = cross_check ~whole:false ~size:2 ~traces:true 100 in
-  let cross = [ whole; whole_traces; rational; rational_traces ] in
+  let rational_finite = cross_check ~whole:false ~size:2 ~traces:true 100 in
+  let cross = [ whole; whole_finite; rational; rational_finite ] in
   let checks =
     chosen @ open_ends @ List.concat cross
     @ [ starred ~whole:true 300; starred ~whole:false 300 ]

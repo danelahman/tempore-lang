@@ -1,7 +1,7 @@
-(** The trace grades of timed operations: finite sets of traces (see
+(** The trace grades with banked delays: finite sets of traces (see
     {!TimedTrace}), multiplied by the language product and ordered by the
     running-time bounds of the operations. The trace grades ordered by
-    inclusion, without running times, are those of {!TraceInclusionGrades}.
+    inclusion, without running times, are those of {!FiniteRunSetGrades}.
 
     {2 Running times}
 
@@ -66,7 +66,7 @@ module type NAMES = sig
   (** The literals of the delays, in the singular, e.g. ["integer"]. *)
 end
 
-(** The presentation of timed trace grades over a kind of delays. *)
+(** The presentation of banked trace grades over a kind of delays. *)
 module type TIMED_NAMES = sig
   include NAMES
 
@@ -78,7 +78,7 @@ module type TIMED_NAMES = sig
 end
 
 (** Sets of traces over the delays [D] with a separate greatest point, the
-    carrier of the upper-bound grades here and in {!TraceInclusionGrades}. *)
+    carrier of the upper-bound grades here and in {!FiniteRunSetGrades}. *)
 module Bounded (D : Delay.S) : sig
   type t =
     | Within of TimedTrace.Base(D).traces
@@ -118,21 +118,21 @@ module Bounded (D : Delay.S) : sig
   (** [show p] prints [p], [Unbounded] as [⊤]. *)
 end
 
-(** The trace grades of timed operations over the delays [D], named by [N]. *)
+(** The trace grades with banked delays over the delays [D], named by [N]. *)
 module Make (D : Delay.MEASURED) (N : TIMED_NAMES) : sig
   module LowerBound : Grade.S with type Delay.t = D.t
   (** Sets of traces read as lower bounds,
-      ["traces-timed-lower-bound" ^ N.suffix], in the coverage order; the unit
+      ["banked-traces-lower-bound" ^ N.suffix], in the coverage order; the unit
       [{skip}] is the top. *)
 
   module UpperBound : Grade.S with type Delay.t = D.t
   (** Sets of traces read as upper bounds,
-      ["traces-timed-upper-bound" ^ N.suffix], in the allowance order, with a
+      ["banked-traces-upper-bound" ^ N.suffix], in the allowance order, with a
       separate greatest point [⊤] permitting any trace. *)
 
   module Interval : Grade.S with type Delay.t = D.t
   (** Closed intervals of a lower and an upper bound,
-      ["traces-timed-interval" ^ N.suffix], compared componentwise, written
+      ["banked-traces-interval" ^ N.suffix], compared componentwise, written
       [[{...}, {...}]], and [\[{...}, ∞)] without an upper bound. A brace
       literal [{...}] abbreviates the interval of a set with itself, a delay [d]
       the interval [[{d}, {d}]] and [[d, e]] the interval [[{d}, {e}]]; an open
@@ -150,15 +150,15 @@ end
     so are the running-time bounds: {!Make} over {!Delay.Nat}. *)
 
 module LowerBound : Grade.S with type Delay.t = Delay.Nat.t
-(** Sets of traces read as lower bounds, ["traces-timed-lower-bound"], in the
+(** Sets of traces read as lower bounds, ["banked-traces-lower-bound"], in the
     coverage order; the unit [{skip}] is the top. *)
 
 module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
-(** Sets of traces read as upper bounds, ["traces-timed-upper-bound"], in the
+(** Sets of traces read as upper bounds, ["banked-traces-upper-bound"], in the
     allowance order, with a separate greatest point [⊤] permitting any trace. *)
 
 module Interval : Grade.S with type Delay.t = Delay.Nat.t
-(** Closed intervals of a lower and an upper bound, ["traces-timed-interval"],
+(** Closed intervals of a lower and an upper bound, ["banked-traces-interval"],
     compared componentwise, written [[{...}, {...}]], and [\[{...}, ∞)] without
     an upper bound. A brace literal [{...}] abbreviates the interval of a set
     with itself, [n] the interval [[{n}, {n}]] and [[n, m]] the interval
@@ -174,14 +174,14 @@ module Interval : Grade.S with type Delay.t = Delay.Nat.t
 module Rational : sig
   module LowerBound : Grade.S with type Delay.t = Delay.Rational.t
   (** Sets of traces read as lower bounds,
-      ["traces-timed-lower-bound-rational"], in the coverage order. *)
+      ["banked-traces-lower-bound-rational"], in the coverage order. *)
 
   module UpperBound : Grade.S with type Delay.t = Delay.Rational.t
   (** Sets of traces read as upper bounds,
-      ["traces-timed-upper-bound-rational"], in the allowance order. *)
+      ["banked-traces-upper-bound-rational"], in the allowance order. *)
 
   module Interval : Grade.S with type Delay.t = Delay.Rational.t
   (** Closed intervals of a lower and an upper bound,
-      ["traces-timed-interval-rational"], compared componentwise. An open
+      ["banked-traces-interval-rational"], compared componentwise. An open
       endpoint, a set of delays, is no finite set of traces, and is rejected. *)
 end

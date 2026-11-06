@@ -1,5 +1,5 @@
-(* Tests of the run consistency of the intervals of the trace grades of timed
-   operations, whether some run meets both ends: the joint walk of finite
+(* Tests of the run consistency of the intervals of the trace grades with
+   banked delays, whether some run meets both ends: the joint walk of finite
    traces against a search of the runs covering a guarantee and permitted by a
    bound, over whole time steps and rational delays; the examples of the
    formalisation; the agreement of the decisions of the regular families with
@@ -13,9 +13,9 @@
 module Grade = Grades.Grade
 module Rational = Grades.Rational
 module Delay = Grades.Delay
-module TimedTraceGrades = Grades.TimedTraceGrades
-module Timed = Grades.RegularTimedTraceGrades
-module TimedRational = Grades.RegularTimedTraceGradesRational
+module BankedTraceGrades = Grades.BankedTraceGrades
+module Timed = Grades.BankedRegexGrades
+module TimedRational = Grades.BankedRegexGradesRational
 open LawChecks
 
 (* [Reader (G)] reads the literals of [G] by the parser, in the grade position
@@ -172,8 +172,8 @@ let finite_traces =
 
 (* {1 Examples} *)
 
-module TracesReader = Reader (TimedTraceGrades.Interval)
-module RationalTracesReader = Reader (TimedTraceGrades.Rational.Interval)
+module TracesReader = Reader (BankedTraceGrades.Interval)
+module RationalTracesReader = Reader (BankedTraceGrades.Rational.Interval)
 
 (* [verdicts (module G) cases] checks, for each literal of [cases] with the
    running-time bounds of its table, whether [G] admits a run of it as
@@ -203,8 +203,8 @@ let formalisation =
       ("[{Write}, {Read; Write}]", write (2, 3), true);
     ]
   in
-  verdicts (module TimedTraceGrades.Interval) cases
-  @ verdicts (module TimedTraceGrades.Rational.Interval) cases
+  verdicts (module BankedTraceGrades.Interval) cases
+  @ verdicts (module BankedTraceGrades.Rational.Interval) cases
   @ List.concat_map
       (fun g -> verdicts g cases)
       [
@@ -288,8 +288,8 @@ let reason (module G : Grade.S) table text =
     (G.vacuous (bounds_of table) (R.lit text))
 
 let reasons =
-  reason (module TimedTraceGrades.Interval) a_b "[{4}, {B; 1}]"
-  :: reason (module TimedTraceGrades.Rational.Interval) a_b "[{4}, {B; 1}]"
+  reason (module BankedTraceGrades.Interval) a_b "[{4}, {B; 1}]"
+  :: reason (module BankedTraceGrades.Rational.Interval) a_b "[{4}, {B; 1}]"
   :: List.map
        (fun g -> reason g a_b "[{4; A*}, {B; 1}]")
        [
@@ -434,13 +434,13 @@ let tick_families : (module Grade.S) list =
 
 let agreements =
   agreement "star-free, whole time steps: the regular families as finite traces"
-    (module TimedTraceGrades.Interval)
+    (module BankedTraceGrades.Interval)
     ((module Timed.Symbolic.Interval : Grade.S) :: tick_families)
     whole_tables
     (random_pairs ~forms:Finite ~delays:whole_delays ~depth:3 43 120)
   @ agreement
       "star-free, rational delays: the regular families as finite traces"
-      (module TimedTraceGrades.Rational.Interval)
+      (module BankedTraceGrades.Rational.Interval)
       [
         (module TimedRational.Interval : Grade.S);
         (module TimedRational.Automata.Interval);

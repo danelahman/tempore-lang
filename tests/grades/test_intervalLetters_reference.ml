@@ -1,7 +1,7 @@
 (* Tests of the reference decision of the order of the timed grades with
    interval letters on exact words: the two counterexamples to monotonicity of
    the earlier rigid orders, the verdicts on the transcribed rows of the
-   prototype's tests of strict delays, upper and lower, open ends and the
+   prototype's tests of idle waits, upper and lower, open ends and the
    point rule. *)
 
 open LawChecks
@@ -17,7 +17,7 @@ let running_time = function
   | name -> invalid_arg ("running_time: " ^ name)
 
 (* [word ~side text] is the expression of the space-separated word [text] of
-   operation names, delays [d] and strict delays [idle d], each delay read as
+   operation names, delays [d] and idle waits [idle d], each delay read as
    its hull on [side]. *)
 let word ~upper text =
   let hull d = if upper then R.at_most d else R.at_least d in
@@ -57,7 +57,7 @@ let leq x y = R.leq ~running_time x y
 
 module Grade = Grades.Grade
 module Rat = Grades.Rational
-module G = Grades.IntervalGrades
+module G = Grades.TimedRegexGrades
 
 (* [to_regex ~grid e] is the brace-literal contents of [e], its lengths in
    units of [1/grid]. *)
@@ -152,10 +152,10 @@ let core ?operations ~whole ~grid ~upper running_time x y =
     verdict
   in
   match (whole, upper) with
-  | true, true -> decide (module G.Regex.Upper)
-  | true, false -> decide (module G.Regex.Lower)
-  | false, true -> decide (module G.RegexRational.Upper)
-  | false, false -> decide (module G.RegexRational.Lower)
+  | true, true -> decide (module G.UpperBound)
+  | true, false -> decide (module G.LowerBound)
+  | false, true -> decide (module G.Rational.UpperBound)
+  | false, false -> decide (module G.Rational.LowerBound)
 
 let verdict name x y expected =
   let label = name ^ ": " ^ R.show x ^ " <= " ^ R.show y in
@@ -213,7 +213,7 @@ let upper_rows =
       ("binding budget", "K idle 7 S R", "K 10 R", true);
       ("unused strict", "1", "idle 1 1", true);
       ("product", "1 1", "1 idle 1 1", true);
-      ("operation across a strict delay", "B", "1 idle 1 1", true);
+      ("operation across an idle wait", "B", "1 idle 1 1", true);
       ("wait across budgets", "idle 2", "1 1", true);
     ]
 
@@ -290,7 +290,7 @@ let open_ends =
   ]
 
 (* Running times are positive, open at 0 if need be: an operation occupies a
-   positive stretch of a budget, never one of a strict wait, and a stretch of
+   positive stretch of a budget, never one of an idle wait, and a stretch of
    length 0 vanishes. *)
 let positive =
   [
@@ -342,15 +342,15 @@ let restricted =
       (rb [ "A"; "C" ] (up 2))
       (rb [ "A" ] (up 2))
       false;
-    verdict "an unrestricted budget into a restricted one"
+    verdict "an unrestricted span into a restricted one"
       (R.budget (up 2))
       (rb [ "A"; "C" ] (up 2))
       false;
-    verdict "a wait into a restricted budget"
+    verdict "a wait into a restricted span"
       (R.strict (up 2))
       (rb [ "A" ] (up 2))
       true;
-    verdict "a restricted budget into a wait"
+    verdict "a restricted span into a wait"
       (rb [ "A" ] (up 2))
       (R.strict (up 2))
       false;
@@ -381,11 +381,11 @@ let restricted =
   ]
 
 (* An item that overflows a stretch of an upper bound into a later stretch of
-   the same gap, a strict wait between them passed at length 0 (suggested by
+   the same gap, an idle wait between them passed at length 0 (suggested by
    the formalisation): the reference and the core over whole steps and over
    halves, the lengths in units of the grid and [A] of running time
    [[1, hi]]. A word of duration the sum of the caps of the greater grade
-   fixes its strict wait inside the overflowing item. *)
+   fixes its idle wait inside the overflowing item. *)
 let overflow =
   let rb names iv = R.Letter (R.Stretch (R.Names names, iv)) in
   let up = R.at_most in
@@ -424,10 +424,10 @@ let overflow =
           (R.Seq [ wait; rb [ "A" ] (up (2 * grid)) ])
           y true;
         case "operation" ~grid ~hi:(2 * grid) (R.Seq [ wait; R.op "A" ]) y true;
-        case "operation over a strict wait" ~grid ~hi:(3 * grid)
+        case "operation over an idle wait" ~grid ~hi:(3 * grid)
           (R.Seq [ wait; R.op "A" ])
           y false;
-        case "stretch over a strict wait" ~grid ~hi:(2 * grid)
+        case "stretch over an idle wait" ~grid ~hi:(2 * grid)
           (R.Seq [ wait; rb [ "A" ] (up (3 * grid)) ])
           y false;
         case "into another set" ~grid ~hi:(2 * grid)
@@ -458,7 +458,7 @@ let random_running_time ~whole = function
       else { R.lo = 1; lo_open = true; hi = Some 3; hi_open = false }
   | n -> invalid_arg n
 
-(* [random_set ()] is a set of the operations for a restricted budget. *)
+(* [random_set ()] is a set of the operations for a restricted span. *)
 let random_set () =
   R.Names
     (List.nth [ [ "A" ]; [ "C" ]; [ "A"; "B" ]; [ "A"; "C" ] ] (Random.int 4))

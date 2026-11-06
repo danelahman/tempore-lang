@@ -98,17 +98,19 @@ let expected_rejections =
     ("tests/continuation_nested_escape_reject.tpe", [ 14 ]);
     ("tests/continuation_nested_twice_reject_upper.tpe", [ 12 ]);
     ("tests/continuation_twice_reject_upper.tpe", [ 11 ]);
-    ("tests/counts_upper_reject.tpe", [ 11; 18; 23; 31 ]);
+    ("tests/at_most_counts_reject.tpe", [ 11; 18; 23; 31 ]);
     ("tests/default_reject_bounds.tpe", [ 7 ]);
     ("tests/rational_time_intervals_reject.tpe", [ 10 ]);
     ("tests/rational_time_intervals_reject_within.tpe", [ 10 ]);
     ("tests/rational_time_lower_reject.tpe", [ 11; 15 ]);
     ("tests/rational_time_upper_reject.tpe", [ 8 ]);
-    ("tests/rational_traces_intervals_default_open_reject.tpe", [ 15; 16 ]);
-    ("tests/rational_traces_intervals_reject.tpe", [ 14 ]);
-    ("tests/rational_traces_intervals_no_common_run_reject.tpe", [ 17; 25 ]);
-    ("tests/rational_traces_upper_open_reject.tpe", [ 13 ]);
-    ("tests/rational_traces_upper_reject.tpe", [ 14 ]);
+    ( "tests/banked_traces_rational_intervals_default_open_reject.tpe",
+      [ 15; 16 ] );
+    ("tests/banked_traces_rational_intervals_reject.tpe", [ 14 ]);
+    ( "tests/banked_traces_rational_intervals_no_common_run_reject.tpe",
+      [ 17; 25 ] );
+    ("tests/banked_traces_rational_upper_open_reject.tpe", [ 13 ]);
+    ("tests/banked_traces_rational_upper_reject.tpe", [ 14 ]);
     ("tests/default_reject_cycle.tpe", [ 9 ]);
     ("tests/default_reject_duplicate.tpe", [ 8 ]);
     ("tests/default_reject_global.tpe", [ 11 ]);
@@ -140,7 +142,7 @@ let expected_rejections =
     ("tests/eternal_tyvars_reject_higher_order.tpe", [ 10 ]);
     ("tests/eternal_tyvars_reject_noneternal.tpe", [ 12 ]);
     ("tests/invalid_match_type.tpe", [ 4 ]);
-    ("tests/flow_lattice_reject.tpe", [ 12; 17; 22; 30 ]);
+    ("tests/flow_sensitive_levels_reject.tpe", [ 12; 17; 22; 30 ]);
     ("tests/handler_input_contravariant_reject_lower.tpe", [ 10 ]);
     ("tests/iterative_unbox.tpe", [ 4 ]);
     ("tests/unbox_annotated_signature_reject.tpe", [ 30; 36 ]);
@@ -152,7 +154,7 @@ let expected_rejections =
     ("tests/less_than_function.tpe", [ 1 ]);
     ("tests/lattice_reject.tpe", [ 12 ]);
     ("tests/lattice_declared_chain_reject.tpe", [ 17; 24 ]);
-    ("tests/lattice_declared_diamond_reject.tpe", [ 18; 22 ]);
+    ("tests/lattice_declared_diamond_reject.tpe", [ 19; 23 ]);
     ("tests/lattice_time_interval_reject.tpe", [ 15; 24; 30; 38 ]);
     ("tests/lattice_time_lower_reject.tpe", [ 14; 21 ]);
     ("tests/lattice_time_upper_reject.tpe", [ 14; 21 ]);
@@ -170,7 +172,7 @@ let expected_rejections =
     ("tests/occurs_check_related_pattern.tpe", [ 7 ]);
     ("tests/operation_reject_datatype.tpe", [ 5 ]);
     ("tests/operation_reject_higher_order.tpe", [ 8 ]);
-    ("tests/plain_traces_upper_reject.tpe", [ 16; 22 ]);
+    ("tests/finite_run_sets_upper_reject.tpe", [ 16; 22 ]);
     ("tests/polymorphism_id_id.tpe", [ 2 ]);
     ("tests/positivity_reject_list.tpe", [ 3 ]);
     ("tests/positivity_reject_mutual.tpe", [ 3 ]);
@@ -186,40 +188,38 @@ let expected_rejections =
     ("tests/recursion_effect_reject_unannotated_regular.tpe", [ 16 ]);
     ("tests/recursion_handler_reject_upper.tpe", [ 13; 23 ]);
     ("tests/recursion_lock_reject.tpe", [ 8 ]);
-    ("tests/regex_timed_compound_named_later_reject.tpe", [ 10 ]);
-    ("tests/regex_timed_interval_reject.tpe", [ 15; 22 ]);
-    ("tests/regex_timed_interval_ticks_reject.tpe", [ 16; 24 ]);
-    ("tests/regex_timed_interval_no_common_run_reject.tpe", [ 17; 24 ]);
-    ("tests/regex_timed_lower_reject.tpe", [ 16; 24; 31 ]);
-    ("tests/regex_timed_lower_ticks_reject.tpe", [ 15 ]);
-    ("tests/regex_timed_rational_interval_default_open_reject.tpe", [ 14; 15 ]);
-    ("tests/regex_timed_rational_interval_open_reject.tpe", [ 12 ]);
-    ("tests/regex_timed_rational_interval_reject.tpe", [ 15; 23 ]);
-    ("tests/regex_timed_rational_interval_no_common_run_reject.tpe", [ 17; 24 ]);
-    ("tests/regex_timed_rational_lower_reject.tpe", [ 16; 23; 33; 40 ]);
-    ("tests/regex_timed_rational_upper_open_reject.tpe", [ 14; 20 ]);
-    ("tests/regex_timed_rational_upper_reject.tpe", [ 17; 26; 37; 47; 56 ]);
-    ( "tests/regex_timed_rigid_interval_inconsistent_reject.tpe",
-      [ 24; 31; 39; 47 ] );
-    ("tests/regex_timed_rigid_interval_reject.tpe", [ 27 ]);
-    ( "tests/regex_timed_rigid_rational_interval_inconsistent_reject.tpe",
+    ("tests/banked_regex_compound_named_later_reject.tpe", [ 10 ]);
+    ("tests/banked_regex_interval_reject.tpe", [ 15; 22 ]);
+    ("tests/banked_regex_interval_ticks_reject.tpe", [ 16; 24 ]);
+    ("tests/banked_regex_interval_no_common_run_reject.tpe", [ 17; 24 ]);
+    ("tests/banked_regex_lower_reject.tpe", [ 16; 24; 31 ]);
+    ("tests/banked_regex_lower_ticks_reject.tpe", [ 15 ]);
+    ("tests/banked_regex_rational_interval_default_open_reject.tpe", [ 14; 15 ]);
+    ("tests/banked_regex_rational_interval_open_reject.tpe", [ 12 ]);
+    ("tests/banked_regex_rational_interval_reject.tpe", [ 15; 23 ]);
+    ("tests/banked_regex_rational_interval_no_common_run_reject.tpe", [ 17; 24 ]);
+    ("tests/banked_regex_rational_lower_reject.tpe", [ 16; 23; 33; 40 ]);
+    ("tests/banked_regex_rational_upper_open_reject.tpe", [ 14; 20 ]);
+    ("tests/banked_regex_rational_upper_reject.tpe", [ 17; 26; 37; 47; 56 ]);
+    ("tests/timed_regex_interval_inconsistent_reject.tpe", [ 24; 31; 39; 47 ]);
+    ("tests/timed_regex_interval_reject.tpe", [ 27 ]);
+    ( "tests/timed_regex_rational_interval_inconsistent_reject.tpe",
       [ 25; 32; 39 ] );
-    ( "tests/regex_timed_rigid_rational_upper_reject.tpe",
-      [ 24; 35; 43; 53; 63; 74 ] );
-    ("tests/regex_timed_upper_open_reject.tpe", [ 14; 20 ]);
-    ("tests/regex_timed_upper_reject.tpe", [ 16; 24; 32; 39 ]);
-    ("tests/regex_timed_upper_ticks_reject.tpe", [ 16; 22; 25 ]);
+    ("tests/timed_regex_rational_upper_reject.tpe", [ 24; 35; 43; 53; 63; 74 ]);
+    ("tests/banked_regex_upper_open_reject.tpe", [ 14; 20 ]);
+    ("tests/banked_regex_upper_reject.tpe", [ 16; 24; 32; 39 ]);
+    ("tests/banked_regex_upper_ticks_reject.tpe", [ 16; 22; 25 ]);
     ("tests/regex_rational_reject.tpe", [ 15; 22; 31; 33 ]);
-    ("tests/regular_reject_auth.tpe", [ 16; 23; 29 ]);
+    ("tests/regular_reject_auth.tpe", [ 17; 24; 30 ]);
     ("tests/regular_reject_bounds.tpe", [ 9 ]);
     ("tests/regular_reject_counterexample.tpe", [ 18; 26 ]);
     ("tests/regular_reject_protocol.tpe", [ 14; 23 ]);
-    ("tests/resource_levels_by_resource_reject.tpe", [ 16; 23; 33 ]);
-    ("tests/resource_levels_reject.tpe", [ 13; 22; 31; 34; 42; 45; 53 ]);
-    ("tests/strict_delays_lower_reject.tpe", [ 27 ]);
-    ("tests/strict_delays_rational_reject.tpe", [ 31; 51; 70 ]);
-    ("tests/strict_delays_traces_reject.tpe", [ 26 ]);
-    ("tests/strict_delays_whole_reject.tpe", [ 27 ]);
+    ("tests/watermarks_by_resource_reject.tpe", [ 16; 23; 33 ]);
+    ("tests/watermarks_reject.tpe", [ 13; 22; 31; 34; 42; 45; 53 ]);
+    ("tests/idle_waits_lower_reject.tpe", [ 27 ]);
+    ("tests/idle_waits_rational_reject.tpe", [ 31; 51; 70 ]);
+    ("tests/idle_waits_finite_reject.tpe", [ 26 ]);
+    ("tests/idle_waits_whole_reject.tpe", [ 27 ]);
     ("tests/termination_reject_ackermann.tpe", [ 4 ]);
     ("tests/termination_reject_countdown.tpe", [ 4 ]);
     ("tests/termination_reject_escape.tpe", [ 4 ]);
@@ -227,24 +227,24 @@ let expected_rejections =
     ("tests/termination_reject_loop.tpe", [ 3 ]);
     ("tests/termination_reject_spin.tpe", [ 3 ]);
     ("tests/time_reject_within.tpe", [ 6 ]);
-    ("tests/traces_intervals_default_bounds.tpe", [ 14 ]);
-    ("tests/traces_intervals_default_open_reject.tpe", [ 14; 15 ]);
-    ("tests/traces_intervals_no_common_run_reject.tpe", [ 17; 24 ]);
-    ("tests/traces_open_bounds_reject.tpe", [ 14; 20 ]);
-    ("tests/traces_reject_allowance.tpe", [ 12 ]);
-    ("tests/traces_reject_bounds.tpe", [ 8 ]);
-    ("tests/traces_reject_bounds_declared.tpe", [ 11 ]);
-    ("tests/traces_reject_bounds_zero.tpe", [ 9 ]);
-    ("tests/traces_reject_bounds_zero_lower.tpe", [ 10 ]);
-    ("tests/traces_reject_default_bounds.tpe", [ 13 ]);
-    ("tests/traces_reject_default_nonatomic.tpe", [ 19 ]);
-    ("tests/traces_reject_missing_within.tpe", [ 10 ]);
-    ("tests/traces_reject_order.tpe", [ 17 ]);
-    ("tests/traces_reject_self_retry.tpe", [ 11 ]);
-    ("tests/traces_reject_undecided_condition.tpe", [ 20 ]);
-    ("tests/traces_reject_unknown_event.tpe", [ 11 ]);
-    ("tests/traces_rigid_upper_reject.tpe", [ 27 ]);
-    ("tests/windowed_schedules_reject.tpe", [ 11; 16; 21; 29; 36 ]);
+    ("tests/banked_traces_intervals_default_bounds.tpe", [ 14 ]);
+    ("tests/banked_traces_intervals_default_open_reject.tpe", [ 14; 15 ]);
+    ("tests/banked_traces_intervals_no_common_run_reject.tpe", [ 17; 24 ]);
+    ("tests/banked_traces_open_bounds_reject.tpe", [ 14; 20 ]);
+    ("tests/banked_traces_reject_allowance.tpe", [ 12 ]);
+    ("tests/banked_traces_reject_bounds.tpe", [ 8 ]);
+    ("tests/banked_traces_reject_bounds_declared.tpe", [ 11 ]);
+    ("tests/banked_traces_reject_bounds_zero.tpe", [ 9 ]);
+    ("tests/banked_traces_reject_bounds_zero_lower.tpe", [ 10 ]);
+    ("tests/banked_traces_reject_default_bounds.tpe", [ 13 ]);
+    ("tests/banked_traces_reject_default_nonatomic.tpe", [ 19 ]);
+    ("tests/banked_traces_reject_missing_within.tpe", [ 10 ]);
+    ("tests/banked_traces_reject_order.tpe", [ 17 ]);
+    ("tests/banked_traces_reject_self_retry.tpe", [ 11 ]);
+    ("tests/banked_traces_reject_undecided_condition.tpe", [ 20 ]);
+    ("tests/banked_traces_reject_unknown_event.tpe", [ 11 ]);
+    ("tests/timed_regex_finite_upper_reject.tpe", [ 27 ]);
+    ("tests/call_time_sets_reject.tpe", [ 11; 16; 21; 29; 36 ]);
     ("tests/inter_arrival_reject.tpe", [ 18; 29; 40; 49; 58 ]);
     ("tests/inter_arrival_reject_runs.tpe", [ 20; 27; 33 ]);
     ("tests/inter_arrival_reject_unknown.tpe", [ 11 ]);
@@ -818,8 +818,8 @@ end
 (* ------------------------------------------------------------------ *)
 
 (* Programs on handlers, boxes and annotations, with the verdict each has
-   where the unit is least (right-sided grades) and where it is the top
-   (left-sided ones). [Read] reads a value that is not eternal. *)
+   where the unit is least (upper bounds) and where it is the top (lower
+   bounds). [Read] reads a value that is not eternal. *)
 type expected = Typed | Refuted
 
 let small_programs ~lit ~read =
@@ -929,7 +929,7 @@ let small_program_verdicts =
 let check_small_programs grades =
   let (module G) = TestPrograms.grade_module grades in
   let (module P) = programs_of grades in
-  let traces = String.starts_with ~prefix:"traces" grades in
+  let traces = String.starts_with ~prefix:"banked-traces" grades in
   let lit n = if traces then Printf.sprintf "{%d}" n else string_of_int n in
   let read =
     if traces then "operation Read : unit ~> reading ! {Read} within [1, 1]"
@@ -960,8 +960,8 @@ let four_grades =
   [
     "time-lower-bound";
     "time-upper-bound";
-    "traces-timed-lower-bound";
-    "traces-timed-upper-bound";
+    "banked-traces-lower-bound";
+    "banked-traces-upper-bound";
   ]
 
 let () =

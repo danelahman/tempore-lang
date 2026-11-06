@@ -1,6 +1,6 @@
-(** The regular trace grade over rational delays,
-    ["regex-upper-bound-rational-symbolic"]: non-empty timed regular languages,
-    ordered by inclusion and multiplied by concatenation.
+(** The regular trace languages over rational delays,
+    ["regular-trace-languages-rational-symbolic"]: non-empty timed regular
+    languages, ordered by inclusion and multiplied by concatenation.
 
     {2 Traces as timed words}
 
@@ -13,7 +13,7 @@
     The top is not absorbing: [{3}] multiplied by [⊤] permits only the traces
     that begin with a delay of at least [3].
 
-    Unlike {!RegularTraceGrade}, a delay is a single letter however long or
+    Unlike {!RegularTraceLanguages}, a delay is a single letter however long or
     fine: no delay is unrolled into time steps, and no resolution of the
     program's delays is involved, so that the order is exact over the rationals.
 
@@ -74,8 +74,8 @@ val expression : t -> GradeLiteral.regex
 (** [expression rho] is the expression [rho] is printed as. *)
 
 (** The same grade over the canonical automata of the languages
-    ({!DelayAutomaton}), named ["regex-upper-bound-rational-automata"]: a grade
-    keeps the automaton of its language, which {!Grade.S.equal},
+    ({!DelayAutomaton}), named ["regular-trace-languages-rational-automata"]: a
+    grade keeps the automaton of its language, which {!Grade.S.equal},
     {!Grade.S.compare}, {!Grade.S.hash} and {!Grade.S.is_top} read; inclusion is
     decided on the product of the automata, and a counterexample is
     {!DelayAutomaton.counterexample}; the events of a grade are the names its

@@ -11,7 +11,7 @@ type t = { names : string list; regex : Regex.t }
 (* The letters of [regex] are [tick], the operation [names] in increasing
    order, and the catch-all letter [Letters.others names]. *)
 
-let name = "regex-upper-bound-letter-derivatives"
+let name = "regular-trace-languages-letter-derivatives"
 let merge names names' = List.sort_uniq String.compare (names @ names')
 let atom name = Regex.letters (Letters.name name)
 let tick = Regex.letters Letters.tick
@@ -115,7 +115,7 @@ let compare rho rho' =
 let hash rho =
   Hashing.combine (Hashing.list String.hash rho.names) (Regex.hash rho.regex)
 
-include RegularTraceGradeDerivative.Constants
+include RegularTraceLanguagesDerivative.Constants
 
 let of_delay d = { names = []; regex = ticks (Delay.to_int d) }
 
@@ -148,12 +148,12 @@ let counterexample _bounds rho rho' =
        (Regex.inter [ align names rho; Regex.compl (align names rho') ]))
 
 let of_lit =
-  RegularTraceGradeDerivative.of_lit_with
+  RegularTraceLanguagesDerivative.of_lit_with
     ~ticks:(fun n -> { names = []; regex = ticks n })
     ~top ~of_regex
     ~is_empty:(fun rho -> D.is_empty rho.regex)
 
-let accepts = RegularTraceGradeDerivative.accepts_with of_lit
+let accepts = RegularTraceLanguagesDerivative.accepts_with of_lit
 
 (** {1 Letter sets} *)
 
@@ -168,8 +168,8 @@ let symbolic rho =
       Conversion.map SymbolicRegex.letters rho.regex)
 
 let events rho = SymbolicRegex.names (symbolic rho)
-let canonical rho = RegularTraceGradeDerivative.canonical (symbolic rho)
-let show rho = RegularTraceGradeDerivative.show (symbolic rho)
+let canonical rho = RegularTraceLanguagesDerivative.canonical (symbolic rho)
+let show rho = RegularTraceLanguagesDerivative.show (symbolic rho)
 let witnesses ~degree:_ _bounds = Grade.sampled mul
 
 (** {1 Traces over given names} *)

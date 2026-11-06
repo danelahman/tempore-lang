@@ -443,21 +443,18 @@ let of_delay_laws (module G : Grade.S) bounds ?monotone () =
           (pairs samples);
       ]
 
-(* [strict_delays name] is whether the grade named [name] is one of the rigid
-   grades of timed operations, whose grade of [delay d] is the strict delay
-   [idle d], a wait, below the budget [d] of the time shadow. *)
-let strict_delays name =
-  List.exists
-    (fun prefix -> String.starts_with ~prefix name)
-    [ "regex-timed-rigid-"; "traces-timed-rigid-" ]
+(* [idle_waits name] is whether the grade named [name] is one of the timed
+   regex grades, whose grade of [delay d] is the idle wait [idle d], a wait,
+   below the span [d] of the time shadow. *)
+let idle_waits name = String.starts_with ~prefix:"timed-regex-" name
 
 (* [of_bounds_laws (module G) bounds] checks the time shadow on the sample
    delays of [G] under [bounds]: the shadow of exact bounds [(d, d)] is the
-   grade of [delay d], or above it under the grades with strict delays, and
+   grade of [delay d], or above it under the grades with idle waits, and
    the grade of a delay [d] with [lo ≤ d ≤ hi] is below the shadow of
    [(lo, hi)]. *)
 let of_bounds_laws (module G : Grade.S) bounds =
-  let shadow_law = if strict_delays G.name then G.leq else G.equal in
+  let shadow_law = if idle_waits G.name then G.leq else G.equal in
   let samples = delays (module G.Delay) in
   let le (q, _) (r, _) = Rational.compare (value q) (value r) <= 0 in
   let within =

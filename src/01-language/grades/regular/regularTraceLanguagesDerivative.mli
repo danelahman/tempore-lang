@@ -1,9 +1,9 @@
-(** The regular trace grade decided by symbolic derivatives,
-    ["regex-upper-bound-symbolic"].
+(** The regular trace languages decided by symbolic derivatives,
+    ["regular-trace-languages-symbolic"].
 
-    The grade is that of {!RegularTraceGrade}, with the same traces, alphabet,
-    order, operations, literals and running-time bounds; only the representation
-    and the decision procedures differ.
+    The grade is that of {!RegularTraceLanguages}, with the same traces,
+    alphabet, order, operations, literals and running-time bounds; only the
+    representation and the decision procedures differ.
 
     {2 Representation}
 
@@ -13,7 +13,7 @@
     automaton, and a delay of [n] time steps is one run of ticks [tickⁿ]. The
     letters are [tick] and every operation name, a letter set being finite or
     cofinite in the names, so that the names a grade does not mention are all
-    alike to it: this is the catch-all letter of {!RegularTraceGrade}, and
+    alike to it: this is the catch-all letter of {!RegularTraceLanguages}, and
     grades over different names need no alignment. {!Grade.S.compare} and
     {!Grade.S.hash} read the number of the normal form, in constant time; grades
     of different normal forms may denote the same language, so {!Grade.S.is_top}
@@ -63,9 +63,9 @@
 
     {2 Derivatives by letters}
 
-    {!Concrete}, ["regex-upper-bound-symbolic-by-letters"], is the same grade
-    decided by the derivatives by the concrete letters of the grades compared,
-    {!SymbolicRegex.S.Concrete}, one letter at a time
+    {!Concrete}, ["regular-trace-languages-symbolic-by-letters"], is the same
+    grade decided by the derivatives by the concrete letters of the grades
+    compared, {!SymbolicRegex.S.Concrete}, one letter at a time
     ({!SymbolicRegex.S.Decide}), rather than by gap derivatives by minterms: its
     counterexamples are found by breadth-first exploration, and the runs of
     ticks that all words of an expression begin with are taken in one step, by
@@ -73,8 +73,8 @@
 
 (** {1 Shared by the implementations}
 
-    The fields of the regular trace grade common to its implementations,
-    {!RegularTraceGrade}, {!RegularTraceGradePlain} and those here. *)
+    The fields of the regular trace languages common to their implementations,
+    {!RegularTraceLanguages}, {!RegularTraceLanguagesPlain} and those here. *)
 
 (** The constant fields: the delays are whole time steps, the unit is not least,
     the product is not commutative, and the grade needs no running-time bounds,
@@ -112,14 +112,14 @@ val of_lit_with :
     @raise Grade.Invalid_literal on the other literals. *)
 
 val accepts_with : (Grade.lit -> 'a) -> Grade.lit -> bool
-(** [accepts_with of_lit lit] is whether the reader [of_lit] of a regular trace
-    grade over whole time steps, an instance of {!of_lit_with}, reads [lit]. A
-    brace literal free of intersections and complements ({!Grade.positive})
-    denotes a non-empty language if its delays are read ({!Grade.whole_braces}),
-    which decides it without [of_lit]; the other literals are read by [of_lit].
-*)
+(** [accepts_with of_lit lit] is whether the reader [of_lit] of an
+    implementation of the regular trace languages over whole time steps, an
+    instance of {!of_lit_with}, reads [lit]. A brace literal free of
+    intersections and complements ({!Grade.positive}) denotes a non-empty
+    language if its delays are read ({!Grade.whole_braces}), which decides it
+    without [of_lit]; the other literals are read by [of_lit]. *)
 
-(** A regular trace grade by derivatives. *)
+(** An implementation of the regular trace languages by derivatives. *)
 module type S = sig
   include Grade.S with type t = SymbolicRegex.t and type Delay.t = Delay.Nat.t
 
@@ -135,7 +135,7 @@ module type S = sig
   (** [concrete names rho] is the language of the traces of [rho] that perform
       only operations among [names], over the letters [tick], numbered [0], and
       [names], numbered from [1] in their order, as
-      {!RegularTraceGrade.concrete}: the automaton
+      {!RegularTraceLanguages.concrete}: the automaton
       {!SymbolicAutomaton.of_derivatives} of the derivatives of [rho] by the
       blocks of its alphabet, explored in full, each letter following the edge
       whose label contains it. *)
@@ -191,5 +191,5 @@ include S
 (** @inline *)
 
 module Concrete : S
-(** ["regex-upper-bound-symbolic-by-letters"], by {!SymbolicRegex.S.Concrete}.
-*)
+(** ["regular-trace-languages-symbolic-by-letters"], by
+    {!SymbolicRegex.S.Concrete}. *)

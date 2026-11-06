@@ -98,8 +98,7 @@ let syntax =
     syntax_error "{<0}" "`<0` holds no delay";
     syntax_error "{>=inf}" "`≥∞` holds no delay";
     syntax_error "{idle A}"
-      "A strict wait `idle` applies to a length or an interval of lengths, not \
-       to `A`";
+      "An idle wait applies to a length or an interval of lengths, not to `A`";
   ]
 
 (* {1 Normal forms and printing} *)
@@ -173,10 +172,10 @@ let rejections =
     rejects `Upper "{~(A; B)}"
       "the complement `~` applies to operation sets and intervals only";
     rejects `Upper "{(A; B) & C}"
-      "the intersection `&` applies to operation sets, intervals and a budget \
+      "the intersection `&` applies to operation sets, intervals and a span \
        with an operation set only";
     rejects `Upper "{A; >=0 & ~B; C}"
-      "a restricted budget in a sequence is written in parentheses";
+      "a restricted span in a sequence is written in parentheses";
     reads `Upper "{(>=0 & ~B)}" "≥0 & ~B";
     reads `Lower "{>=0 & ~ReceiveMessage}" "≥0 & ~ReceiveMessage";
     reads `Upper "{A; (≤5 & (Scan | Turn)); B}" "A; (≤5 & (Scan | Turn)); B";

@@ -1,4 +1,4 @@
-(* Property tests of the regular trace grades of timed operations and of the
+(* Property tests of the regex grades with banked delays and of the
    closures that decide them: the segment characterisations of allowance and
    coverage against [TimedTrace.allowance] and
    [TimedTrace.coverage]; then, for
@@ -18,8 +18,8 @@ module Grade = Grades.Grade
 module Dfa = Grades.Dfa
 module TimedClosure = Grades.TimedClosure
 module TimedTrace = Grades.TimedTrace.Make (Grades.Delay.Nat)
-module TimedTraceGrades = Grades.TimedTraceGrades
-module Timed = Grades.RegularTimedTraceGrades
+module BankedTraceGrades = Grades.BankedTraceGrades
+module Timed = Grades.BankedRegexGrades
 open LawChecks
 
 (* {1 Traces} *)
@@ -313,20 +313,20 @@ let agree tables (module F : Grade.S) (module G : Grade.S) lits =
       ])
     tables
 
-(* [embeds (module Upper) (module Lower) (module Interval) tables lits] checks
+(* [embeds (module UpperBound) (module LowerBound) (module Interval) tables lits] checks
    that the grades of timed operations embed the trace grades on the finite
    literals [lits], and on the intervals between them. *)
-let embeds (module Upper : Grade.S) (module Lower : Grade.S)
+let embeds (module UpperBound : Grade.S) (module LowerBound : Grade.S)
     (module Interval : Grade.S) tables lits =
   let pairs_of lits =
     List.map2
       (fun l l' -> Grade.Interval (Grade.Closed l, Grade.Closed l'))
       lits (List.rev lits)
   in
-  agree tables (module TimedTraceGrades.UpperBound) (module Upper) lits
-  @ agree tables (module TimedTraceGrades.LowerBound) (module Lower) lits
+  agree tables (module BankedTraceGrades.UpperBound) (module UpperBound) lits
+  @ agree tables (module BankedTraceGrades.LowerBound) (module LowerBound) lits
   @ agree tables
-      (module TimedTraceGrades.Interval)
+      (module BankedTraceGrades.Interval)
       (module Interval)
       (pairs_of lits)
 
@@ -336,8 +336,8 @@ module type IMPLEMENTATION = sig
   val name : string
 
   module L : Timed.LANGUAGE
-  module Upper : Grade.S with type t = L.t and type Delay.t = int
-  module Lower : Grade.S with type t = L.t and type Delay.t = int
+  module UpperBound : Grade.S with type t = L.t and type Delay.t = int
+  module LowerBound : Grade.S with type t = L.t and type Delay.t = int
   module Interval : Grade.S with type t = L.t * L.t and type Delay.t = int
 end
 
@@ -345,8 +345,8 @@ module Automata = struct
   let name = "automata"
 
   module L = Timed.Automata
-  module Upper = Timed.Upper
-  module Lower = Timed.Lower
+  module UpperBound = Timed.UpperBound
+  module LowerBound = Timed.LowerBound
   module Interval = Timed.Interval
 end
 
@@ -496,27 +496,27 @@ module Suite (I : IMPLEMENTATION) = struct
     List.concat_map
       (fun table ->
         let context = show_table table and bounds = bounds_of table in
-        laws (module Upper) ~context bounds samples
-        @ laws (module Lower) ~context bounds samples
+        laws (module UpperBound) ~context bounds samples
+        @ laws (module LowerBound) ~context bounds samples
         @ laws (module Interval) ~context bounds intervals)
       some_tables
     @ of_delay_laws
-        (module Upper)
+        (module UpperBound)
         (bounds_of (List.hd tables))
         ~monotone:true ()
     @ of_delay_laws
-        (module Lower)
+        (module LowerBound)
         (bounds_of (List.hd tables))
         ~monotone:false ()
     @ [
         all
-          (Lower.name ^ ": the unit is the top")
+          (LowerBound.name ^ ": the unit is the top")
           (fun table -> show_table table)
-          (fun table -> Lower.equal (bounds_of table) Lower.top L.top)
+          (fun table -> LowerBound.equal (bounds_of table) LowerBound.top L.top)
           tables;
       ]
 
-  (* {2 (d) Embedding of the finite trace grades} *)
+  (* {2 (d) Embedding of the trace grades with banked delays} *)
 
   let embedding =
     let state = Random.State.make [| 13 |] in
@@ -525,21 +525,21 @@ module Suite (I : IMPLEMENTATION) = struct
           Grade.Braces (random_regex ~finite:true ~depth:3 state))
     in
     embeds
-      (module Upper)
-      (module Lower)
+      (module UpperBound)
+      (module LowerBound)
       (module Interval)
       tables (Grade.Top :: finite)
 
   (* {2 (e) Examples} *)
 
-  module U = Reader (Upper)
-  module Lo = Reader (Lower)
+  module U = Reader (UpperBound)
+  module Lo = Reader (LowerBound)
   module In = Reader (Interval)
 
   let upper_examples =
-    let leq a b = Upper.leq running_times (U.lit a) (U.lit b) in
-    let equal a b = Upper.equal running_times (U.lit a) (U.lit b) in
-    let name = ( ^ ) (Upper.name ^ ": ") in
+    let leq a b = UpperBound.leq running_times (U.lit a) (U.lit b) in
+    let equal a b = UpperBound.equal running_times (U.lit a) (U.lit b) in
+    let name = ( ^ ) (UpperBound.name ^ ": ") in
     [
       holds (name "a delay pays for an operation at hi") (leq "{A}" "{3}");
       fails (name "an operation does not pay for a delay") (leq "{3}" "{A}");
@@ -553,8 +553,8 @@ module Suite (I : IMPLEMENTATION) = struct
       fails (name "a match resets the budget") (leq "{A; B}" "{B; 3}");
       holds
         (name "the closure of a product is larger")
-        (Upper.leq running_times (U.lit "{A}")
-           (Upper.mul (U.lit "{2}") (U.lit "{2}")));
+        (UpperBound.leq running_times (U.lit "{A}")
+           (UpperBound.mul (U.lit "{2}") (U.lit "{2}")));
       holds
         (name "the catch-all letter stands for C")
         (leq "{C}" "{_ & ~1 & ~A & ~B}");
@@ -566,7 +566,7 @@ module Suite (I : IMPLEMENTATION) = struct
         (leq "{_}" "{4}");
       fails
         (name "a further declared operation")
-        (Upper.leq
+        (UpperBound.leq
            (bounds_of
               [ ("A", (1, 3)); ("B", (2, 2)); ("C", (0, 5)); ("D", (9, 9)) ])
            (U.lit "{_}") (U.lit "{5}"));
@@ -576,42 +576,43 @@ module Suite (I : IMPLEMENTATION) = struct
         (equal "{(_ & ~A)*}" "⊤");
       holds
         (name "the top absorbs a product")
-        (Upper.equal running_times
-           (Upper.mul (U.lit "{3}") Upper.top)
-           Upper.top);
+        (UpperBound.equal running_times
+           (UpperBound.mul (U.lit "{3}") UpperBound.top)
+           UpperBound.top);
       holds (name "the top absorbs up to equality") (equal "{3; _*}" "⊤");
       holds (name "skip is the delay 0") (equal "{skip}" "{0}");
       holds (name "a union with skip is optional") (equal "{A | skip}" "{A?}");
       holds
         (name "a zero running time is invisible")
-        (Upper.equal
+        (UpperBound.equal
            (bounds_of [ ("A", (0, 0)) ])
            (U.lit "{A*}") (U.lit "{skip}"));
       expect (name "counterexample") (show_option Fun.id)
         ~expected:(Some "{A; 3}")
-        (Option.map Upper.show
-           (Upper.counterexample running_times (U.lit "{A; 3 | 1}")
+        (Option.map UpperBound.show
+           (UpperBound.counterexample running_times (U.lit "{A; 3 | 1}")
               (U.lit "{5}")));
       expect (name "implied bounds") show_bounds
         ~expected:(Some (running_time (1, 3)))
-        (Upper.duration_bounds running_times (U.lit "{A | B; 1}"));
+        (UpperBound.duration_bounds running_times (U.lit "{A | B; 1}"));
       expect
         (name "implied bounds infinite above when unbounded")
         show_bounds
         ~expected:(Some (unbounded_above 1))
-        (Upper.duration_bounds running_times (U.lit "{A; B*}"));
+        (UpperBound.duration_bounds running_times (U.lit "{A; B*}"));
       expect (name "time shadow") Fun.id ~expected:"{3}"
-        (Upper.show (Upper.of_bounds (Grade.Closed 1, Grade.Closed 3)));
-      holds (name "atomic") (Upper.is_atomic "A" (U.lit "{A}"));
-      holds (name "needs running-time bounds") Upper.needs_op_bounds;
-      holds (name "unit least") Upper.unit_least;
-      expect (name "top") Fun.id ~expected:"⊤" (Upper.show (U.lit "⊤"));
+        (UpperBound.show
+           (UpperBound.of_bounds (Grade.Closed 1, Grade.Closed 3)));
+      holds (name "atomic") (UpperBound.is_atomic "A" (U.lit "{A}"));
+      holds (name "needs running-time bounds") UpperBound.needs_op_bounds;
+      holds (name "unit least") UpperBound.unit_least;
+      expect (name "top") Fun.id ~expected:"⊤" (UpperBound.show (U.lit "⊤"));
     ]
 
   let lower_examples =
-    let leq a b = Lower.leq running_times (Lo.lit a) (Lo.lit b) in
-    let equal a b = Lower.equal running_times (Lo.lit a) (Lo.lit b) in
-    let name = ( ^ ) (Lower.name ^ ": ") in
+    let leq a b = LowerBound.leq running_times (Lo.lit a) (Lo.lit b) in
+    let equal a b = LowerBound.equal running_times (Lo.lit a) (Lo.lit b) in
+    let name = ( ^ ) (LowerBound.name ^ ": ") in
     [
       holds (name "an operation covers a delay at lo") (leq "{A}" "{1}");
       fails (name "an operation short of a delay") (leq "{A}" "{2}");
@@ -625,20 +626,23 @@ module Suite (I : IMPLEMENTATION) = struct
       holds (name "the unit is the top") (equal "⊤" "{_*}");
       fails (name "the unit is not least") (leq "{skip}" "{A}");
       expect (name "counterexample") (show_option Fun.id) ~expected:(Some "{A}")
-        (Option.map Lower.show
-           (Lower.counterexample running_times (Lo.lit "{A | 3}") (Lo.lit "{2}")));
+        (Option.map LowerBound.show
+           (LowerBound.counterexample running_times (Lo.lit "{A | 3}")
+              (Lo.lit "{2}")));
       expect (name "implied bounds") show_bounds
         ~expected:(Some (running_time (1, 3)))
-        (Lower.duration_bounds running_times (Lo.lit "{A | B; 1}"));
+        (LowerBound.duration_bounds running_times (Lo.lit "{A | B; 1}"));
       expect
         (name "implied bounds of a star infinite above")
         show_bounds
         ~expected:(Some (unbounded_above 1))
-        (Lower.duration_bounds running_times (Lo.lit "{A; (B; 10)*}"));
+        (LowerBound.duration_bounds running_times (Lo.lit "{A; (B; 10)*}"));
       expect (name "time shadow") Fun.id ~expected:"{1}"
-        (Lower.show (Lower.of_bounds (Grade.Closed 1, Grade.Closed 3)));
-      fails (name "unit least") Lower.unit_least;
-      expect (name "top") Fun.id ~expected:"{skip}" (Lower.show (Lo.lit "⊤"));
+        (LowerBound.show
+           (LowerBound.of_bounds (Grade.Closed 1, Grade.Closed 3)));
+      fails (name "unit least") LowerBound.unit_least;
+      expect (name "top") Fun.id ~expected:"{skip}"
+        (LowerBound.show (Lo.lit "⊤"));
     ]
 
   let interval_examples =
@@ -683,18 +687,18 @@ module Suite (I : IMPLEMENTATION) = struct
     [
       fails
         (name "the catch-all letter where every operation is named")
-        (Upper.inhabited only_a (U.lit "{_ & ~1 & ~A}"));
+        (UpperBound.inhabited only_a (U.lit "{_ & ~1 & ~A}"));
       holds
         (name "a further declared operation")
-        (Upper.inhabited a_and_b (U.lit "{_ & ~1 & ~A}"));
+        (UpperBound.inhabited a_and_b (U.lit "{_ & ~1 & ~A}"));
       holds
         (name "the catch-all letter besides the traces")
-        (Upper.inhabited only_a (U.lit "{_ & ~1 & ~A | 2}"));
-      holds (name "a mentioned name") (Lower.inhabited none (Lo.lit "{B}"));
+        (UpperBound.inhabited only_a (U.lit "{_ & ~1 & ~A | 2}"));
+      holds (name "a mentioned name") (LowerBound.inhabited none (Lo.lit "{B}"));
       fails
         (name "no operation declared")
-        (Lower.inhabited none (Lo.lit "{_ & ~1}"));
-      holds (name "ticks") (Lower.inhabited none (Lo.lit "{_*}"));
+        (LowerBound.inhabited none (Lo.lit "{_ & ~1}"));
+      holds (name "ticks") (LowerBound.inhabited none (Lo.lit "{_*}"));
       fails
         (name "the lower component")
         (Interval.inhabited only_a (In.lit "[{_ & ~1 & ~A}, {A}]"));
@@ -746,8 +750,8 @@ module Suite (I : IMPLEMENTATION) = struct
         let pair (lo, hi) = [ measure lo; measure hi ] in
         Some
           [
-            verdict (module Upper) single rho rho';
-            verdict (module Lower) single rho rho';
+            verdict (module UpperBound) single rho rho';
+            verdict (module LowerBound) single rho rho';
             verdict (module Interval) pair (rho, rho') (rho', rho);
           ]
     | _ -> None
@@ -788,8 +792,8 @@ let agreement =
 let printing =
   let state = Random.State.make [| 23 |] in
   let regexes = List.init 64 (fun _ -> random_regex ~depth:3 state) in
-  let module D = Grades.RegularTraceGradeDerivative in
-  let module P = Grades.RegularTraceGradePlain in
+  let module D = Grades.RegularTraceLanguagesDerivative in
+  let module P = Grades.RegularTraceLanguagesPlain in
   let alike r =
     match (OfDerivatives.grade r, OfByLetters.grade r, OfPlain.grade r) with
     | Some d, Some c, Some p ->
@@ -807,25 +811,25 @@ let printing =
       alike regexes;
   ]
 
-(* The plain regular trace grades have a trace whatever the operations. *)
+(* The regular trace languages have a trace whatever the operations. *)
 let plain_inhabited =
   let none = bounds_of [] in
   let lit =
     Grade.Braces (Grade.Inter (Grade.Any, Grade.Compl (Grade.Tick 1)))
   in
   [
-    holds "regex-upper-bound-letter-automata: inhabited"
-      (Grades.RegularTraceGrade.inhabited none
-         (Grades.RegularTraceGrade.of_lit lit));
-    holds "regex-upper-bound-symbolic: inhabited"
-      (Grades.RegularTraceGradeDerivative.inhabited none
-         (Grades.RegularTraceGradeDerivative.of_lit lit));
-    holds "regex-upper-bound-symbolic-by-letters: inhabited"
-      (Grades.RegularTraceGradeDerivative.Concrete.inhabited none
-         (Grades.RegularTraceGradeDerivative.Concrete.of_lit lit));
-    holds "regex-upper-bound-letter-derivatives: inhabited"
-      (Grades.RegularTraceGradePlain.inhabited none
-         (Grades.RegularTraceGradePlain.of_lit lit));
+    holds "regular-trace-languages-letter-automata: inhabited"
+      (Grades.RegularTraceLanguages.inhabited none
+         (Grades.RegularTraceLanguages.of_lit lit));
+    holds "regular-trace-languages-symbolic: inhabited"
+      (Grades.RegularTraceLanguagesDerivative.inhabited none
+         (Grades.RegularTraceLanguagesDerivative.of_lit lit));
+    holds "regular-trace-languages-symbolic-by-letters: inhabited"
+      (Grades.RegularTraceLanguagesDerivative.Concrete.inhabited none
+         (Grades.RegularTraceLanguagesDerivative.Concrete.of_lit lit));
+    holds "regular-trace-languages-letter-derivatives: inhabited"
+      (Grades.RegularTraceLanguagesPlain.inhabited none
+         (Grades.RegularTraceLanguagesPlain.of_lit lit));
   ]
 
 (* {1 (g) Long runs of ticks} *)
@@ -919,7 +923,7 @@ module Long (I : IMPLEMENTATION) = struct
               (G.counterexample bounds rho rho') )
         in
         Some
-          ( [ verdict (module Upper); verdict (module Lower) ],
+          ( [ verdict (module UpperBound); verdict (module LowerBound) ],
             Interval.leq bounds (rho, rho') (rho', rho) )
     | _ -> None
 end
@@ -928,7 +932,7 @@ module LongDerivatives = Long (Derivatives)
 module LongByLetters = Long (ByLetters)
 module LongPlain = Long (Plain)
 
-(* The implementations by derivatives embed the finite trace grades,
+(* The implementations by derivatives embed the trace grades with banked delays,
    whose delays are numbers, on delays of up to 10⁴ ticks; they agree with each
    other on random grades over delays of up to 300 ticks, in their verdicts and
    the lengths of their counterexamples, and with the automata on delays of up
@@ -948,8 +952,8 @@ let long_runs =
     List.concat_map
       (fun (module I : IMPLEMENTATION) ->
         embeds
-          (module I.Upper)
-          (module I.Lower)
+          (module I.UpperBound)
+          (module I.LowerBound)
           (module I.Interval)
           long_tables finite)
       [ (module Derivatives); (module ByLetters); (module Plain) ]
@@ -1005,32 +1009,37 @@ let long_runs =
     check name holds (Printf.sprintf "in %.2f s" time)
   in
   let timing (module I : IMPLEMENTATION) =
-    let module U = Reader (I.Upper) in
-    let module Lo = Reader (I.Lower) in
+    let module U = Reader (I.UpperBound) in
+    let module Lo = Reader (I.LowerBound) in
     let name what = I.name ^ ": " ^ what in
     [
       quickly (name "{9999; A} <= {10000; A} under the upper order") (fun () ->
-          I.Upper.leq running_times (U.lit "{9999; A}") (U.lit "{10000; A}"));
+          I.UpperBound.leq running_times (U.lit "{9999; A}")
+            (U.lit "{10000; A}"));
       quickly (name "{10001; A} </= {10000; A} under the upper order")
         (fun () ->
           not
-            (I.Upper.leq running_times (U.lit "{10001; A}") (U.lit "{10000; A}")));
+            (I.UpperBound.leq running_times (U.lit "{10001; A}")
+               (U.lit "{10000; A}")));
       quickly (name "{A; 10000} <= {10003} under the upper order") (fun () ->
-          I.Upper.leq running_times (U.lit "{A; 10000}") (U.lit "{10003}"));
+          I.UpperBound.leq running_times (U.lit "{A; 10000}") (U.lit "{10003}"));
       quickly (name "{A; 10000} </= {10002} under the upper order") (fun () ->
-          not (I.Upper.leq running_times (U.lit "{A; 10000}") (U.lit "{10002}")));
+          not
+            (I.UpperBound.leq running_times (U.lit "{A; 10000}")
+               (U.lit "{10002}")));
       quickly (name "{10000; A} <= {9999; A} under the lower order") (fun () ->
-          I.Lower.leq running_times (Lo.lit "{10000; A}") (Lo.lit "{9999; A}"));
+          I.LowerBound.leq running_times (Lo.lit "{10000; A}")
+            (Lo.lit "{9999; A}"));
       quickly (name "{9999; A} </= {10000; A} under the lower order") (fun () ->
           not
-            (I.Lower.leq running_times (Lo.lit "{9999; A}")
+            (I.LowerBound.leq running_times (Lo.lit "{9999; A}")
                (Lo.lit "{10000; A}")));
       quickly (name "{10000; A} implies (10001, 10003)") (fun () ->
-          I.Upper.duration_bounds running_times (U.lit "{10000; A}")
+          I.UpperBound.duration_bounds running_times (U.lit "{10000; A}")
           = Some (running_time (10001, 10003)));
       quickly (name "counterexample of {10001; A} <= {10000; A}") (fun () ->
-          Option.map I.Upper.show
-            (I.Upper.counterexample running_times (U.lit "{10001; A}")
+          Option.map I.UpperBound.show
+            (I.UpperBound.counterexample running_times (U.lit "{10001; A}")
                (U.lit "{10000; A}"))
           = Some "{10001; A}");
     ]
@@ -1044,8 +1053,8 @@ let long_runs =
    and counterexamples that are traces of the lesser grade outside the closure
    of the greater, each decided within a generous bound of time. *)
 let semigroups =
-  let module U = Reader (Derivatives.Upper) in
-  let module Lo = Reader (Derivatives.Lower) in
+  let module U = Reader (Derivatives.UpperBound) in
+  let module Lo = Reader (Derivatives.LowerBound) in
   let module In = Reader (Derivatives.Interval) in
   let star = "(1000 | 1001)*" in
   let quickly name decide =
@@ -1054,8 +1063,12 @@ let semigroups =
     let time = Sys.time () -. start in
     check ("semigroups: " ^ name) holds (Printf.sprintf "in %.2f s" time)
   in
-  let upper a b = Derivatives.Upper.leq running_times (U.lit a) (U.lit b) in
-  let lower a b = Derivatives.Lower.leq running_times (Lo.lit a) (Lo.lit b) in
+  let upper a b =
+    Derivatives.UpperBound.leq running_times (U.lit a) (U.lit b)
+  in
+  let lower a b =
+    Derivatives.LowerBound.leq running_times (Lo.lit a) (Lo.lit b)
+  in
   let valid (type a) (module G : Grade.S with type t = a) lit a b ~expected =
     match G.counterexample running_times (lit a) (lit b) with
     | Some e ->
@@ -1078,7 +1091,7 @@ let semigroups =
     quickly
       "{(1000 | 1001)*; 1000} = {1000; (1000 | 1001)*} under the lower order"
       (fun () ->
-        Derivatives.Lower.equal running_times
+        Derivatives.LowerBound.equal running_times
           (Lo.lit ("{" ^ star ^ "; 1000}"))
           (Lo.lit ("{1000; " ^ star ^ "}")));
     quickly
@@ -1091,7 +1104,7 @@ let semigroups =
       "counterexample of {(1000 | 1001)*} <= {998999} under the upper order"
       (fun () ->
         valid
-          (module Derivatives.Upper)
+          (module Derivatives.UpperBound)
           U.lit
           ("{" ^ star ^ "}")
           "{998999}" ~expected:"{999000}");
@@ -1099,7 +1112,7 @@ let semigroups =
       "counterexample of {1000; (1000 | 1001)*} <= {998999} under the lower \
        order" (fun () ->
         valid
-          (module Derivatives.Lower)
+          (module Derivatives.LowerBound)
           Lo.lit
           ("{1000; " ^ star ^ "}")
           "{998999}" ~expected:"{1000}");
@@ -1375,16 +1388,17 @@ module Shared (I : IMPLEMENTATION) = struct
         let pair (lo, hi) = [ word names lo; word names hi ] in
         Some
           ( [
-              verdict (module Upper) single rho rho';
-              verdict (module Lower) single rho rho';
+              verdict (module UpperBound) single rho rho';
+              verdict (module LowerBound) single rho rho';
               verdict (module Interval) pair (rho, rho') (rho', rho);
             ],
             [
-              Upper.duration_bounds bounds rho;
-              Lower.duration_bounds bounds rho;
+              UpperBound.duration_bounds bounds rho;
+              LowerBound.duration_bounds bounds rho;
               Interval.duration_bounds bounds (rho, rho');
             ],
-            [ Upper.inhabited bounds rho; Lower.inhabited bounds rho ] )
+            [ UpperBound.inhabited bounds rho; LowerBound.inhabited bounds rho ]
+          )
     | _ -> None
 end
 

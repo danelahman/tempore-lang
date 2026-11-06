@@ -1,6 +1,6 @@
 (* The package m5-display under the operation counts: lines of text and
    numbers, buttons, bars and a bubble level on the display of an M5Stack
-   core, through M5Unified. Grades: counts-upper-bound; each call counts
+   core, through M5Unified. Grades: at-most-counts; each call counts
    once, and running times are not bounded. The operations are those of
    m5_display.tpe; their default implementations show nothing. *)
 

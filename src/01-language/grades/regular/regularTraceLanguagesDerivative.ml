@@ -215,11 +215,11 @@ end
 include
   Make (R.Minterms) (ByGaps (R.Minterms))
     (struct
-      let name = "regex-upper-bound-symbolic"
+      let name = "regular-trace-languages-symbolic"
     end)
 
 module Concrete =
   Make (R.Concrete) (ByLetters (R.Concrete))
     (struct
-      let name = "regex-upper-bound-symbolic-by-letters"
+      let name = "regular-trace-languages-symbolic-by-letters"
     end)

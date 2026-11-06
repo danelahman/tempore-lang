@@ -101,9 +101,9 @@
     a count suits a bounded stretch, such as the time from a box to its
     unboxing: [(1, X, lead, tail)] is exactly one [X] between them.
 
-    The grade ["counts-upper-bound"] bounds the numbers of calls from above
-    alone, without their times; this one bounds the counts of the occurrences
-    together with the times before, between and after them.
+    The grade ["at-most-counts"] bounds the numbers of calls from above alone,
+    without their times; this one bounds the counts of the occurrences together
+    with the times before, between and after them.
 
     {2 Printing}
 

@@ -263,8 +263,8 @@ module ByGaps = struct
     | Some n -> n
     | None ->
         invalid_arg
-          "RegularTimedTraceGrades.ByGaps.integer: a delay or weight that is \
-           not an integer"
+          "BankedRegexGrades.ByGaps.integer: a delay or weight that is not an \
+           integer"
 
   (** [symbols word] is the word in gap form [word] as its non-zero delays,
       integers, and a member of each class of names. *)
@@ -278,8 +278,7 @@ module ByGaps = struct
             | Some name -> Some (Letter name)
             | None ->
                 invalid_arg
-                  "RegularTimedTraceGrades.ByGaps.symbols: an empty class of \
-                   names"))
+                  "BankedRegexGrades.ByGaps.symbols: an empty class of names"))
       word
 
   let in_allowance = tabulated (on_graphs DelayTimedClosure.Graph.in_allowance)
@@ -464,20 +463,20 @@ module Over
 (** [every_name rhos letters] is [letters], every name a class of its own. *)
 let every_name _rhos letters = letters
 
-(** The regular trace grade by automata, its traces over given names explored in
-    its table. *)
+(** The regular trace languages by automata, its traces over given names
+    explored in its table. *)
 module Automata = struct
-  include RegularTraceGrade
+  include RegularTraceLanguages
   module State = Int
 
   let traces names rho = Dfa.automaton (concrete names rho)
   let representatives = every_name
 end
 
-(** The regular trace grade by symbolic derivatives, its traces over given names
-    explored by their derivatives. *)
+(** The regular trace languages by symbolic derivatives, its traces over given
+    names explored by their derivatives. *)
 module Derivatives = struct
-  include RegularTraceGradeDerivative
+  include RegularTraceLanguagesDerivative
 
   module State = struct
     type t = SymbolicRegex.t
@@ -543,18 +542,18 @@ module Derivatives = struct
     keep listed [] letters
 end
 
-(** The regular trace grade by the derivatives by concrete letters. *)
+(** The regular trace languages by the derivatives by concrete letters. *)
 module ConcreteDerivatives = struct
-  include RegularTraceGradeDerivative.Concrete
+  include RegularTraceLanguagesDerivative.Concrete
   module State = Derivatives.State
 
   let representatives = every_name
 end
 
-(** The regular trace grade by plain derivatives, its traces over given names
-    explored by their derivatives. *)
+(** The regular trace languages by plain derivatives, its traces over given
+    names explored by their derivatives. *)
 module PlainDerivatives = struct
-  include RegularTraceGradePlain
+  include RegularTraceLanguagesPlain
 
   module State = struct
     type t = Regex.t

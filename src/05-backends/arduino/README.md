@@ -78,11 +78,11 @@ is specified by the application, which boxes it.
 The descriptor maps each grade system the package supports to a file of
 declarations, and may name a file of definitions, types and functions shared
 by all of them, such as the tilt filters of `m5-imu`. Every package is
-declared under `time-interval-rational`, under the regular expressions of
-timed operations over rational delays (`regex-timed-*-rational-symbolic`),
-their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
+declared under `time-interval-rational`, under the regex grades with banked
+delays over rational delays (`banked-regex-*-rational-symbolic`), the timed
+regex grades (`timed-regex-*-rational-symbolic`) and
 `inter-arrival`, with running-time bounds in milliseconds, and under
-`counts-upper-bound`, each call counting once.
+`at-most-counts`, each call counting once.
 
 ### The packages
 
@@ -98,7 +98,7 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
     bias of the gyroscope passes; the spread of the angular rate about each
     axis is to lie below the build flag `TEMPORE_IMU_REST_SPREAD`, in degrees
     per second (default 5);
-  - under the rigid grades of timed operations, `read_imu_boxed`, one reading
+  - under the timed regex grades, `read_imu_boxed`, one reading
     in one box, `latest_imu`, of grade `{≤2 & ~ReadImu}`, usable within 2 ms
     and before the next `ReadImu`;
   - `m5_imu_observe(accel, gyro)`, defined weakly to do nothing, receives
@@ -139,18 +139,18 @@ their rigid variants (`regex-timed-rigid-*-rational-symbolic`) and
     arrived at most a given number of milliseconds ago.
 - `bala2-radio`: the messages of the remote control of the BALA2, shared by
   the robot and the controller, over `esp-now`, listed before it, declared
-  under `time-interval-rational` and the regular expressions of timed
-  operations with intervals or upper bounds:
+  under `time-interval-rational` and the banked and timed regex grades with
+  intervals or upper bounds:
   - the type `message`, `Start`, `Drive (speed, turn)`, `Stop` or `Beat`;
   - `SendStart`, `SendDrive`, `SendStop` and `SendBeat`, one operation per
     message, so that grades tell the messages apart;
   - `remote_receive`, the latest message received at most 50 ms ago, or
     `Nothing`, boxed with `[0, 150)`, so that a move is applied at most
-    200 ms after it was sent, and under the rigid grades with
+    200 ms after it was sent, and under the timed regex grades with
     `{<150 & ~ReceiveMessage}`, its setpoints of the non-eternal type `setpoints`;
   - `SendStatus` and `remote_status`, the status of the robot, its phase and
     tilt, the latest received at most 50 ms ago, boxed with `[0, 200)`, and
-    under the rigid grades with `{<200 & ~ReceiveMessage}`.
+    under the timed regex grades with `{<200 & ~ReceiveMessage}`.
 
 ### Bounds per board
 
@@ -167,7 +167,7 @@ closed intervals in the time unit of the declarations:
 For the board of a manifest, these bounds replace those of the declarations
 under every grade system that bounds durations: the interval grade of the
 operation under `time-interval-rational`, and its `within` bounds under the
-regular expressions of timed operations and `inter-arrival`.
+banked and timed regex grades and `inter-arrival`.
 
 - The program is typed, and the monitors are generated, under the bounds of
   its board.
@@ -177,8 +177,7 @@ regular expressions of timed operations and `inter-arrival`.
 - Each board and operation of `bounds` must be a board profile and an
   operation the package binds.
 - A lower bound 0 is open at 0 where the declaration is, as under the
-  regular expressions of timed operations, whose operations take positive
-  time.
+  banked and timed regex grades, whose operations take positive time.
 - The default implementations take a time within the bounds of every board.
 - The examples name the board of their manifest by `--board` in the run
   command of their header, and the figures in their comments are those under
@@ -314,16 +313,15 @@ See [`tests/arduino/handlers.tpe`](../../../tests/arduino/handlers.tpe).
 
 The function of each periodic task is checked against its period: the
 durations of its effect must lie below the period, as for
-`step : float -> float ! [0, 20)`, and under the regular expressions of timed
-operations for `watch : float -> float ! {ReadImu; Publish}`, whose durations
+`step : float -> float ! [0, 20)`, and under the timed regex grades for
+`watch : float -> float ! {ReadImu; Publish}`, whose durations
 are those of the operations of its trace. Under grades that bound no
 durations, such as the operation counts, the period is checked by the
 monitor only, and the operations have no running-time bounds.
 
 Boxes specify how long a reading may be used and, under other grades, which
-operations must or may not precede its use. The examples under the regular
-expressions of timed operations use their rigid variants
-([Rigid regular expressions of timed operations](../../../README.md#rigid-regular-expressions-of-timed-operations)),
+operations must or may not precede its use. The examples under regex grades
+use the [timed regex grades](../../../README.md#timed-regex-grades),
 whose grades demand the operations they name, in their order.
 
 ## Monitors
@@ -670,9 +668,9 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
   - the balancing is started only with a calibration at least 1 s old;
   - the supervision renews its move within 200 ms, before it expires.
 - [`bala2-regex`](../../../examples/arduino/bala2-regex/balance_regex.tpe):
-  the same robot under the regular expressions of timed operations, which
-  fix the order of the operations of its step and its supervision. The
-  typechecker proves, under the declared running times of the operations:
+  the same robot under the timed regex grades, which fix the order of the
+  operations of its step and its supervision. The typechecker proves, under
+  the declared running times of the operations:
   - the control step reads the unit, the encoders and the setpoints,
     publishes and drives the motors, each once and in this order, within
     its 5 ms period;
@@ -686,8 +684,8 @@ profile `m5stack-gray-radio`, port variable `PORT_M5STACK_GRAY_RADIO`).
   - the supervision calibrates, starts, drives and stops, in this order.
 - [`bala2-radio-robot`](../../../examples/arduino/bala2-radio-robot/robot.tpe):
   the robot of `bala2-regex` driven by the controller `bala2-radio-controller` over
-  an encrypted ESP-NOW link, under the rigid regular expressions of timed
-  operations; the grade of a session is its protocol, StartBalancing, moves
+  an encrypted ESP-NOW link, under the timed regex
+  grades; the grade of a session is its protocol, StartBalancing, moves
   and StopBalancing, in this order. The typechecker proves, under the declared running
   times of the operations:
   - the control step finishes within its 5 ms period;
@@ -740,7 +738,7 @@ port variable `PORT_M5STACK_CORES3_RADIO`.
   - a record read from the flash memory is shown only if no write came after
     its reading.
 - [`level`](../../../examples/arduino/level/level.tpe): a digital level,
-  under the regular expressions of timed operations, whose reference is
+  under the timed regex grades, whose reference is
   applied only to readings that no reconfiguration of the unit precedes
   unchecked; its header describes its use. The typechecker proves, under the
   declared running times of the operations:
@@ -793,8 +791,8 @@ port variable `PORT_M5STACK_CORES3_RADIO`.
     takes at most 6 s.
 - [`bala2-radio-controller`](../../../examples/arduino/bala2-radio-controller/controller.tpe):
   the controller of [`bala2-radio-robot`](#m5stack-gray), driving the robot by the
-  tilt of the device and starting and stopping it by touch, under the rigid
-  regular expressions of timed operations. The typechecker proves, under the
+  tilt of the device and starting and stopping it by touch, under the timed
+  regex grades. The typechecker proves, under the
   declared running times of the operations:
   - every message to the robot follows the previous one within 50 ms, in
     every phase;

@@ -5,15 +5,15 @@
     adding the numbers of each operation. An operation counts itself in its
     grade, e.g. [(Send, 1)], and delays count nothing. *)
 
-(** The upper bounds on the counts over any delays [D], as {!UpperBound}. *)
+(** The at-most counts over any delays [D], as {!AtMost}. *)
 module Make (D : Delay.S) :
   Grade.S
     with type t = TimeGrades.UpperBound.t GradeConstructions.Indexed.t
      and type Delay.t = D.t
 
-(** The upper bounds on the counts, ["counts-upper-bound"], over {!Delay.Nat}:
-    each operation performed at most the number of times its entry gives, the
-    maps to {!TimeGrades.UpperBound} ordered by [<=] name by name.
+(** The at-most counts, ["at-most-counts"], over {!Delay.Nat}: each operation
+    performed at most the number of times its entry gives, the maps to
+    {!TimeGrades.UpperBound} ordered by [<=] name by name.
 
     - An entry [(A, n)] bounds the operation [A] by [n], [n] possibly [∞], an
       entry [(_, n)] every operation not listed, and a plain number [n] every
@@ -25,7 +25,7 @@ module Make (D : Delay.S) :
     - [of_delay] and [of_bounds] are constantly the unit.
     - No counterexample is offered, and the witnesses are complete, as those of
       {!TimeGrades.UpperBound} are. *)
-module UpperBound :
+module AtMost :
   Grade.S
     with type t = TimeGrades.UpperBound.t GradeConstructions.Indexed.t
      and type Delay.t = Delay.Nat.t

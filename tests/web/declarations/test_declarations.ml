@@ -163,7 +163,7 @@ let () =
   bala2 ~grade:"time-interval-rational"
     ~manifest:"examples/arduino/bala2/balance.device.json"
     ~program:"examples/arduino/bala2/balance.tpe";
-  bala2 ~grade:"regex-timed-interval-rational-symbolic"
+  bala2 ~grade:"banked-regex-interval-rational-symbolic"
     ~manifest:"examples/arduino/bala2-regex/balance_regex.device.json"
     ~program:"examples/arduino/bala2-regex/balance_regex.tpe"
 

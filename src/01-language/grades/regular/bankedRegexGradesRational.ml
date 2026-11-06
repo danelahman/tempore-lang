@@ -88,7 +88,7 @@ end)
 (* The decisions on the canonical automata of the grades, a verdict being that
    the search finds no word. *)
 module ByAutomata = struct
-  module L = RegularTraceGradeRational.Automata
+  module L = RegularTraceLanguagesRational.Automata
 
   type t = L.t
 
@@ -118,7 +118,7 @@ end
 (* The decisions on the graphs of the gap derivatives of the expressions of the
    grades in normal form ({!GapGraph}), over the names of the world. *)
 module ByGaps = struct
-  module L = RegularTraceGradeRational
+  module L = RegularTraceLanguagesRational
 
   type t = L.t
 
@@ -335,13 +335,13 @@ module Make
     end)
 
 include
-  Make (RegularTraceGradeRational) (ByGaps)
+  Make (RegularTraceLanguagesRational) (ByGaps)
     (struct
       let suffix = "-symbolic"
     end)
 
 module Automata =
-  Make (RegularTraceGradeRational.Automata) (ByAutomata)
+  Make (RegularTraceLanguagesRational.Automata) (ByAutomata)
     (struct
       let suffix = "-automata"
     end)

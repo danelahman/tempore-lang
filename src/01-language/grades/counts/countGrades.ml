@@ -6,9 +6,9 @@ module Make (D : Delay.S) = struct
 
   module Delay = D
 
-  let name = "counts-upper-bound"
+  let name = "at-most-counts"
   let of_delay _ = one
   let of_bounds _ = one
 end
 
-module UpperBound = Make (Delay.Nat)
+module AtMost = Make (Delay.Nat)

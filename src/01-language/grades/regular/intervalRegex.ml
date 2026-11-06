@@ -155,7 +155,7 @@ module Printed = struct
     | Star t -> { text = operand t ^ "*"; level = 4 }
     | Repeat (t, c) -> { text = operand t ^ "^" ^ Count.show c; level = 4 }
 
-  (* The operand of a postfix operator, a strict stretch parenthesised. *)
+  (* The operand of a postfix operator, an idle wait parenthesised. *)
   and operand = function
     | (Star _ | Repeat _ | Opt _) as t -> (print t).text
     | Length (s, _) as t when Ops.is_empty s -> "(" ^ (print t).text ^ ")"
@@ -663,13 +663,13 @@ struct
               let hint =
                 match (last a, first b) with
                 | Some l, f when delays_only l && Option.is_some (ops_of f) ->
-                    "; a restricted budget in a sequence is written in \
+                    "; a restricted span in a sequence is written in \
                      parentheses, as in `A; (≥0 & ~B); C`"
                 | _ -> ""
               in
               fail
                 "the intersection `&` applies to operation sets, intervals and \
-                 a budget with an operation set only, such as `_ & ~Read` or \
+                 a span with an operation set only, such as `_ & ~Read` or \
                  `(≥0 & ~Read)`, not to `%s` and `%s`%s"
                 (show_regex a) (show_regex b) hint
           | Compl a when delays_only a -> interval_complement ()
@@ -677,7 +677,7 @@ struct
               fail
                 "the complement `~` applies to operation sets and intervals \
                  only, such as `~Read` or `_ & ~Read`, not to `%s`; a stretch \
-                 without an operation is written as a budget restricted to an \
+                 without an operation is written as a span restricted to an \
                  operation set, such as `(≥0 & ~Read)`"
                 (show_regex a)
           | Letter _ | Any -> assert false)

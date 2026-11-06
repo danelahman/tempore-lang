@@ -1,8 +1,8 @@
-(* The package bala2-radio under the rigid interval grades of the regular
-   expressions of timed operations over rational delays, in milliseconds:
-   sending and receiving the messages of bala2_radio_protocol.tpe through the
-   operations Send and ReceiveMessage of the package esp-now, which a program
-   using this package also names, before it.
+(* The package bala2-radio under the timed regex interval grades over rational
+   delays, in milliseconds: sending and receiving the messages of
+   bala2_radio_protocol.tpe through the operations Send and ReceiveMessage of
+   the package esp-now, which a program using this package also names, before
+   it.
 
    A message received is returned in one box, of grade
    {[0, 150) & ~ReceiveMessage}: usable within 150 ms of the reception, and

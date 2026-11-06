@@ -113,7 +113,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
       if if lower then c <= 0 else c >= 0 then d else d'
     in
     match List.map duration p with
-    | [] -> invalid_arg "TimedTraceGrades.extremal_duration: no traces"
+    | [] -> invalid_arg "BankedTraceGrades.extremal_duration: no traces"
     | d :: ds -> List.fold_left pick d ds
 
   (** The interval of the durations of the grade with lower-bound component [lo]
@@ -137,7 +137,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     include LowerTraces
     module Delay = D
 
-    let name = "traces-timed-" ^ "lower-bound" ^ N.suffix
+    let name = "banked-traces-" ^ "lower-bound" ^ N.suffix
     let of_lit = function Top -> top | lit -> traces_of_lit lit
     let accepts = reads_lit of_lit
     let mul = Trace.product
@@ -185,7 +185,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     include UpperTraces
     module Delay = D
 
-    let name = "traces-timed-" ^ "upper-bound" ^ N.suffix
+    let name = "banked-traces-" ^ "upper-bound" ^ N.suffix
     let leq_symbol = "<="
     let top = Unbounded
     let equal bounds p q = leq bounds p q && leq bounds q p
@@ -213,7 +213,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
 
     module Delay = D
 
-    let name = "traces-timed-" ^ "interval" ^ N.suffix
+    let name = "banked-traces-" ^ "interval" ^ N.suffix
     let one = (LowerTraces.one, UpperTraces.one)
     let mul (lo, hi) (lo', hi') = (Trace.product lo lo', UpperTraces.mul hi hi')
 

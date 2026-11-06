@@ -169,8 +169,8 @@ each is a minute.
     added.
 - [`washes.tpe`](../../../examples/opentrons/washes.tpe): a bead clean-up
   with two or more ethanol washes, under
-  `regex-timed-rigid-interval-rational-symbolic`, each wash followed by a
-  fresh tip and nothing else, with a strict binding, a strict air-dry and no
+  `timed-regex-interval-rational-symbolic`, each wash followed by a
+  fresh tip and nothing else, with an idle binding, an idle air-dry and no
   removal of liquid off the magnet. The typechecker proves, under the
   declared running times of the operations:
   - the plate goes onto the magnet 5 to 10 minutes after the beads are mixed
@@ -232,7 +232,7 @@ each is a minute.
     so that the bound holds under it.
 - [`cleanup.tpe`](../../../examples/opentrons/cleanup.tpe): a bead clean-up
   whose compound operations are performed by a handler through the atomic
-  operations, under `regex-timed-rigid-interval-rational-symbolic`. The
+  operations, under `timed-regex-interval-rational-symbolic`. The
   typechecker proves, under the declared running times of the operations:
   - each compound step performs the atomic operations its declaration names,
     in order and within its delays;
@@ -241,7 +241,7 @@ each is a minute.
   - the elution buffer is added only after exactly two ethanol washes and an
     air-dry of 2 to 3 minutes.
 - [`purification.tpe`](../../../examples/opentrons/purification.tpe): a
-  bead purification under `regex-timed-rigid-interval-rational-symbolic`
+  bead purification under `timed-regex-interval-rational-symbolic`
   whose steps each take the beads in a box and return them in the box of the
   next step, exactly two washes accepted, and whose eluates are boxed in two
   successive stages, all within a box of the time at room temperature. The

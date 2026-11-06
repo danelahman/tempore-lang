@@ -1,12 +1,12 @@
 (* Unit tests of the timed regular expressions and their automata, and of the
-   regular trace grade over rational delays: the reading and printing of the
+   regular trace languages over rational delays: the reading and printing of the
    literals by the parser, worked examples, laws of the expressions decided by
    the automata, the delays of an expression computed on the expression and on
    its automaton, the automata of the expressions without names, [_] or
    complements against the constructions on their atoms, the printing of sets
    of delays read back, membership against a direct matcher over timed words
    that splits delays on a grid, inclusion and its counterexamples against
-   that matcher, the agreement with the regular trace grade over whole time
+   that matcher, the agreement with the regular trace languages over whole time
    steps on integer instances, and the expressions decided by gap derivatives
    against the automata. *)
 
@@ -15,8 +15,8 @@ module Rational = Grades.Rational
 module DelaySet = Grades.DelaySet
 module A = Grades.DelayAutomaton
 module R = Grades.DelayRegex
-module G = Grades.RegularTraceGradeRational
-module W = Grades.RegularTraceGrade
+module G = Grades.RegularTraceLanguagesRational
+module W = Grades.RegularTraceLanguages
 
 type check = { name : string; passed : bool; detail : string }
 
@@ -103,7 +103,7 @@ let literals =
     reads "{_*}" ~expected:"⊤";
     reads "3/2" ~expected:"{1.5}";
     reads "top" ~expected:"⊤";
-    rejects "{<1}" "one-sided lengths `<1` are read by the rigid grades";
+    rejects "{<1}" "one-sided lengths `<1` are read by the timed regex grades";
     rejects "{>0 & <1}" "one-sided lengths";
     rejects "{[2, 1]}" "Interval endpoints must satisfy n <= m";
     rejects "{(1, 1)}"
@@ -120,7 +120,7 @@ let literals =
    of time steps, are rejected by the grades of whole time steps. *)
 let whole_step_rejections =
   let module WS =
-    Grades.GradeSystem.Identity (Grades.RegularTraceGradeDerivative) in
+    Grades.GradeSystem.Identity (Grades.RegularTraceLanguagesDerivative) in
   let module WG = Parser.Grammar.Make (WS) in
   let parse text =
     let lexbuf = Lexing.from_string ("box " ^ text ^ " ()") in
@@ -138,17 +138,17 @@ let whole_step_rejections =
      check "whole steps: a fractional endpoint rejected"
        (contains reason
           "delays are whole numbers of time steps; did you mean to use one of \
-           the `traces-timed-rigid-lower-bound-rational`, \
-           `traces-timed-rigid-upper-bound-rational`, \
-           `traces-timed-rigid-interval-rational`, \
-           `regex-upper-bound-rational-symbolic`, \
-           `regex-timed-lower-bound-rational-symbolic`, \
-           `regex-timed-upper-bound-rational-symbolic`, \
-           `regex-timed-interval-rational-symbolic`, \
-           `regex-timed-rigid-lower-bound-rational-symbolic`, \
-           `regex-timed-rigid-upper-bound-rational-symbolic`, \
-           `regex-timed-rigid-interval-rational-symbolic` or `inter-arrival` \
-           grading monoids?")
+           the `timed-regex-finite-lower-bound-rational`, \
+           `timed-regex-finite-upper-bound-rational`, \
+           `timed-regex-finite-interval-rational`, \
+           `regular-trace-languages-rational-symbolic`, \
+           `banked-regex-lower-bound-rational-symbolic`, \
+           `banked-regex-upper-bound-rational-symbolic`, \
+           `banked-regex-interval-rational-symbolic`, \
+           `timed-regex-lower-bound-rational-symbolic`, \
+           `timed-regex-upper-bound-rational-symbolic`, \
+           `timed-regex-interval-rational-symbolic` or `inter-arrival` grade \
+           algebras?")
        reason);
     (let reason =
        match parse "{Read; (0, 1)}" with Error reason -> reason | Ok () -> ""
@@ -486,7 +486,7 @@ let matches r w =
     | Grade.Inter (r1, r2) -> go r1 s e && go r2 s e
     | Grade.Compl r1 -> not (go r1 s e)
     | Grade.Strict _ | Grade.Below _ | Grade.Above _ ->
-        invalid_arg "eval: a strict delay"
+        invalid_arg "eval: an idle wait"
     | Grade.Repeat (r1, c) -> go (Grade.unrolled r1 c) s e
     | Grade.Star r1 ->
         s = e
@@ -554,8 +554,8 @@ let inclusion =
 
 (* {1 Whole time steps}
 
-   On integer instances the order agrees with that of the regular trace grade
-   over whole time steps through the translation [ι]: [ι(_) = 1 | ops] and
+   On integer instances the order agrees with that of the regular trace
+   languages over whole time steps through the translation [ι]: [ι(_) = 1 | ops] and
    [ι(~r) = ~ι(r) & (ops | 1)*], [ops] the operations [_ & ~(0, ∞)], the identity
    elsewhere: the timed words with whole delays are the words over ticks and
    operations, adjacent ticks merged. *)
@@ -893,7 +893,7 @@ let repetitions =
    the lesser grade outside the greater, with no more operations than that of
    the automata. *)
 
-module GA = Grades.RegularTraceGradeRational.Automata
+module GA = Grades.RegularTraceLanguagesRational.Automata
 
 let grade_pairs =
   let grades =

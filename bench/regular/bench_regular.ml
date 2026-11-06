@@ -1,21 +1,21 @@
-(* A benchmark of the four implementations of the regular trace grade, and of
-   the regular trace grades of timed operations over each: by automata
-   ([RegularTraceGrade], "regex-upper-bound-letter-automata"), by plain
-   derivatives of expressions over single letters ([RegularTraceGradePlain],
-   "regex-upper-bound-letter-derivatives"), by derivatives by letters of
-   expressions over letter sets ([RegularTraceGradeDerivative.Concrete],
-   "regex-upper-bound-symbolic-by-letters"), and by symbolic derivatives by
-   minterms ([RegularTraceGradeDerivative], "regex-upper-bound-symbolic"); the
-   grades of timed operations are "regex-timed-upper-bound" and the others,
-   with the same suffixes. Consecutive implementations differ in one design
-   choice each: the construction (automata or derivatives), the representation
-   of letters (single letters or letter sets) and the letters derived by
-   (letters or minterms). The
+(* A benchmark of the four implementations of the regular trace languages, and
+   of the regex grades with banked delays over each: by automata
+   ([RegularTraceLanguages], "regular-trace-languages-letter-automata"), by plain
+   derivatives of expressions over single letters ([RegularTraceLanguagesPlain],
+   "regular-trace-languages-letter-derivatives"), by derivatives by letters of
+   expressions over letter sets ([RegularTraceLanguagesDerivative.Concrete],
+   "regular-trace-languages-symbolic-by-letters"), and by symbolic derivatives
+   by minterms ([RegularTraceLanguagesDerivative],
+   "regular-trace-languages-symbolic"); the grades of timed operations are
+   "banked-regex-upper-bound" and the others, with the same suffixes.
+   Consecutive implementations differ in one design choice each: the
+   construction (automata or derivatives), the representation of letters (single
+   letters or letter sets) and the letters derived by (letters or minterms). The
    workloads are the grade operations on families of grades of increasing size,
    and the typechecking of the programs that use the grades, the standard
    library included. A last table times the rational grade
-   "regex-upper-bound-rational-symbolic" on grades whose sets of delays have
-   long finite parts.
+   "regular-trace-languages-rational-symbolic" on grades whose sets of delays
+   have long finite parts.
 
    Each measurement runs in a fresh child process, so that the tables of the
    derivatives start empty: it prepares its inputs untimed, then times the
@@ -136,7 +136,7 @@ type workload = {
   prepare : unit -> unit -> unit;
 }
 
-(* The brace literals of examples/regular/upper_bounds.tpe and of
+(* The brace literals of examples/regular_trace_languages/upper_bounds.tpe and of
    tests/*regular*.tpe. *)
 let corpus =
   [
@@ -340,11 +340,11 @@ module Workloads (G : Grade.S) = struct
     @ List.concat_map told_apart [ 8; 32; 128 ]
 end
 
-(* The programs typechecked under the regular trace grade: the example and
+(* The programs typechecked under the regular trace languages: the example and
    the tests of the grade. *)
 let regular_programs =
   [
-    "examples/regular/upper_bounds.tpe";
+    "examples/regular_trace_languages/upper_bounds.tpe";
     "tests/literals_regular.tpe";
     "tests/regular_auth.tpe";
     "tests/regular_protocol.tpe";
@@ -399,7 +399,7 @@ let corpus_names =
   [ "Open"; "Read"; "Write"; "Close"; "Auth"; "Fetch"; "Revoke"; "Send" ]
 
 (* The operations named by [cost_corpus], the runtime-bound declarations of
-   examples/regular_timed_ops/*.tpe and tests/regex_timed_*.tpe. *)
+   examples/banked_regex/*.tpe and tests/banked_regex_*.tpe. *)
 let cost_corpus_names =
   [
     "Coat";
@@ -415,8 +415,8 @@ let cost_corpus_names =
   ]
 
 (* The one-sided box grades of
-   examples/regular_timed_ops/{lower,upper}_bounds.tpe and of
-   tests/regex_timed_*.tpe, understood by every grade of timed operations. *)
+   examples/banked_regex/{lower,upper}_bounds.tpe and of
+   tests/banked_regex_*.tpe, understood by every grade of timed operations. *)
 let cost_corpus =
   [
     "{Coat; 4}";
@@ -436,8 +436,8 @@ let cost_corpus =
     "top";
   ]
 
-(* The two-sided box grades of examples/regular_timed_ops/intervals.tpe
-   and tests/regex_timed_interval*.tpe, understood only by the interval grade.
+(* The two-sided box grades of examples/banked_regex/intervals.tpe
+   and tests/banked_regex_interval*.tpe, understood only by the interval grade.
 *)
 let interval_cost_corpus =
   [
@@ -554,20 +554,20 @@ module CostWorkloads (G : Grade.S) = struct
     @ List.concat_map nth_from_end [ 4; 8 ]
 end
 
-(* The programs typechecked under the regular trace grades of timed
-   operations: the example, and the tests of each grade. *)
+(* The programs typechecked under the regex grades
+   with banked delays: the example, and the tests of each grade. *)
 let cost_programs grade =
   List.filter Sys.file_exists
     (List.map
-       (fun name -> "tests/regex_timed_" ^ grade ^ name ^ ".tpe")
+       (fun name -> "tests/banked_regex_" ^ grade ^ name ^ ".tpe")
        [ ""; "_reject"; "_ticks"; "_ticks_reject" ])
 
-module Cost = Grades.RegularTimedTraceGrades
+module Cost = Grades.BankedRegexGrades
 
 (* The programs typechecked under the grade of timed operations [grade], the
    example first. *)
 let cost_files example grade =
-  ("examples/regular_timed_ops/" ^ example ^ ".tpe") :: cost_programs grade
+  ("examples/banked_regex/" ^ example ^ ".tpe") :: cost_programs grade
 
 (** The workloads of one implementation, over its grades [G], [Upper], [Lower]
     and [Interval], by family, in the order of the table. *)
@@ -600,24 +600,27 @@ struct
 end
 
 module Automata =
-  Implementation (Grades.RegularTraceGrade) (Cost.Upper) (Cost.Lower)
+  Implementation (Grades.RegularTraceLanguages) (Cost.UpperBound)
+    (Cost.LowerBound)
     (Cost.Interval)
 
 module Plain =
-  Implementation (Grades.RegularTraceGradePlain) (Cost.Plain.Upper)
-    (Cost.Plain.Lower)
+  Implementation (Grades.RegularTraceLanguagesPlain) (Cost.Plain.UpperBound)
+    (Cost.Plain.LowerBound)
     (Cost.Plain.Interval)
 
 module Letters =
   Implementation
-    (Grades.RegularTraceGradeDerivative.Concrete)
-    (Cost.Concrete.Upper)
-    (Cost.Concrete.Lower)
+    (Grades.RegularTraceLanguagesDerivative.Concrete)
+    (Cost.Concrete.UpperBound)
+    (Cost.Concrete.LowerBound)
     (Cost.Concrete.Interval)
 
 module Symbolic =
-  Implementation (Grades.RegularTraceGradeDerivative) (Cost.Symbolic.Upper)
-    (Cost.Symbolic.Lower)
+  Implementation
+    (Grades.RegularTraceLanguagesDerivative)
+    (Cost.Symbolic.UpperBound)
+    (Cost.Symbolic.LowerBound)
     (Cost.Symbolic.Interval)
 
 (** {1 The table} *)
@@ -704,14 +707,14 @@ let rec tables = function
 
 (** {1 Slow delay sets of the rational grade} *)
 
-(* The grades of "regex-upper-bound-rational-symbolic" whose sets of delays have
-   long finite parts before their periodic tails (see the costs stated in the
-   interface of [DelaySet]): sums and repetitions of large nearly coprime
-   constants, and a point with a narrow interval; and grades of the same shape
-   that stay fast. Each workload reads the grade and decides whether a delay is
-   below it. *)
+(* The grades of "regular-trace-languages-rational-symbolic" whose sets of
+   delays have long finite parts before their periodic tails (see the costs
+   stated in the interface of [DelaySet]): sums and repetitions of large nearly
+   coprime constants, and a point with a narrow interval; and grades of the same
+   shape that stay fast. Each workload reads the grade and decides whether a
+   delay is below it. *)
 module Rational = struct
-  module G = Grades.RegularTraceGradeRational
+  module G = Grades.RegularTraceLanguagesRational
   module Grammar = Parser.Grammar.Make (Grades.GradeSystem.Identity (G))
 
   let lit text =
@@ -750,7 +753,8 @@ module Rational = struct
   let table () =
     Printf.printf
       "\n\
-       Slow delay sets of regex-upper-bound-rational-symbolic (limit %d s):\n\n"
+       Slow delay sets of regular-trace-languages-rational-symbolic (limit %d \
+       s):\n\n"
       limit;
     print_row "workload" [ "cold"; "warm" ];
     Printf.printf "|%s|%s\n" (String.make 42 '-')

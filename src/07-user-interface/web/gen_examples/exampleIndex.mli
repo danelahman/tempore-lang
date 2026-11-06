@@ -5,7 +5,7 @@ type entry = {
   group : string;
   title : string;
   grade : string;
-      (** the grading monoid the web interface switches to when it is loaded *)
+      (** the grade algebra the web interface switches to when it is loaded *)
   path : string;  (** relative to the project root *)
   description : string;
   backend : string;  (** the key of its backend, ["interpreter"] unless given *)

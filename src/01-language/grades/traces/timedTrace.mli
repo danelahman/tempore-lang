@@ -1,5 +1,5 @@
-(** Traces and non-empty finite sets of them, the carrier of the trace grading
-    monoids.
+(** Traces and non-empty finite sets of them, the carrier of the trace grade
+    algebras.
 
     A trace is one run of a computation as it is observed from outside: an
     alternation of operation events and positive delays. A grade is a set of
@@ -137,7 +137,7 @@ module Make (D : Delay.MONUS) : sig
       order, the order of the lower powerdomain:
 
       every bound listed by [p] stays within some bound listed by [q]. This is
-      the sub-grade order of the upper-bound (right-sided) grade. *)
+      the sub-grade order of the upper trace bounds. *)
 
   val lower_bound_le : (string -> D.t) -> traces -> traces -> bool
   (** [lower_bound_le running_time p q] is the Smyth lift of the coverage order,
@@ -145,6 +145,5 @@ module Make (D : Delay.MONUS) : sig
       listed by [p] has an easier one listed by [q]. Note the direction: the
       universal quantifier ranges over [p], but each witness [t] is compared
       against [s] the other way round, as an argument to {!coverage} with [t]
-      and [s] swapped. This is the sub-grade order of the lower-bound
-      (left-sided) grade. *)
+      and [s] swapped. This is the sub-grade order of the lower trace bounds. *)
 end

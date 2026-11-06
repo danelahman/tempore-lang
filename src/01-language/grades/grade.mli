@@ -1,14 +1,14 @@
 (** Grades: partially ordered monoids with a greatest element and binary joins.
 
     The instances the prototype offers are defined in {!TimeGrades},
-    {!RationalTimeGrades}, {!TraceInclusionGrades}, {!TimedTraceGrades},
-    {!RegularTraceGrade}, {!RegularTraceGradeDerivative},
-    {!RegularTraceGradePlain}, {!RegularTraceGradeRational},
-    {!RegularTimedTraceGrades}, {!LatticeGrades}, {!ResourceLevelGrades},
-    {!WindowedScheduleGrades}, {!ModeSwitchCostGrades}, {!ModeTimeGrades},
+    {!RationalTimeGrades}, {!FiniteRunSetGrades}, {!BankedTraceGrades},
+    {!RegularTraceLanguages}, {!RegularTraceLanguagesDerivative},
+    {!RegularTraceLanguagesPlain}, {!RegularTraceLanguagesRational},
+    {!BankedRegexGrades}, {!LatticeGrades}, {!WatermarkGrades},
+    {!CallTimeSetGrades}, {!ModeSwitchCostGrades}, {!ModeTimeGrades},
     {!CountGrades} and {!InterArrivalGrades}, built with the constructions of
     {!GradeConstructions} and {!SummaryTerms}, and listed in {!GradeRegistry};
-    the regular trace grades are implementations of the same grade.
+    the modules of the regular trace languages implement the same grade.
 
     {2 Laws}
 
@@ -28,12 +28,12 @@
 
     {2 Running times}
 
-    The orders of the trace grades of timed operations read the running-time
+    The orders of the trace grades with banked delays read the running-time
     bounds [within [lo, hi]] that operations declare, each end closed or open,
-    and those of the regular trace grades of timed operations also the set of
-    the operations the program declares, over which their catch-all letter
-    ranges: all of them, before or after the grade, so that a grade means the
-    same throughout a program. The operations that depend on the order, [leq],
+    and those of the regex grades with banked delays also the set of the
+    operations the program declares, over which their catch-all letter ranges:
+    all of them, before or after the grade, so that a grade means the same
+    throughout a program. The operations that depend on the order, [leq],
     [equal], [counterexample], [duration_bounds], [vacuous] and [inhabited],
     take both as an argument of type {!bounds}; the other grades ignore it.
     Running-time bounds are kept as the non-negative rationals the source writes
@@ -237,10 +237,10 @@ module type S = sig
       computations of grade [rho], each end attained or not, where [rho]
       determines one. For the time grades it is the interval [rho] denotes, its
       upper end infinite where [rho] imposes no upper bound. For the trace
-      grades of timed operations it is the infimum of the durations of the
-      traces of [rho], each event counted at the lower end of its [bounds], and
-      their supremum, each event counted at the upper end: the fastest trace is
-      taken over the lower-bound component of the grade and the slowest over its
+      grades with banked delays it is the infimum of the durations of the traces
+      of [rho], each event counted at the lower end of its [bounds], and their
+      supremum, each event counted at the upper end: the fastest trace is taken
+      over the lower-bound component of the grade and the slowest over its
       upper-bound component, which coincide for the one-sided grades; the upper
       end is infinite where the durations of the upper-bound component are
       unbounded, and the interval is [None] where either component denotes no
@@ -280,8 +280,9 @@ module type S = sig
       nothing but the time such a call may take. It is the grade a default
       implementation of the operation is checked against, since the operation's
       own grade can only be realised by performing the operation itself. Each
-      grade reads the end of the bounds its order uses, the two-sided ones both;
-      a grade that expresses no strict ends reads the closed hull ([hull]). *)
+      grade reads the end of the bounds its order uses, the interval grades
+      both; a grade that expresses no strict ends reads the closed hull
+      ([hull]). *)
 
   val is_atomic : string -> t -> bool
   (** [is_atomic name rho] is whether [rho] is the grade of an atomic operation
@@ -334,7 +335,7 @@ val tick_delays : Rational.t bound -> Rational.t bound -> regex
     [lo hi]: [[a, b]] is [a] ticks followed by up to [b - a] more, and [\[a, ∞)]
     is [a] ticks followed by any number. The expression is of size proportional
     to [b - a], and the grades that read interval atoms through it build them in
-    time quadratic in [b - a] ({!RegularTraceGrade}).
+    time quadratic in [b - a] ({!RegularTraceLanguages}).
 
     @raise Invalid_literal as {!tick_interval}. *)
 

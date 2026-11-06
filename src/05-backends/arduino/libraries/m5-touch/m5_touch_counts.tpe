@@ -1,5 +1,5 @@
 (* The package m5-touch under the operation counts: the touch screen of an
-   M5Stack core, read through M5Unified. Grades: counts-upper-bound; a
+   M5Stack core, read through M5Unified. Grades: at-most-counts; a
    reading counts once, and its running time is not bounded. ReadTouch and its
    default implementation are those of m5_touch.tpe. *)
 

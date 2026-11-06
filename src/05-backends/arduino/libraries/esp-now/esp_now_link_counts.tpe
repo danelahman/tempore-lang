@@ -1,5 +1,5 @@
 (* The package esp-now under the operation counts: packets between two ESP32
-   boards over ESP-NOW. Grades: counts-upper-bound; each call counts once,
+   boards over ESP-NOW. Grades: at-most-counts; each call counts once,
    and running times are not bounded. The operations are those of
    esp_now_link.tpe; the default implementations send nothing and receive
    nothing. *)

@@ -3,8 +3,8 @@
 
     [x ≾ y] iff every exact word of [x] fits some exact word of [y]: the
     operations of the word of [y] occur in that of [x] at the same time spans,
-    in order; a strict wait of [y] holds waiting only; a stretch of [y] holds
-    the items of [x] that its set admits, an item overlapping several stretches
+    in order; an idle wait of [y] holds waiting only; a stretch of [y] holds the
+    items of [x] that its set admits, an item overlapping several stretches
     admitted by each; running times are positive. On one-sided intervals the
     closures are monotone in every length, so that a word of [x] is read at its
     extremal lengths: its suprema on the upper side, its infima on the lower

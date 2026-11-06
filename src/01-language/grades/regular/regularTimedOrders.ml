@@ -100,7 +100,8 @@ struct
         Some (fastest, Unbounded)
     | _ -> None
 
-  (** The fields the grades share with the underlying regular trace grade. *)
+  (** The fields the grades share with the underlying regular trace languages.
+  *)
   module Common = struct
     type t = L.t
 
@@ -124,10 +125,10 @@ struct
     let witnesses = L.witnesses
   end
 
-  module Lower = struct
+  module LowerBound = struct
     include Common
 
-    let name = "regex-timed-" ^ "lower-bound" ^ W.suffix
+    let name = "banked-regex-" ^ "lower-bound" ^ W.suffix
     let leq = leq coverage
     let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
     let counterexample = counterexample coverage
@@ -144,10 +145,10 @@ struct
     let of_bounds (lo, _hi) = W.lower_shadow lo
   end
 
-  module Upper = struct
+  module UpperBound = struct
     include Common
 
-    let name = "regex-timed-" ^ "upper-bound" ^ W.suffix
+    let name = "banked-regex-" ^ "upper-bound" ^ W.suffix
     let leq = leq allowance
     let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
     let counterexample = counterexample allowance
@@ -166,24 +167,24 @@ struct
 
     module Delay = L.Delay
 
-    let name = "regex-timed-" ^ "interval" ^ W.suffix
-    let one = (Lower.one, Upper.one)
+    let name = "banked-regex-" ^ "interval" ^ W.suffix
+    let one = (LowerBound.one, UpperBound.one)
     let mul (lo, hi) (lo', hi') = (L.mul lo lo', L.mul hi hi')
 
     (* Componentwise, the upper bounds first. *)
     let leq bounds (lo, hi) (lo', hi') =
-      Upper.leq bounds hi hi' && Lower.leq bounds lo lo'
+      UpperBound.leq bounds hi hi' && LowerBound.leq bounds lo lo'
 
     let leq_symbol = "<="
-    let top = (Lower.top, Upper.top)
+    let top = (LowerBound.top, UpperBound.top)
     let join (lo, hi) (lo', hi') = (L.join lo lo', L.join hi hi')
 
     (* Componentwise, the upper bounds first. *)
     let equal bounds (lo, hi) (lo', hi') =
-      Upper.equal bounds hi hi' && Lower.equal bounds lo lo'
+      UpperBound.equal bounds hi hi' && LowerBound.equal bounds lo lo'
 
     let is_top bounds (lo, hi) =
-      Lower.is_top bounds lo && Upper.is_top bounds hi
+      LowerBound.is_top bounds lo && UpperBound.is_top bounds hi
 
     let compare (lo, hi) (lo', hi') =
       match L.compare lo lo' with 0 -> L.compare hi hi' | c -> c
@@ -198,8 +199,8 @@ struct
     let joint_vacuous bounds (lo, hi) =
       if
         L.compare lo hi = 0
-        || L.compare lo Lower.top = 0
-        || L.compare hi Upper.top = 0
+        || L.compare lo LowerBound.top = 0
+        || L.compare hi UpperBound.top = 0
       then None
       else
         match durations_apart (duration_bounds bounds lo hi) with
@@ -225,10 +226,12 @@ struct
         if Option.is_none (joint_vacuous bounds e) then e else (lo, hi)
       in
       Option.map consistent
-        (match Lower.counterexample bounds lo lo' with
+        (match LowerBound.counterexample bounds lo lo' with
         | Some e -> Some (e, hi)
         | None ->
-            Option.map (fun e -> (lo, e)) (Upper.counterexample bounds hi hi'))
+            Option.map
+              (fun e -> (lo, e))
+              (UpperBound.counterexample bounds hi hi'))
 
     let unit_least = false
     let plus _ = None
@@ -243,21 +246,22 @@ struct
     let of_lit = function
       | Top -> top
       | lit when W.single lit ->
-          let rho = Upper.of_lit lit in
+          let rho = UpperBound.of_lit lit in
           (rho, rho)
       | lit ->
-          bounds_of_lit lit ~number:W.number ~close:W.close ~lower:Lower.of_lit
-            ~upper:Upper.of_lit ~unbounded:Upper.top
-            ~bounds:"regular expressions"
+          bounds_of_lit lit ~number:W.number ~close:W.close
+            ~lower:LowerBound.of_lit ~upper:UpperBound.of_lit
+            ~unbounded:UpperBound.top ~bounds:"regular expressions"
 
     let accepts = function
       | Top -> true
-      | lit when W.single lit -> Upper.accepts lit
+      | lit when W.single lit -> UpperBound.accepts lit
       | lit ->
           reads_lit
             (fun lit ->
               bounds_of_lit lit ~number:W.number ~close:W.close
-                ~lower:(require Lower.accepts) ~upper:(require Upper.accepts)
+                ~lower:(require LowerBound.accepts)
+                ~upper:(require UpperBound.accepts)
                 ~unbounded:() ~bounds:"regular expressions")
             lit
 
@@ -266,8 +270,9 @@ struct
     let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
 
     let show (lo, hi) =
-      show_bounds (Lower.show lo)
-        (if L.compare hi Upper.top = 0 then None else Some (Upper.show hi))
+      show_bounds (LowerBound.show lo)
+        (if L.compare hi UpperBound.top = 0 then None
+         else Some (UpperBound.show hi))
 
     let witnesses ~degree:_ _bounds = sampled mul
   end

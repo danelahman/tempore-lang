@@ -1,4 +1,4 @@
-(* Unit tests of the four implementations of the regular trace grade, by
+(* Unit tests of the four implementations of the regular trace languages, by
    automata, by symbolic derivatives, by derivatives by letters and by
    derivatives over single letters: their constructions, canonical or normal
    forms, inclusion with counterexamples, alphabet alignment, laws on samples,
@@ -183,7 +183,7 @@ let rec matches r w =
   | Grade.Inter (r, s) -> matches r w && matches s w
   | Grade.Compl r -> not (matches r w)
   | Grade.Strict _ | Grade.Below _ | Grade.Above _ ->
-      invalid_arg "matches: a strict delay"
+      invalid_arg "matches: an idle wait"
   | Grade.Star r' ->
       w = []
       || List.exists
@@ -216,7 +216,7 @@ let words =
 
 let take n l = List.filteri (fun i _ -> i < n) l
 
-(* An implementation of the regular trace grade, whose [canonical] tells
+(* An implementation of the regular trace languages, whose [canonical] tells
    whether the printing of a grade falls back. *)
 module type PRINTED = sig
   include Grade.S with type Delay.t = Grades.Delay.Nat.t
@@ -344,7 +344,7 @@ struct
       rejects "{(1, 2)}" "`(1, 2)` contains no whole number of time steps";
       rejects "{[1/2, 2]}" "whole numbers of time steps";
       rejects "{(1, 1]}" "n < m at an open endpoint";
-      rejects "{<1}" "one-sided lengths `<1` are read by the rigid grades";
+      rejects "{<1}" "one-sided lengths `<1` are read by the timed regex grades";
     ]
 
   (* Interval atoms abbreviate sets of numbers of ticks. *)
@@ -458,10 +458,10 @@ struct
       expect "name" Fun.id
         ~expected:
           (match I.implementation with
-          | Automata -> "regex-upper-bound-letter-automata"
-          | Symbolic -> "regex-upper-bound-symbolic"
-          | Concrete -> "regex-upper-bound-symbolic-by-letters"
-          | Plain -> "regex-upper-bound-letter-derivatives")
+          | Automata -> "regular-trace-languages-letter-automata"
+          | Symbolic -> "regular-trace-languages-symbolic"
+          | Concrete -> "regular-trace-languages-symbolic-by-letters"
+          | Plain -> "regular-trace-languages-letter-derivatives")
         G.name;
       expect_grade "unit" ~expected:(lit "{skip}") G.one;
       expect_grade "of_delay" ~expected:(lit "{4}") (G.of_delay 4);
@@ -661,7 +661,7 @@ struct
 
   (* Printing stops within the size of the normal form: on the words whose
      [n + 1]-th letter from the end is [A], of 2^(n + 1) states, and on the grade
-     at the end of examples/regular/upper_bounds.tpe, of 2^13 states, each
+     at the end of examples/regular_trace_languages/upper_bounds.tpe, of 2^13 states, each
      printed as its normal form. Reading the larger of these grades as automata
      takes seconds, by the subset construction; the automata are checked up to
      [n = 12] only. *)
@@ -697,28 +697,28 @@ end
 
 module Automata =
   Suite
-    (Grades.RegularTraceGrade)
+    (Grades.RegularTraceLanguages)
     (struct
       let implementation = Automata
     end)
 
 module Derivatives =
   Suite
-    (Grades.RegularTraceGradeDerivative)
+    (Grades.RegularTraceLanguagesDerivative)
     (struct
       let implementation = Symbolic
     end)
 
 module ByLetters =
   Suite
-    (Grades.RegularTraceGradeDerivative.Concrete)
+    (Grades.RegularTraceLanguagesDerivative.Concrete)
     (struct
       let implementation = Concrete
     end)
 
 module Plain =
   Suite
-    (Grades.RegularTraceGradePlain)
+    (Grades.RegularTraceLanguagesPlain)
     (struct
       let implementation = Plain
     end)
@@ -728,8 +728,8 @@ module Plain =
    and on the lengths of the counterexamples to inclusion; each reads the
    other's printed forms as the same grade. *)
 module Cross = struct
-  module A = Grades.RegularTraceGrade
-  module D = Grades.RegularTraceGradeDerivative
+  module A = Grades.RegularTraceLanguages
+  module D = Grades.RegularTraceLanguagesDerivative
 
   let expressions =
     let state = Random.State.make [| 1789 |] in
@@ -898,8 +898,8 @@ module Agreement
       val length : G.t -> int
     end) =
 struct
-  module A = Grades.RegularTraceGrade
-  module D = Grades.RegularTraceGradeDerivative
+  module A = Grades.RegularTraceLanguages
+  module D = Grades.RegularTraceLanguagesDerivative
 
   let grades r =
     let a, d = Cross.grades r in
@@ -970,7 +970,7 @@ end
 
 module ByLettersAgreement =
   Agreement
-    (Grades.RegularTraceGradeDerivative.Concrete)
+    (Grades.RegularTraceLanguagesDerivative.Concrete)
     (struct
       let suite = "derivatives by letters"
       let length = ByLetters.length
@@ -978,7 +978,7 @@ module ByLettersAgreement =
 
 module PlainAgreement =
   Agreement
-    (Grades.RegularTraceGradePlain)
+    (Grades.RegularTraceLanguagesPlain)
     (struct
       let suite = "plain derivatives"
       let length = Plain.length
@@ -992,10 +992,10 @@ module PlainAgreement =
    delays. *)
 module Runs = struct
   module R = Grades.SymbolicRegex
-  module A = Grades.RegularTraceGrade
-  module D = Grades.RegularTraceGradeDerivative
-  module C = Grades.RegularTraceGradeDerivative.Concrete
-  module P = Grades.RegularTraceGradePlain
+  module A = Grades.RegularTraceLanguages
+  module D = Grades.RegularTraceLanguagesDerivative
+  module C = Grades.RegularTraceLanguagesDerivative.Concrete
+  module P = Grades.RegularTraceLanguagesPlain
 
   let tick = R.Letters.tick
 
@@ -1246,7 +1246,7 @@ end
    semigroup within a second. *)
 module Gaps = struct
   module R = Grades.SymbolicRegex
-  module D = Grades.RegularTraceGradeDerivative
+  module D = Grades.RegularTraceLanguagesDerivative
   module S = Grades.DelaySet
 
   let delay = Grades.Rational.of_int

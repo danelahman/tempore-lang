@@ -1,4 +1,4 @@
-; A benchmark of the four implementations of the regular trace grade, by
+; A benchmark of the four implementations of the regular trace languages, by
 ; automata and by three kinds of derivatives; it is built but not run by the
 ; tests:
 ;
