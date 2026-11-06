@@ -2,7 +2,7 @@
 
    Run this example with the 'at-most-counts' grade algebra, e.g.
 
-     ./tempore --grades at-most-counts examples/counts/rate_limits.tpe
+     ./tempore --grades at-most-counts examples/at_most_counts/rate_limits.tpe
 
    Grades ((A, n), ...): at most n calls of each operation A
      - Unit 0: no calls, the least grade
