@@ -14,19 +14,20 @@ Tartu ([code](https://github.com/joosepgit/temporal-millet),
 
 Most notably, Tempore adds to Temporal Millet the following:
 
-1. temporal algebraic effects and effect handlers that are guaranteed to
-   respect the temporal specifications of operations,
+1. temporally graded algebraic effects and effect handlers that are guaranteed
+   to respect the temporal specifications of operation signatures,
 2. [general resource grades](#grading-monoids) in place of only
    natural-number-based time grades, which modelled only whole lower time bounds
    of programs,
-3. a number of concrete examples of such grades (ranging from time to regexes to
-   grade lattices to trough/peak usage of resources),
-4. a cleaner and more systematic treatment of type inference,
-5. [multiple backends](#backends): besides the interpreter, proof-of-concept
-   compilers of programs to C++ for Arduino and ESP32 boards and to protocols
-   for Opentrons liquid-handling robots, with run-time monitors of the running
-   times of operations, and
-6. various usability improvements in the web-based user interface.
+3. sub-typing and sub-effecting, 
+4. a number of concrete examples of such grades (ranging from time to regexes to
+   grade lattices to trough/peak usage of resources to combinations of grades),
+5. a cleaner and more systematic treatment of type inference,
+6. [multiple backends](#backends): besides the small-step interpreter,
+   proof-of-concept compilers of programs to C++ for Arduino and ESP32 boards,
+   and to Python for protocols for Opentrons liquid-handling robots, with
+   run-time monitors of the running times of operations, and
+7. various usability improvements in the web-based user interface.
 
 Tempore (and Temporal Millet before it) is built on Matija Pretnar's [Millet
 Language](https://github.com/matijapretnar/millet) and follows the ideas of
@@ -100,11 +101,11 @@ macOS or Windows, so uploads are made from the host.
 loads the listed `.tpe` files, typechecks them, runs every `run` command in
 them, and prints each `run` result with the final resource state.
 
-The exit code is 0 on success; 1 for a rejected program or another error; 2
-for invalid options or an exhausted stack; and 3 when the program is accepted but a run fails: it
-stops at an operation call without a handler or a default implementation, or
-at a run-time error such as a division by zero. The other runs are still
-executed after an unhandled operation call.
+The exit code is 0 on success; 1 for a rejected program or another error; 2 for
+invalid options or an exhausted stack; and 3 when the program is accepted but a
+run fails: it stops at an operation call without a handler or a default
+implementation, or at a run-time error such as a division by zero. The other
+runs are still executed after an unhandled operation call.
 
 Command-line options:
 
@@ -177,17 +178,16 @@ contents.
 
 #### Backend selection
 
-The backend selector chooses the backend, Interpreter, Arduino or Opentrons
-(see [Backends](#backends)), loads its default example, and makes the gallery
-list the examples of that backend. Under Arduino, the device manifest, the
-binding file and the monitor policy are inputs, the declarations of the
-packages of the manifest are shown read-only above the program, and the
-compiled code is the PlatformIO project; a name the program uses from these
-declarations shows its declaration and scheme as a tooltip, and ⌘-click
-(Ctrl-click) or F12 on it unfolds the declarations at it. Under Opentrons, the robot, the time
-unit and the monitor policy are inputs, and the mark in the top right corner
-of the editor switches between the program and the binding file and compiled
-protocol.
+The backend selector chooses the backend, Interpreter, Arduino or Opentrons (see
+[Backends](#backends)), loads its default example, and makes the gallery list
+the examples of that backend. Under Arduino, the device manifest, the binding
+file and the monitor policy are inputs, the declarations of the packages of the
+manifest are shown read-only above the program, and the compiled code is the
+PlatformIO project; a name the program uses from these declarations shows its
+declaration and scheme as a tooltip, and ⌘-click (Ctrl-click) or F12 on it
+unfolds the declarations at it. Under Opentrons, the robot, the time unit and
+the monitor policy are inputs, and the mark in the top right corner of the
+editor switches between the program and the binding file and compiled protocol.
 
 #### Addresses
 
@@ -620,15 +620,15 @@ in [`bench/regular/README.md`](bench/regular/README.md).
 #### Bounded repetition
 
 A repetition with a count is written `r^n`, `r^[m, n]` or `r^[m, ∞)` (ASCII
-`inf`); an open endpoint abbreviates the closed one next to it, so that
-`r^(1, 4)` is `r^[2, 3]`. `^` is postfix like `*`. `r^[m, n]` denotes the
-concatenations of `k` words of `r` for `k` from `m` to `n`; `r^0` is `0`,
-`r^1` is `r` and `r^[0, ∞)` is `r*`. It is notation: a repetition and its
-unrolling are the same grade. It is read by every grade of regular expressions,
-also of timed operations and rigid, with strict waits inside, as in
-`{(idle 2.5; ReadImu)^3}`; the grades of finite sets of traces read finite
-counts only. A repetition is decided without unrolling, by derivatives with a counter,
-in time linear in its count.
+`inf`); an open endpoint abbreviates the closed one next to it, so that `r^(1,
+4)` is `r^[2, 3]`. `^` is postfix like `*`. `r^[m, n]` denotes the
+concatenations of `k` words of `r` for `k` from `m` to `n`; `r^0` is `0`, `r^1`
+is `r` and `r^[0, ∞)` is `r*`. It is notation: a repetition and its unrolling
+are the same grade. It is read by every grade of regular expressions, also of
+timed operations and rigid, with strict waits inside, as in `{(idle 2.5;
+ReadImu)^3}`; the grades of finite sets of traces read finite counts only. A
+repetition is decided without unrolling, by derivatives with a counter, in time
+linear in its count.
 
 A grade the typechecker computes, an inferred grade, a counterexample or a
 timeline entry, is printed with every run of two or more equal adjacent factors
