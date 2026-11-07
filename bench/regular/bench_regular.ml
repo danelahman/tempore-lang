@@ -1339,25 +1339,26 @@ let rec ratios = function
 (* The text [s] as a Markdown table cell, its column separators escaped. *)
 let cell s = String.concat "\\|" (String.split_on_char '|' s)
 
-(* [pad width s] is [s] followed by spaces up to [width] characters of
-   UTF-8. *)
-let pad width s =
-  let length =
-    String.fold_left
-      (fun n c -> if Char.code c land 0xC0 = 0x80 then n else n + 1)
-      0 s
-  in
-  s ^ String.make (max 0 (width - length)) ' '
+(* The number of characters of the UTF-8 text [s]. *)
+let length s =
+  String.fold_left
+    (fun n c -> if Char.code c land 0xC0 = 0x80 then n else n + 1)
+    0 s
 
-let print_row name cells =
+(* [pad width s] is [s] followed by spaces up to [width] characters. *)
+let pad width s = s ^ String.make (max 0 (width - length s)) ' '
+
+(* The row of the workload [name] and the [cells], in a workload column of
+   [width] characters. *)
+let print_row ~width name cells =
   Printf.printf "| %s |%s\n%!"
-    (pad 40 (cell name))
+    (pad width (cell name))
     (String.concat "" (List.map (Printf.sprintf " %10s |") cells))
 
-let print_header cells =
-  print_row "workload" cells;
-  Printf.printf "|%s|%s\n" (String.make 42 '-')
-    (String.concat "" (List.map (Fun.const "------------|") cells))
+let print_header ~width cells =
+  print_row ~width "workload" cells;
+  Printf.printf "| %s |%s\n" (String.make width '-')
+    (String.concat "" (List.map (Fun.const " ---------- |") cells))
 
 (* The cells of the header of a table of [section], with the warm times if
    [warm]. *)
@@ -1371,56 +1372,87 @@ let rec transpose = function
   | [] | [] :: _ -> []
   | rows -> List.map List.hd rows :: transpose (List.map List.tl rows)
 
-(* The rows of the workloads [columns] of a group, one list per column of
-   the same workloads, under the headings of their families, each prefixed
-   by [prefix]. *)
-let print_rows ~warm ~width prefix columns =
+(* The heading row of the family [family]. *)
+let heading family = "**" ^ family ^ "**"
+
+(* The rows of a group whose workloads [columns] are given per column, each
+   row the list of its workloads. *)
+let rows_of columns =
   if
     List.exists
       (fun c -> List.length c <> List.length (List.hd columns))
       columns
   then invalid_arg "the workloads of the columns differ";
+  transpose columns
+
+(* The width of the workload column of a table of [groups], each the prefix
+   of the headings of its families and its rows. *)
+let name_width groups =
+  List.fold_left
+    (fun acc (prefix, rows) ->
+      List.fold_left
+        (fun acc (row : workload list) ->
+          let w = List.hd row in
+          max acc
+            (max
+               (length (cell w.name))
+               (length (cell (heading (prefix w.family))))))
+        acc rows)
+    (length "workload") groups
+
+(* The rows [rows] of a group, measured, under the headings of their
+   families, each prefixed by [prefix], in a table of [cells] cells after the
+   workload column of [width] characters. *)
+let print_rows ~warm ~width ~cells (prefix, rows) =
   List.fold_left
     (fun current (row : workload list) ->
       let w = List.hd row in
       if w.family <> current then
-        print_row
-          ("**" ^ prefix w.family ^ "**")
-          (List.init width (Fun.const ""));
+        print_row ~width
+          (heading (prefix w.family))
+          (List.init cells (Fun.const ""));
       let outcomes = List.map (fun w -> measure ~warm w.prepare) row in
-      print_row w.name
+      print_row ~width w.name
         (List.map show_cold outcomes
         @ ratios outcomes
         @ if warm then List.map show_warm outcomes else []);
       w.family)
-    "" (transpose columns)
+    "" rows
   |> ignore
+
+(* The table of the [groups] of workloads, with the header [cells] and the
+   warm times if [warm]. *)
+let print_table ~warm cells groups =
+  let width = name_width groups in
+  print_header ~width cells;
+  List.iter (print_rows ~warm ~width ~cells:(List.length cells)) groups
 
 let print_section section =
   Printf.printf "\n%s\n" section.heading;
   let typechecked = List.filter (fun g -> g.programs <> []) section.groups in
   if typechecked <> [] then begin
     Printf.printf "\nTypechecking:\n\n";
-    let cells = header_cells ~warm:true section in
-    print_header cells;
-    List.iter
-      (fun g ->
-        let family = "typechecking, " ^ g.label in
-        print_rows ~warm:true ~width:(List.length cells) Fun.id
-          (List.map
-             (fun name -> typechecking family g.programs (grade name))
-             g.grades))
-      typechecked
+    print_table ~warm:true
+      (header_cells ~warm:true section)
+      (List.map
+         (fun g ->
+           let family = "typechecking, " ^ g.label in
+           ( Fun.id,
+             rows_of
+               (List.map
+                  (fun name -> typechecking family g.programs (grade name))
+                  g.grades) ))
+         typechecked)
   end;
   Printf.printf "\nGrade operations:\n\n";
-  let cells = header_cells ~warm:false section in
-  print_header cells;
-  List.iter
-    (fun g ->
-      print_rows ~warm:false ~width:(List.length cells)
-        (fun family -> g.label ^ ": " ^ family)
-        (List.map (fun name -> g.operations (grade name)) g.grades))
-    section.groups
+  print_table ~warm:false
+    (header_cells ~warm:false section)
+    (List.map
+       (fun g ->
+         ( (fun family -> g.label ^ ": " ^ family),
+           rows_of (List.map (fun name -> g.operations (grade name)) g.grades)
+         ))
+       section.groups)
 
 let () =
   (match List.filter (( <> ) "--quick") (List.tl (Array.to_list Sys.argv)) with

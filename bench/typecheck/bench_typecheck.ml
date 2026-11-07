@@ -56,6 +56,34 @@ let measure (path, grades, packages) =
   in
   if times = [] then None else Some (path, grades, median times)
 
+(* The Markdown table of [rows] under the [columns], each a heading and
+   whether the column is right-aligned, every column padded to its widest
+   cell and at least 3 characters wide. *)
+let print_table columns rows =
+  let widths =
+    List.fold_left
+      (List.map2 (fun w c -> max w (String.length c)))
+      (List.map (fun (h, _) -> max 3 (String.length h)) columns)
+      rows
+  in
+  let print_row row =
+    let cell ((_, right), w) c =
+      let gap = String.make (w - String.length c) ' ' in
+      if right then gap ^ c else c ^ gap
+    in
+    print_endline
+      ("| "
+      ^ String.concat " | " (List.map2 cell (List.combine columns widths) row)
+      ^ " |")
+  in
+  let rule (_, right) w =
+    if right then String.make (w - 1) '-' ^ ":" else String.make w '-'
+  in
+  print_row (List.map fst columns);
+  print_endline
+    ("| " ^ String.concat " | " (List.map2 rule columns widths) ^ " |");
+  List.iter print_row rows
+
 let () =
   let results =
     TestPrograms.corpus "." |> List.filter_map measure
@@ -65,17 +93,25 @@ let () =
     "Median over %d processes of the cold typechecking time; files over %.0f s \
      are marked.\n\n"
     processes slow;
-  Printf.printf "| file | grades | time (s) | |\n|---|---|---:|---|\n";
-  List.iter
-    (fun (path, grades, time) ->
-      let path =
-        if String.starts_with ~prefix:"./" path then
-          String.sub path 2 (String.length path - 2)
-        else path
-      in
-      Printf.printf "| %s | %s | %.2f | %s |\n" path grades time
-        (if time > slow then "slow" else ""))
-    results;
+  let rows =
+    List.map
+      (fun (path, grades, time) ->
+        let path =
+          if String.starts_with ~prefix:"./" path then
+            String.sub path 2 (String.length path - 2)
+          else path
+        in
+        [
+          path;
+          grades;
+          Printf.sprintf "%.2f" time;
+          (if time > slow then "slow" else "");
+        ])
+      results
+  in
+  print_table
+    [ ("file", false); ("grades", false); ("time (s)", true); ("", false) ]
+    rows;
   Printf.printf "\n%d files, total %.1f s, %d over %.0f s.\n"
     (List.length results)
     (List.fold_left (fun acc (_, _, t) -> acc +. t) 0. results)
