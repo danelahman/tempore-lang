@@ -282,7 +282,7 @@ endpoint and a parenthesis excludes it, as in `[1, 4]`, `(1, 4)`, `[1, 4)`,
   have no computation, as `[{≥2 & A}, {A}]` with `A within [1, 3]`.
 - A literal of `inter-arrival` or `mode-times` that describes no run is
   rejected likewise (see [Inter-arrival grades](#inter-arrival-grades) and
-  `mode-times` under [Semidirect products](#semidirect-products)).
+  `mode-times` under [Mode grades](#mode-grades)).
 
 Each grade algebra accepts the literals it understands; any other literal is a
 syntax error naming the grade algebras that accept it. The greatest grade is `⊤`
@@ -1146,172 +1146,178 @@ In this category, a grade is generally a pair `(m, n)` whose second component is
 acted on by the first components of the grades before it:
 `(m, n) · (m', n') = (m · m', n ⊔ m ▷ n')`, where `m ▷ n'` is a grade-specific
 action of `m` on `n'`. The pairs are compared and joined componentwise. The
-`flow-sensitive-levels` grade algebra from above is an example, as are:
+`flow-sensitive-levels` grade algebra from above is an example, as is
+`call-time-sets`.
 
-- `watermarks`: triples `(t, [d1, d2], h)` bounding a resource held, such
-  as open files, relative to its level at the start: the trough `t` is the
-  lowest level, the range `[d1, d2]` the net change and the peak `h` the highest
-  level, with `t <= d1 <= d2 <= h` and `t <= 0 <= h`. It is the semidirect
-  product of the upper bounds of the net change and the peaks, paired with its
-  mirror image of the lower bounds and the troughs.
+In `call-time-sets`, a grade is a tuple `(T, (A, E_A), …)` of the possible
+durations `T` and the times `E_A` at which each operation `A` happens, all sets
+of numbers of ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`,
+`+` adding elementwise, and the order is inclusion.
 
-  The monoid operation is
-  `(t, [d1, d2], h) · (t', [d1', d2'], h') = (min(t, d1 + t'), [d1 + d1', d2 + d2'], max(h, d2 + h'))`,
-  and `x <= y` holds iff `x` has a trough at least, a range within and a peak at
-  most those of `y`. Delays have the unit grade `(0, 0)`; `(∞, ∞)` is the top.
+`T` is written `n`, `[n, m]`, `[n, ∞)`, with open endpoints as for
+`time-interval`, or as a brace literal over ticks, `{0 | 10}`, and `T` alone
+performs no operation. An interval inside a brace literal is read as under
+`regular-trace-languages-symbolic`, in time quadratic in its width. `E_A` is a brace literal, `{(4 | 5); 10*}` being
+ticks 4 and 5 of every ten, and an entry `(_, E)` bounds every operation not
+listed. An operation `Send` taking a tick and happening at its start has
+grade `(1, (Send, {0}))`.
 
-  A grade is written `(d, h)` for an exact net change `d` or `([d1, d2], h)` for
-  a range, both with the trough `min(0, d1)`, or `(t, d, h)` and `(t, [d1, d2],
-  h)` with an explicit trough; troughs may be `⊤`, unbounded below, and peaks
-  `∞`, and a range unbounded below or above is written `(-∞, d2]` or `[d1, ∞)`,
-  and an open end abbreviates a closed one.
+For example, where `Send` takes a tick and must start at tick 4
+or 5, the program
 
-  Resources are named by entries such as `(R, d, h)` or `(R, t, d, h)`, e.g.
-  `((Files, 0, 2), (Sockets, 0, 1))`, each bounded on its own; a resource not
-  listed is bounded by `(0, 0)`, or by the entry `(_, d, h)`, and a plain `(d,
-  h)` bounds every resource. Opening a file has grade `(Files, 1, 1)` and
-  closing one `(Files, -1, 0)`; two copies in sequence, each holding two files,
-  have grade `(Files, 0, 2)`, and closing a file before opening one has grade
-  `(Files, -1, 0, 0)`.
+```
+operation Send : unit ~> unit ! (1, (Send, {0}))
 
-  For example, the program
+let send_in_window () : unit ! ([5, 6], (Send, {4 | 5})) =
+  delay 4;
+  perform Send ()
+```
 
-  ```
-  operation Open : string ~> unit ! (Files, 1, 1)
-  operation Close : string ~> unit ! (Files, -1, 0)
+is accepted, while `delay 6` in place of `delay 4` would be rejected, as
+`Send` then happens at tick 6:
 
-  let copy () : unit ! (Files, 0, 2) =
-    perform Open "a";
-    perform Open "b";
-    perform Close "b";
-    perform Close "a"
-  ```
+    This function's body has grade `(7, (Send, {6}))`, which does not match
+    its annotated grade `([5, 6], (Send, {4 | 5}))`
 
-  is accepted, as it holds at most two files and closes all it opens, while
-  leaving out `perform Close "a"` would be rejected, as a file is then left
-  open:
+See
+[`examples/semidirect/call_time_sets.tpe`](examples/semidirect/call_time_sets.tpe).
 
-      This function's body has grade `(Files, 1, 2)`, which does not match its
-      annotated grade `(Files, 0, 2)`
+### Watermark grades
 
-- `call-time-sets`: tuples `(T, (A, E_A), …)` of the possible durations `T`
-  and the times `E_A` at which each operation `A` happens, all sets of numbers
-  of ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`
-  adding elementwise, and the order is inclusion.
+In `watermarks`, a grade is a triple `(t, [d1, d2], h)` bounding a resource
+held, such as open files, relative to its level at the start: the trough `t` is
+the lowest level, the range `[d1, d2]` the net change and the peak `h` the
+highest level, with `t <= d1 <= d2 <= h` and `t <= 0 <= h`. It pairs the upper
+bound of the net change with the peak, and its mirror image pairs the lower
+bound with the trough.
 
-  `T` is written `n`, `[n, m]`, `[n, ∞)`, with open endpoints as for
-  `time-interval`, or as a brace literal over ticks, `{0 | 10}`, and `T` alone
-  performs no operation. An interval inside a brace literal is read as under
-  `regular-trace-languages-symbolic`, in time quadratic in its width. `E_A` is a brace literal, `{(4 | 5); 10*}` being
-  ticks 4 and 5 of every ten, and an entry `(_, E)` bounds every operation not
-  listed. An operation `Send` taking a tick and happening at its start has
-  grade `(1, (Send, {0}))`.
+The monoid operation is
+`(t, [d1, d2], h) · (t', [d1', d2'], h') = (min(t, d1 + t'), [d1 + d1', d2 + d2'], max(h, d2 + h'))`,
+and `x <= y` holds iff `x` has a trough at least, a range within and a peak at
+most those of `y`. Delays have the unit grade `(0, 0)`; `(∞, ∞)` is the top.
 
-  For example, where `Send` takes a tick and must start at tick 4
-  or 5, the program
+A grade is written `(d, h)` for an exact net change `d` or `([d1, d2], h)` for
+a range, both with the trough `min(0, d1)`, or `(t, d, h)` and `(t, [d1, d2],
+h)` with an explicit trough; troughs may be `⊤`, unbounded below, and peaks
+`∞`, and a range unbounded below or above is written `(-∞, d2]` or `[d1, ∞)`,
+and an open end abbreviates a closed one.
 
-  ```
-  operation Send : unit ~> unit ! (1, (Send, {0}))
+Resources are named by entries such as `(R, d, h)` or `(R, t, d, h)`, e.g.
+`((Files, 0, 2), (Sockets, 0, 1))`, each bounded on its own; a resource not
+listed is bounded by `(0, 0)`, or by the entry `(_, d, h)`, and a plain `(d,
+h)` bounds every resource. Opening a file has grade `(Files, 1, 1)` and
+closing one `(Files, -1, 0)`; two copies in sequence, each holding two files,
+have grade `(Files, 0, 2)`, and closing a file before opening one has grade
+`(Files, -1, 0, 0)`.
 
-  let send_in_window () : unit ! ([5, 6], (Send, {4 | 5})) =
-    delay 4;
-    perform Send ()
-  ```
+For example, the program
 
-  is accepted, while `delay 6` in place of `delay 4` would be rejected, as
-  `Send` then happens at tick 6:
+```
+operation Open : string ~> unit ! (Files, 1, 1)
+operation Close : string ~> unit ! (Files, -1, 0)
 
-      This function's body has grade `(7, (Send, {6}))`, which does not match
-      its annotated grade `([5, 6], (Send, {4 | 5}))`
+let copy () : unit ! (Files, 0, 2) =
+  perform Open "a";
+  perform Open "b";
+  perform Close "b";
+  perform Close "a"
+```
 
-- `mode-switch-costs`: max-plus matrices of the greatest costs of the traces
-  between named modes, the completion under joins of a semidirect product of
-  mode changes and costs.
+is accepted, as it holds at most two files and closes all it opens, while
+leaving out `perform Close "a"` would be rejected, as a file is then left
+open:
 
-  Entries `(From, To, n)` give the traces, e.g. `(Off, On, 2)` for switching a
-  radio on; the product gives `(p, r)` the greatest cost of a trace from `p` to
-  a mode `q` followed by one from `q` to `r`.
-
-  The reserved mode `Stuck` is never left, and an operation gets stuck in it at
-  cost 0 from the modes its grade does not start from, so `(On, On, 4)` is
-  possible only with the radio on, and `(On, Stuck, 3)` permits getting stuck
-  from `On` after cost 3. A change between two distinct modes other than `Stuck`
-  costs at least 1.
-
-  A plain `n` costs `n` and keeps any mode. Modes not named are written `_`:
-  `(p, _, n)` from `p` to one, `(_, q, n)` from one to `q`, `(_, _, n)` keeping
-  one, `(_, ≠, n)` from one to another and `(_, Stuck, n)` from one into
-  `Stuck`; a branch between a transmission and an operation of cost 1 in every
-  mode has grade `((On, On, 4), (_, _, 1), (_, Stuck, 0))`. Delays cost nothing;
-  idle draw is charged by operations such as `Sleep : unit ~> unit ! ((Off, Off,
-  10), (On, On, 50))`.
-
-  For example, where switching a radio on costs 2 and a transmission
-  4, the program
-
-  ```
-  operation TurnOn : unit ~> unit ! (Off, On, 2)
-  operation Transmit : string ~> unit ! (On, On, 4)
-
-  let report () : unit ! (Off, On, 6) =
-    perform TurnOn ();
-    perform Transmit "reading"
-  ```
-
-  is accepted, while a second transmission would be rejected, as it costs `10`,
-  and so would a transmission before `TurnOn`, as the radio is then off:
-
-      This function's body has grade `(Off, On, 10)`, which does not match its
-      annotated grade `(Off, On, 6)`
-
-- `mode-times`: the matrices of `mode-switch-costs` with the costs replaced by
-  the time spent in each mode and the total time, each bounded by an interval.
-  A specification is rejected when it admits no run: when a change of mode
-  spends no time in its start mode, when `(_, [lo, hi])` has `lo > 0` (`_`
-  bounds also the modes not visited), or when the times in the modes cannot sum
-  to the total.
-
-  A delay keeps the mode and its time is spent in it. An operation takes its
-  running time `within [lo, hi]` in the mode it starts from, and its change of
-  mode takes effect at its end. As in `mode-switch-costs`, an operation gets
-  stuck from the modes its grade does not start from, at no time.
-
-  An operation names itself: `{Log}` in every mode, `({Take}, Cold, Out)` from
-  `Cold` to `Out`, `({Mix}, (Cold, Cold), (Out, Out))` in either mode. A
-  specification `(From, To, (M, [lo, hi]), …, [lo, hi])` bounds the time in each
-  listed mode and, by a bare interval, the total; the modes not named are
-  written `_` as in `mode-switch-costs`, and `(_, [lo, hi])` bounds the time in
-  each of them. A number `d` or an interval is a delay.
-
-  For example, where taking an enzyme out of the cold block takes 1 to 2
-  minutes and a pipetting 3 to 5, the program
-
-  ```
-  operation Take : unit ~> unit ! ({Take}, Cold, Out) within [1, 2]
-  operation Pipette : unit ~> unit ! ({Pipette}, Out, Out) within [3, 5]
-  operation Return : unit ~> unit ! ({Return}, Out, Cold) within [1, 1]
-
-  let round () : unit ! (Cold, Cold, (Out, [0, 10])) =
-    perform Take ();
-    perform Pipette ();
-    delay 4;
-    perform Return ()
-  ```
-
-  is accepted, as the enzyme is out of the cold block at most 10 minutes, the
-  taking counted in the cold block, while a second pipetting would be rejected,
-  as the enzyme may then be out for 15. See
-  [`examples/opentrons/enzyme.tpe`](examples/opentrons/enzyme.tpe).
+    This function's body has grade `(Files, 1, 2)`, which does not match its
+    annotated grade `(Files, 0, 2)`
 
 An (external) operation whose grade no code inside Tempore can meet, such as
 opening or closing a file under `watermarks`, has no default
 implementation, and a run stops at its first call.
 
+See [`examples/watermarks/watermarks.tpe`](examples/watermarks/watermarks.tpe).
+
+### Mode grades
+
+In `mode-switch-costs`, a grade is a max-plus matrix of the greatest costs of
+the traces between named modes.
+
+Entries `(From, To, n)` give the traces, e.g. `(Off, On, 2)` for switching a
+radio on; the product gives `(p, r)` the greatest cost of a trace from `p` to
+a mode `q` followed by one from `q` to `r`.
+
+The reserved mode `Stuck` is never left, and an operation gets stuck in it at
+cost 0 from the modes its grade does not start from, so `(On, On, 4)` is
+possible only with the radio on, and `(On, Stuck, 3)` permits getting stuck
+from `On` after cost 3. A change between two distinct modes other than `Stuck`
+costs at least 1.
+
+A plain `n` costs `n` and keeps any mode. Modes not named are written `_`:
+`(p, _, n)` from `p` to one, `(_, q, n)` from one to `q`, `(_, _, n)` keeping
+one, `(_, ≠, n)` from one to another and `(_, Stuck, n)` from one into
+`Stuck`; a branch between a transmission and an operation of cost 1 in every
+mode has grade `((On, On, 4), (_, _, 1), (_, Stuck, 0))`. Delays cost nothing;
+idle draw is charged by operations such as `Sleep : unit ~> unit ! ((Off, Off,
+10), (On, On, 50))`.
+
+For example, where switching a radio on costs 2 and a transmission
+4, the program
+
+```
+operation TurnOn : unit ~> unit ! (Off, On, 2)
+operation Transmit : string ~> unit ! (On, On, 4)
+
+let report () : unit ! (Off, On, 6) =
+  perform TurnOn ();
+  perform Transmit "reading"
+```
+
+is accepted, while a second transmission would be rejected, as it costs `10`,
+and so would a transmission before `TurnOn`, as the radio is then off:
+
+    This function's body has grade `(Off, On, 10)`, which does not match its
+    annotated grade `(Off, On, 6)`
+
+In `mode-times`, the matrices of `mode-switch-costs` have the costs replaced by
+the time spent in each mode and the total time, each bounded by an interval.
+A specification is rejected when it admits no run: when a change of mode
+spends no time in its start mode, when `(_, [lo, hi])` has `lo > 0` (`_`
+bounds also the modes not visited), or when the times in the modes cannot sum
+to the total.
+
+A delay keeps the mode and its time is spent in it. An operation takes its
+running time `within [lo, hi]` in the mode it starts from, and its change of
+mode takes effect at its end. As in `mode-switch-costs`, an operation gets
+stuck from the modes its grade does not start from, at no time.
+
+An operation names itself: `{Log}` in every mode, `({Take}, Cold, Out)` from
+`Cold` to `Out`, `({Mix}, (Cold, Cold), (Out, Out))` in either mode. A
+specification `(From, To, (M, [lo, hi]), …, [lo, hi])` bounds the time in each
+listed mode and, by a bare interval, the total; the modes not named are
+written `_` as in `mode-switch-costs`, and `(_, [lo, hi])` bounds the time in
+each of them. A number `d` or an interval is a delay.
+
+For example, where taking an enzyme out of the cold block takes 1 to 2
+minutes and a pipetting 3 to 5, the program
+
+```
+operation Take : unit ~> unit ! ({Take}, Cold, Out) within [1, 2]
+operation Pipette : unit ~> unit ! ({Pipette}, Out, Out) within [3, 5]
+operation Return : unit ~> unit ! ({Return}, Out, Cold) within [1, 1]
+
+let round () : unit ! (Cold, Cold, (Out, [0, 10])) =
+  perform Take ();
+  perform Pipette ();
+  delay 4;
+  perform Return ()
+```
+
+is accepted, as the enzyme is out of the cold block at most 10 minutes, the
+taking counted in the cold block, while a second pipetting would be rejected,
+as the enzyme may then be out for 15. See
+[`examples/opentrons/enzyme.tpe`](examples/opentrons/enzyme.tpe).
+
 See
-[`examples/semidirect/watermarks.tpe`](examples/semidirect/watermarks.tpe),
-[`examples/semidirect/call_time_sets.tpe`](examples/semidirect/call_time_sets.tpe)
-and
-[`examples/semidirect/mode_switch_costs.tpe`](examples/semidirect/mode_switch_costs.tpe).
+[`examples/modes/mode_switch_costs.tpe`](examples/modes/mode_switch_costs.tpe).
 
 ### At-most counts
 

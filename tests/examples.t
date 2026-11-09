@@ -1050,6 +1050,21 @@ tests show those runs in detail.
   ]
   
   ======================================================================
+  ../examples/modes/mode_switch_costs.tpe
+  ======================================================================
+  === Run 1 ===
+  return 5
+  State: []
+  
+  === Run 2 (unhandled operation) ===
+  perform Sample () (op_var.
+    (let x = return op_var in
+     perform RadioOn () (op_var. return op_var);
+     perform Send x (op_var. return op_var);
+     perform RadioOff () (op_var. return op_var);
+     perform Sleep () (op_var. return op_var)))
+  
+  ======================================================================
   ../examples/opentrons/beads.tpe
   ======================================================================
   === Run 1 ===
@@ -1613,34 +1628,6 @@ tests show those runs in detail.
   ]
   
   ======================================================================
-  ../examples/semidirect/mode_switch_costs.tpe
-  ======================================================================
-  === Run 1 ===
-  return 5
-  State: []
-  
-  === Run 2 (unhandled operation) ===
-  perform Sample () (op_var.
-    (let x = return op_var in
-     perform RadioOn () (op_var. return op_var);
-     perform Send x (op_var. return op_var);
-     perform RadioOff () (op_var. return op_var);
-     perform Sleep () (op_var. return op_var)))
-  
-  ======================================================================
-  ../examples/semidirect/watermarks.tpe
-  ======================================================================
-  === Run 1 (unhandled operation) ===
-  perform Open "a" (op_var.
-    ((let i = return op_var in
-      let o = perform Open "a.bak" (op_var. return op_var) in
-      let s = perform Read i (op_var. return op_var) in
-      perform Write (o, s) (op_var. return op_var);
-      perform Close o (op_var. return op_var);
-      perform Close i (op_var. return op_var));
-     copy ("b", "b.bak")))
-  
-  ======================================================================
   ../examples/time/3d_printing.tpe
   ======================================================================
   === Run 1 ===
@@ -1831,4 +1818,17 @@ tests show those runs in detail.
     {idle ≤312.5},
     {idle ≤0.6}
   ]
+  
+  ======================================================================
+  ../examples/watermarks/watermarks.tpe
+  ======================================================================
+  === Run 1 (unhandled operation) ===
+  perform Open "a" (op_var.
+    ((let i = return op_var in
+      let o = perform Open "a.bak" (op_var. return op_var) in
+      let s = perform Read i (op_var. return op_var) in
+      perform Write (o, s) (op_var. return op_var);
+      perform Close o (op_var. return op_var);
+      perform Close i (op_var. return op_var));
+     copy ("b", "b.bak")))
   

@@ -99,7 +99,7 @@ Grade lattices | Flow-sensitive levels | flow-sensitive-levels | lattice/flow_se
 Grade lattices | Declared lattice | time-upper-bound-lattice | lattice/quiet_noisy.tpe | A robot step over the declared grade lattice Quiet < Noisy, whose tilt conversion is collected within five ticks and before the motors or the radio are used.
 
 group | Other grade algebras | Other | Grades beyond time and traces: watermark grades of the system resources held, and at-most counts of operations.
-Other grade algebras | Watermarks | watermarks | semidirect/watermarks.tpe | File copies, uploads and log rotations graded by the trough, the net change and the peak of the files and connections they hold.
+Other grade algebras | Watermarks | watermarks | watermarks/watermarks.tpe | File copies, uploads and log rotations graded by the trough, the net change and the peak of the files and connections they hold.
 Other grade algebras | Rate limits | at-most-counts | at_most_counts/rate_limits.tpe | A client whose logins and requests are checked against rate limits on each operation.
 
 group | BALA2 | BALA2 | The self-balancing robot with an M5Stack Gray core (ESP32, MPU6886 inertial unit) on a base with two motors and encoders, programmed through the board profile m5stack-gray, and m5stack-gray-radio with its radio running.

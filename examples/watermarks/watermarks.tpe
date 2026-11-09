@@ -2,7 +2,7 @@
 
    Run this example with the 'watermarks' grade algebra, e.g.
 
-     ./tempore --grades watermarks examples/semidirect/watermarks.tpe
+     ./tempore --grades watermarks examples/watermarks/watermarks.tpe
 
    Grades ((R, t, d, h), ...): trough t, net change d, peak h of resource R
      - Unit (0, 0): no resource changed or held
