@@ -129,6 +129,10 @@ module type ACTION = sig
 
   val act : m -> n -> n
   (** [act m n] is the action of [m] on [n]. *)
+
+  val plus_compatible : bool
+  (** Whether the action is compatible with closures: for all [m] with a closure
+      [m⁺] and all [n], [act m n ≾ n] implies [act m⁺ n ≾ n]. *)
 end
 
 (** The semidirect product of the grade [M] and the semilattice [N] under the
@@ -152,6 +156,10 @@ end
     other than [⊥] to [⊥].
 
     The unit is least iff it is in [M], and [mul] is not taken to commute.
+
+    [plus] is the closure [(m, n)⁺ = (m⁺, n ⊔ act m⁺ n)] where [M] declares the
+    closure [m⁺] and the action is compatible with closures
+    ({!ACTION.plus_compatible}), and [None] otherwise.
 
     The remaining fields are those of [M] on the first component:
     [needs_op_bounds], [duration_bounds], [vacuous], [inhabited], [events] and
@@ -280,7 +288,8 @@ module Indexed : sig
       ["C.name by name"]. *)
   module OfSemilattice (C : SEMILATTICE) : SEMILATTICE with type t = C.t t
 
-  (** The action [A] lifted pointwise to the maps to [C]. *)
+  (** The action [A] lifted pointwise to the maps to [C], compatible with
+      closures iff [A] is. *)
   module Action (C : SEMILATTICE) (A : ACTION with type n = C.t) :
     ACTION with type m = A.m and type n = C.t t
 

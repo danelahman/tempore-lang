@@ -45,8 +45,11 @@ end
     addition, ordered by [≤], and the semilattice of [-∞], the integers and [∞]
     under the maximum, a net change [d] acting on a peak [h] as [d + h], fixing
     [-∞]: [(d2, h) · (d2', h') = (d2 + d2', max(h, d2 + h'))]. Delays change
-    nothing. Its literals are integers and [∞]. It is a component of
-    {!OneResource}, and its unit lacks the zero-product property. *)
+    nothing. Its literals are integers and [∞]. The action is compatible with
+    closures, and [plus] is the closure: [(d2, h)] is its own closure if
+    [d2 ≤ 0], and has the closure [(∞, ∞)] otherwise, or [(∞, -∞)] if [h = -∞].
+    It is a component of {!OneResource}, and its unit lacks the zero-product
+    property. *)
 module Upper :
   Grade.S with type t = bound * bound and type Delay.t = Delay.Nat.t
 
@@ -54,8 +57,10 @@ module Upper :
     ["lower-net-change⋉trough"]: the mirror image of {!Upper}, the integers and
     [-∞] under addition, ordered by [≥], acting on [-∞], the integers and [∞]
     under the minimum: [(d1, t) · (d1', t') = (d1 + d1', min(t, d1 + t'))]. Its
-    literals are integers and [⊤], standing for [-∞]. It is a component of
-    {!OneResource}, and its unit lacks the zero-product property. *)
+    literals are integers and [⊤], standing for [-∞]. [(d1, t)] is its own
+    closure if [d1 ≥ 0], and has the closure [(-∞, -∞)] otherwise, or [(-∞, ∞)]
+    if [t = ∞]. It is a component of {!OneResource}, and its unit lacks the
+    zero-product property. *)
 module Lower :
   Grade.S with type t = bound * bound and type Delay.t = Delay.Nat.t
 
@@ -72,6 +77,11 @@ module Lower :
       is componentwise the minimum or maximum accordingly. The unit is not
       least, and [mul] does not commute: closing a file and then opening one has
       the grade [(-1, [0, 0], 0)], the converse [(0, [0, 0], 1)].
+    - [plus] is the closure componentwise, in {!Lower} and in {!Upper}, which
+      keeps the constraints on the components: a grade with the net change [0]
+      is its own closure, and the closure of any other replaces a lower end
+      [d1 < 0] and the trough by [-∞], and an upper end [d2 > 0] and the peak by
+      [∞].
     - [of_delay] and [of_bounds] are constantly the unit.
     - [of_lit] reads [⊤], pairs [(d, h)] of an exact net change [d] and a peak
       [h], pairs [([d1, d2], h)] of a range of net changes and a peak, the

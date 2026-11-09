@@ -28,7 +28,8 @@ module type S = sig
       every output at the greatest element. *)
 
   (** The action of an element [l] on the outputs, raising each written output
-      to at least [l]: {!GradeConstructions.Indexed.Action}. *)
+      to at least [l]: {!GradeConstructions.Indexed.Action}. It is compatible
+      with closures, every element being its own closure. *)
   module Raise :
     GradeConstructions.ACTION with type m = element and type n = Outputs.t
 
@@ -83,6 +84,7 @@ module type S = sig
 
       - The order is componentwise, the unit [(⊥, ∅)] is least, and [mul] does
         not commute.
+      - [plus] is the closure [(l, W)⁺ = (l, W ⊔ raise_l W)].
       - Its delays are those of {!Lattice}, and [of_delay] is constantly the
         unit.
       - [of_lit] reads [⊤] as the top, an element [l] as [(l, ∅)] and a tuple

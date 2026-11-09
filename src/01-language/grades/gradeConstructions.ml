@@ -169,6 +169,7 @@ module type ACTION = sig
   type n
 
   val act : m -> n -> n
+  val plus_compatible : bool
 end
 
 (* The semidirect product of a grade algebra and a semilattice, ordered
@@ -207,7 +208,12 @@ struct
     | None -> if N.leq n n' then None else Some (m, n)
 
   let unit_least = M.unit_least
-  let plus _ = None
+
+  let plus (m, n) =
+    if Act.plus_compatible then
+      Option.map (fun m -> (m, N.join n (Act.act m n))) (M.plus m)
+    else None
+
   let commutative = false
   let needs_op_bounds = M.needs_op_bounds
   let duration_ends = M.duration_ends
@@ -454,6 +460,7 @@ module Indexed = struct
     type nonrec n = C.t t
 
     let act a = map C.compare (A.act a)
+    let plus_compatible = A.plus_compatible
   end
 
   module OfGrade (G : Grade.S) = struct

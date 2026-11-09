@@ -145,7 +145,9 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let equal bounds p q = leq bounds p q && leq bounds q p
     let counterexample _bounds _ _ = None
     let unit_least = false
-    let plus _ = None
+
+    (* A set of traces is covered by each of its extensions, so [p · p ≾ p]. *)
+    let plus p = Some p
     let commutative = false
     let needs_op_bounds = true
     let duration_ends = Grade.Both_ends
@@ -191,7 +193,25 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let equal bounds p q = leq bounds p q && leq bounds q p
     let counterexample _bounds _ _ = None
     let unit_least = true
-    let plus _ = None
+
+    (* A set of empty traces is its own closure. A set listing a trace with a
+       delay, positive after normalisation, has the closure [⊤]: that trace
+       has positive duration under all running times, and its powers exceed
+       the greatest duration of any set of traces. A set of traces of
+       operations alone has a duration that depends on the upper running
+       times, possibly [0], and no closure under all of them. *)
+    let plus = function
+      | Within p when List.for_all List.is_empty p -> Some (Within p)
+      | Within p
+        when List.exists
+               (List.exists (function
+                 | Trace.Wait _ -> true
+                 | Trace.Ev _ -> false))
+               p ->
+          Some Unbounded
+      | Within _ -> None
+      | Unbounded -> Some Unbounded
+
     let commutative = false
     let needs_op_bounds = true
     let duration_ends = Grade.Both_ends
@@ -243,7 +263,10 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
 
     let counterexample _bounds _ _ = None
     let unit_least = false
-    let plus _ = None
+
+    (* The lower end is its own closure; [None] where the upper end has no
+       closure. *)
+    let plus (lo, hi) = Option.map (fun hi -> (lo, hi)) (UpperBound.plus hi)
     let commutative = false
     let needs_op_bounds = true
     let duration_ends = Grade.Both_ends

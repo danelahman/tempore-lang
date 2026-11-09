@@ -526,8 +526,47 @@ let consistency_laws (type a) ?(width = 12) (module G : Grade.S with type t = a)
 (* [declared_laws (module G) ~context bounds samples] checks, on [samples]
    under [bounds], the properties the declarations of [G] assert: that the
    product commutes up to equality if [G.commutative]; that [is_top] decides
-   the equality with the top; and that equal representations under [compare]
-   are equal grades with equal hashes. *)
+   the equality with the top; that equal representations under [compare]
+   are equal grades with equal hashes; and that a declared closure [c⁺] lies
+   above [c], absorbs its square, lies below every sample [w] above [c] with
+   [w · w ≾ w], and satisfies the induction laws [c · d ≾ d ⇒ c⁺ · d ≾ d] and
+   [d · c ≾ d ⇒ d · c⁺ ≾ d] at every sample [d]. *)
+let closure_laws (type a) (module G : Grade.S with type t = a) ~context bounds
+    (samples : a list) =
+  let name law = G.name ^ ": " ^ law in
+  let leq = G.leq bounds in
+  let closures =
+    List.filter_map (fun c -> Option.map (fun p -> (c, p)) (G.plus c)) samples
+  in
+  let show1 (c, p) =
+    G.show c ^ " with the closure " ^ G.show p ^ " at " ^ context
+  in
+  let show2 ((c, p), d) = show1 (c, p) ^ ", " ^ G.show d in
+  let with_samples =
+    List.concat_map (fun cp -> List.map (fun d -> (cp, d)) samples) closures
+  in
+  [
+    all (name "closure above the grade") show1 (fun (c, p) -> leq c p) closures;
+    all
+      (name "closure absorbs its square")
+      show1
+      (fun (_, p) -> leq (G.mul p p) p)
+      closures;
+    all (name "closure least") show2
+      (fun ((c, p), w) -> implies (leq c w && leq (G.mul w w) w) (leq p w))
+      with_samples;
+    all
+      (name "closure left induction")
+      show2
+      (fun ((c, p), d) -> implies (leq (G.mul c d) d) (leq (G.mul p d) d))
+      with_samples;
+    all
+      (name "closure right induction")
+      show2
+      (fun ((c, p), d) -> implies (leq (G.mul d c) d) (leq (G.mul d p) d))
+      with_samples;
+  ]
+
 let declared_laws (type a) (module G : Grade.S with type t = a) ~context bounds
     (samples : a list) =
   let name law = G.name ^ ": " ^ law in
@@ -547,6 +586,7 @@ let declared_laws (type a) (module G : Grade.S with type t = a) ~context bounds
         implies (G.compare x y = 0) (equal x y && G.hash x = G.hash y))
       (pairs samples);
   ]
+  @ closure_laws (module G) ~context bounds samples
   @
   if G.commutative then
     [

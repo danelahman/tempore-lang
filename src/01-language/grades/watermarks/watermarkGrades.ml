@@ -66,7 +66,10 @@ module Side (D : Delay.S) (O : ORIENTATION) = struct
     let hash = hash_bound
     let counterexample _bounds _ _ = None
     let unit_least = false
-    let plus _ = None
+
+    (* A net change at most [0] is its own closure, any other has the closure
+       [unbounded]. *)
+    let plus b = Some (if O.leq b one then b else top)
     let commutative = true
     let needs_op_bounds = false
     let duration_ends = Grade.Both_ends
@@ -101,6 +104,11 @@ module Side (D : Delay.S) (O : ORIENTATION) = struct
     type n = bound
 
     let act d e = if compare_bound e O.unreached = 0 then e else add d e
+
+    (* [d + e ≤ e] for [d] above [0] forces [e] to be [unbounded], which the
+       closure [unbounded] of [d] fixes, or [unreached], which every net change
+       fixes. *)
+    let plus_compatible = true
   end
 
   include GradeConstructions.SemiDirect (Net) (Extreme) (Shift)

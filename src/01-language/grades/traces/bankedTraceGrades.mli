@@ -123,12 +123,15 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) : sig
   module LowerBound : Grade.S with type Delay.t = D.t
   (** Sets of traces read as lower bounds,
       ["banked-traces-lower-bound" ^ N.suffix], in the coverage order; the unit
-      [{skip}] is the top. *)
+      [{skip}] is the top. Every grade is its own closure. *)
 
   module UpperBound : Grade.S with type Delay.t = D.t
   (** Sets of traces read as upper bounds,
       ["banked-traces-upper-bound" ^ N.suffix], in the allowance order, with a
-      separate greatest point [⊤] permitting any trace. *)
+      separate greatest point [⊤] permitting any trace. A set of empty traces is
+      its own closure; a set with a trace that holds a delay, and [⊤], have the
+      closure [⊤]; any other set, of traces of operations alone, has no closure
+      under all running times, and [plus] is [None]. *)
 
   module Interval : Grade.S with type Delay.t = D.t
   (** Closed intervals of a lower and an upper bound,
@@ -141,7 +144,9 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) : sig
       of its lower end and some trace of its upper end are
       {!TimedTrace.Make.consistent}, at the values of the ends of the
       running-time bounds; where the durations of the ends are apart, they are
-      the reason given ({!Grade.durations_apart}). *)
+      the reason given ({!Grade.durations_apart}). [plus] is the closure
+      [[P, Q]⁺ = [P, Q⁺]], [Q⁺] being that of {!UpperBound}, and [None] where
+      [Q] has none. *)
 end
 
 (** {1 Traces over whole time steps}

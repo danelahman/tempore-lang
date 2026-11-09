@@ -25,7 +25,8 @@
     endpoint abbreviating a closed one, [(n, m)] being [[n + 1, m - 1]], and
     brace literals over ticks, [{3 | 5}] being [{3, 5}], in which an interval of
     delays is the numbers in it; a set is printed in the first of these forms
-    that denotes it. The witnesses are the constants and their pairwise
+    that denotes it. [plus] is the closure [T⁺ = T · T*], the sums of one or
+    more durations of [T]. The witnesses are the constants and their pairwise
     products, and partial. *)
 module Durations :
   Grade.S with type t = SymbolicRegex.t and type Delay.t = Delay.Nat.t
@@ -34,8 +35,8 @@ module Times : GradeConstructions.SEMILATTICE with type t = SymbolicRegex.t
 (** The times, ["times"]: sets of natural numbers ordered by inclusion, the join
     being the union. Its literals are brace literals over ticks. *)
 
-(** The action of the durations [T] on the times [E], adding them elementwise.
-*)
+(** The action of the durations [T] on the times [E], adding them elementwise,
+    compatible with closures: [T + E ⊆ E] implies [T⁺ + E ⊆ E]. *)
 module Shift :
   GradeConstructions.ACTION with type m = Durations.t and type n = Times.t
 
@@ -54,6 +55,7 @@ module ShiftByName :
 
     - The order is componentwise inclusion, so the unit [({0}, ∅)] is not least.
       [mul] does not commute.
+    - [plus] is the closure [(T, E)⁺ = (T⁺, E ∪ (T⁺ + E))].
     - [of_delay n] is [({n}, ∅)].
     - [of_lit] reads a literal of the durations [T] as [T] with no operation,
       and a tuple [(T, (A, {E_A}), …)] of the durations and entries of

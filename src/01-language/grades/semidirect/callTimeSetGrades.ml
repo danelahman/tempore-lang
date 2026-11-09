@@ -80,7 +80,9 @@ module Durations = struct
   let hash = R.hash
   let counterexample _bounds _ _ = None
   let unit_least = false
-  let plus _ = None
+
+  (* The closure [T⁺ = T · T*], the sums of one or more durations of [T]. *)
+  let plus rho = Some (R.concat rho (R.star rho))
   let commutative = true
   let needs_op_bounds = false
   let duration_ends = Grade.Both_ends
@@ -188,6 +190,9 @@ module Shift = struct
   type n = R.t
 
   let act = R.concat
+
+  (* [T + S ⊆ S] implies [T⁺ + S ⊆ S]. *)
+  let plus_compatible = true
 end
 
 module Indexed = GradeConstructions.Indexed

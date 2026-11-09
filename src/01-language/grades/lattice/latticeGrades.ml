@@ -121,6 +121,9 @@ struct
         type n = element option
 
         let act l = Option.map (join_element l)
+
+        (* Every element is its own closure. *)
+        let plus_compatible = true
       end)
 
   (** [written lit] is the output that the literal [lit], of an output and an
