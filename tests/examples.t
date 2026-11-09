@@ -1820,6 +1820,18 @@ tests show those runs in detail.
   ]
   
   ======================================================================
+  ../examples/watermarks/savepoints.tpe
+  ======================================================================
+  === Run 1 (unhandled operation) ===
+  perform Edit "first draft" (op_var.
+    (return op_var;
+     perform Edit "second draft" (op_var. return op_var);
+     perform Undo () (op_var. return op_var);
+     perform Undo () (op_var. return op_var);
+     unbox resource_0 as q in
+     perform Jump q (op_var. return op_var)))
+  
+  ======================================================================
   ../examples/watermarks/watermarks.tpe
   ======================================================================
   === Run 1 (unhandled operation) ===

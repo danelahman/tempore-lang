@@ -1234,7 +1234,14 @@ An (external) operation whose grade no code inside Tempore can meet, such as
 opening or closing a file under `watermarks`, has no default
 implementation, and a run stops at its first call.
 
-See [`examples/watermarks/watermarks.tpe`](examples/watermarks/watermarks.tpe).
+A boxed resource bounds the levels reached between its boxing and its
+unboxing. In a text editor's undo stack, whose level is the number of undo
+records, a savepoint boxed at `(0, [0, ∞), ∞)` may be used as long as the level
+has never fallen below the level at which it was taken, however many edits were
+made and undone since.
+
+See [`examples/watermarks/watermarks.tpe`](examples/watermarks/watermarks.tpe)
+and [`examples/watermarks/savepoints.tpe`](examples/watermarks/savepoints.tpe).
 
 ### Mode grades
 

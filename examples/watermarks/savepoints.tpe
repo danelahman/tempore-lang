@@ -1,0 +1,94 @@
+(* A text editor's undo stack, whose savepoints are boxed resources usable as
+   long as the stack has never fallen below the level at which they were taken.
+
+   Run this example with the 'watermarks' grade algebra, e.g.
+
+     ./tempore --grades watermarks examples/watermarks/savepoints.tpe
+
+   Grades ((R, t, d, h), ...): trough t, net change d, peak h of resource R
+     - Unit (0, 0): no resource changed or held
+     - Top (∞, ∞): unbounded trough, net change and peak of every resource
+     - Product: net changes added, later levels shifted by earlier changes *)
+
+(* The level is the number of undo records, relative to the level at the
+   start. A savepoint boxed at (0, [0, ∞), ∞) may be unboxed after code whose
+   trough is 0 and net change at least 0, however high its peak: the records
+   below the savepoint are all still there, however many edits were made and
+   undone above it. *)
+
+type position = Position of nat
+
+(* An edit pushes one undo record, and an undo pops one. No code pushes or
+   pops a record, so neither has a default implementation, and a run stops at
+   its first 'Edit'. *)
+operation Edit : string ~> unit ! (1, 1)
+
+operation Undo : unit ~> unit ! (-1, 0)
+
+(* Taking a savepoint and jumping to one change no record. *)
+operation Savepoint : unit ~> position ! (0, 0)
+default Savepoint () = Position 0
+
+operation Jump : position ~> unit ! (0, 0)
+default Jump p = ()
+
+(* Correctly accepted by the typechecker: two edits, both undone, return the
+   stack to the level of the savepoint without falling below it. *)
+let discard_drafts () : unit ! (0, 2) =
+  let p = perform Savepoint () in
+  box (0, [0, ∞), ∞) p as saved in
+  perform Edit "first draft";
+  perform Edit "second draft";
+  perform Undo ();
+  perform Undo ();
+  unbox saved as q in
+  perform Jump q
+
+(* Correctly accepted by the typechecker: an edit undone and followed by
+   another leaves one record more than at the savepoint, never fewer. *)
+let redraft () : unit ! (1, 1) =
+  let p = perform Savepoint () in
+  box (0, [0, ∞), ∞) p as saved in
+  perform Edit "first draft";
+  perform Undo ();
+  perform Edit "second draft";
+  unbox saved as q in
+  perform Jump q
+
+(* Correctly rejected by the typechecker: the undo pops a record below the
+   savepoint, which then no longer exists:
+
+     Typing error: Variable `saved` is unboxed with grade `(-1, 0)`
+       accumulated since it was bound, which is not below its box grade
+       `([0, ∞), ∞)`
+       Note: the resource inequality `(-1, 0) <= ([0, ∞), ∞)` does not hold
+*)
+(*
+let undo_past_savepoint () =
+  let p = perform Savepoint () in
+  box (0, [0, ∞), ∞) p as saved in
+  perform Undo ();
+  unbox saved as q in
+  perform Jump q
+*)
+
+(* Correctly rejected by the typechecker: the first undo returns the stack to
+   the level of the savepoint, and the second pops a record below it:
+
+     Typing error: Variable `saved` is unboxed with grade `(-1, 1)`
+       accumulated since it was bound, which is not below its box grade
+       `([0, ∞), ∞)`
+       Note: the resource inequality `(-1, 1) <= ([0, ∞), ∞)` does not hold
+*)
+(*
+let undo_too_far () =
+  let p = perform Savepoint () in
+  box (0, [0, ∞), ∞) p as saved in
+  perform Edit "first draft";
+  perform Undo ();
+  perform Undo ();
+  unbox saved as q in
+  perform Jump q
+*)
+
+run discard_drafts ()
