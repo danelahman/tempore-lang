@@ -289,11 +289,13 @@ module Indexed : sig
       those of [G], [mul], [join], [leq] and [equal] are taken name by name, and
       [is_top], [inhabited] and [is_atomic] hold iff they hold at every name,
       and [vacuous] is the first reason of a name, the default first. The unit
-      is least and [mul] commutes iff they do so in [G]; [needs_op_bounds] is
-      that of [G], [duration_bounds] is [None] and [events] are those of every
-      name. [counterexample] gives the lesser map, at the first name where [G]
-      offers one, the witness of [G] there. The witnesses are described above,
-      complete iff those of [G] are. The name is ["G.name by name"]. *)
+      is least and [mul] commutes iff they do so in [G]; [plus] is the closure
+      of [G] name by name, [None] if [G] declares none at some name;
+      [needs_op_bounds] is that of [G], [duration_bounds] is [None] and [events]
+      are those of every name. [counterexample] gives the lesser map, at the
+      first name where [G] offers one, the witness of [G] there. The witnesses
+      are described above, complete iff those of [G] are. The name is
+      ["G.name by name"]. *)
   module OfGrade (G : Grade.S) :
     Grade.S with type t = G.t t and type Delay.t = G.Delay.t
 end

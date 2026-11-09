@@ -493,7 +493,19 @@ module Indexed = struct
         (names [ m; m' ])
 
     let unit_least = G.unit_least
-    let plus _ = None
+
+    (* The closure name by name, least as the order, product and joins are
+       pointwise; [None] if a name has no closure. *)
+    let plus m =
+      Option.bind (G.plus m.others) (fun others ->
+          Option.map
+            (fun named -> trim G.compare { named; others })
+            (List.fold_right
+               (fun (s, c) acc ->
+                 Option.bind acc (fun named ->
+                     Option.map (fun c -> (s, c) :: named) (G.plus c)))
+               m.named (Some [])))
+
     let commutative = G.commutative
     let needs_op_bounds = G.needs_op_bounds
     let duration_ends = G.duration_ends
