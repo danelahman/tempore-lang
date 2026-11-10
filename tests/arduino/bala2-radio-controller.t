@@ -11,8 +11,8 @@ variants, and its host simulation.
 
 The rejected variants, each loaded after the application: a balancing
 iteration that redraws the bubble after the readings and then drives on
-the reading of the unit, which may then be older than 2 ms; two sessions
-that keep the neutral tilt recorded before the first, used after a Stop;
+the reading of the unit, which may then be older than 2 ms; a session
+that keeps the neutral tilt of the last, unboxing its box after a Stop;
 a session that redraws the screen after the handshake and then drives on
 its confirmation, which may then be older than 200 ms; and a session that
 sends Start once, against the protocol of its grade:
@@ -21,7 +21,7 @@ sends Start once, against the protocol of its grade:
   [1]
   Typing error: Variable `latest_reading` is unboxed with grade `{ReadTouch; DrawLevel}` accumulated since it was bound, which is not below its box grade `{[0, 2]
   [1]
-  Typing error: Variable `zero` is unboxed with grade `{(SendStart; idle 12.5)^80; SendStart; idle 12.5; ReceiveMessage; (SendStart; idle 12.5; ReceiveMessage)*; 
+  Typing error: Variable `zero` is unboxed with grade `{(SendStop; idle 12.5)^20; (SendStart; idle 12.5)^80; SendStart; idle 12.5; ReceiveMessage; (SendStart; idl
   [1]
   Typing error: Variable `latest` is unboxed with grade `{ClearDisplay; ShowTextAt^4; DrawButton^2}` accumulated since it was bound, which is not below its box gr
   [1]

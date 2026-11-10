@@ -1,14 +1,7 @@
-(* Two sessions that keep the neutral tilt recorded before the first, after
-   controller.tpe. *)
+(* A session that keeps the neutral tilt of the last, unboxing its box after
+   a Stop, after controller.tpe. *)
 
-let sessions_kept (v : view) =
-  let zero = record_neutral () in
-  starting ();
-  let latest = confirm 40 in
-  unbox zero as neutral in
-  let v =
-    balancing 4000000000 v (box {≥0 & ~SendStop} neutral) latest
-  in
+let sessions_kept (zero : neutral) (v : view) =
   stopping ();
   starting ();
   let latest = confirm 40 in

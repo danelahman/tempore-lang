@@ -312,12 +312,12 @@ let rec balancing (n : nat)
         (link_shown, shown_tilt, bubble_next, guide_shown)
       else
         unbox latest_reading as reading in
-        unbox zero as neutral in
+        unbox zero as at_rest in
         unbox latest as status in
         let accel, _ = reading in
-        let neutral_pitch, neutral_roll = neutral in
-        let pitch = tilt_x_of_accel accel -. neutral_pitch in
-        let roll = tilt_y_of_accel accel -. neutral_roll in
+        let rest_pitch, rest_roll = at_rest in
+        let pitch = tilt_x_of_accel accel -. rest_pitch in
+        let roll = tilt_y_of_accel accel -. rest_roll in
         let speed = command speed_gain speed_limit pitch in
         let turn = command turn_gain turn_limit (~-.roll) in
         let link = remote_balancing status in
@@ -344,7 +344,7 @@ let rec balancing (n : nat)
         in
         delay 21/2;
         let latest = remote_status () in
-        balancing m view (box {≥0 & ~SendStop} neutral) latest
+        balancing m view (box {≥0 & ~SendStop} at_rest) latest
 
 (* Correctly accepted by the typechecker: a session sends Beat until a tap
    on Start, records the neutral tilt, sends Start 80 times and then until the
@@ -384,11 +384,11 @@ let rec session (n : nat)
         let zero = record_neutral () in
         starting ();
         let latest = confirm 40 in
-        unbox zero as neutral in
+        unbox zero as at_rest in
         let v =
           balancing 4000000000
             (link_shown, shown_tilt, bubble_next, shown)
-            (box {≥0 & ~SendStop} neutral)
+            (box {≥0 & ~SendStop} at_rest)
             latest
         in
         perform Beep (880, 60);
@@ -427,38 +427,32 @@ let balancing_redrawn (zero : neutral) (latest : latest_status)
   let shown_pitch, shown_roll = shown in
   draw_bubble shown_pitch shown_roll green;
   unbox latest_reading as reading in
-  unbox zero as neutral in
+  unbox zero as at_rest in
   unbox latest as status in
   let accel, _ = reading in
-  let neutral_pitch, neutral_roll = neutral in
-  let pitch = tilt_x_of_accel accel -. neutral_pitch in
-  let roll = tilt_y_of_accel accel -. neutral_roll in
+  let rest_pitch, rest_roll = at_rest in
+  let pitch = tilt_x_of_accel accel -. rest_pitch in
+  let roll = tilt_y_of_accel accel -. rest_roll in
   let speed = command speed_gain speed_limit pitch in
   let turn = command turn_gain turn_limit (~-.roll) in
   if remote_balancing status then perform SendDrive (speed, turn)
   else perform SendBeat ()
 *)
 
-(* Correctly rejected by the typechecker: two sessions that keep the
-   neutral tilt recorded before the first, so that the user need not hold
-   the CoreS3 still again, use it after a Stop, while it may be held
-   otherwise:
+(* Correctly rejected by the typechecker: a session that keeps the neutral
+   tilt of the last, so that the user need not hold the CoreS3 still again,
+   unboxing the box of the neutral tilt after a Stop, while the CoreS3 may
+   be held otherwise:
 
-     Typing error: Variable `zero` is unboxed with grade `{(SendStart;
-       idle 12.5)^80; …; (SendStop; idle 12.5)^20; (SendStart; idle 12.5)^80;
-       …}` accumulated since it was bound, which is not below its box grade
+     Typing error: Variable `zero` is unboxed with grade `{(SendStop;
+       idle 12.5)^20; (SendStart; idle 12.5)^80; SendStart; idle 12.5;
+       ReceiveMessage; (SendStart; idle 12.5; ReceiveMessage)*}`
+       accumulated since it was bound, which is not below its box grade
        `{≥0 & ~SendStop}`
        ...
 *)
 (*
-let sessions_kept (v : view) =
-  let zero = record_neutral () in
-  starting ();
-  let latest = confirm 40 in
-  unbox zero as neutral in
-  let v =
-    balancing 4000000000 v (box {≥0 & ~SendStop} neutral) latest
-  in
+let sessions_kept (zero : neutral) (v : view) =
   stopping ();
   starting ();
   let latest = confirm 40 in
