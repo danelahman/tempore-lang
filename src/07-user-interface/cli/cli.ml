@@ -34,6 +34,7 @@ type config = {
   debug : bool;
   typecheck_only : bool;
   grades : string;
+  resource_grades : string option;
   emit_opentrons : string option;
   emit_arduino : string option;
   device : string option;
@@ -132,12 +133,32 @@ let accepted_grades_help =
      -letter-automata, -symbolic-by-letters and -letter-derivatives in place \
      of -symbolic, and -rational-automata in place of -rational-symbolic."
 
+(* The accepted resource grades, one per line after the effect grades of
+   --grades they are accepted with, in a column after the longest name, each
+   with its morphism on an indented line below; indented as
+   [accepted_grades_help]. *)
+let accepted_resource_grades_help =
+  let systems = Grades.GradeSystemRegistry.systems in
+  let width =
+    List.fold_left max 0
+      (List.map
+         (fun (e : Grades.GradeSystemRegistry.entry) -> String.length e.effects)
+         systems)
+  in
+  String.concat ""
+    (List.map
+       (fun (e : Grades.GradeSystemRegistry.entry) ->
+         Printf.sprintf "\n        %-*s %s\n            %s" width e.effects
+           e.resources e.morphism)
+       systems)
+
 let parse_args_to_config () =
   let filenames = ref []
   and use_stdlib = ref true
   and debug = ref false
   and typecheck_only = ref false
   and grades = ref Grades.GradeRegistry.default_name
+  and resource_grades = ref None
   and emit_opentrons = ref None
   and emit_arduino = ref None
   and device = ref None
@@ -291,6 +312,14 @@ let parse_args_to_config () =
           " Build the project written with --device with the profile of the \
            running times of its operations and periodic tasks, logged every 5 \
            seconds in place of the trace under --host-simulate" );
+        ( "--resource-grades",
+          Arg.String (fun name -> resource_grades := Some name),
+          " Select the resource grade algebra, that of the grades of boxes and \
+           box types, the effects being graded by the grade algebra of \
+           --grades and resources by their images under a morphism of grade \
+           algebras (default: the grade algebra of --grades, the morphism \
+           being the identity); accepted after the grade algebras of --grades, \
+           with the morphism:" ^ accepted_resource_grades_help );
         ( "--robot",
           Arg.String
             (choice "--robot"
@@ -433,6 +462,7 @@ let parse_args_to_config () =
     debug = !debug;
     typecheck_only = !typecheck_only;
     grades = !grades;
+    resource_grades = !resource_grades;
     emit_opentrons = !emit_opentrons;
     emit_arduino = !emit_arduino;
     device = !device;
@@ -916,14 +946,8 @@ let emit_protocol config ~filename ~binding_name ~operations ~compound commands
    computation that does not reduce, or at a run-time error. *)
 let run_failure = 3
 
-let run_with (module G : Grades.Grade.S) lattice config =
-  let module Backend =
-    CliInterpreter.Make
-      (Grades.GradeSystem.Declaring
-         (struct
-           let lattice = lattice
-         end)
-         (G)) in
+let run_with (module GS : Grades.GradeSystem.S) config =
+  let module Backend = CliInterpreter.Make (GS) in
   let module Loader = Loader.Loader (Backend) in
   (* The timeline of the run [run_num], as a table. *)
   let print_timeline timeline run_num =
@@ -1119,10 +1143,51 @@ let run_with (module G : Grades.Grade.S) lattice config =
          large to decide under this grade algebra";
       exit 2
 
+(* The names [names] quoted and listed, the last two joined by "and". *)
+let listed names =
+  match List.rev_map (fun name -> "`" ^ name ^ "`") names with
+  | [] -> ""
+  | [ name ] -> name
+  | last :: rest -> String.concat ", " (List.rev rest) ^ " and " ^ last
+
+(* The grade system of [config], its effects graded by the grade algebra of
+   --grades: the registered grade system of the resource grade algebra of
+   --resource-grades if that is another one, and otherwise the identity system
+   of [G], [G] being the grade algebra of --grades over the grade lattice
+   [lattice] the program declares, if any. *)
+let grade_system config (module G : Grades.Grade.S) lattice =
+  match config.resource_grades with
+  | Some resources when not (String.equal resources config.grades) -> (
+      match
+        Grades.GradeSystemRegistry.find ~effects:config.grades ~resources
+      with
+      | Some system -> system
+      | None ->
+          Printf.eprintf
+            "The grade algebra `%s` has no grade system with the resource \
+             grade algebra `%s`; %s\n"
+            config.grades resources
+            (match Grades.GradeSystemRegistry.resources_of config.grades with
+            | [] ->
+                Printf.sprintf "its only resource grade algebra is `%s` itself"
+                  config.grades
+            | others ->
+                "its resource grade algebras are "
+                ^ listed (config.grades :: others));
+          exit 1)
+  | Some _ | None ->
+      (module Grades.GradeSystem.Declaring
+                (struct
+                  let lattice = lattice
+                end)
+                (G) : Grades.GradeSystem.S)
+
 let main () =
   let config = parse_args_to_config () in
   match List.assoc_opt config.grades Grades.GradeRegistry.grade_modules with
-  | Some _ -> (
+  | Some grade -> (
+      (* The grade system is checked before the files are read. *)
+      ignore (grade_system config grade None);
       (* The files read for their declaration of the grade lattice; a file that
          cannot be read is reported when it is parsed. *)
       let sources =
@@ -1136,7 +1201,7 @@ let main () =
           config.filenames
       in
       match Loader.grades_of_sources ~grades:config.grades sources with
-      | grade, lattice -> run_with grade lattice config
+      | grade, lattice -> run_with (grade_system config grade lattice) config
       | exception Error.Error d ->
           Diagnostic.print ~source d Format.err_formatter;
           exit 1)

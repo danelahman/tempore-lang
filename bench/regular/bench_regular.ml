@@ -1192,11 +1192,14 @@ let typechecking family files (module G : Grade.S) =
   let module P = Programs (G) in
   P.workloads family files
 
-(* The examples and tests whose headers name the grade [name]. *)
+(* The examples and tests whose headers name the grade [name], and no other
+   resource grades. *)
 let programs name =
   TestPrograms.tpe_files "examples"
   @ TestPrograms.tpe_files ~recursive:false "tests"
-  |> List.filter (fun path -> TestSupport.Header.grades path = name)
+  |> List.filter (fun path ->
+      TestSupport.Header.grades path = name
+      && TestSupport.Header.resource_grades path = None)
 
 (** {1 Sections} *)
 

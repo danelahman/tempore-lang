@@ -69,7 +69,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     continuations : Ast.VariableSet.t;
     accumulated : GS.R.t;
     calls : int;
-    op_signatures : Graded.eps Ast.OpNameMap.t;
+    op_images : Graded.rho Ast.OpNameMap.t;
     op_defaults : Graded.abstraction Ast.OpNameMap.t;
   }
 
@@ -83,24 +83,25 @@ module Make (GS : Grades.GradeSystem.S) = struct
       continuations = Ast.VariableSet.empty;
       accumulated = GS.R.one;
       calls = 0;
-      op_signatures = Ast.OpNameMap.empty;
+      op_images = Ast.OpNameMap.empty;
       op_defaults = Ast.OpNameMap.empty;
     }
 
   (* The resource grade [∣eps∣] of the effect grade [eps] of an operation
-     signature. *)
-  let rec rho_of_eps = function
-    | Ast.EpsConst (c, at) -> Ast.RhoConst (GS.map c, at)
-    | Ast.EpsAdd (eps, eps') -> Ast.RhoAdd (rho_of_eps eps, rho_of_eps eps')
+     signature under the running times [bounds]. *)
+  let rec rho_of_eps bounds = function
+    | Ast.EpsConst (c, at) -> Ast.RhoConst (GS.map bounds c, at)
+    | Ast.EpsAdd (eps, eps') ->
+        Ast.RhoAdd (rho_of_eps bounds eps, rho_of_eps bounds eps')
     | Ast.EpsVar e -> Ast.RhoImage e
 
-  (* The resource grade [∣eps∣] of the effect grade [eps], if it is closed. *)
-  let rec grade_of_eps = function
-    | Ast.EpsConst (c, _) -> Some (GS.map c)
-    | Ast.EpsAdd (eps, eps') ->
-        Option.bind (grade_of_eps eps) (fun g ->
-            Option.map (GS.R.mul g) (grade_of_eps eps'))
-    | Ast.EpsVar _ -> None
+  (* The resource grade [rho], if it is closed. *)
+  let rec grade_of_rho = function
+    | Ast.RhoConst (c, _) -> Some c
+    | Ast.RhoAdd (rho, rho') ->
+        Option.bind (grade_of_rho rho) (fun g ->
+            Option.map (GS.R.mul g) (grade_of_rho rho'))
+    | Ast.RhoVar _ | Ast.RhoImage _ -> None
 
   let rec eval_tuple (env : evaluation_environment) (expr : _ Ast.expression) =
     match expr.it with
@@ -722,9 +723,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
                  a continuation"
                 (Ast.OpName.print op)
         in
-        let eps =
-          match Ast.OpNameMap.find_opt op env.op_signatures with
-          | Some eps -> eps
+        let image =
+          match Ast.OpNameMap.find_opt op env.op_images with
+          | Some image -> image
           | None ->
               Error.runtime "The operation `%t` has no signature"
                 (Ast.OpName.print op)
@@ -741,7 +742,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
             fun () ->
               Ast.located at
                 (Ast.Box
-                   ( rho_of_eps eps,
+                   ( image,
                      Ast.located at (Ast.Lambda (pat, resumed)),
                      ( Ast.located at (Ast.PVar x),
                        substitute cont_subst (substitute arg_subst case) ) )) );
@@ -824,14 +825,15 @@ module Make (GS : Grades.GradeSystem.S) = struct
   let load_top_do load_state comp =
     { load_state with runs = (load_state.environment, comp) :: load_state.runs }
 
-  let load_op_sig load_state op eps =
+  let load_op_sig load_state bounds op eps =
     {
       load_state with
       environment =
         {
           load_state.environment with
-          op_signatures =
-            Ast.OpNameMap.add op eps load_state.environment.op_signatures;
+          op_images =
+            Ast.OpNameMap.add op (rho_of_eps bounds eps)
+              load_state.environment.op_images;
         };
     }
 
@@ -917,8 +919,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let grade =
           Option.value ~default:GS.R.one
             (Option.bind
-               (Ast.OpNameMap.find_opt op environment.op_signatures)
-               grade_of_eps)
+               (Ast.OpNameMap.find_opt op environment.op_images)
+               grade_of_rho)
         in
         let environment =
           {
@@ -1035,9 +1037,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
               at;
               op = Ast.OpName.string_of op;
               grade =
-                Option.fold ~none:""
-                  ~some:(fun eps -> show_rho (rho_of_eps eps))
-                  (Ast.OpNameMap.find_opt op env.op_signatures);
+                Option.fold ~none:"" ~some:show_rho
+                  (Ast.OpNameMap.find_opt op env.op_images);
             };
         ]
     | ComputationReduction { redex = DoReturn; context = [] }, _ ->

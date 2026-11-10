@@ -373,7 +373,7 @@ module Make (C : Constraint.S) = struct
         Rho.const c
     | Ast.RhoAdd (rho, rho') -> Rho.mul (open_rho env rho) (open_rho env rho')
     | Ast.RhoVar r -> Rho.var r
-    | Ast.RhoImage e -> Rho.map (Eps.var e)
+    | Ast.RhoImage e -> Rho.map (running_times env) (Eps.var e)
 
   let rec open_eps env = function
     | Ast.EpsConst (c, at) ->
@@ -1005,7 +1005,7 @@ module Make (C : Constraint.S) = struct
     | Ast.Perform (op, _, (_, { it = Ast.Return _; _ })) ->
         ( Reason.Performed op,
           Option.map
-            (fun signature -> Rho.map signature.op_grade)
+            (fun signature -> Rho.map (running_times env) signature.op_grade)
             (find_op_signature env op) )
     | _ -> (Reason.Sequenced, None)
 
@@ -1185,7 +1185,9 @@ module Make (C : Constraint.S) = struct
       Ast.TyHandler
         (Ast.CompTy (input_ty, input_eps), Ast.CompTy (output_ty, output_eps))
     in
-    let env_ret = lock env ~at Reason.Handled (Rho.map input_eps) in
+    let env_ret =
+      lock env ~at Reason.Handled (Rho.map (running_times env) input_eps)
+    in
     let because = Reason.because ret_body.Ast.at Reason.Return_clause in
     let return_clause =
       with_pattern env_ret ret_pat
@@ -1214,7 +1216,7 @@ module Make (C : Constraint.S) = struct
     let env_clause = lock env ~at:case_at (Reason.Clause_lock clause) Rho.top in
     let continuation_ty =
       Ast.TyBox
-        ( Rho.map op_grade,
+        ( Rho.map (running_times env) op_grade,
           Ast.TyArrow (arity, Ast.CompTy (output_ty, Eps.var rigid)) )
     in
     let why = Reason.Handler_case { op; signature_at } in
@@ -1272,7 +1274,9 @@ module Make (C : Constraint.S) = struct
     let bound =
       Reason.because c1.Ast.at (Reason.Sequencing (pattern_variable pat))
     in
-    let env' = lock ?declared env ~at:c1.Ast.at kind (Rho.map eps1) in
+    let env' =
+      lock ?declared env ~at:c1.Ast.at kind (Rho.map (running_times env) eps1)
+    in
     C.conj_all
       [
         generate_computation env c1 (expect ty1 bound) (expect eps1 bound);
@@ -1423,7 +1427,7 @@ module Make (C : Constraint.S) = struct
     let { param; arity; op_grade; signature_at } = signature ~loc:at env op in
     let@ eps' = exists_eps in
     let kind = Reason.Performed op in
-    let env' = lock env ~at kind (Rho.map op_grade) in
+    let env' = lock env ~at kind (Rho.map (running_times env) op_grade) in
     C.conj_all
       [
         generate_expression env e

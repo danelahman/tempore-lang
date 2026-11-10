@@ -1270,7 +1270,7 @@ module Make (C : Constraint.S) = struct
 
   let rho_candidates context ~degree (rcs, ecs) =
     let bounds = context.Residual.bounds in
-    let rcs = rcs @ List.map X.GS.map ecs in
+    let rcs = rcs @ List.map (X.GS.map bounds) ecs in
     distinct (X.GS.R.equal bounds)
       (rho_base @ rcs @ fst (X.GS.R.witnesses ~degree bounds rcs))
 

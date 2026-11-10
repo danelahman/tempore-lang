@@ -282,7 +282,7 @@ module Make (X : GradeExp.S) = struct
                 ~read_back:N.Rho.read_back_product;
             closure =
               (fun e ->
-                Option.bind (X.Rho.value e) (fun c ->
+                Option.bind (X.Rho.value bounds e) (fun c ->
                     Option.map X.Rho.const (X.GS.R.plus c)));
             mul = X.Rho.mul;
           };
@@ -290,7 +290,7 @@ module Make (X : GradeExp.S) = struct
 
   let image bounds k =
     {
-      self = X.Rho.map (X.Eps.var k);
+      self = X.Rho.map bounds (X.Eps.var k);
       is_unknown =
         (function
         | X.Rho_map (X.Eps_var k') -> X.Eps_var.equal k k'

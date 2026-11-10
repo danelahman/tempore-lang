@@ -9,10 +9,12 @@ module type S = sig
   (** The grade algebra of the effect grades, over the delays of the resource
       grades. *)
 
-  val map : E.t -> R.t
-  (** The morphism [∣_∣] of grade algebras: monotone, and preserving the unit,
-      the product, the top, joins and delays:
-      [map (E.of_delay d) = R.of_delay d]. *)
+  val map : Grade.bounds -> E.t -> R.t
+  (** [map bounds] is the morphism [∣_∣] of grade algebras under the running
+      times [bounds]: monotone, and preserving the unit, the product, the top,
+      joins and delays: [map bounds (E.of_delay d) = R.of_delay d]. The image of
+      a grade depends on the running times of the operations it mentions only.
+  *)
 
   val lattice : GradeLattice.t option
   (** The grade lattice the program declares, over which the lattice grades are
@@ -45,7 +47,7 @@ module Declaring
   module R = G
   module E = G
 
-  let map c = c
+  let map _bounds c = c
   let lattice = L.lattice
   let unit_reflecting = true
   let witnesses ~degree bounds rcs ecs = G.witnesses ~degree bounds (rcs @ ecs)

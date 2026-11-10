@@ -1,5 +1,11 @@
 open Grade
 
+module type DURATIONS = sig
+  include Grade.S
+
+  val of_durations : Rational.t bound * Rational.t bound -> t
+end
+
 module type NAMES = sig
   type delay
 
@@ -95,6 +101,10 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
             invalid_lit lit "interval endpoints must satisfy n <= m"
         | _ -> invalid_lit lit "interval endpoints are %s" N.numbers)
 
+  (** [delay_end b] is the finite end [b] of an interval of durations read as a
+      delay, closed or open as [b] is. *)
+  let delay_end = map_end (read_bound D.read)
+
   (* A lower bound is the lower end of an interval unbounded above. *)
   module LowerBound = struct
     type t = { lo : D.t; lo_closed : bool }
@@ -168,6 +178,7 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
       let lo, lo_closed = lower_end (end_value lo, is_closed lo) in
       { lo; lo_closed }
 
+    let of_durations (lo, _) = of_bounds (delay_end lo, Unbounded)
     let is_atomic _name _ = true
     let show c = if c.lo_closed then D.show c.lo else "(" ^ D.show c.lo ^ ", ∞)"
 
@@ -261,6 +272,11 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let of_bounds (_, hi) =
       let hi, hi_closed = upper_end (Ext.Fin (end_value hi), is_closed hi) in
       { hi; hi_closed }
+
+    let of_durations (_, hi) =
+      match hi with
+      | Unbounded -> top
+      | Closed _ | Open _ -> of_bounds (Unbounded, delay_end hi)
 
     let is_atomic _name _ = true
 
@@ -363,6 +379,9 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
 
     let of_bounds b =
       { lower = LowerBound.of_bounds b; upper = UpperBound.of_bounds b }
+
+    let of_durations d =
+      { lower = LowerBound.of_durations d; upper = UpperBound.of_durations d }
 
     let is_atomic _name _ = true
 

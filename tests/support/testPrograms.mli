@@ -12,6 +12,17 @@ val grade_module :
     grade lattice [lattice] if given and if it is built on a grade lattice.
     @raise Failure if there is none. *)
 
+val grade_system :
+  ?lattice:Grades.GradeLattice.t ->
+  ?resources:string ->
+  string ->
+  (module Grades.GradeSystem.S)
+(** [grade_system ?lattice ?resources name] is the grade system of the effect
+    grades [name]: the registered system of the resource grades [resources] if
+    they are other grades, and otherwise the identity system of
+    [grade_module ?lattice name] in a program declaring [lattice].
+    @raise Failure if there is none. *)
+
 val lattice_of_file : string -> Grades.GradeLattice.t option
 (** [lattice_of_file path] is the grade lattice the file at [path] declares, if
     it declares a lattice; the parser reports a malformed declaration. *)

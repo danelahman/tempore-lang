@@ -14,13 +14,7 @@ let verbose = Array.exists (( = ) "-v") Sys.argv
 type command_verdict = { line : int; kind : string; ok : bool; detail : string }
 (** The verdict of the solver on one command. *)
 
-module Programs
-    (L : sig
-      val lattice : Grades.GradeLattice.t option
-    end)
-    (G : Grade.S) =
-struct
-  module GS = GradeSystem.Declaring (L) (G)
+module Programs (GS : GradeSystem.S) = struct
   module X = Inference.GradeExp.Make (GS)
   module C = Inference.Constraint.Make (X)
   module Gen = Inference.Generate.Make (C)
@@ -102,7 +96,7 @@ struct
        List.iter
          (fun v ->
            if not v.ok then
-             fail "stdlib (%s) line %d, %s: %s" G.name v.line v.kind v.detail)
+             fail "stdlib (%s) line %d, %s: %s" GS.E.name v.line v.kind v.detail)
          verdicts;
        st)
 
@@ -157,8 +151,8 @@ struct
             List.iter
               (fun v ->
                 if not v.ok then
-                  fail "%s: a package (%s) line %d, %s: %s" path G.name v.line
-                    v.kind v.detail)
+                  fail "%s: a package (%s) line %d, %s: %s" path GS.E.name
+                    v.line v.kind v.detail)
               preceded;
             match run st cmds with
             | _, verdicts -> Some verdicts
@@ -177,19 +171,20 @@ module type PROGRAMS = sig
   val definitions : string -> (string * bool * string) list
 end
 
-(* The programs of each grade and grade lattice, the standard library
+(* The programs of each grade system and grade lattice, the standard library
    loaded once. *)
 let programs_of =
   let table = Hashtbl.create 8 in
-  fun ?lattice grades ->
-    let key = (grades, Option.map Grades.GradeLattice.declaration lattice) in
+  fun ?lattice ?resources grades ->
+    let key =
+      (grades, resources, Option.map Grades.GradeLattice.declaration lattice)
+    in
     match Hashtbl.find_opt table key with
     | Some p -> p
     | None ->
-        let (module G) = TestPrograms.grade_module ?lattice grades in
-        let module L = struct
-          let lattice = lattice
-        end in
-        let p = (module Programs (L) (G) : PROGRAMS) in
+        let (module GS) =
+          TestPrograms.grade_system ?lattice ?resources grades
+        in
+        let p = (module Programs (GS) : PROGRAMS) in
         Hashtbl.add table key p;
         p

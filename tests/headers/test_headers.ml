@@ -22,6 +22,18 @@
             --board <board> \
             examples/<dir>/<file>.tpe
 
+        An example run under a grade system other than an identity one names
+        its effect and its resource grade algebras, in an introduction of one
+        or more lines, and the latter by a --resource-grades option after the
+        grade, on a line of its own when the command is split:
+
+        Run this example with the '<grade>' effect and the '<resources>'
+        resource grade algebras, e.g.
+
+          ./tempore --grades <grade> \
+            --resource-grades <resources> \
+            examples/<dir>/<file>.tpe
+
         Grades <form>: <meaning>
           - Unit <literal>: <meaning>
           - Top <literal>: <meaning>
@@ -77,17 +89,20 @@ let option_values option lines =
        lines)
 
 (* The grade named between the first pair of single quotes in [line], the
-   "Run this example ..." introduction. *)
+   "Run this example ..." introduction, its lines joined by blanks, and the
+   resource grades named between the second pair if it names the effect and
+   the resource grade algebras. *)
 let grade_of_intro line =
   match strip_prefix ~prefix:"   Run this example with the '" line with
   | None -> None
   | Some rest -> (
-      match String.index_opt rest '\'' with
-      | None -> None
-      | Some i ->
-          let grade = String.sub rest 0 i in
-          let tail = String.sub rest i (String.length rest - i) in
-          if tail = "' grade algebra, e.g." then Some grade else None)
+      match String.split_on_char '\'' rest with
+      | [ grade; " grade algebra, e.g." ] -> Some (grade, None)
+      | [
+       grade; " effect and the "; resources; " resource grade algebras, e.g.";
+      ] ->
+          Some (grade, Some resources)
+      | _ -> None)
 
 (* Checks that [line] is not [None], starts with [prefix], has non-empty
    content after it, does not end with " *)" unless [closing], and does not
@@ -126,6 +141,17 @@ let check_header name path =
     | _ -> 0
   in
   let summary = continuation 0 in
+  (* The introduction of the run command occupies one more line for each of
+     its lines that does not end with "e.g.". *)
+  let intro =
+    let rec continued n =
+      match List.nth_opt lines n with
+      | Some line when line <> "" && not (ends_with ~suffix:"e.g." line) ->
+          1 + continued (n + 1)
+      | _ -> 0
+    in
+    continued (2 + summary)
+  in
   (* The run command occupies one more line for each of its lines that ends
      with a line continuation. *)
   let command =
@@ -134,19 +160,28 @@ let check_header name path =
       | Some line when ends_with ~suffix:" \\" line -> 1 + continued (n + 1)
       | _ -> 0
     in
-    continued (4 + summary)
+    continued (4 + summary + intro)
   in
   let grades =
     continuation
-      (6 + summary + command)
+      (6 + summary + intro + command)
       ~stop:(String.starts_with ~prefix:"     - ")
   in
   let nth n =
     List.nth_opt lines
       (if n = 0 then 0
-       else if n <= 4 then n + summary
-       else if n <= 6 then n + summary + command
-       else n + summary + command + grades)
+       else if n <= 2 then n + summary
+       else if n <= 4 then n + summary + intro
+       else if n <= 6 then n + summary + intro + command
+       else n + summary + intro + command + grades)
+  in
+  let intro_text =
+    String.concat " "
+      (List.filteri
+         (fun i _ -> i >= 2 + summary && i <= 2 + summary + intro)
+         (List.mapi
+            (fun i line -> if i = 2 + summary then line else String.trim line)
+            lines))
   in
   (match nth 0 with
   | None -> fail "%s: is empty" name
@@ -172,14 +207,14 @@ let check_header name path =
           | _ -> fail "%s: expected a blank line after the summary line" name)));
   match nth 2 with
   | None -> fail "%s: is missing the run command" name
-  | Some line3 -> (
-      match grade_of_intro line3 with
+  | Some _ -> (
+      match grade_of_intro intro_text with
       | None ->
           fail
             "%s: expected \"   Run this example with the '<grade>' grade \
              algebra, e.g.\" after the summary"
             name
-      | Some grade ->
+      | Some (grade, resources) ->
           (match nth 3 with
           | Some "" -> ()
           | _ ->
@@ -188,13 +223,17 @@ let check_header name path =
                 name);
           let found_command =
             List.filteri
-              (fun i _ -> i >= 4 + summary && i < 5 + summary + command)
+              (fun i _ ->
+                i >= 4 + summary + intro && i < 5 + summary + intro + command)
               lines
           in
           let options =
             List.map
-              (fun p -> "--package " ^ p)
-              (option_values "--package" found_command)
+              (fun r -> "--resource-grades " ^ r)
+              (Option.to_list resources)
+            @ List.map
+                (fun p -> "--package " ^ p)
+                (option_values "--package" found_command)
             @ List.map
                 (fun b -> "--board " ^ b)
                 (option_values "--board" found_command)

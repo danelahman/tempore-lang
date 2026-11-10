@@ -17,7 +17,12 @@ module type PROGRAMS = sig
       for each command of [source], after the standard library. *)
 end
 
-val programs_of : ?lattice:Grades.GradeLattice.t -> string -> (module PROGRAMS)
-(** [programs_of ?lattice grades] is the programs of the grades named [grades],
-    over the grade lattice [lattice] if given, the standard library loaded once.
-*)
+val programs_of :
+  ?lattice:Grades.GradeLattice.t ->
+  ?resources:string ->
+  string ->
+  (module PROGRAMS)
+(** [programs_of ?lattice ?resources grades] is the programs of the grade system
+    of the effect grades named [grades] and the resource grades named
+    [resources] ({!TestPrograms.grade_system}), over the grade lattice [lattice]
+    if given, the standard library loaded once. *)

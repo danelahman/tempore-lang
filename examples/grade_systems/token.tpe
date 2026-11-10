@@ -1,0 +1,87 @@
+(* An access token boxed to be used for less than a minute, the downloads in windows.
+
+   Run this example with the 'time-interval-rational' effect and the
+   'time-upper-bound-rational' resource grade algebras, e.g.
+
+     ./tempore --grades time-interval-rational \
+       --resource-grades time-upper-bound-rational \
+       examples/grade_systems/token.tpe
+
+   Grades [q, r] of effects, [0, r] of boxes: q to r, at most r seconds
+     - Unit [0, 0] and 0: no time spent
+     - Top [0, ∞) and ∞: no bound
+     - Product: addition of the ends, and of the bounds, open if one is *)
+
+(* Effects are graded by intervals of seconds and resources by upper bounds:
+   the box of a token says until when it may be used, and a function's effect
+   when it may end. The resource grade of an effect '[q, r]' is its upper end
+   '[0, r]', so a box is unboxed while the time since boxing is certain to be
+   within its grade. *)
+
+type token = Token of nat
+type file = File of string
+
+(* A token is valid for less than 60 seconds from its authentication, the
+   resource grade '[0, 60)' of the result of 'Authenticate'. *)
+operation Authenticate :  unit ~> [[0, 60)]token ! [1/2, 2]
+operation Download     : token ~> file ! [10, 45]
+
+default Authenticate () = delay 1; box [0, 60) (Token 7)
+default Download t = delay 20; File "archive"
+
+(* Correctly accepted by the typechecker: two downloads, one second apart, with
+   one token; the second unbox follows the first download and the pause, which
+   take 11 to 46 seconds, the resource grade '[0, 46]' within '[0, 60)'. The
+   whole mirror ends within 21.5 to 93 seconds, the window of its effect. *)
+let mirror () : file * file ! [21.5, 93] =
+  let t = perform Authenticate () in
+  unbox t as token in
+  let a = perform Download token in
+  delay 1;
+  unbox t as token in
+  let b = perform Download token in
+  (a, b)
+
+(* Correctly rejected by the typechecker: a third download with the same token
+   may start 92 seconds after the authentication, when the token may have
+   expired:
+
+     Typing error: Variable `t` is unboxed with grade `92` accumulated since
+       it was bound, which is not below its box grade `[0, 60)`
+       ...
+       Note: the resource inequality `92 <= [0, 60)` does not hold
+*)
+(*
+let mirror_thrice () =
+  let t = perform Authenticate () in
+  unbox t as token in
+  let a = perform Download token in
+  delay 1;
+  unbox t as token in
+  let b = perform Download token in
+  delay 1;
+  unbox t as token in
+  let c = perform Download token in
+  (a, b, c)
+*)
+
+(* Correctly rejected by the typechecker: the resource grades keep only the
+   upper end of an effect, but the effect of a function is still checked
+   against both ends of its window, here an upper end too early:
+
+     Typing error: This function's body has grade `[21.5, 93]`, which does
+       not match its annotated grade `[21.5, 90]`
+       Note: the effect inequality `[21.5, 93] <= [21.5, 90]` does not hold
+*)
+(*
+let mirror_quickly () : file * file ! [21.5, 90] =
+  let t = perform Authenticate () in
+  unbox t as token in
+  let a = perform Download token in
+  delay 1;
+  unbox t as token in
+  let b = perform Download token in
+  (a, b)
+*)
+
+run mirror ()

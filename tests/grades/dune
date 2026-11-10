@@ -5,7 +5,8 @@
 ; expressions with the regular trace languages over rational delays, and the
 ; regex grades with banked delays over rational delays with their closures; the
 ; sets of delays against an implementation by lists of intervals; the laws of
-; every registered grade, on samples, by the checks the tests share; the
+; every registered grade and of the morphism of every registered grade system,
+; on samples, by the checks the tests share; the
 ; inter-arrival grade against concrete computations; the grades with
 ; banked delays against their translations into the timed regex grades; and
 ; the run consistency of the intervals of the timed regex grades against the

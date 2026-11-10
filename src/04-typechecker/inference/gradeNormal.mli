@@ -164,9 +164,9 @@ module Make (X : GradeExp.S) : sig
     (** [canon_orderings bounds os] is every ordering of [os] {!split}, in
         order. *)
 
-    val value : exp -> const option
-    (** [value e] is the grade a variable-free [e] evaluates to, and [None] when
-        [e] has a variable. *)
+    val value : Grades.Grade.bounds -> exp -> const option
+    (** [value bounds e] is the grade a variable-free [e] evaluates to under the
+        running times [bounds], and [None] when [e] has a variable. *)
 
     val is_atom : exp -> bool
     (** [is_atom e] is whether [e] is a single atom of {!decide_leq}: a

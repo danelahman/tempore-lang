@@ -30,7 +30,7 @@ struct
      construct declares, where there is one. *)
   let lock_grade p (e : C.rho Reason.lock) =
     let grade = X.Rho.subst p.values e.grade in
-    match (X.Rho.value (canon_rho p grade), e.declared) with
+    match (X.Rho.value p.bounds (canon_rho p grade), e.declared) with
     | None, Some declared -> declared
     | Some _, _ | None, None -> grade
 

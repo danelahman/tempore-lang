@@ -132,9 +132,9 @@ module type S = sig
     val join : t -> t -> t
     (** [join rho rho'] is the join [rho ⊔ rho']. *)
 
-    val map : eps -> t
-    (** [map eps] is the image [∣eps∣]; the image of a constant is the constant
-        {!GS.map} gives. *)
+    val map : Grades.Grade.bounds -> eps -> t
+    (** [map bounds eps] is the image [∣eps∣]; the image of a constant is the
+        constant {!GS.map} gives under the running times [bounds]. *)
 
     val free_rho_vars : t -> Rho_var.Set.t
     (** [free_rho_vars rho] is the set of resource variables of [rho]. *)
@@ -167,9 +167,10 @@ module type S = sig
     (** [constants rho] is the constants of [rho] of either sort, those of the
         effect sort under images, each occurrence once, from left to right. *)
 
-    val value : t -> GS.R.t option
-    (** [value rho] is the grade a variable-free [rho] evaluates to, an image
-        through {!GS.map}, and [None] when [rho] has a variable. *)
+    val value : Grades.Grade.bounds -> t -> GS.R.t option
+    (** [value bounds rho] is the grade a variable-free [rho] evaluates to, an
+        image through {!GS.map} under the running times [bounds], and [None]
+        when [rho] has a variable. *)
 
     val equal : Grades.Grade.bounds -> t -> t -> bool
     (** [equal bounds rho rho'] is syntactic equality, constants compared by the

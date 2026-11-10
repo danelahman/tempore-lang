@@ -1,6 +1,6 @@
 (* Named checks and the laws of the grades, of their declared flags, of
-   semilattices and of the actions of semidirect products, on samples, shared
-   by the unit tests of the grades. *)
+   semilattices, of the actions of semidirect products and of the morphisms of
+   grade systems, on samples, shared by the unit tests of the grades. *)
 
 module Grade = Grades.Grade
 
@@ -833,3 +833,55 @@ let semidirect_laws (type m n) (module G : Grade.S with type t = m * n)
         G.equal bounds (G.mul x y) (a.mul m m', a.join_n n (a.act m n')))
       (pairs samples);
   ]
+
+(* The laws of the morphism [∣_∣] of the grade system [GS]. *)
+module Morphism (GS : Grades.GradeSystem.S) = struct
+  (* [laws ~context bounds samples] checks, up to equality under [bounds],
+     that [GS.map bounds] is a morphism of grade algebras on the effect grades
+     [samples] inhabited under [bounds]: monotone, preserving the unit, the
+     product, the top, joins and the sample delays, and, where the system
+     declares it, reflecting the order at the unit. *)
+  let laws ~context bounds samples =
+    let samples = List.filter (GS.E.inhabited bounds) samples in
+    let name law = GS.E.name ^ " to " ^ GS.R.name ^ ": " ^ law in
+    let map = GS.map bounds in
+    let equal = GS.R.equal bounds in
+    let show1 x = GS.E.show x ^ " to " ^ GS.R.show (map x) ^ " at " ^ context in
+    let show2 (x, y) = GS.E.show x ^ ", " ^ GS.E.show y ^ " at " ^ context in
+    [
+      check (name "unit")
+        (equal (map GS.E.one) GS.R.one)
+        (GS.R.show (map GS.E.one));
+      check (name "top")
+        (equal (map GS.E.top) GS.R.top)
+        (GS.R.show (map GS.E.top));
+      all (name "monotone") show2
+        (fun (x, y) ->
+          implies (GS.E.leq bounds x y) (GS.R.leq bounds (map x) (map y)))
+        (pairs samples);
+      all (name "product") show2
+        (fun (x, y) -> equal (map (GS.E.mul x y)) (GS.R.mul (map x) (map y)))
+        (pairs samples);
+      all (name "join") show2
+        (fun (x, y) -> equal (map (GS.E.join x y)) (GS.R.join (map x) (map y)))
+        (pairs samples);
+      all (name "delays") show_lit
+        (fun lit ->
+          match (GS.E.Delay.read lit, GS.R.Delay.read lit) with
+          | Some d, Some _ -> equal (map (GS.E.of_delay d)) (GS.R.of_delay d)
+          | None, None -> true
+          | Some _, None | None, Some _ -> false)
+        delay_lits;
+    ]
+    @
+    if GS.unit_reflecting then
+      [
+        all (name "unit reflecting") show1
+          (fun x ->
+            implies
+              (GS.R.leq bounds (map x) GS.R.one)
+              (GS.E.leq bounds x GS.E.one))
+          samples;
+      ]
+    else []
+end

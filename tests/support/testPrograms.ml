@@ -14,6 +14,23 @@ let grade_module ?lattice name =
   | Some g, _ | None, Some g -> g
   | None, None -> failwith ("unknown grade algebra " ^ name)
 
+let grade_system ?lattice ?resources name =
+  match resources with
+  | Some resources when not (String.equal resources name) -> (
+      match Grades.GradeSystemRegistry.find ~effects:name ~resources with
+      | Some system -> system
+      | None ->
+          failwith
+            ("no grade system of the grade algebras " ^ name ^ " and "
+           ^ resources))
+  | Some _ | None ->
+      let (module G) = grade_module ?lattice name in
+      (module Grades.GradeSystem.Declaring
+                (struct
+                  let lattice = lattice
+                end)
+                (G) : Grades.GradeSystem.S)
+
 let lattice_of_file path =
   let text = In_channel.with_open_text path In_channel.input_all in
   match Parser.LatticeDeclaration.scan ~filename:path text with

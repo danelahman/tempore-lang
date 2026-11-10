@@ -33,14 +33,14 @@ module type BASE = sig
 
   (* The unit is below the variable atom by the other sort's leastness. *)
   val unit_below_var : var -> bool
-  val fold_exp : (const, var, 's) algebra -> exp -> 's
+  val fold_exp : Grades.Grade.bounds -> (const, var, 's) algebra -> exp -> 's
   val exp_of_atom : (const, var) atom -> exp
   val exp_mul : exp -> exp -> exp
   val exp_join : exp -> exp -> exp
 
   (* The atom a side of a hypothesis is, if it is one. *)
   val as_atom : exp -> (const, var) atom option
-  val value : exp -> const option
+  val value : Grades.Grade.bounds -> exp -> const option
   val equal_exp : Grades.Grade.bounds -> exp -> exp -> bool
 end
 
@@ -218,7 +218,7 @@ module Core (S : BASE) = struct
      flattened in time linear in its size. *)
   let flat bounds e =
     List.map to_list
-      (S.fold_exp
+      (S.fold_exp bounds
          {
            const = (fun c -> [ of_list (cons bounds (Const c) []) ]);
            var = (fun v -> [ of_list [ Var v ] ]);
@@ -862,7 +862,7 @@ module Core (S : BASE) = struct
   let is_atom e = Option.is_some (S.as_atom e)
 
   let closed_leq bounds e e' =
-    match (S.value e, S.value e') with
+    match (S.value bounds e, S.value bounds e') with
     | Some c, Some c' -> Some (S.leq bounds c c')
     | _ -> None
 
@@ -914,8 +914,8 @@ module Core (S : BASE) = struct
     | Shape_mul of shape * shape
     | Shape_join of shape * shape
 
-  let shape =
-    S.fold_exp
+  let shape bounds =
+    S.fold_exp bounds
       {
         const = (fun _ -> Shape_const);
         var = (fun v -> Shape_var v);
@@ -953,7 +953,7 @@ module Core (S : BASE) = struct
   (* The number of an expression equal to [e], if one is numbered. *)
   let number_of bounds numbering e =
     Option.bind
-      (Shape_map.find_opt (shape e) numbering.by_shape)
+      (Shape_map.find_opt (shape bounds e) numbering.by_shape)
       (fun es ->
         List.find_map
           (fun (e', i) -> if S.equal_exp bounds e e' then Some i else None)
@@ -967,7 +967,7 @@ module Core (S : BASE) = struct
         {
           count = numbering.count + 1;
           by_shape =
-            Shape_map.update (shape e)
+            Shape_map.update (shape bounds e)
               (fun es ->
                 Some ((e, numbering.count) :: Option.value es ~default:[]))
               numbering.by_shape;
@@ -986,7 +986,7 @@ module Core (S : BASE) = struct
     let starts =
       Array.to_seqi vertices
       |> Seq.filter_map (fun (i, e) ->
-          match S.value e with
+          match S.value bounds e with
           | Some c when S.leq bounds S.one c -> Some i
           | Some _ | None -> None)
       |> List.of_seq
@@ -1142,7 +1142,8 @@ module Core (S : BASE) = struct
     let { vertices; graph; _ } = graph ~factors bounds orderings in
     let closed =
       Array.to_seqi vertices
-      |> Seq.filter_map (fun (i, e) -> Option.map (fun c -> (i, c)) (S.value e))
+      |> Seq.filter_map (fun (i, e) ->
+          Option.map (fun c -> (i, c)) (S.value bounds e))
       |> List.of_seq
     in
     List.find_map
@@ -1234,7 +1235,7 @@ module Make (X : GradeExp.S) = struct
     val canon_orderings :
       Grades.Grade.bounds -> (exp, 'a) ordering list -> (exp, 'a) ordering list
 
-    val value : exp -> const option
+    val value : Grades.Grade.bounds -> exp -> const option
     val is_atom : exp -> bool
     val closed_leq : Grades.Grade.bounds -> exp -> exp -> bool option
 
@@ -1264,12 +1265,13 @@ module Make (X : GradeExp.S) = struct
     let commutative = E.commutative
     let unit_below_var _ = false
 
-    let rec fold_exp alg = function
+    let rec fold_exp bounds alg = function
       | X.Eps_var v -> alg.var v
       | X.Eps_const c -> alg.const c
-      | X.Eps_mul (eps, eps') -> alg.mul (fold_exp alg eps) (fold_exp alg eps')
+      | X.Eps_mul (eps, eps') ->
+          alg.mul (fold_exp bounds alg eps) (fold_exp bounds alg eps')
       | X.Eps_join (eps, eps') ->
-          alg.join (fold_exp alg eps) (fold_exp alg eps')
+          alg.join (fold_exp bounds alg eps) (fold_exp bounds alg eps')
 
     let exp_of_atom = function Const c -> X.Eps_const c | Var v -> X.Eps_var v
     let exp_mul = X.Eps.mul
@@ -1280,7 +1282,7 @@ module Make (X : GradeExp.S) = struct
       | X.Eps_const c -> Some (Const c)
       | X.Eps_mul _ | X.Eps_join _ -> None
 
-    let value = X.Eps.value
+    let value _bounds = X.Eps.value
     let equal_exp = X.Eps.equal
   end
 
@@ -1311,17 +1313,18 @@ module Make (X : GradeExp.S) = struct
       | Resource _ -> false
 
     (* The image of an effect expression is folded through its constants'
-       images and its variables' images. *)
-    let rec fold_exp alg = function
+       images under the running times [bounds] and its variables' images. *)
+    let rec fold_exp bounds alg = function
       | X.Rho_var v -> alg.var (Resource v)
       | X.Rho_const c -> alg.const c
-      | X.Rho_mul (rho, rho') -> alg.mul (fold_exp alg rho) (fold_exp alg rho')
+      | X.Rho_mul (rho, rho') ->
+          alg.mul (fold_exp bounds alg rho) (fold_exp bounds alg rho')
       | X.Rho_join (rho, rho') ->
-          alg.join (fold_exp alg rho) (fold_exp alg rho')
+          alg.join (fold_exp bounds alg rho) (fold_exp bounds alg rho')
       | X.Rho_map eps ->
-          Eps_base.fold_exp
+          Eps_base.fold_exp bounds
             {
-              const = (fun c -> alg.const (X.GS.map c));
+              const = (fun c -> alg.const (X.GS.map bounds c));
               var = (fun v -> alg.var (Image v));
               mul = alg.mul;
               join = alg.join;
@@ -1380,9 +1383,9 @@ module Make (X : GradeExp.S) = struct
   module Rho = struct
     include Rho_core
 
-    (* The image of an effect atom. *)
-    let image = function
-      | Const c -> Const (X.GS.map c)
+    (* The image of an effect atom under the running times [bounds]. *)
+    let image bounds = function
+      | Const c -> Const (X.GS.map bounds c)
       | Var v -> Var (Image v)
 
     (* The resource hypotheses and the images of the edges between atoms of
@@ -1391,34 +1394,36 @@ module Make (X : GradeExp.S) = struct
       let images =
         List.map
           (fun (a, b, used) ->
-            ( Rho_base.exp_of_atom (image a),
-              Rho_base.exp_of_atom (image b),
+            ( Rho_base.exp_of_atom (image bounds a),
+              Rho_base.exp_of_atom (image bounds b),
               used ))
           (Eps_core.chain_edges bounds hyps.eps_hyps)
       in
       decide_graph bounds ~extra:images hyps.rho_hyps
 
-    let image_edges edges =
-      List.map (fun (a, b, used) -> (image a, image b, used)) edges
+    let image_edges bounds edges =
+      List.map
+        (fun (a, b, used) -> (image bounds a, image bounds b, used))
+        edges
 
     (* The resource hypotheses between atoms and the images of the effect
        ones. *)
     let decide_leq_atomic bounds hyps =
       decide bounds
         (atomic_edges hyps.rho_hyps
-        @ image_edges (Eps_core.atomic_edges hyps.eps_hyps))
+        @ image_edges bounds (Eps_core.atomic_edges hyps.eps_hyps))
 
     (* The edges between atoms of the resource orderings of each variable
        atom whose source, or target, it is, with the images of those of the
        effect orderings of the variable of an image, and of all orderings. *)
-    let adjacency index =
+    let adjacency bounds index =
       let at pick v =
         let edges =
           match v with
           | Resource r -> atomic_edges (index.rho_of r)
           | Image e ->
               atomic_edges (index.rho_of_image e)
-              @ image_edges (Eps_core.atomic_edges (index.eps_of e))
+              @ image_edges bounds (Eps_core.atomic_edges (index.eps_of e))
         in
         List.filter (fun edge -> equal_atom_var (pick edge) v) edges
       in
@@ -1429,11 +1434,11 @@ module Make (X : GradeExp.S) = struct
           lazy
             (let hyps = Lazy.force index.hyps in
              atomic_edges hyps.rho_hyps
-             @ image_edges (Eps_core.atomic_edges hyps.eps_hyps));
+             @ image_edges bounds (Eps_core.atomic_edges hyps.eps_hyps));
       }
 
     let decide_leq_atomic_indexed bounds index =
-      decide_adjacent bounds (adjacency index)
+      decide_adjacent bounds (adjacency bounds index)
   end
 
   type 'a closed_failure =

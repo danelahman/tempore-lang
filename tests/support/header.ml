@@ -29,8 +29,11 @@ let grades path =
   | name :: _ -> name
   | [] -> Grades.GradeRegistry.default_name
 
+let resource_grades path = List.nth_opt (options path "--resource-grades") 0
+
 let run_options path =
   let all option = List.concat_map (fun v -> [ option; v ]) in
   [ "--grades"; grades path ]
+  @ all "--resource-grades" (Option.to_list (resource_grades path))
   @ all "--package" (options path "--package")
   @ all "--board" (options path "--board")

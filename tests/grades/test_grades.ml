@@ -3,8 +3,9 @@
    the interpretation of literals by the grades of
    [GradeRegistry.grade_modules], the laws and the declared flags of these
    grades on samples of each family of grades, the laws of the components and
-   actions of the semidirect products, and the laws of the finite grades on
-   all their elements. *)
+   actions of the semidirect products, the laws of the finite grades on all
+   their elements, and the laws of the morphisms of the registered grade
+   systems. *)
 
 module Grade = Grades.Grade
 module TimeGrades = Grades.TimeGrades
@@ -2785,6 +2786,74 @@ let fractional_laws =
       rational_banked_traces_interval;
     ]
 
+(* The running times of the operations [A], [B] and [C], whole and other than
+   those of [running_times]. *)
+let other_running_times =
+  let table = [ ("A", (2, 4)); ("B", (0, 1)); ("C", (3, 3)) ] in
+  {
+    Grade.running_time =
+      (fun o ->
+        let lo, hi = List.assoc o table in
+        (Grade.Closed (Rational.of_int lo), Grade.Closed (Rational.of_int hi)));
+    operations = List.map fst table;
+  }
+
+(* The laws of the morphisms of the registered grade systems on the samples of
+   their effect grades, under the running times [running_times] and
+   [other_running_times], and, over rational delays, also
+   [fractional_running_times]; and the failures of the reflection of the order
+   at the unit of the systems that do not declare it. *)
+let system_laws =
+  let rational name = String.ends_with ~suffix:"-rational" name in
+  List.concat_map
+    (fun (e : Grades.GradeSystemRegistry.entry) ->
+      let (module GS) = e.system in
+      let module M = Morphism (GS) in
+      let samples = samples (module GS.E) (Option.get (family GS.E.name)) in
+      List.concat_map
+        (fun (context, bounds) -> M.laws ~context bounds samples)
+        ([
+           ("A:(1, 3), B:(2, 2), C:(0, 5)", running_times);
+           ("A:[2, 4], B:[0, 1], C:[3, 3]", other_running_times);
+         ]
+        @
+        if rational GS.E.name then
+          [
+            ("A:[1/2, 3/2], B:[2/3, 2/3], C:[0, 5/2]", fractional_running_times);
+          ]
+        else []))
+    Grades.GradeSystemRegistry.systems
+  @
+  let not_reflecting (module GS : Grades.GradeSystem.S) lit =
+    let e = GS.E.of_lit lit in
+    let image = GS.map running_times e in
+    check
+      (GS.E.name ^ " to " ^ GS.R.name ^ ": not unit reflecting")
+      ((not GS.unit_reflecting)
+      && GS.R.leq running_times image GS.R.one
+      && not (GS.E.leq running_times e GS.E.one))
+      (GS.E.show e ^ " to " ^ GS.R.show image)
+  in
+  let find effects resources =
+    Option.get (Grades.GradeSystemRegistry.find ~effects ~resources)
+  in
+  [
+    not_reflecting
+      (find "time-interval" "time-lower-bound")
+      (closed (Grade.Int 0) (Grade.Int 5));
+    not_reflecting
+      (find "time-interval-rational" "time-lower-bound-rational")
+      (closed (Grade.Int 0) (Grade.Int 5));
+    not_reflecting
+      (find "timed-regex-interval" "time-interval")
+      (Grade.Interval
+         (Grade.Closed Grade.Top, Grade.Closed (Grade.Braces Grade.Skip)));
+    not_reflecting
+      (find "timed-regex-interval-rational" "time-interval-rational")
+      (Grade.Interval
+         (Grade.Closed Grade.Top, Grade.Closed (Grade.Braces Grade.Skip)));
+  ]
+
 (* The trace grades without running times: inclusion of the normal forms,
    ignoring the running-time bounds of [running_times], a counterexample to
    every failure, and the laws under [fractional_running_times]. *)
@@ -4480,6 +4549,7 @@ let () =
     @ declared_lattice_laws @ declared_lattice_structure @ ranges @ flow_tops
     @ duration_bounds @ mode_time_laws @ timed_regex_laws @ timed_regex_overflow
     @ timed_regex_star @ timed_regex_star_reference @ energy_products
+    @ system_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

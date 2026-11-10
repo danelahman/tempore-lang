@@ -32,26 +32,62 @@
     in
     Handler (ret, List.map op_case ops)
 
-  (* The hint naming the grades [names]. *)
-  let suggestion names =
+  (* The hint naming the grades [names], each a [kind] grade algebra. *)
+  let suggestion ?(kind = "grade algebra") names =
     let quote name = "`" ^ name ^ "`" in
     match List.rev_map quote names with
     | [] -> ""
-    | [ name ] -> "; did you mean to use the " ^ name ^ " grade algebra?"
+    | [ name ] -> "; did you mean to use the " ^ name ^ " " ^ kind ^ "?"
     | last :: rest ->
         "; did you mean to use one of the "
         ^ String.concat ", " (List.rev rest)
-        ^ " or " ^ last ^ " grade algebras?"
+        ^ " or " ^ last ^ " " ^ kind ^ "s?"
 
-  (* [grade ~loc name of_lit lit] is the grade [of_lit] reads the literal [lit]
-     as. A rejection, the usual symptom of running a file under the wrong
-     grades, is a syntax error at [loc] naming the grade [name]; an error
-     raised without a location while reading it is pinned to [loc]. *)
-  let grade ~loc name of_lit lit =
+  (* Whether the grade system grades effects and resources alike. *)
+  let identity = String.equal GS.R.name GS.E.name
+
+  (* The sorts of grade literals. *)
+  type sort = Resource | Effect
+
+  (* The grade algebra of the literals of [sort], named in diagnostics: under
+     an identity grade system "grade algebra", and otherwise "resource grade
+     algebra" or "effect grade algebra". *)
+  let kind = function
+    | _ when identity -> "grade algebra"
+    | Resource -> "resource grade algebra"
+    | Effect -> "effect grade algebra"
+
+  (* The grades a rejected literal [lit] of [sort] might have been meant for:
+     under an identity grade system, the grade algebras that read it; and
+     otherwise those that read it among the grade algebras of [sort] of the
+     grade systems that share the grade algebra of the other sort, that
+     algebra itself included. *)
+  let meant sort lit =
+    let reading names =
+      List.filter
+        (fun name ->
+          match List.assoc_opt name Grades.GradeRegistry.grade_modules with
+          | Some (module G : Grade.S) -> G.accepts lit
+          | None -> false)
+        names
+    in
+    match sort with
+    | _ when identity -> Grades.GradeRegistry.accepting ?lattice:GS.lattice lit
+    | Resource ->
+        reading (GS.E.name :: Grades.GradeSystemRegistry.resources_of GS.E.name)
+    | Effect ->
+        reading (GS.R.name :: Grades.GradeSystemRegistry.effects_of GS.R.name)
+
+  (* [grade ~loc sort name of_lit lit] is the grade [of_lit] reads the literal
+     [lit] of [sort] as. A rejection, the usual symptom of running a file
+     under the wrong grades, is a syntax error at [loc] naming the grade
+     [name]; an error raised without a location while reading it is pinned to
+     [loc]. *)
+  let grade ~loc sort name of_lit lit =
     try of_lit lit with
     | Grade.Invalid_literal (lit, reason) ->
-      Error.syntax ~loc "In the `%s` grade algebra, %s%s" name reason
-        (suggestion (Grades.GradeRegistry.accepting ?lattice:GS.lattice lit))
+      Error.syntax ~loc "In the `%s` %s, %s%s" name (kind sort) reason
+        (suggestion ~kind:(kind sort) (meant sort lit))
     | Error.Error ({ Diagnostic.primary = None; _ } as d) ->
       raise (Error.Error { d with Diagnostic.primary = Some loc })
 
@@ -798,7 +834,7 @@ running_time_bound:
 rho_grade:
   | lit = grade_lit
     { let at = location $loc in
-      { it = GradeLit (grade ~loc:at GS.R.name GS.R.of_lit lit); at } }
+      { it = GradeLit (grade ~loc:at Resource GS.R.name GS.R.of_lit lit); at } }
   | p = PARAM
     { { it = GradeParam p; at = location $loc } }
 
@@ -807,7 +843,7 @@ rho_grade:
 eps_grade:
   | lit = grade_lit
     { let at = location $loc in
-      { it = GradeLit (grade ~loc:at GS.E.name GS.E.of_lit lit); at } }
+      { it = GradeLit (grade ~loc:at Effect GS.E.name GS.E.of_lit lit); at } }
   | p = PARAM
     { { it = GradeParam p; at = location $loc } }
 

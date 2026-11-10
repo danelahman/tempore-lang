@@ -15,6 +15,22 @@
     of the delays are, the rigid and the constants ranging over grades with open
     or closed ends. *)
 
+(** A time grade read off an interval of durations. *)
+module type DURATIONS = sig
+  include Grade.S
+
+  val of_durations : Rational.t Grade.bound * Rational.t Grade.bound -> t
+  (** [of_durations (lo, hi)] is the least grade admitting every duration of the
+      interval from [lo] to [hi], each end closed or open, [hi] possibly
+      infinite and [lo] finite, its ends read as delays: for the lower bounds
+      that of [lo], for the upper bounds that of [hi], and for the intervals
+      both, an open end kept open over dense delays and replaced by the closed
+      one next to it over whole time steps.
+
+      Raises [Invalid_argument] if [lo] is infinite or a finite end is not a
+      delay. *)
+end
+
 (** The presentation of the time grades over a kind of delays. *)
 module type NAMES = sig
   type delay
@@ -35,14 +51,14 @@ end
 (** The time grades over the delays [D], named by [N]. A negative literal is
     rejected as such where its absolute value is a delay. *)
 module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) : sig
-  module LowerBound : Grade.S with type Delay.t = D.t
+  module LowerBound : DURATIONS with type Delay.t = D.t
   (** Lower bounds, ["time-lower-bound" ^ N.suffix]: [n] and [\[n, ∞)] are "at
       least [n]", [(n, ∞)] "more than [n]"; ordered by the inclusion of the
       durations they admit, so the unit [0] is the top. The product adds the
       bounds, the sum being open iff a summand is, and the join is the weaker
       bound. A closed bound is printed as [n], an open one as [(n, ∞)]. *)
 
-  module UpperBound : Grade.S with type Delay.t = D.t
+  module UpperBound : DURATIONS with type Delay.t = D.t
   (** Upper bounds, ["time-upper-bound" ^ N.suffix]: [n] and [[0, n]] are "at
       most [n]", [\[0, n)] "less than [n]" for a positive [n], and [∞] and
       [\[0, ∞)] impose no bound; ordered by the inclusion of the durations they
@@ -51,7 +67,7 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) : sig
       bound. A closed bound is printed as [n] or [∞], an open one as [\[0, n)].
   *)
 
-  module Interval : Grade.S with type Delay.t = D.t
+  module Interval : DURATIONS with type Delay.t = D.t
   (** Intervals, ["time-interval" ^ N.suffix]: [[n, m]] is "between [n] and
       [m]", [(n, m)] "strictly between [n] and [m]", and [\[n, ∞)] imposes no
       upper bound; the non-empty intervals, ordered by containment, with unit
@@ -65,18 +81,18 @@ end
     The durations are the natural numbers of time steps, written as integers,
     and so are the delays: {!Make} over {!Delay.Nat}. *)
 
-module LowerBound : Grade.S with type Delay.t = Delay.Nat.t
+module LowerBound : DURATIONS with type Delay.t = Delay.Nat.t
 (** Lower bounds, ["time-lower-bound"]: [n] is "at least [n] time steps",
     ordered by [≥], so the unit [0] is the top. An open end abbreviates a closed
     one, [(n, ∞)] being [n + 1], and a grade is printed closed. *)
 
-module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
+module UpperBound : DURATIONS with type Delay.t = Delay.Nat.t
 (** Upper bounds, ["time-upper-bound"]: [n] is "at most [n] time steps", with
     [∞] imposing no bound, ordered by [≤]; [∞] is the top. An open end
     abbreviates a closed one, [\[0, n)] being [n - 1] for a positive [n], and a
     grade is printed closed. *)
 
-module Interval : Grade.S with type Delay.t = Delay.Nat.t
+module Interval : DURATIONS with type Delay.t = Delay.Nat.t
 (** Intervals, ["time-interval"]: [[n, m]] is "between [n] and [m] time steps",
     and [\[n, ∞)] imposes no upper bound; ordered by containment, with top
     [\[0, ∞)]. An open endpoint abbreviates a closed one, [(n, m)] being

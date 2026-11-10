@@ -68,6 +68,10 @@ module Make (GS : Grades.GradeSystem.S) : sig
   (** [check state cmd] is the state after [cmd], or the diagnostic of its
       rejection and how to go on. *)
 
+  val running_times : state -> Grades.Grade.bounds
+  (** [running_times state] is the running times of the operations the program
+      declares, those of the compound operations declared so far included. *)
+
   val definitions : state -> (Ast.variable * scheme) list
   (** [definitions state] is the primitives and top-level definitions of [state]
       with their schemes, oldest first. *)

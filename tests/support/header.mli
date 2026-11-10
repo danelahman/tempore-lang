@@ -10,6 +10,12 @@ val grades : string -> string
     file at [path], the default grades of the command-line interface if it names
     none. *)
 
+val resource_grades : string -> string option
+(** [resource_grades path] is the resource grades named by
+    [--resource-grades NAME] in the header of the file at [path], if it names
+    any. *)
+
 val run_options : string -> string list
 (** [run_options path] is the options of the run command in the header of the
-    file at [path]: its grades, then its packages, then its board, if any. *)
+    file at [path]: its grades, then its resource grades, then its packages,
+    then its board, if any. *)

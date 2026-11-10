@@ -39,6 +39,8 @@ module Types : sig
     | Unhandled
 end
 
+module Grade = Grades.Grade
+
 (** The interpreter for the grade system [GS]. *)
 module Make (GS : Grades.GradeSystem.S) : sig
   module Grades : module type of struct
@@ -75,17 +77,17 @@ module Make (GS : Grades.GradeSystem.S) : sig
     continuations : Language.Ast.VariableSet.t;
     accumulated : Grades.R.t;
     calls : int;
-    op_signatures : Graded.eps Language.Ast.OpNameMap.t;
+    op_images : Graded.rho Language.Ast.OpNameMap.t;
     op_defaults : Graded.abstraction Language.Ast.OpNameMap.t;
   }
   (** The state holds each resource with the resource grade it was boxed at,
-      interleaved with the resource grades that have passed; operations are
-      graded by effect grades. For the observations of steps ({!observe}):
-      [resource_names] names the resources, [continuations] holds the resources
-      and variables of the continuations of handled operations, [accumulated] is
-      the resource grade accumulated at the top level of the run, and [calls] is
-      the number of calls still running whose default implementation was
-      reached. *)
+      interleaved with the resource grades that have passed; [op_images] holds
+      the resource grade [∣ε∣] of the effect grade [ε] of the signature of each
+      operation. For the observations of steps ({!observe}): [resource_names]
+      names the resources, [continuations] holds the resources and variables of
+      the continuations of handled operations, [accumulated] is the resource
+      grade accumulated at the top level of the run, and [calls] is the number
+      of calls still running whose default implementation was reached. *)
 
   type frame = (Graded.abstraction, Graded.expression) context_frame
 
@@ -131,8 +133,14 @@ module Make (GS : Grades.GradeSystem.S) : sig
       environment of the commands above it. *)
 
   val load_op_sig :
-    load_state -> Language.Ast.OpName.t -> Graded.eps -> load_state
-  (** [load_op_sig state op eps] declares the effect grade of [op]. *)
+    load_state ->
+    Grade.bounds ->
+    Language.Ast.OpName.t ->
+    Graded.eps ->
+    load_state
+  (** [load_op_sig state bounds op eps] declares the effect grade [eps] of [op],
+      recording its resource grade [∣eps∣] under the running times [bounds] of
+      the program. *)
 
   val load_op_default :
     load_state -> Language.Ast.OpName.t -> Graded.abstraction -> load_state

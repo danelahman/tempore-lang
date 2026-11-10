@@ -186,12 +186,14 @@ module Loader (Backend : Backend.S) = struct
     with Grammar.Error ->
       Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Parser error"
 
-  (* The backend loads a command the typechecker has accepted. *)
-  let load_backend backend (cmd : _ Ast.command) =
+  (* The backend loads a command the typechecker has accepted, leaving it in
+     the state [typechecker]. *)
+  let load_backend typechecker backend (cmd : _ Ast.command) =
     match cmd.it with
     | Ast.TyDef (eternality, ty_defs) ->
         Backend.load_ty_def backend (eternality, ty_defs)
-    | Ast.OpSig (op, _, _, eps, _) -> Backend.load_op_sig backend op eps
+    | Ast.OpSig (op, _, _, eps, _) ->
+        Backend.load_op_sig backend (TC.running_times typechecker) op eps
     | Ast.OpDefault (op, abs) -> Backend.load_op_default backend op abs
     | Ast.TopLet (x, expr) -> Backend.load_top_let backend x expr
     | Ast.TopDo comp -> Backend.load_top_do backend comp
@@ -204,7 +206,11 @@ module Loader (Backend : Backend.S) = struct
       match TC.check state.typechecker cmd with
       | Ok typechecker ->
           Ok
-            { state with typechecker; backend = load_backend state.backend cmd }
+            {
+              state with
+              typechecker;
+              backend = load_backend typechecker state.backend cmd;
+            }
       | Error (d, TC.Continue typechecker) ->
           (* The backend is left alone: nothing is run once there are
              errors. *)

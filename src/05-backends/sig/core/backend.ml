@@ -1,5 +1,6 @@
 module Ast = Language.Ast
 module Primitives = Language.Primitives
+module Grade = Grades.Grade
 
 (** What a step of an interpreter run shows of the operations performed, the
     delays and the resources boxed and unboxed, for models of runs. Grades are
@@ -62,7 +63,7 @@ module type S = sig
     continuations : Ast.VariableSet.t;
     accumulated : Grades.R.t;
     calls : int;
-    op_signatures : Ast.Graded(Grades).eps Ast.OpNameMap.t;
+    op_images : Ast.Graded(Grades).rho Ast.OpNameMap.t;
     op_defaults : Ast.Graded(Grades).abstraction Ast.OpNameMap.t;
   }
 
@@ -83,7 +84,11 @@ module type S = sig
   val load_top_do : load_state -> Ast.Graded(Grades).computation -> load_state
 
   val load_op_sig :
-    load_state -> Ast.OpName.t -> Ast.Graded(Grades).eps -> load_state
+    load_state ->
+    Grade.bounds ->
+    Ast.OpName.t ->
+    Ast.Graded(Grades).eps ->
+    load_state
 
   val load_op_default :
     load_state -> Ast.OpName.t -> Ast.Graded(Grades).abstraction -> load_state

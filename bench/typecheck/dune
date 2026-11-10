@@ -5,4 +5,4 @@
 
 (executable
  (name bench_typecheck)
- (libraries testPrograms solvePrograms unix))
+ (libraries testSupport testPrograms solvePrograms unix))

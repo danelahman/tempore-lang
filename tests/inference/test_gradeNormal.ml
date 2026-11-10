@@ -51,7 +51,7 @@ module Suite (G : Grade.S) = struct
   let n k = X.Rho.const (delay k)
   let en k = X.Eps.const (delay k)
   let top = X.Rho.top
-  let map = X.Rho.map
+  let map = X.Rho.map bounds
   let rho_name = GradeExp.Rho_var.string_of
   let eps_name = GradeExp.Eps_var.string_of
   let show_rho = X.Rho.to_string
@@ -78,11 +78,11 @@ module Suite (G : Grade.S) = struct
     [
       expect "value of a closed expression" (show_option G.show)
         ~expected:(Some (G.join (G.mul (delay 2) (delay 3)) (delay 1)))
-        (X.Rho.value ((n 2 * n 3) + n 1));
+        (X.Rho.value bounds ((n 2 * n 3) + n 1));
       expect "value of an open expression" (show_option G.show) ~expected:None
-        (X.Rho.value (x * n 1));
+        (X.Rho.value bounds (x * n 1));
       check "value of an image"
-        (match X.Rho.value (X.Rho_map (X.Eps.mul (en 1) (en 2))) with
+        (match X.Rho.value bounds (X.Rho_map (X.Eps.mul (en 1) (en 2))) with
         | Some v -> G.equal bounds v (delay 3)
         | None -> false)
         "expected the value 3";

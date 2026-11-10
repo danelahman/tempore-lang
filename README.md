@@ -112,6 +112,9 @@ Command-line options:
 
 - `--grades <grades>` selects the [grade algebra](#grade-algebras) (default
   `time-lower-bound`);
+- `--resource-grades <grades>` selects a resource grade algebra other than that
+  of `--grades`, which then grades the effects alone (see [Grade
+  systems](#grade-systems));
 - `--typecheck-only` typechecks the files without running them;
 - `--no-stdlib` skips importing the standard library;
 - `--debug` also prints the inferred typing context, including the inferred type
@@ -255,6 +258,9 @@ ordered monoid, chosen at run time with the `--grades` option or the **Grade
 algebra** selector in the web interface, e.g.,
 
     ./tempore --grades time-interval examples/time/intervals.tpe
+
+Effects and resources may also be graded by two grade algebras (see [Grade
+systems](#grade-systems)).
 
 ### Grade literals
 
@@ -1476,6 +1482,62 @@ Unlike `at-most-counts`, which bounds the numbers of calls from above,
 after the occurrences. See
 [`examples/opentrons/binding.tpe`](examples/opentrons/binding.tpe) and
 [`examples/arduino/steps/steps.tpe`](examples/arduino/steps/steps.tpe).
+
+### Grade systems
+
+A grade system grades effects by one grade algebra and resources by another,
+with a morphism `∣_∣` from the former to the latter: it is monotone and
+preserves the unit, products, the top, joins and delays. A continuation is
+behind a lock of the resource grade `∣ε∣` of the effect `ε` before it, and an
+`unbox` compares the accumulated resource grade with the box grade. Under
+`--grades` alone, one grade algebra grades both, `∣ε∣` being `ε`.
+
+`--grades` names the effect grade algebra and `--resource-grades` the resource
+grade algebra:
+
+    ./tempore --grades time-interval --resource-grades time-lower-bound \
+      examples/grade_systems/proofing.tpe
+
+| `--grades` | `--resource-grades` | `∣ε∣` |
+| --- | --- | --- |
+| `time-interval` | `time-lower-bound` | `∣[d, a]∣ = [d, ∞)` |
+| `time-interval` | `time-upper-bound` | `∣[d, a]∣ = [0, a]` |
+| `timed-regex-interval`, `timed-regex-finite-interval` | `time-interval` | the least interval containing the durations of the runs of `ε` |
+
+Each system also exists over rational delays, both names ending in
+`-rational`. An end keeps its openness, and in the timed regex grades an
+operation takes its running time. A pair without a system is refused, naming
+the resource grade algebras of the effect grade algebra.
+
+The literals of boxes `box ρ e` and of box types `[ρ]a` are read by the
+resource grade algebra, and those of effects `! ε`, operation signatures
+included, by the effect grade algebra. Diagnostics, timelines and resource states print
+each grade in its own algebra. For example, under `time-interval` and
+`time-lower-bound`, the program
+
+```
+type dough = Dough
+
+operation Clean : unit ~> unit ! [20, 30]
+
+let rest d : [45]dough = box 45 d
+
+run
+  let dough = rest Dough in
+  perform Clean ();
+  unbox dough as d in d
+```
+
+is rejected, since cleaning, of effect `[20, 30]` and resource grade `20`, may
+not leave the dough the 45 minutes its box grade demands:
+
+    Variable `dough` is unboxed with grade `20` accumulated since it was
+    bound, which is not below its box grade `45`
+
+A two-sided box grade such as `box [45, 90] d` is a syntax error: ``In the
+`time-lower-bound` resource grade algebra, lower bounds are unbounded above``.
+The web interface uses the identity systems. See
+[`examples/grade_systems/`](examples/grade_systems/).
 
 ## Eternal types
 

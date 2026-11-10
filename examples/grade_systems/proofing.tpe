@@ -1,0 +1,90 @@
+(* A bread dough boxed to rest at least 45 minutes, the bakes in timed windows.
+
+   Run this example with the 'time-interval' effect and the
+   'time-lower-bound' resource grade algebras, e.g.
+
+     ./tempore --grades time-interval \
+       --resource-grades time-lower-bound \
+       examples/grade_systems/proofing.tpe
+
+   Grades [n, m] of effects, n of boxes: n to m, at least n minutes
+     - Unit [0, 0] and 0: no time spent
+     - Top [0, ∞) and 0: no bound
+     - Product: addition of the ends, and of the bounds *)
+
+(* Effects are graded by intervals of minutes and resources by lower bounds:
+   the box of a dough says how long it must rest before it is shaped, and a
+   function's effect when it may end. The resource grade of an effect '[n, m]'
+   is its lower end 'n', so a box is unboxed once the time since boxing is
+   certain to be at least its grade. *)
+
+type dough = Dough
+type loaf = Loaf of dough
+type bread = Bread of loaf
+
+operation Mix   :  unit ~> dough ! [10, 15]
+operation Knead : dough ~> dough ! [8, 12]
+operation Clean :  unit ~>  unit ! [20, 30]
+operation Fill  :  unit ~>  unit ! [25, 40]
+operation Shape : dough ~>  loaf ! [5, 10]
+operation Bake  :  loaf ~> bread ! [30, 35]
+
+default Mix () = delay 12; Dough
+default Knead d = delay 10; d
+default Clean () = delay 25
+default Fill () = delay 30
+default Shape d = delay 7; Loaf d
+default Bake l = delay 32; Bread l
+
+(* Correctly accepted by the typechecker: a dough mixed and kneaded within 18
+   to 27 minutes, the window of its effect, and boxed to rest for at least 45
+   minutes, the resource grade '45' of its type. *)
+let prepare () : [45]dough ! [18, 27] =
+  let d = perform Mix () in
+  let d = perform Knead d in
+  box 45 d
+
+(* Correctly accepted by the typechecker: cleaning and filling take 45 to 70
+   minutes, an effect '[45, 70]' of resource grade '45', so the dough has
+   rested when it is shaped; the whole bake ends within 98 to 142 minutes. *)
+let bake () : bread ! [98, 142] =
+  let dough = prepare () in
+  perform Clean ();
+  perform Fill ();
+  unbox dough as d in
+  let loaf = perform Shape d in
+  perform Bake loaf
+
+(* Correctly rejected by the typechecker: cleaning alone may take only 20
+   minutes, so the dough may not have rested when it is shaped:
+
+     Typing error: Variable `dough` is unboxed with grade `20` accumulated
+       since it was bound, which is not below its box grade `45`
+       ...
+       Note: the resource inequality `20 >= 45` does not hold
+*)
+(*
+let hurried () =
+  let dough = prepare () in
+  perform Clean ();
+  unbox dough as d in
+  let loaf = perform Shape d in
+  perform Bake loaf
+*)
+
+(* Correctly rejected by the typechecker: a dough that must also not rest for
+   more than 90 minutes needs a resource grade with an upper end, which the
+   lower bounds do not have:
+
+     Syntax error: In the `time-lower-bound` resource grade algebra, lower
+       bounds are unbounded above, written `n`, `[n, ∞)` or `(n, ∞)`; did you
+       mean to use the `time-interval` resource grade algebra?
+*)
+(*
+let prepare_within () =
+  let d = perform Mix () in
+  let d = perform Knead d in
+  box [45, 90] d
+*)
+
+run bake ()

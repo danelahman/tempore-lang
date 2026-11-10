@@ -1,0 +1,104 @@
+(* A latte whose steps follow timed protocols, its coffee and milk boxed for windows of seconds.
+
+   Run this example with the 'timed-regex-interval-rational' effect and the
+   'time-interval-rational' resource grade algebras, e.g.
+
+     ./tempore --grades timed-regex-interval-rational \
+       --resource-grades time-interval-rational \
+       examples/grade_systems/latte.tpe
+
+   Grades {...} and [L, U] of effects, [q, r] of boxes: timed protocols, q to
+   r seconds
+     - Unit {skip} and [0, 0]: the empty trace, no time spent
+     - Top {≥0} and [0, ∞): every trace, no bound
+     - Product: concatenation of traces, and addition of the ends *)
+
+(* Effects are graded by timed regex intervals and resources by intervals of
+   seconds: a function's effect says which operations it performs in which
+   order, and a box only when its contents may be used, whatever operations
+   happen meanwhile. The resource grade of an effect is the least interval
+   containing the durations of its runs, each operation taking its running
+   time. *)
+
+type grounds = Grounds
+type puck = Puck of grounds
+type shot = Shot of puck
+type milk = Milk
+type latte = Latte of shot * milk
+
+(* Ground coffee is brewed within a minute of grinding, the resource grade
+   '[0, 60]' of the result of 'Grind'; steamed milk is poured once its foam
+   has settled for 5 seconds and within 45 seconds, the grade '[5, 45]' of the
+   result of 'Steam'. *)
+operation Grind :         unit ~> [[0, 60]]grounds ! {Grind} within [8, 10]
+operation Steam :         unit ~> [[5, 45]]milk    ! {Steam} within [15, 20]
+operation Tamp  :      grounds ~> puck             ! {Tamp}  within [2, 3]
+operation Brew  :         puck ~> shot             ! {Brew}  within [25, 30]
+operation Pour  : shot * milk ~> latte             ! {Pour}  within [3, 5]
+operation Rinse :         unit ~> unit             ! {Rinse} within [5, 10]
+
+default Grind () = delay 9; box [0, 60] Grounds
+default Steam () = delay 18; box [5, 45] Milk
+default Tamp g = delay 2.5; Puck g
+default Brew p = delay 27; Shot p
+default Pour (s, m) = delay 4; Latte (s, m)
+default Rinse () = delay 6
+
+(* Correctly accepted by the typechecker: the latte follows its protocol,
+   grinding, steaming, tamping, brewing and pouring in this order; the coffee
+   is tamped 15 to 20 seconds after grinding, the hull of '{Steam}', within
+   '[0, 60]', and the milk poured 27 to 33 seconds after steaming, the hull of
+   '{Tamp; Brew}', within '[5, 45]'. *)
+let latte () : latte ! {Grind; Steam; Tamp; Brew; Pour} =
+  let coffee = perform Grind () in
+  let foam = perform Steam () in
+  unbox coffee as grounds in
+  let puck = perform Tamp grounds in
+  let shot = perform Brew puck in
+  unbox foam as milk in
+  perform Pour (shot, milk)
+
+(* Correctly rejected by the typechecker: tamping before steaming keeps every
+   window, but breaks the protocol of the effect:
+
+     Typing error: This function's body has grade
+       `{Grind; Tamp; Steam; Brew; Pour}`, which does not match its annotated
+       grade `{Grind; Steam; Tamp; Brew; Pour}`
+       Note: the effect inequality
+         `{Grind; Tamp; Steam; Brew; Pour} <= {Grind; Steam; Tamp; Brew; Pour}`
+         does not hold
+*)
+(*
+let latte_tamped_first () : latte ! {Grind; Steam; Tamp; Brew; Pour} =
+  let coffee = perform Grind () in
+  unbox coffee as grounds in
+  let puck = perform Tamp grounds in
+  let foam = perform Steam () in
+  let shot = perform Brew puck in
+  unbox foam as milk in
+  perform Pour (shot, milk)
+*)
+
+(* Correctly rejected by the typechecker: steaming first and rinsing before
+   pouring may leave the milk standing for 53 seconds, the hull of
+   '{Grind; Tamp; Brew; Rinse}' being '[40, 53]':
+
+     Typing error: Variable `foam` is unboxed with grade `[40, 53]`
+       accumulated since it was bound, which is not below its box grade
+       `[5, 45]`
+       ...
+       Note: the resource inequality `[40, 53] <= [5, 45]` does not hold
+*)
+(*
+let latte_rinsed () =
+  let foam = perform Steam () in
+  let coffee = perform Grind () in
+  unbox coffee as grounds in
+  let puck = perform Tamp grounds in
+  let shot = perform Brew puck in
+  perform Rinse ();
+  unbox foam as milk in
+  perform Pour (shot, milk)
+*)
+
+run latte ()

@@ -51,7 +51,10 @@ let expectations lines =
 
 let file_verdicts ?packages path grades =
   let (module P) =
-    programs_of ?lattice:(TestPrograms.lattice_of_file path) grades
+    programs_of
+      ?lattice:(TestPrograms.lattice_of_file path)
+      ?resources:(TestSupport.Header.resource_grades path)
+      grades
   in
   let start = Unix.gettimeofday () in
   let verdicts = P.file ?packages path in

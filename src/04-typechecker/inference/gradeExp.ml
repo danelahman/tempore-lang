@@ -58,7 +58,7 @@ module type S = sig
     val of_delay : GS.R.Delay.t -> t
     val mul : t -> t -> t
     val join : t -> t -> t
-    val map : eps -> t
+    val map : Grades.Grade.bounds -> eps -> t
     val free_rho_vars : t -> Rho_var.Set.t
     val free_eps_vars : t -> Eps_var.Set.t
     val mem_rho_var : Rho_var.t -> t -> bool
@@ -73,7 +73,7 @@ module type S = sig
 
     val subst : subst -> t -> t
     val constants : t -> GS.R.t list * GS.E.t list
-    val value : t -> GS.R.t option
+    val value : Grades.Grade.bounds -> t -> GS.R.t option
     val equal : Grades.Grade.bounds -> t -> t -> bool
     val print : t -> Format.formatter -> unit
     val to_string : t -> string
@@ -209,8 +209,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let mul rho rho' = Rho_mul (rho, rho')
     let join rho rho' = Rho_join (rho, rho')
 
-    let map = function
-      | Eps_const c -> Rho_const (GS.map c)
+    let map bounds = function
+      | Eps_const c -> Rho_const (GS.map bounds c)
       | (Eps_var _ | Eps_mul _ | Eps_join _) as eps -> Rho_map eps
 
     let rec free_rho_vars = function
@@ -262,12 +262,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
           let rcs, ecs = constants rho and rcs', ecs' = constants rho' in
           (rcs @ rcs', ecs @ ecs')
 
-    let rec value = function
+    let rec value bounds = function
       | Rho_var _ -> None
       | Rho_const c -> Some c
-      | Rho_mul (rho, rho') -> lift2 GS.R.mul (value rho) (value rho')
-      | Rho_join (rho, rho') -> lift2 GS.R.join (value rho) (value rho')
-      | Rho_map eps -> Option.map GS.map (Eps.value eps)
+      | Rho_mul (rho, rho') ->
+          lift2 GS.R.mul (value bounds rho) (value bounds rho')
+      | Rho_join (rho, rho') ->
+          lift2 GS.R.join (value bounds rho) (value bounds rho')
+      | Rho_map eps -> Option.map (GS.map bounds) (Eps.value eps)
 
     let rec equal bounds rho rho' =
       match (rho, rho') with

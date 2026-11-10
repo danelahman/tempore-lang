@@ -80,7 +80,7 @@ module Make (X : GradeExp.S) = struct
 
     val equal_exp : Grades.Grade.bounds -> exp -> exp -> bool
     val exp_mul : exp -> exp -> exp
-    val closure : exp -> exp option
+    val closure : Grades.Grade.bounds -> exp -> exp option
     val orderings : 'a t -> exp -> exp -> (exp, 'a) GradeNormal.ordering list
     val derivation : 'a t -> (exp -> exp -> 'a list option) Lazy.t
     val atomic_derivation : 'a t -> (exp -> exp -> 'a list option) Lazy.t
@@ -95,7 +95,7 @@ module Make (X : GradeExp.S) = struct
        [w · w ≾ w]. *)
     let below_closure t e e' =
       S.is_atom e'
-      && Option.is_some (S.value e)
+      && Option.is_some (S.value t.bounds e)
       &&
       let os =
         List.filter
@@ -108,7 +108,7 @@ module Make (X : GradeExp.S) = struct
         os
       && List.exists
            (fun (o : _ GradeNormal.ordering) ->
-             match S.closure o.lhs with
+             match S.closure t.bounds o.lhs with
              | Some plus -> closed t.bounds e plus = Some true
              | None -> false)
            os
@@ -140,7 +140,9 @@ module Make (X : GradeExp.S) = struct
                      S.equal_exp t.bounds o.rhs e'
                      &&
                      match
-                       Option.bind (multiplier t ~left o.lhs e') S.closure
+                       Option.bind
+                         (multiplier t ~left o.lhs e')
+                         (S.closure t.bounds)
                      with
                      | Some plus -> closed t.bounds d plus = Some true
                      | None -> false)
@@ -181,8 +183,8 @@ module Make (X : GradeExp.S) = struct
     let equal_exp = X.Rho.equal
     let exp_mul = X.Rho.mul
 
-    let closure e =
-      Option.bind (X.Rho.value e) (fun c ->
+    let closure bounds e =
+      Option.bind (X.Rho.value bounds e) (fun c ->
           Option.map X.Rho.const (X.GS.R.plus c))
 
     let orderings t = t.rho_with
@@ -196,7 +198,7 @@ module Make (X : GradeExp.S) = struct
     let equal_exp = X.Eps.equal
     let exp_mul = X.Eps.mul
 
-    let closure e =
+    let closure _bounds e =
       Option.bind (X.Eps.value e) (fun c ->
           Option.map X.Eps.const (X.GS.E.plus c))
 

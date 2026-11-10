@@ -60,7 +60,7 @@ module Make (C : Inference.Constraint.S) = struct
 
   (* Whether a closed grade is the top and not the unit. *)
   let is_top_rho bounds rho =
-    match X.Rho.value rho with
+    match X.Rho.value bounds rho with
     | Some c -> GS.R.is_top bounds c && not (GS.R.equal bounds c GS.R.one)
     | None -> false
 
@@ -170,7 +170,7 @@ module Make (C : Inference.Constraint.S) = struct
   let eps_raw p eps = render (print_eps p eps)
 
   let is_unit_rho p rho =
-    match X.Rho.value (canon_rho p rho) with
+    match X.Rho.value p.bounds (canon_rho p rho) with
     | Some c -> GS.R.equal p.bounds c GS.R.one
     | None -> false
 
@@ -266,7 +266,7 @@ module Make (C : Inference.Constraint.S) = struct
       counterexample =
         counterexample_of
           (module GS.R)
-          (fun p rho -> X.Rho.value (canon_rho p rho));
+          (fun p rho -> X.Rho.value p.bounds (canon_rho p rho));
     }
 
   let eps_sort =

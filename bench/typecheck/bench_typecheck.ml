@@ -26,6 +26,7 @@ let in_child ~packages path grades =
       let (module P) =
         SolvePrograms.programs_of
           ?lattice:(TestPrograms.lattice_of_file path)
+          ?resources:(TestSupport.Header.resource_grades path)
           grades
       in
       ignore (P.definitions "");

@@ -21,14 +21,14 @@
     finite ends: an ordering that fails at an open end [q] fails at [q] closed
     or at a closed witness next to it. *)
 
-module LowerBound : Grade.S with type Delay.t = Delay.Rational.t
+module LowerBound : TimeGrades.DURATIONS with type Delay.t = Delay.Rational.t
 (** Lower bounds, ["time-lower-bound-rational"]: [q] and [\[q, ∞)] are "at least
     [q]", [(q, ∞)] "more than [q]"; ordered by the inclusion of the durations
     they admit, so [(q, ∞)] is below [q] and the unit [0] is the top. The
     product adds the bounds, the sum being open iff a summand is. A closed bound
     is printed as [q], an open one as [(q, ∞)]. *)
 
-module UpperBound : Grade.S with type Delay.t = Delay.Rational.t
+module UpperBound : TimeGrades.DURATIONS with type Delay.t = Delay.Rational.t
 (** Upper bounds, ["time-upper-bound-rational"]: [q] and [[0, q]] are "at most
     [q]", [\[0, q)] "less than [q]" for a positive [q], and [∞] and [\[0, ∞)]
     impose no bound; ordered by the inclusion of the durations they admit, so
@@ -36,7 +36,7 @@ module UpperBound : Grade.S with type Delay.t = Delay.Rational.t
     sum being open iff a summand is. A closed bound is printed as [q] or [∞], an
     open one as [\[0, q)]. *)
 
-module Interval : Grade.S with type Delay.t = Delay.Rational.t
+module Interval : TimeGrades.DURATIONS with type Delay.t = Delay.Rational.t
 (** Intervals, ["time-interval-rational"]: [[q, r]] is "between [q] and [r]",
     [(q, r)] "strictly between [q] and [r]", [\[q, r)] and [(q, r\]] half-open,
     and [\[q, ∞)] and [(q, ∞)] impose no upper bound; the non-empty intervals,
