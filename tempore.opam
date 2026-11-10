@@ -20,7 +20,7 @@ depends: [
   "vdom"
   "ojs"
   "js_of_ocaml-compiler"
-  "ocamlformat" {with-dev-setup & = "0.28.1"}
+  "ocamlformat" {with-dev-setup & = "0.29.0"}
   "odoc" {with-doc}
 ]
 build: [

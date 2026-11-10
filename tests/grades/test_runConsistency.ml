@@ -305,7 +305,7 @@ let reasons =
           (Some "admits no run: no run meets both its lower and its upper end")
         (Timed.Symbolic.Interval.vacuous (bounds_of a_b)
            (let module R = Reader (Timed.Symbolic.Interval) in
-           R.lit "[{A; 5}, {A; 1; 1; 1}]"));
+            R.lit "[{A; 5}, {A; 1; 1; 1}]"));
     ]
 
 (* {1 Counterexamples} *)

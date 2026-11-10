@@ -203,7 +203,8 @@ let declared_running_times path =
   let grades = TestSupport.Header.grades path in
   let module G = (val grade grades) in
   let module L =
-    Loader.Loader (CliInterpreter.Make (Grades.GradeSystem.Identity (G))) in
+    Loader.Loader (CliInterpreter.Make (Grades.GradeSystem.Identity (G)))
+  in
   let sources =
     List.map
       (fun (filename, text, running_times) ->
@@ -748,8 +749,7 @@ let banked_operations ~interval (module G : Grade.S) =
         let corpus = banked_corpus
         let intervals = banked_interval_corpus
         let interval = interval
-      end)
-  in
+      end) in
   W.corpus_rows ()
   @ List.concat_map W.delays (sizes [ 8; 128; 1024 ])
   @ List.concat_map W.declared (sizes [ 8; 128; 512 ])
@@ -773,8 +773,7 @@ let banked_rational_operations ~one_sided ~interval (module G : Grade.S) =
         let corpus = banked_rational_corpus
         let intervals = banked_rational_interval_corpus
         let interval = interval
-      end)
-  in
+      end) in
   W.corpus_rows ()
   @ (if one_sided then []
      else

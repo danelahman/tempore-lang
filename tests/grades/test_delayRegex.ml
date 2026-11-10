@@ -120,7 +120,8 @@ let literals =
    of time steps, are rejected by the grades of whole time steps. *)
 let whole_step_rejections =
   let module WS =
-    Grades.GradeSystem.Identity (Grades.RegularTraceLanguagesDerivative) in
+    Grades.GradeSystem.Identity (Grades.RegularTraceLanguagesDerivative)
+  in
   let module WG = Parser.Grammar.Make (WS) in
   let parse text =
     let lexbuf = Lexing.from_string ("box " ^ text ^ " ()") in

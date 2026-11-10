@@ -898,7 +898,8 @@ let check_with (module G : Grades.Grade.S) lattice edit_model declared =
          (struct
            let lattice = lattice
          end)
-         (G)) in
+         (G))
+  in
   let module L = Loader.Loader (B) in
   (* The standard library is loaded as a source of its own, so that an editor
      location is a location in what the user typed. *)

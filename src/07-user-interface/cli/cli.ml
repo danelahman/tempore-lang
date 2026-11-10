@@ -803,13 +803,13 @@ let capture ~port ~baud ~duration ~profile =
       read ();
       if Buffer.length line > 0 then end_line ();
       Unix.close fd;
-      if profile then begin
-        match !last with
+      if profile then
+        begin match !last with
         | [] -> print_endline "No complete profile was read."
         | lines ->
             print_endline "The last profile read:";
             List.iter print_endline lines
-      end
+        end
 
 (* The path under [name] in [directory]: [name] in [directory] if it has no
    directory component, else [name]. *)
