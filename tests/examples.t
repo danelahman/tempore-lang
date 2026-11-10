@@ -114,6 +114,19 @@ tests show those runs in detail.
   return (0., 0.)
   
   ======================================================================
+  ../examples/at_least_counts/rinses.tpe
+  ======================================================================
+  === Run 1 (unhandled operation) ===
+  perform Measure (Sample "buffer") (op_var.
+    (let x = return op_var in
+     box (Rinse, 3) (Sample "serum") as next in
+     rinse_after false;
+     delay 30 (return ());
+     unbox next as b' in
+     let y = perform Measure b' (op_var. return op_var) in
+     return (x, y)))
+  
+  ======================================================================
   ../examples/at_most_counts/rate_limits.tpe
   ======================================================================
   === Run 1 ===
@@ -529,6 +542,26 @@ tests show those runs in detail.
   === Run 1 ===
   return ((Right 5)::(Left "test")::[])
   State: []
+  
+  ======================================================================
+  ../examples/energy/energy_budget.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    (1, 0),
+    (3, 0),
+    (2, 0)
+  ]
+  
+  === Run 2 ===
+  return ()
+  State: [
+    (1, 0),
+    { resource_0 ↦ 21 ! (4, 3) },
+    (2, 0),
+    (2, 0)
+  ]
   
   ======================================================================
   ../examples/finite_run_sets/upper_bounds.tpe

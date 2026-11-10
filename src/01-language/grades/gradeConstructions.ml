@@ -150,6 +150,15 @@ struct
     (List.concat_map (fun a -> List.map (fun b -> (a, b)) ws2) ws1, completeness)
 end
 
+(* A grade algebra whose delays and running times are graded by the unit. *)
+module Untimed (G : Grade.S) = struct
+  include G
+
+  let of_delay _ = one
+  let of_bounds _ = one
+  let duration_bounds _bounds _ = None
+end
+
 module type SEMILATTICE = sig
   type t
 

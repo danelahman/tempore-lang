@@ -1140,6 +1140,37 @@ See [`examples/lattice/quiet_noisy.tpe`](examples/lattice/quiet_noisy.tpe), and
 for the same step under `time-interval-lattice`, with running times in rational
 intervals.
 
+### Time with an energy budget
+
+In `time-upper-bound-energy`, a grade is a pair `(t, e)`, at most `t` ticks and
+at most `e` units of energy drawn; sequencing adds both, and the order and the
+join are componentwise. A delay `d` is `(d, 0)`, as waiting draws no energy.
+Each component is written as a `time-upper-bound` grade, `∞` being no bound.
+An operation's grade gives its running time, as under `time-upper-bound`, and
+its energy draw. A box at `(t, e)` expires once more than `t` ticks have passed
+or more than `e` units have been drawn since boxing. This is a direct product
+of the time upper bounds and a copy of them whose delays draw nothing.
+
+For example, the program
+
+```
+operation Sense : unit ~> nat ! (1, 2)
+operation Transmit : nat ~> unit ! (2, 5)
+
+let report () : unit ! (8, 10) =
+  let x = perform Sense () in
+  delay 3;
+  perform Transmit x
+```
+
+is accepted, as it takes at most 6 ticks and draws at most 7 units, while a
+second transmission in place of `delay 3` would be rejected:
+
+    This function's body has grade `(5, 12)`, which does not match its
+    annotated grade `(8, 10)`
+
+See [`examples/energy/energy_budget.tpe`](examples/energy/energy_budget.tpe).
+
 ### Semidirect products
 
 In this category, a grade is generally a pair `(m, n)` whose second component is
@@ -1354,6 +1385,40 @@ sends would be rejected, as they make four:
     match its annotated grade `((Auth, 1), (Send, 3))`
 
 See [`examples/at_most_counts/rate_limits.tpe`](examples/at_most_counts/rate_limits.tpe).
+
+### At-least counts
+
+In `at-least-counts`, a grade has entries `(A, n)`, at least `n` calls of the
+operation `A`, also written `[n, ∞)`; sequencing adds the calls of each
+operation, a branch guarantees the lesser count of its arms, and delays count
+none. An operation not listed is guaranteed no call, or the calls of the entry
+`(_, n)`. The unit `0` guarantees nothing and is the top. An operation counts
+itself, as under `at-most-counts`; a default implementation would have to
+perform the operation itself, so a counted operation has none.
+
+For example, where the next sample is boxed at `(Rinse, 3)`, the program
+
+```
+operation Rinse : unit ~> unit ! (Rinse, 1)
+operation Measure : string ~> nat ! (Measure, 1)
+
+let measure_two (a, b) : nat * nat ! ((Measure, 2), (Rinse, 3)) =
+  let x = perform Measure a in
+  box (Rinse, 3) b as next in
+  perform Rinse ();
+  perform Rinse ();
+  perform Rinse ();
+  unbox next as b' in
+  let y = perform Measure b' in
+  (x, y)
+```
+
+is accepted, while a wait in place of the third rinse would be rejected:
+
+    Variable `next` is unboxed with grade `(Rinse, 2)` accumulated since it was
+    bound, which is not below its box grade `(Rinse, 3)`
+
+See [`examples/at_least_counts/rinses.tpe`](examples/at_least_counts/rinses.tpe).
 
 ### Inter-arrival grades
 

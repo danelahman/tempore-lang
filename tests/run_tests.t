@@ -3046,7 +3046,7 @@ it names none:
   File "lattice_reject_literal.tpe", line 7, characters 19-20:
   7 | let claim () = box 3 1
                          ^
-  Syntax error: In the `lattice` grade algebra, grades are the elements `Low` and `High` of the grade lattice, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `finite-run-sets`, `finite-run-sets-rational`, `banked-traces-lower-bound`, `banked-traces-upper-bound`, `banked-traces-interval`, `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `regular-trace-languages-symbolic`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-symbolic`, `banked-regex-upper-bound-symbolic`, `banked-regex-interval-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound`, `timed-regex-upper-bound`, `timed-regex-interval`, `timed-regex-lower-bound-rational`, `timed-regex-upper-bound-rational`, `timed-regex-interval-rational`, `timed-regex-finite-lower-bound`, `timed-regex-finite-upper-bound`, `timed-regex-finite-interval`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `call-time-sets`, `mode-switch-costs`, `mode-times`, `at-most-counts` or `inter-arrival` grade algebras?
+  Syntax error: In the `lattice` grade algebra, grades are the elements `Low` and `High` of the grade lattice, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `finite-run-sets`, `finite-run-sets-rational`, `banked-traces-lower-bound`, `banked-traces-upper-bound`, `banked-traces-interval`, `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `regular-trace-languages-symbolic`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-symbolic`, `banked-regex-upper-bound-symbolic`, `banked-regex-interval-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound`, `timed-regex-upper-bound`, `timed-regex-interval`, `timed-regex-lower-bound-rational`, `timed-regex-upper-bound-rational`, `timed-regex-interval-rational`, `timed-regex-finite-lower-bound`, `timed-regex-finite-upper-bound`, `timed-regex-finite-interval`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `call-time-sets`, `mode-switch-costs`, `mode-times`, `at-most-counts`, `at-least-counts` or `inter-arrival` grade algebras?
   ======================================================================
   lattice_time_interval.tpe
   ======================================================================
@@ -3607,7 +3607,7 @@ it names none:
   File "literals_reject_call_time_sets_empty.tpe", line 9, characters 19-25:
   9 | let claim () = box (2, 3) 1
                          ^^^^^^
-  Syntax error: In the `call-time-sets` grade algebra, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `banked-regex-interval-rational-symbolic`, `timed-regex-interval-rational`, `timed-regex-finite-interval-rational`, `watermarks` or `inter-arrival` grade algebras?
+  Syntax error: In the `call-time-sets` grade algebra, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `banked-regex-interval-rational-symbolic`, `timed-regex-interval-rational`, `timed-regex-finite-interval-rational`, `time-upper-bound-energy`, `watermarks` or `inter-arrival` grade algebras?
   ======================================================================
   literals_reject_complement.tpe
   ======================================================================
@@ -3712,7 +3712,7 @@ it names none:
   File "literals_reject_interval_no_step.tpe", line 8, characters 19-25:
   8 | let claim () = box (1, 2) 1
                          ^^^^^^
-  Syntax error: In the `time-interval` grade algebra, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `banked-regex-interval-rational-symbolic`, `timed-regex-interval-rational`, `timed-regex-finite-interval-rational`, `watermarks` or `inter-arrival` grade algebras?
+  Syntax error: In the `time-interval` grade algebra, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `banked-regex-interval-rational-symbolic`, `timed-regex-interval-rational`, `timed-regex-finite-interval-rational`, `time-upper-bound-energy`, `watermarks` or `inter-arrival` grade algebras?
   ======================================================================
   literals_reject_interval_reversed.tpe
   ======================================================================
@@ -3796,7 +3796,7 @@ it names none:
   File "literals_reject_peak.tpe", line 7, characters 19-25:
   7 | let claim () = box (2, 1) 1
                          ^^^^^^
-  Syntax error: In the `watermarks` grade algebra, the peak must be at least 0 and at least the net change
+  Syntax error: In the `watermarks` grade algebra, the peak must be at least 0 and at least the net change; did you mean to use the `time-upper-bound-energy` grade algebra?
   ======================================================================
   literals_reject_rational_negative.tpe
   ======================================================================
@@ -8929,13 +8929,16 @@ single-dash form of the help option is not accepted.
           time-upper-bound-lattice                   Upper bounds × lattice (expiring capabilities)
           time-interval-lattice                      Intervals × lattice
           flow-sensitive-levels                      Flow-sensitive levels
+        Time with an energy budget:
+          time-upper-bound-energy                    Upper bounds × energy
         Semidirect products:
           watermarks                                 Watermark grades
           call-time-sets                             Call-time sets
           mode-switch-costs                          Mode-switch costs
           mode-times                                 Mode times
-        At-most counts:
+        Counts:
           at-most-counts                             At-most counts
+          at-least-counts                            At-least counts
         Inter-arrival grades:
           inter-arrival                              Inter-arrival grades
         Further implementations of the regular grades, kept for benchmarking, are accepted by --grades with the suffixes -letter-automata, -symbolic-by-letters and -letter-derivatives in place of -symbolic, and -rational-automata in place of -rational-symbolic.

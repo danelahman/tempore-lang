@@ -39,7 +39,8 @@ let timed_regex_finite = ("Finite timed regex grades", "Timed regex (finite)")
 let timed_regex = ("Timed regex grades", "Timed regex")
 let lattices = ("Grade lattices", "Lattices")
 let semidirect = ("Semidirect products", "Semidirect")
-let at_most_counts = ("At-most counts", "Counts")
+let energy = ("Time with an energy budget", "Energy")
+let counts = ("Counts", "Counts")
 let inter_arrival = ("Inter-arrival grades", "Inter-arrival")
 
 let entry ?(visibility = Everywhere) ?implementation ?over_lattice
@@ -584,6 +585,11 @@ let entries =
        output is written; later outputs are raised to the element reached \
        before them.";
     entry
+      (module EnergyGrades.TimeUpperBoundEnergy)
+      energy "Upper bounds × energy"
+      "A time upper bound paired with an energy budget: at most n time steps, \
+       drawing at most e units of energy, such as (5, 12); delays draw none.";
+    entry
       (module WatermarkGrades.Watermarks)
       semidirect "Watermark grades"
       "Triples (t, d, h) of the trough, the net change and the peak of a \
@@ -609,9 +615,14 @@ let entries =
        end.";
     entry
       (module CountGrades.AtMost)
-      at_most_counts "At-most counts"
+      counts "At-most counts"
       "At most n calls of each operation, by name, such as ((Auth, 1), (Send, \
        3)); delays count nothing.";
+    entry
+      (module CountGrades.AtLeast)
+      counts "At-least counts"
+      "At least n calls of each operation, by name, such as ((Approve, 2), \
+       (Test, 1)); delays count nothing, and the unit 0 is greatest.";
     entry
       (module InterArrivalGrades)
       inter_arrival "Inter-arrival grades"

@@ -283,6 +283,10 @@ let watermarks = (module Grades.WatermarkGrades.Watermarks : Grade.S)
 let call_time_sets = (module Grades.CallTimeSetGrades.CallTimeSets : Grade.S)
 let flow_sensitive_levels = (module LatticeGrades.FlowSensitiveLevels : Grade.S)
 let at_most_counts = (module Grades.CountGrades.AtMost : Grade.S)
+let at_least_counts = (module Grades.CountGrades.AtLeast : Grade.S)
+
+let time_upper_energy =
+  (module Grades.EnergyGrades.TimeUpperBoundEnergy : Grade.S)
 
 let mode_switch_costs =
   (module Grades.ModeSwitchCostGrades.ModeSwitchCosts : Grade.S)
@@ -678,6 +682,42 @@ let literals =
       (Tuple [ Name "Send"; Int (-1) ])
       "in the entry of `Send`, grades must be non-negative";
     rejects "element" at_most_counts (Name "Low") "not names such as `Low`";
+    reads "count" at_least_counts (Tuple [ Name "Rinse"; Int 3 ]) "(Rinse, 3)";
+    reads "counts" at_least_counts
+      (Tuple [ Tuple [ Name "Test"; Int 1 ]; Tuple [ Name "Approve"; Int 2 ] ])
+      "((Approve, 2), (Test, 1))";
+    reads "count unbounded above" at_least_counts
+      (Tuple [ Name "Rinse"; Interval (Closed (Int 3), Unbounded) ])
+      "(Rinse, 3)";
+    reads "open count" at_least_counts
+      (Tuple [ Name "Rinse"; Interval (Open (Int 3), Unbounded) ])
+      "(Rinse, 4)";
+    reads "other operations" at_least_counts
+      (Tuple [ Tuple [ Name "Rinse"; Int 3 ]; Tuple [ Name "_"; Int 1 ] ])
+      "((Rinse, 3), (_, 1))";
+    reads "every operation" at_least_counts (Int 2) "2";
+    reads "top" at_least_counts Top "0";
+    rejects "unbounded count" at_least_counts
+      (Tuple [ Name "Rinse"; Inf ])
+      "in the entry of `Rinse`, grades are plain integers, not `∞`";
+    rejects "count bounded above" at_least_counts
+      (Tuple [ Name "Rinse"; Interval (Closed (Int 1), Closed (Int 3)) ])
+      "lower bounds are unbounded above";
+    rejects "negative count" at_least_counts
+      (Tuple [ Name "Rinse"; Int (-1) ])
+      "in the entry of `Rinse`, grades must be non-negative";
+    reads "time and energy" time_upper_energy
+      (Tuple [ Int 5; Int 12 ])
+      "(5, 12)";
+    reads "unbounded energy" time_upper_energy (Tuple [ Int 5; Inf ]) "(5, ∞)";
+    reads "open time bound" time_upper_energy
+      (Tuple [ Interval (Closed (Int 0), Open (Int 5)); Int 2 ])
+      "(4, 2)";
+    reads "top" time_upper_energy Top "(∞, ∞)";
+    rejects "energy alone" time_upper_energy (Int 3) "grades are pairs";
+    rejects "negative energy" time_upper_energy
+      (Tuple [ Int 5; Int (-1) ])
+      "in the second component (`energy`), grades must be non-negative";
     reads "cost in every mode" mode_switch_costs (Int 3) "3";
     reads "transition" mode_switch_costs
       (Tuple [ Name "Off"; Name "On"; Int 2 ])
@@ -1211,6 +1251,7 @@ let registry =
           "timed-regex-finite-interval-rational";
           "call-time-sets";
           "mode-times";
+          "at-least-counts";
           "inter-arrival";
         ]
       (GradeRegistry.accepting (span (Grade.Int 3) Grade.Inf));
@@ -1248,8 +1289,10 @@ let registry =
           "timed-regex-interval-rational";
           "timed-regex-finite-interval";
           "timed-regex-finite-interval-rational";
+          "time-upper-bound-energy";
           "watermarks";
           "call-time-sets";
+          "at-least-counts";
           "inter-arrival";
         ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
@@ -1874,6 +1917,19 @@ let witnesses =
     check "counts: delays count nothing"
       Grades.CountGrades.AtMost.(equal bounds (of_delay 5) one)
       "";
+    expect "witnesses: at-least counts complete" Fun.id ~expected:"complete"
+      (completeness at_least_counts);
+    check "at-least counts: delays count nothing"
+      Grades.CountGrades.AtLeast.(equal bounds (of_delay 5) one)
+      "";
+    check "at-least counts: the unit is the top"
+      Grades.CountGrades.AtLeast.(is_top bounds one)
+      "";
+    check "at-least counts: the unit is not least"
+      (not Grades.CountGrades.AtLeast.unit_least)
+      "";
+    expect "witnesses: time and energy complete" Fun.id ~expected:"complete"
+      (completeness time_upper_energy);
   ]
 
 (* ------------------------------------------------------------------ *)
@@ -1912,6 +1968,8 @@ type family =
   | Modes
   | Mode_times
   | Counts
+  | Lower_counts
+  | Energy
   | Inter_arrival
 
 (* [family name] is the family of the registered grade [name], if known. *)
@@ -1933,6 +1991,8 @@ let family name =
   | "mode-switch-costs" -> Some Modes
   | "mode-times" -> Some Mode_times
   | "at-most-counts" -> Some Counts
+  | "at-least-counts" -> Some Lower_counts
+  | "time-upper-bound-energy" -> Some Energy
   | "inter-arrival" -> Some Inter_arrival
   | "finite-run-sets" -> Some Inclusion_traces
   | "finite-run-sets-rational" -> Some Rational_inclusion_traces
@@ -2272,6 +2332,24 @@ let cover =
         entry "C" [ Int 0 ];
         Tuple [ entry "A" [ Int 1 ]; entry "B" [ Inf ]; entry "C" [ Int 0 ] ];
       ]
+  | Lower_counts ->
+      [
+        entry "A" [ Int 3 ];
+        Tuple [ entry "A" [ Int 1 ]; entry "B" [ Int 3 ] ];
+        Tuple [ entry "B" [ span (Int 2) Inf ]; entry "_" [ Int 1 ] ];
+        Int 2;
+        entry "C" [ Interval (Open (Int 0), Unbounded) ];
+        Tuple [ entry "A" [ Int 1 ]; entry "B" [ Int 4 ]; entry "C" [ Int 0 ] ];
+      ]
+  | Energy ->
+      [
+        pair (Int 1) (Int 2);
+        pair (Int 2) (Int 5);
+        pair (Int 3) Inf;
+        pair Inf (Int 4);
+        pair (Interval (Closed (Int 0), Open (Int 3))) (Int 1);
+        pair (Int 0) (Int 0);
+      ]
   | Inter_arrival ->
       let gaps lo hi = closed (Int lo) (Int hi) in
       [
@@ -2488,6 +2566,12 @@ let random family st =
       | _ -> Tuple [ spec (); spec () ])
   | Counts ->
       entries [ "A"; "B"; "C"; "_" ] (fun () -> pick st [ Int (int 4); Inf ])
+  | Lower_counts ->
+      entries [ "A"; "B"; "C"; "_" ] (fun () ->
+          pick st [ Int (int 4); span (Int (int 4)) Inf ])
+  | Energy ->
+      let bound () = pick st [ Int (int 6); Inf ] in
+      pair (bound ()) (bound ())
   | Inter_arrival -> (
       let interval () =
         let lo = int 4 in
@@ -4343,6 +4427,37 @@ let duration_bounds =
          (Some (closed 0, closed 5)));
   ]
 
+(* The product of the time upper bounds and the energy budgets. *)
+let energy_products =
+  let module E = Grades.EnergyGrades.TimeUpperBoundEnergy in
+  let show = E.show in
+  let te t e = E.of_lit (Grade.Tuple [ Grade.Int t; Grade.Int e ]) in
+  let durations = function
+    | Some (lo, hi) -> Grade.show_interval Rational.show lo hi
+    | None -> "None"
+  in
+  [
+    expect "time and energy: delays draw no energy" Fun.id ~expected:"(5, 0)"
+      (show (E.of_delay 5));
+    expect "time and energy: product" Fun.id ~expected:"(3, 7)"
+      (show (E.mul (te 1 2) (te 2 5)));
+    expect "time and energy: join" Fun.id ~expected:"(2, 5)"
+      (show (E.join (te 1 5) (te 2 2)));
+    check "time and energy: order componentwise"
+      (E.leq bounds (te 1 2) (te 2 5) && not (E.leq bounds (te 1 6) (te 2 5)))
+      "(1, 2) <= (2, 5), not (1, 6) <= (2, 5)";
+    expect "time and energy: closure" Fun.id ~expected:"(∞, ∞)"
+      (match E.plus (te 1 2) with Some c -> show c | None -> "None");
+    expect "time and energy: durations of the time component" durations
+      ~expected:(Some Rational.(Grade.Closed zero, Grade.Closed (of_int 2)))
+      (E.duration_bounds bounds (te 2 5));
+    expect "time and energy: time shadow" Fun.id ~expected:"(2, 0)"
+      (show (E.of_bounds (Grade.Closed 1, Grade.Closed 2)));
+    expect "time and energy: unit least" show_bool ~expected:true E.unit_least;
+    expect "time and energy: no running-time bounds" show_bool ~expected:false
+      E.needs_op_bounds;
+  ]
+
 (* The flow-sensitive grades print [⊤] for the top alone. *)
 let flow_tops =
   let module F = LatticeGrades.FlowSensitiveLevels in
@@ -4364,7 +4479,7 @@ let () =
     @ time_grade_laws @ schedule_laws @ resource_construction_laws @ finite_laws
     @ declared_lattice_laws @ declared_lattice_structure @ ranges @ flow_tops
     @ duration_bounds @ mode_time_laws @ timed_regex_laws @ timed_regex_overflow
-    @ timed_regex_star @ timed_regex_star_reference
+    @ timed_regex_star @ timed_regex_star_reference @ energy_products
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

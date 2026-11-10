@@ -6,7 +6,7 @@
     {!RegularTraceLanguages}, {!RegularTraceLanguagesDerivative},
     {!RegularTraceLanguagesPlain}, {!RegularTraceLanguagesRational},
     {!BankedRegexGrades}, {!BankedRegexGradesRational}, {!TimedRegexGrades},
-    {!LatticeGrades}, {!WatermarkGrades}, {!CallTimeSetGrades},
+    {!LatticeGrades}, {!EnergyGrades}, {!WatermarkGrades}, {!CallTimeSetGrades},
     {!ModeSwitchCostGrades}, {!ModeTimeGrades}, {!CountGrades} and
     {!InterArrivalGrades}, built with the constructions of {!GradeConstructions}
     and {!SummaryTerms}, and listed in {!GradeRegistry}; the modules of the

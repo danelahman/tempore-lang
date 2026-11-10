@@ -1,0 +1,91 @@
+(* A battery-powered sensor node whose reports are bounded in time and energy.
+
+   Run this example with the 'time-upper-bound-energy' grade algebra, e.g.
+
+     ./tempore --grades time-upper-bound-energy \
+       examples/energy/energy_budget.tpe
+
+   Grades (t, e): at most t ticks (time steps), drawing at most e units of
+   energy
+     - Unit (0, 0): no time spent, no energy drawn, the least grade
+     - Top (∞, ∞): unbounded time and energy
+     - Product: addition, componentwise *)
+
+(* Reading the temperature takes at most a tick and draws at most 2 units;
+   transmitting takes at most two ticks and draws at most 5. Sleeping, a
+   delay, draws nothing. *)
+operation Sense : unit ~> nat ! (1, 2)
+default Sense () = delay 1; 21
+
+operation Transmit : nat ~> unit ! (2, 5)
+default Transmit x = delay 2
+
+(* Correctly accepted by the typechecker: a reading, a sleep of three ticks
+   until the transmission slot and a transmission take at most 6 ticks and
+   draw at most 7 units, within a duty cycle of 8 ticks and 10 units. *)
+let report () : unit ! (8, 10) =
+  let x = perform Sense () in
+  delay 3;
+  perform Transmit x
+
+(* Correctly accepted by the typechecker: a reading boxed at '(4, 3)' is
+   current for four ticks, and only while at most 3 units are drawn since, as
+   the node's own heat warms the sensor; sleeping two ticks keeps it
+   current. *)
+let fresh_report () =
+  let r = perform Sense () in
+  box (4, 3) r as fresh in
+  delay 2;
+  unbox fresh as x in
+  perform Transmit x
+
+(* Correctly rejected by the typechecker: retransmitting in place of sleeping
+   stays within the 8 ticks but exceeds the 10 units:
+
+     Typing error: This function's body has grade `(5, 12)`, which does not
+       match its annotated grade `(8, 10)`
+       Note: the effect inequality `(5, 12) <= (8, 10)` does not hold
+*)
+(*
+let report_twice () : unit ! (8, 10) =
+  let x = perform Sense () in
+  perform Transmit x;
+  perform Transmit x
+*)
+
+(* Correctly rejected by the typechecker: after sleeping five ticks the
+   reading is stale, although no energy has been drawn:
+
+     Typing error: Variable `fresh` is unboxed with grade `(5, 0)` accumulated
+       since it was bound, which is not below its box grade `(4, 3)`
+       ...
+       Note: the resource inequality `(5, 0) <= (4, 3)` does not hold
+*)
+(*
+let stale_report () =
+  let r = perform Sense () in
+  box (4, 3) r as fresh in
+  delay 5;
+  unbox fresh as x in
+  perform Transmit x
+*)
+
+(* Correctly rejected by the typechecker: transmitting a queued reading first
+   takes only two ticks, but its 5 units warm the sensor:
+
+     Typing error: Variable `fresh` is unboxed with grade `(2, 5)` accumulated
+       since it was bound, which is not below its box grade `(4, 3)`
+       ...
+       Note: the resource inequality `(2, 5) <= (4, 3)` does not hold
+*)
+(*
+let warm_report q =
+  let r = perform Sense () in
+  box (4, 3) r as fresh in
+  perform Transmit q;
+  unbox fresh as x in
+  perform Transmit x
+*)
+
+run report ()
+run fresh_report ()

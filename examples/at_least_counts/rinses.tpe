@@ -1,0 +1,78 @@
+(* A probe that measures each sample only after at least three rinses.
+
+   Run this example with the 'at-least-counts' grade algebra, e.g.
+
+     ./tempore --grades at-least-counts examples/at_least_counts/rinses.tpe
+
+   Grades ((A, n), ...): at least n calls of each operation A
+     - Unit 0: no calls guaranteed
+     - Top 0: no calls guaranteed; the unit is the top
+     - Product: addition, name by name *)
+
+type sample = Sample of string
+
+(* Each operation counts itself once. Only a rinse rinses the probe, so the
+   operations have no default implementation: a run stops at the first of
+   them. *)
+operation Rinse : unit ~> unit ! (Rinse, 1)
+operation Measure : sample ~> nat ! (Measure, 1)
+
+(* Correctly accepted by the typechecker: three rinses guarantee three. *)
+let rinse_thrice () : unit ! (Rinse, 3) =
+  perform Rinse ();
+  perform Rinse ();
+  perform Rinse ()
+
+(* Correctly accepted by the typechecker: a branch guarantees the lesser count
+   of its arms, so a fourth rinse after a viscous sample keeps the guarantee
+   of three. *)
+let rinse_after viscous : unit ! (Rinse, 3) =
+  if viscous then (rinse_thrice (); perform Rinse ()) else rinse_thrice ()
+
+(* Correctly accepted by the typechecker: the second sample, boxed at
+   '(Rinse, 3)' when the first is measured, is in reach after three rinses;
+   the wait for the probe to drain counts nothing. *)
+let measure_two (a, b) : nat * nat ! ((Measure, 2), (Rinse, 3)) =
+  let x = perform Measure a in
+  box (Rinse, 3) b as next in
+  rinse_after false;
+  delay 30;
+  unbox next as b' in
+  let y = perform Measure b' in
+  (x, y)
+
+(* Correctly rejected by the typechecker: draining the probe does not replace
+   the third rinse:
+
+     Typing error: Variable `next` is unboxed with grade `(Rinse, 2)`
+       accumulated since it was bound, which is not below its box grade
+       `(Rinse, 3)`
+       ...
+       Note: the resource inequality `(Rinse, 2) >= (Rinse, 3)` does not hold
+*)
+(*
+let measure_drained (a, b) =
+  let x = perform Measure a in
+  box (Rinse, 3) b as next in
+  perform Rinse ();
+  perform Rinse ();
+  delay 30;
+  unbox next as b' in
+  let y = perform Measure b' in
+  (x, y)
+*)
+
+(* Correctly rejected by the typechecker: two rinses after a sample of water
+   leave the branch with a guarantee of two:
+
+     Typing error: The effect inequality `(Rinse, 2) >= (Rinse, 3)` does not
+       hold
+       `rinse_thrice` is defined here
+       the inequality goes through the annotation here
+*)
+(*
+let rinse_after_water water : unit ! (Rinse, 3) =
+  if water then (perform Rinse (); perform Rinse ()) else rinse_thrice ()
+*)
+
+run measure_two (Sample "buffer", Sample "serum")

@@ -82,6 +82,13 @@ module OfLattice (D : Delay.S) (L : LATTICE) :
 module Product (G1 : Grade.S) (G2 : Grade.S with type Delay.t = G1.Delay.t) :
   Grade.S with type t = G1.t * G2.t and type Delay.t = G1.Delay.t
 
+(** The grade [G] over its delays, none of which it measures: [of_delay] and
+    [of_bounds] are constantly the unit, and [duration_bounds] is [None]; the
+    other fields are those of [G]. It grades a resource other than time, such as
+    the calls of operations or the energy drawn. *)
+module Untimed (G : Grade.S) :
+  Grade.S with type t = G.t and type Delay.t = G.Delay.t
+
 (** Decidable join-semilattices with a least and a greatest element. *)
 module type SEMILATTICE = sig
   type t
