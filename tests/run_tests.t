@@ -3046,7 +3046,7 @@ it names none:
   File "lattice_reject_literal.tpe", line 7, characters 19-20:
   7 | let claim () = box 3 1
                          ^
-  Syntax error: In the `lattice` grade algebra, grades are the elements `Low` and `High` of the grade lattice, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `finite-run-sets`, `finite-run-sets-rational`, `banked-traces-lower-bound`, `banked-traces-upper-bound`, `banked-traces-interval`, `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `regular-trace-languages-symbolic`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-symbolic`, `banked-regex-upper-bound-symbolic`, `banked-regex-interval-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound`, `timed-regex-upper-bound`, `timed-regex-interval`, `timed-regex-lower-bound-rational`, `timed-regex-upper-bound-rational`, `timed-regex-interval-rational`, `timed-regex-finite-lower-bound`, `timed-regex-finite-upper-bound`, `timed-regex-finite-interval`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `call-time-sets`, `mode-switch-costs`, `mode-times`, `at-most-counts`, `at-least-counts` or `inter-arrival` grade algebras?
+  Syntax error: In the `lattice` grade algebra, grades are the elements `Low` and `High` of the grade lattice, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `finite-run-sets`, `finite-run-sets-rational`, `banked-traces-lower-bound`, `banked-traces-upper-bound`, `banked-traces-interval`, `banked-traces-lower-bound-rational`, `banked-traces-upper-bound-rational`, `banked-traces-interval-rational`, `regular-trace-languages-symbolic`, `regular-trace-languages-rational-symbolic`, `banked-regex-lower-bound-symbolic`, `banked-regex-upper-bound-symbolic`, `banked-regex-interval-symbolic`, `banked-regex-lower-bound-rational-symbolic`, `banked-regex-upper-bound-rational-symbolic`, `banked-regex-interval-rational-symbolic`, `timed-regex-lower-bound`, `timed-regex-upper-bound`, `timed-regex-interval`, `timed-regex-lower-bound-rational`, `timed-regex-upper-bound-rational`, `timed-regex-interval-rational`, `timed-regex-finite-lower-bound`, `timed-regex-finite-upper-bound`, `timed-regex-finite-interval`, `timed-regex-finite-lower-bound-rational`, `timed-regex-finite-upper-bound-rational`, `timed-regex-finite-interval-rational`, `call-time-sets`, `mode-switch-costs`, `mode-times`, `at-most-counts`, `at-least-counts`, `at-least-counts-with-top` or `inter-arrival` grade algebras?
   ======================================================================
   lattice_time_interval.tpe
   ======================================================================
@@ -8997,6 +8997,7 @@ single-dash form of the help option is not accepted.
         Counts:
           at-most-counts                             At-most counts
           at-least-counts                            At-least counts
+          at-least-counts-with-top                   At-least counts with a top
         Inter-arrival grades:
           inter-arrival                              Inter-arrival grades
         Further implementations of the regular grades, kept for benchmarking, are
@@ -9035,26 +9036,82 @@ single-dash form of the help option is not accepted.
                        boxes and box types; effects are graded by that of
                        --grades. The pair must be one of those listed, with the
                        morphism (default: the algebra of --grades):
-          time-interval                        time-lower-bound
+          time-interval                           time-lower-bound
               ∣[d, a]∣ = [d, ∞), the lower end kept with its openness
-          time-interval-rational               time-lower-bound-rational
+          time-interval-rational                  time-lower-bound-rational
               ∣[d, a]∣ = [d, ∞), the lower end kept with its openness
-          time-interval                        time-upper-bound
+          time-interval                           time-upper-bound
               ∣[d, a]∣ = [0, a], the upper end kept with its openness
-          time-interval-rational               time-upper-bound-rational
+          time-interval-rational                  time-upper-bound-rational
               ∣[d, a]∣ = [0, a], the upper end kept with its openness
-          timed-regex-interval                 time-interval
+          timed-regex-interval                    time-interval
               ∣g∣ = the least interval containing the durations of the runs of g,
               operations taking their running times
-          timed-regex-interval-rational        time-interval-rational
+          timed-regex-interval-rational           time-interval-rational
               ∣g∣ = the least interval containing the durations of the runs of g,
               operations taking their running times
-          timed-regex-finite-interval          time-interval
+          timed-regex-finite-interval             time-interval
               ∣g∣ = the least interval containing the durations of the runs of g,
               operations taking their running times
-          timed-regex-finite-interval-rational time-interval-rational
+          timed-regex-finite-interval-rational    time-interval-rational
               ∣g∣ = the least interval containing the durations of the runs of g,
               operations taking their running times
+          timed-regex-lower-bound                 time-lower-bound
+              ∣g∣ = [d, ∞), d the infimum of the durations of the runs of g,
+              operations taking their running times
+          timed-regex-lower-bound-rational        time-lower-bound-rational
+              ∣g∣ = [d, ∞), d the infimum of the durations of the runs of g,
+              operations taking their running times
+          timed-regex-upper-bound                 time-upper-bound
+              ∣g∣ = [0, d], d the supremum of the durations of the runs of g,
+              operations taking their running times
+          timed-regex-upper-bound-rational        time-upper-bound-rational
+              ∣g∣ = [0, d], d the supremum of the durations of the runs of g,
+              operations taking their running times
+          timed-regex-finite-lower-bound          time-lower-bound
+              ∣g∣ = [d, ∞), d the infimum of the durations of the runs of g,
+              operations taking their running times
+          timed-regex-finite-lower-bound-rational time-lower-bound-rational
+              ∣g∣ = [d, ∞), d the infimum of the durations of the runs of g,
+              operations taking their running times
+          timed-regex-finite-upper-bound          time-upper-bound
+              ∣g∣ = [0, d], d the supremum of the durations of the runs of g,
+              operations taking their running times
+          timed-regex-finite-upper-bound-rational time-upper-bound-rational
+              ∣g∣ = [0, d], d the supremum of the durations of the runs of g,
+              operations taking their running times
+          banked-traces-lower-bound               time-lower-bound
+              ∣P∣ = [d, ∞), d the least duration of a trace of P, each operation
+              at the lower end of its running time
+          banked-traces-lower-bound-rational      time-lower-bound-rational
+              ∣P∣ = [d, ∞), d the least duration of a trace of P, each operation
+              at the lower end of its running time
+          banked-traces-upper-bound               time-upper-bound
+              ∣P∣ = [0, d], d the greatest duration of a trace of P, each
+              operation at the upper end of its running time, and ∣⊤∣ = ∞
+          banked-traces-upper-bound-rational      time-upper-bound-rational
+              ∣P∣ = [0, d], d the greatest duration of a trace of P, each
+              operation at the upper end of its running time, and ∣⊤∣ = ∞
+          banked-traces-interval                  time-interval
+              ∣[P, Q]∣ = [d, d'], d the least duration of a trace of P, each
+              operation at the lower end of its running time, and d' the greatest
+              of a trace of Q, each at the upper end, d' = ∞ where Q = ⊤
+          banked-traces-interval-rational         time-interval-rational
+              ∣[P, Q]∣ = [d, d'], d the least duration of a trace of P, each
+              operation at the lower end of its running time, and d' the greatest
+              of a trace of Q, each at the upper end, d' = ∞ where Q = ⊤
+          finite-run-sets                         at-most-counts
+              ∣P∣ = the greatest number of calls of each operation in a trace of
+              P, and ∣⊤∣ = ⊤
+          finite-run-sets                         at-least-counts-with-top
+              ∣P∣ = the least number of calls of each operation in a trace of P,
+              and ∣⊤∣ = ⊤
+          banked-traces-lower-bound               at-least-counts
+              ∣P∣ = the least number of calls of each operation in a trace of P
+          time-lower-bound-lattice                time-lower-bound
+              ∣(n, ℓ)∣ = n, the first component
+          time-lower-bound-lattice                lattice
+              ∣(n, ℓ)∣ = ℓ, the second component
     --robot            Set the robot of the protocol written with --bind: flex
                        (default: flex)
     --simulate         Run the Opentrons simulator on the protocol written with

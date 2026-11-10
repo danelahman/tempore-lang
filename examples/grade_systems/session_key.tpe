@@ -1,0 +1,103 @@
+(* A session key boxed to encrypt at most three messages, a lost one resent.
+
+   Run this example with the 'finite-run-sets' effect and the 'at-most-counts'
+   resource grade algebras, e.g.
+
+     ./tempore --grades finite-run-sets \
+       --resource-grades at-most-counts \
+       examples/grade_systems/session_key.tpe
+
+   Grades {...} of effects, (Op, n) of boxes: these runs, at most n calls
+     - Unit {skip} and 0: the empty run, no call
+     - Top ⊤ and ∞: every run, no bound
+     - Product: concatenation of runs, addition of the counts *)
+
+(* Effects are graded by the finite sets of runs of a small protocol and
+   resources by the numbers of calls of its operations: the box of a key says
+   how often each operation may be called while it is in use, and a function's
+   effect which runs it may exhibit. The resource grade of a set of runs gives
+   each operation the greatest number of its calls in one run, so a box is
+   unboxed while the calls since boxing are certain to be within its grade. *)
+
+type key = Key of nat
+type packet = Packet of nat * string
+
+(* A handshake yields a key that may be used while at most three messages
+   have been sent, any number of the other operations being called. *)
+operation Handshake : unit ~> [((Send, 3), (_, ∞))]key ! {Handshake}
+operation Send      : packet ~> unit ! {Send}
+operation Ack       : unit ~> bool ! {Ack}
+
+(* Correctly accepted by the typechecker: a transfer sends a message and,
+   unless it is acknowledged, sends it again two ticks later. Its runs call
+   'Send' at most twice. *)
+let transfer (key : key) (text : string) : bool !
+    {Send; Ack | Send; Ack; 2; Send; Ack} =
+  match key with
+  | Key n ->
+      perform Send (Packet (n, text));
+      let acknowledged = perform Ack () in
+      if acknowledged then true
+      else (
+        delay 2;
+        perform Send (Packet (n, text));
+        perform Ack ())
+
+(* Correctly accepted by the typechecker: two transfers with one key; the
+   second unbox follows the first transfer, which sends at most two messages,
+   the resource grade '((Ack, 2), (Send, 2))' within
+   '((Send, 3), (_, ∞))'. *)
+let session () =
+  let k = perform Handshake () in
+  unbox k as key in
+  let first = transfer key "first" in
+  unbox k as key in
+  let second = transfer key "second" in
+  (first, second)
+
+(* Correctly rejected by the typechecker: a third transfer with the same key
+   may follow four messages, one more than the key may encrypt:
+
+     Typing error: Variable `k` is unboxed with grade `((Ack, 4), (Send, 4))`
+       accumulated since it was bound, which is not below its box grade
+       `((Send, 3), (_, ∞))`
+       ...
+       Note: the resource inequality
+         `((Ack, 4), (Send, 4)) <= ((Send, 3), (_, ∞))` does not hold
+*)
+(*
+let long_session () =
+  let k = perform Handshake () in
+  unbox k as key in
+  let first = transfer key "first" in
+  unbox k as key in
+  let second = transfer key "second" in
+  unbox k as key in
+  let third = transfer key "third" in
+  (first, second, third)
+*)
+
+(* Correctly rejected by the typechecker: a key cached with a bound on the
+   messages alone, which bounds every other operation by 0, so that the
+   acknowledgements of the first transfer already exceed it:
+
+     Typing error: Variable `cached` is unboxed with grade
+       `((Ack, 2), (Send, 2))` accumulated since it was bound, which is not
+       below its box grade `(Send, 3)`
+       ...
+       Note: the resource inequality `((Ack, 2), (Send, 2)) <= (Send, 3)`
+         does not hold
+*)
+(*
+let cached_session key =
+  box (Send, 3) key as cached in
+  let first = transfer key "first" in
+  unbox cached as key in
+  let second = transfer key "second" in
+  (first, second)
+*)
+
+(* The operations have no default implementations, since only performing an
+   operation realises its grade; the run uses delays alone, which count no
+   call. *)
+run box ((Send, 3), (_, ∞)) (Key 7) as k in delay 5; unbox k as key in key

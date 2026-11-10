@@ -44,7 +44,7 @@ error naming the effect grade algebra:
   File "effect.tpe", line 1, characters 32-33:
   1 | operation Wait : unit ~> unit ! 5
                                       ^
-  Syntax error: In the `time-interval` effect grade algebra, grades are intervals `[n, m]`, `(n, m)`, `[n, m)`, `(n, m]`, `[n, ∞)` or `(n, ∞)`, not plain integers; did you mean to use the `time-lower-bound` effect grade algebra?
+  Syntax error: In the `time-interval` effect grade algebra, grades are intervals `[n, m]`, `(n, m)`, `[n, m)`, `(n, m]`, `[n, ∞)` or `(n, ∞)`, not plain integers; did you mean to use one of the `time-lower-bound`, `timed-regex-lower-bound`, `timed-regex-finite-lower-bound` or `banked-traces-lower-bound` effect grade algebras?
   [1]
 
 A box grade of a timed regex literal under the time intervals:
@@ -112,4 +112,197 @@ grade:
     6 |   f ();
           ^^^^
     grade `20` accumulates here (this computation)
+  [1]
+
+A box graded by a time upper bound under the upper trace bounds, the image of
+a set of traces being the greatest duration of its traces, each operation at
+the upper end of its running time:
+
+  $ cat > ping.tpe <<'TPE'
+  > operation Ping : unit ~> unit ! {Ping} within [1, 2]
+  > default Ping () = delay 1
+  > 
+  > let twice x =
+  >   box 5 x as b in
+  >   perform Ping (); perform Ping ();
+  >   unbox b as v in v
+  > 
+  > run twice 3
+  > TPE
+  $ ../tempore --grades banked-traces-upper-bound --resource-grades time-upper-bound --no-stdlib ping.tpe
+  === Run 1 ===
+  return 3
+  State: [
+    { resource_0 ↦ 3 ! 5 },
+    1,
+    1
+  ]
+  
+
+  $ printf 'let thrice x =\n  box 5 x as b in\n  perform Ping (); perform Ping (); perform Ping ();\n  unbox b as v in v\n' >> ping.tpe
+  $ ../tempore --grades banked-traces-upper-bound --resource-grades time-upper-bound --no-stdlib ping.tpe
+  File "ping.tpe", line 13, characters 2-19:
+  13 |   unbox b as v in v
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `b` is unboxed with grade `6` accumulated since it was bound, which is not below its box grade `5`
+    File "ping.tpe", line 11, characters 13-14:
+    11 |   box 5 x as b in
+                      ^
+    `b` is bound here
+    File "ping.tpe", line 12, characters 2-17:
+    12 |   perform Ping (); perform Ping (); perform Ping ();
+           ^^^^^^^^^^^^^^^
+    grade `2` accumulates here (operation `Ping`)
+    File "ping.tpe", line 12, characters 19-34:
+    12 |   perform Ping (); perform Ping (); perform Ping ();
+                            ^^^^^^^^^^^^^^^
+    grade `2` accumulates here (operation `Ping`)
+    File "ping.tpe", line 12, characters 36-51:
+    12 |   perform Ping (); perform Ping (); perform Ping ();
+                                             ^^^^^^^^^^^^^^^
+    grade `2` accumulates here (operation `Ping`)
+    Note: the resource inequality `6 <= 5` does not hold
+  [1]
+
+A box graded by the numbers of calls under the finite run sets, the image of a
+set of runs giving each operation the greatest number of its calls in one run:
+
+  $ cat > send.tpe <<'TPE'
+  > operation Send : unit ~> unit ! {Send}
+  > 
+  > let two x =
+  >   box (Send, 2) x as b in
+  >   perform Send (); delay 3; perform Send ();
+  >   unbox b as v in v
+  > TPE
+  $ ../tempore --grades finite-run-sets --resource-grades at-most-counts --typecheck-only --no-stdlib send.tpe
+
+  $ printf 'let three x =\n  box (Send, 2) x as b in\n  perform Send (); perform Send (); perform Send ();\n  unbox b as v in v\n' >> send.tpe
+  $ ../tempore --grades finite-run-sets --resource-grades at-most-counts --typecheck-only --no-stdlib send.tpe
+  File "send.tpe", line 10, characters 2-19:
+  10 |   unbox b as v in v
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `b` is unboxed with grade `(Send, 3)` accumulated since it was bound, which is not below its box grade `(Send, 2)`
+    File "send.tpe", line 8, characters 21-22:
+    8 |   box (Send, 2) x as b in
+                             ^
+    `b` is bound here
+    File "send.tpe", line 9, characters 2-17:
+    9 |   perform Send (); perform Send (); perform Send ();
+          ^^^^^^^^^^^^^^^
+    grade `(Send, 1)` accumulates here (operation `Send`)
+    File "send.tpe", line 9, characters 19-34:
+    9 |   perform Send (); perform Send (); perform Send ();
+                           ^^^^^^^^^^^^^^^
+    grade `(Send, 1)` accumulates here (operation `Send`)
+    File "send.tpe", line 9, characters 36-51:
+    9 |   perform Send (); perform Send (); perform Send ();
+                                            ^^^^^^^^^^^^^^^
+    grade `(Send, 1)` accumulates here (operation `Send`)
+    Note: the resource inequality `(Send, 3) <= (Send, 2)` does not hold
+  [1]
+
+Under the at-least counts with a top, the image of a set of runs gives each
+operation the least number of its calls in one run, and a box graded by
+`(Send, 1)` is unboxed only once a message is certain to have been sent:
+
+  $ cat > sent.tpe <<'TPE'
+  > operation Send : unit ~> unit ! {Send}
+  > 
+  > let after_send x =
+  >   box (Send, 1) x as b in
+  >   perform Send ();
+  >   unbox b as v in v
+  > 
+  > let at_once x =
+  >   box (Send, 1) x as b in
+  >   unbox b as v in v
+  > TPE
+  $ ../tempore --grades finite-run-sets --resource-grades at-least-counts-with-top --typecheck-only --no-stdlib sent.tpe
+  File "sent.tpe", line 10, characters 2-19:
+  10 |   unbox b as v in v
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `b` is unboxed with the unit grade `0` accumulated since it was bound, which is not below its box grade `(Send, 1)`
+    File "sent.tpe", line 9, characters 21-22:
+    9 |   box (Send, 1) x as b in
+                             ^
+    `b` is bound here
+    Note: the resource inequality `0 >= (Send, 1)` does not hold
+  [1]
+
+A box graded by an element of the declared grade lattice under the time lower
+bounds paired with it, the image of a pair being its element:
+
+  $ cat > calm.tpe <<'TPE'
+  > grade lattice Quiet < Noisy
+  > 
+  > operation Hum : unit ~> unit ! (1, Quiet)
+  > operation Shout : unit ~> unit ! (1, Noisy)
+  > default Hum () = delay 1
+  > default Shout () = delay 1
+  > 
+  > let calm x =
+  >   box Quiet x as b in
+  >   perform Hum ();
+  >   unbox b as v in v
+  > 
+  > run calm 4
+  > TPE
+  $ ../tempore --grades time-lower-bound-lattice --resource-grades lattice --no-stdlib calm.tpe
+  === Run 1 ===
+  return 4
+  State: [
+    { resource_0 ↦ 4 ! Quiet }
+  ]
+  
+
+  $ printf 'let loud x =\n  box Quiet x as b in\n  perform Shout ();\n  unbox b as v in v\n' >> calm.tpe
+  $ ../tempore --grades time-lower-bound-lattice --resource-grades lattice --no-stdlib calm.tpe
+  File "calm.tpe", line 17, characters 2-19:
+  17 |   unbox b as v in v
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `b` is unboxed with grade `Noisy` accumulated since it was bound, which is not below its box grade `Quiet`
+    File "calm.tpe", line 15, characters 17-18:
+    15 |   box Quiet x as b in
+                          ^
+    `b` is bound here
+    File "calm.tpe", line 16, characters 2-18:
+    16 |   perform Shout ();
+           ^^^^^^^^^^^^^^^^
+    grade `Noisy` accumulates here (operation `Shout`)
+    Note: the resource inequality `Noisy <= Quiet` does not hold
+  [1]
+
+The declared grade lattice is that of the effect grades where the resource
+grades are the time lower bounds, the image of a pair being its time:
+
+  $ cat > hum.tpe <<'TPE'
+  > grade lattice Quiet < Noisy
+  > 
+  > operation Hum : unit ~> unit ! (1, Quiet)
+  > 
+  > let settled x =
+  >   box 2 x as b in
+  >   perform Hum (); perform Hum ();
+  >   unbox b as v in v
+  > 
+  > let early x =
+  >   box 2 x as b in
+  >   perform Hum ();
+  >   unbox b as v in v
+  > TPE
+  $ ../tempore --grades time-lower-bound-lattice --resource-grades time-lower-bound --typecheck-only --no-stdlib hum.tpe
+  File "hum.tpe", line 13, characters 2-19:
+  13 |   unbox b as v in v
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `b` is unboxed with grade `1` accumulated since it was bound, which is not below its box grade `2`
+    File "hum.tpe", line 11, characters 13-14:
+    11 |   box 2 x as b in
+                      ^
+    `b` is bound here
+    File "hum.tpe", line 12, characters 2-16:
+    12 |   perform Hum ();
+           ^^^^^^^^^^^^^^
+    grade `1` accumulates here (operation `Hum`)
+    Note: the resource inequality `1 >= 2` does not hold
   [1]

@@ -624,6 +624,11 @@ let entries =
       "At least n calls of each operation, by name, such as ((Approve, 2), \
        (Test, 1)); delays count nothing, and the unit 0 is greatest.";
     entry
+      (module CountGrades.AtLeastWithTop)
+      counts "At-least counts with a top"
+      "At least n calls of each operation, by name, as in the at-least counts, \
+       and a greatest grade ⊤ above them, absorbing products and joins.";
+    entry
       (module InterArrivalGrades)
       inter_arrival "Inter-arrival grades"
       "How often an operation recurs: the time between consecutive \

@@ -41,18 +41,25 @@
 
 (** The trace grades without running times over the delays [D], named by [N]. *)
 module Make (D : Delay.S) (N : BankedTraceGrades.NAMES) : sig
-  module UpperBound : Grade.S with type Delay.t = D.t
   (** Sets of traces ordered by inclusion, ["finite-run-sets" ^ N.suffix], with
       a separate greatest point [⊤]. *)
+  module UpperBound :
+    Grade.S with type t = BankedTraceGrades.Bounded(D).t and type Delay.t = D.t
 end
 
-module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Sets of traces over whole time steps ordered by inclusion,
     ["finite-run-sets"]: {!Make} over {!Delay.Nat}. *)
+module UpperBound :
+  Grade.S
+    with type t = BankedTraceGrades.Bounded(Delay.Nat).t
+     and type Delay.t = Delay.Nat.t
 
 (** The trace grades without running times over rational delays. *)
 module Rational : sig
-  module UpperBound : Grade.S with type Delay.t = Delay.Rational.t
   (** Sets of traces with rational delays ordered by inclusion,
       ["finite-run-sets-rational"]: {!Make} over {!Delay.Rational}. *)
+  module UpperBound :
+    Grade.S
+      with type t = BankedTraceGrades.Bounded(Delay.Rational).t
+       and type Delay.t = Delay.Rational.t
 end

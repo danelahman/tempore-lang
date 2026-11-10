@@ -1253,6 +1253,7 @@ let registry =
           "call-time-sets";
           "mode-times";
           "at-least-counts";
+          "at-least-counts-with-top";
           "inter-arrival";
         ]
       (GradeRegistry.accepting (span (Grade.Int 3) Grade.Inf));
@@ -1294,6 +1295,7 @@ let registry =
           "watermarks";
           "call-time-sets";
           "at-least-counts";
+          "at-least-counts-with-top";
           "inter-arrival";
         ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
@@ -1992,7 +1994,7 @@ let family name =
   | "mode-switch-costs" -> Some Modes
   | "mode-times" -> Some Mode_times
   | "at-most-counts" -> Some Counts
-  | "at-least-counts" -> Some Lower_counts
+  | "at-least-counts" | "at-least-counts-with-top" -> Some Lower_counts
   | "time-upper-bound-energy" -> Some Energy
   | "inter-arrival" -> Some Inter_arrival
   | "finite-run-sets" -> Some Inclusion_traces
@@ -2799,7 +2801,8 @@ let other_running_times =
   }
 
 (* The laws of the morphisms of the registered grade systems on the samples of
-   their effect grades, under the running times [running_times] and
+   their effect grades, over the grade lattice [Low < High] where they are
+   built on one, under the running times [running_times] and
    [other_running_times], and, over rational delays, also
    [fractional_running_times]; and the failures of the reflection of the order
    at the unit of the systems that do not declare it. *)
@@ -2835,9 +2838,23 @@ let system_laws =
       (GS.E.show e ^ " to " ^ GS.R.show image)
   in
   let find effects resources =
-    Option.get (Grades.GradeSystemRegistry.find ~effects ~resources)
+    Option.get (Grades.GradeSystemRegistry.find ~effects ~resources ())
   in
   [
+    not_reflecting (find "timed-regex-lower-bound" "time-lower-bound") Grade.Top;
+    not_reflecting
+      (find "timed-regex-finite-lower-bound-rational"
+         "time-lower-bound-rational")
+      Grade.Top;
+    not_reflecting
+      (find "finite-run-sets" "at-most-counts")
+      (Grade.Braces (Grade.Tick 3));
+    not_reflecting
+      (find "finite-run-sets" "at-least-counts-with-top")
+      (Grade.Braces (Grade.Tick 3));
+    not_reflecting
+      (find "time-lower-bound-lattice" "time-lower-bound")
+      (Grade.Tuple [ Grade.Int 0; Grade.Name "High" ]);
     not_reflecting
       (find "time-interval" "time-lower-bound")
       (closed (Grade.Int 0) (Grade.Int 5));
@@ -4238,7 +4255,8 @@ let declared_lattices =
 
 (* The laws of the grades of the registry built on a grade lattice, over the
    declared lattice [lattice] described by [label], on samples read from
-   literals, and the laws of the components and the action of the
+   literals, the laws of the morphisms of the registered grade systems built
+   on a grade lattice over it, and the laws of the components and the action of the
    flow-sensitive grades on all elements over the output [Board] and the
    others. *)
 let declared_laws_over (label, lattice) =
@@ -4311,7 +4329,29 @@ let declared_laws_over (label, lattice) =
       (module V.Outputs)
       V.Raise.act bounds
   in
-  laws (grade "lattice") (Grade.Top :: List.map element names)
+  let systems =
+    List.concat_map
+      (fun (e : Grades.GradeSystemRegistry.entry) ->
+        match e.over_lattice with
+        | None -> []
+        | Some over ->
+            let (module GS) = over lattice in
+            let module M = Morphism (GS) in
+            let read lit =
+              match GS.E.of_lit lit with
+              | c -> Some c
+              | exception Grade.Invalid_literal _ -> None
+            in
+            check
+              (GS.E.name ^ " to " ^ GS.R.name ^ ": the declared lattice")
+              (Option.equal Grades.GradeLattice.equal GS.lattice (Some lattice))
+              label
+            :: M.laws ~context bounds
+                 (List.filter_map read (Grade.Top :: timed)))
+      Grades.GradeSystemRegistry.systems
+  in
+  systems
+  @ laws (grade "lattice") (Grade.Top :: List.map element names)
   @ laws (grade "time-lower-bound-lattice") timed
   @ laws (grade "time-upper-bound-lattice") timed
   @ laws (grade "time-interval-lattice") (Grade.Top :: intervals)

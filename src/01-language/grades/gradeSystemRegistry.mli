@@ -6,11 +6,13 @@
 (** The grade system in which effects are graded by [E] and resources by the
     time grades [R], the image [∣e∣] of an effect grade [e] being the least
     grade of [R] admitting the durations of the runs of [e]: [R.of_durations] of
-    [E.duration_bounds bounds e], the top where [e] admits no run, which the
-    typechecker rejects wherever it is written. It declares no grade lattice,
-    its morphism reflects the order at the unit as [P.unit_reflecting] states,
-    and the witnesses of a condition are those of [E] for its effect constants,
-    [Partial]. *)
+    [E.duration_bounds bounds e], each open end of the running times [bounds]
+    first replaced by the closed one it abbreviates over the delays
+    ({!Grade.close_running_time}), and the top where [e] admits no run, which
+    the typechecker rejects wherever it is written. It declares no grade
+    lattice, its morphism reflects the order at the unit as [P.unit_reflecting]
+    states, and the witnesses of a condition are those of [E] for its effect
+    constants, [Partial]. *)
 module Durations
     (E : Grade.S)
     (R : TimeGrades.DURATIONS with type Delay.t = E.Delay.t)
@@ -18,28 +20,57 @@ module Durations
       val unit_reflecting : bool
     end) : GradeSystem.S with module R = R and module E = E
 
+(** The grade system in which effects are graded by [E] and resources by [R],
+    with the morphism [M.map], in a program declaring the grade lattice
+    [M.lattice], its morphism reflecting the order at the unit as
+    [M.unit_reflecting] states; the witnesses of a condition are those of [E]
+    for its effect constants, [Partial]. *)
+module Mapped
+    (E : Grade.S)
+    (R : Grade.S with type Delay.t = E.Delay.t)
+    (M : sig
+      val map : Grade.bounds -> E.t -> R.t
+      val lattice : GradeLattice.t option
+      val unit_reflecting : bool
+    end) : GradeSystem.S with module R = R and module E = E
+
 type entry = {
   effects : string;  (** The name of the effect grade algebra. *)
   resources : string;  (** The name of the resource grade algebra. *)
-  system : (module GradeSystem.S);  (** The grade system. *)
+  system : (module GradeSystem.S);
+      (** The grade system, in a program declaring no grade lattice. *)
+  over_lattice : (GradeLattice.t -> (module GradeSystem.S)) option;
+      (** The grade system in a program declaring a grade lattice, over it,
+          where its grade algebras are built on one. *)
   morphism : string;
       (** The morphism, in one line, e.g.
-          ["∣[d, a]∣ = [d, ∞), the lower end kept with its openness"]; shown by
+          ["∣[d, a]∣ = \[d, ∞), the lower end kept with its openness"]; shown by
           [--help]. *)
 }
 (** A registered grade system. *)
 
 val systems : entry list
 (** The registered grade systems: the time intervals with the time lower bounds
-    and with the time upper bounds, keeping one end of an interval, and the
-    intervals of the timed regex grades, finite or not, with the time intervals,
-    by the hull of their durations; each over whole time steps and over rational
-    delays. *)
+    and with the time upper bounds, keeping one end of an interval; the timed
+    regex grades, finite or not, with the time grades of the same sides, by the
+    durations of their runs; the trace grades with banked delays with the time
+    grades of the same sides, by the durations of their traces; each of these
+    over whole time steps and over rational delays; the finite run sets with the
+    at-most counts and with the at-least counts with a top, and the lower trace
+    bounds with the at-least counts, by the calls of their traces, over whole
+    time steps; and the projections of the time lower bounds paired with a grade
+    lattice. *)
 
-val find : effects:string -> resources:string -> (module GradeSystem.S) option
-(** [find ~effects ~resources] is the registered grade system of the effect
-    grade algebra [effects] and the resource grade algebra [resources], if there
-    is one. *)
+val find :
+  ?lattice:GradeLattice.t ->
+  effects:string ->
+  resources:string ->
+  unit ->
+  (module GradeSystem.S) option
+(** [find ?lattice ~effects ~resources ()] is the registered grade system of the
+    effect grade algebra [effects] and the resource grade algebra [resources],
+    if there is one, over the grade lattice [lattice] where its grade algebras
+    are built on one. *)
 
 val effects_of : string -> string list
 (** [effects_of resources] is the names of the effect grade algebras of the

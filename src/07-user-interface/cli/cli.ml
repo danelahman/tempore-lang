@@ -1213,15 +1213,16 @@ let listed names =
   | last :: rest -> String.concat ", " (List.rev rest) ^ " and " ^ last
 
 (* The grade system of [config], its effects graded by the grade algebra of
-   --grades: the registered grade system of the resource grade algebra of
+   --grades, over the grade lattice [lattice] the program declares, if any:
+   the registered grade system of the resource grade algebra of
    --resource-grades if that is another one, and otherwise the identity system
-   of [G], [G] being the grade algebra of --grades over the grade lattice
-   [lattice] the program declares, if any. *)
+   of [G], [G] being the grade algebra of --grades over [lattice]. *)
 let grade_system config (module G : Grades.Grade.S) lattice =
   match config.resource_grades with
   | Some resources when not (String.equal resources config.grades) -> (
       match
-        Grades.GradeSystemRegistry.find ~effects:config.grades ~resources
+        Grades.GradeSystemRegistry.find ?lattice ~effects:config.grades
+          ~resources ()
       with
       | Some system -> system
       | None ->

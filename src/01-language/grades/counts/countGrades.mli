@@ -20,10 +20,17 @@
     - [of_delay] and [of_bounds] are constantly the unit.
     - No counterexample is offered, and the witnesses are complete, as those of
       {!TimeGrades.UpperBound} are. *)
-module AtMost :
-  Grade.S
-    with type t = TimeGrades.UpperBound.t GradeConstructions.Indexed.t
-     and type Delay.t = Delay.Nat.t
+module AtMost : sig
+  include
+    Grade.S
+      with type t = TimeGrades.UpperBound.t GradeConstructions.Indexed.t
+       and type Delay.t = Delay.Nat.t
+
+  val of_counts : (string * int) list -> t
+  (** [of_counts counts] bounds each operation of [counts] by its number of
+      calls there, the first listed for an operation listed twice, and every
+      other operation by [0]. *)
+end
 
 (** The at-least counts, ["at-least-counts"], over {!Delay.Nat}: each operation
     performed at least the number of times its entry gives, the maps to
@@ -41,7 +48,37 @@ module AtMost :
     - [of_delay] and [of_bounds] are constantly the unit.
     - No counterexample is offered, and the witnesses are complete, as those of
       {!TimeGrades.LowerBound} are. *)
-module AtLeast :
-  Grade.S
-    with type t = TimeGrades.LowerBound.t GradeConstructions.Indexed.t
-     and type Delay.t = Delay.Nat.t
+module AtLeast : sig
+  include
+    Grade.S
+      with type t = TimeGrades.LowerBound.t GradeConstructions.Indexed.t
+       and type Delay.t = Delay.Nat.t
+
+  val of_counts : (string * int) list -> t
+  (** [of_counts counts] guarantees each operation of [counts] its number of
+      calls there, the first listed for an operation listed twice, and every
+      other operation no call. *)
+end
+
+(** The at-least counts with a separate greatest point,
+    ["at-least-counts-with-top"], over {!Delay.Nat}: the grades of {!AtLeast}
+    and [⊤] above them all, absorbing products and joins.
+
+    - The unit, every count [0], is no longer the top: [⊤] is above it, and is
+      written [⊤] (ASCII [top]); every other literal is read by {!AtLeast}, the
+      unit being written [0].
+    - [mul] commutes; every grade is its own closure.
+    - [of_delay] and [of_bounds] are constantly the unit.
+    - A failure of [⊤ ≾ c] is witnessed by [⊤], and no other counterexample is
+      offered; the witnesses are [⊤] and those of {!AtLeast} for the other
+      constants, and are not complete. *)
+module AtLeastWithTop : sig
+  type t =
+    | Counted of AtLeast.t  (** the grade of the at-least counts *)
+    | Top  (** the greatest grade, printed as [⊤] *)
+
+  include Grade.S with type t := t and type Delay.t = Delay.Nat.t
+
+  val of_counts : (string * int) list -> t
+  (** [of_counts counts] is {!AtLeast.of_counts} [counts]. *)
+end

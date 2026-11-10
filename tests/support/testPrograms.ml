@@ -17,7 +17,9 @@ let grade_module ?lattice name =
 let grade_system ?lattice ?resources name =
   match resources with
   | Some resources when not (String.equal resources name) -> (
-      match Grades.GradeSystemRegistry.find ~effects:name ~resources with
+      match
+        Grades.GradeSystemRegistry.find ?lattice ~effects:name ~resources ()
+      with
       | Some system -> system
       | None ->
           failwith

@@ -120,10 +120,11 @@ end
 
 (** The trace grades with banked delays over the delays [D], named by [N]. *)
 module Make (D : Delay.MEASURED) (N : TIMED_NAMES) : sig
-  module LowerBound : Grade.S with type Delay.t = D.t
   (** Sets of traces read as lower bounds,
       ["banked-traces-lower-bound" ^ N.suffix], in the coverage order; the unit
       [{skip}] is the top. Every grade is its own closure. *)
+  module LowerBound :
+    Grade.S with type t = TimedTrace.Base(D).traces and type Delay.t = D.t
 
   module UpperBound : Grade.S with type Delay.t = D.t
   (** Sets of traces read as upper bounds,
@@ -154,9 +155,12 @@ end
     The delays are the natural numbers of time steps, written as integers, and
     so are the running-time bounds: {!Make} over {!Delay.Nat}. *)
 
-module LowerBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Sets of traces read as lower bounds, ["banked-traces-lower-bound"], in the
     coverage order; the unit [{skip}] is the top. *)
+module LowerBound :
+  Grade.S
+    with type t = TimedTrace.Base(Delay.Nat).traces
+     and type Delay.t = Delay.Nat.t
 
 module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Sets of traces read as upper bounds, ["banked-traces-upper-bound"], in the
@@ -177,9 +181,12 @@ module Interval : Grade.S with type Delay.t = Delay.Nat.t
     running-time bounds, e.g. [within [1/2, 3/2]]: {!Make} over
     {!Delay.Rational}. *)
 module Rational : sig
-  module LowerBound : Grade.S with type Delay.t = Delay.Rational.t
   (** Sets of traces read as lower bounds,
       ["banked-traces-lower-bound-rational"], in the coverage order. *)
+  module LowerBound :
+    Grade.S
+      with type t = TimedTrace.Base(Delay.Rational).traces
+       and type Delay.t = Delay.Rational.t
 
   module UpperBound : Grade.S with type Delay.t = Delay.Rational.t
   (** Sets of traces read as upper bounds,

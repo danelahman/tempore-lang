@@ -139,11 +139,16 @@
         | None -> (lo', hi'))
 
   (* [declare_lattice ~loc chains] checks the declaration of the grade lattice
-     [chains] at [loc] against the grade system: its grades are built on a grade
-     lattice, the same as that of an earlier declaration or else [Low < High]. *)
+     [chains] at [loc] against the grade system: its resource or its effect
+     grades are built on a grade lattice, the same as that of an earlier
+     declaration or else [Low < High]. *)
   let declare_lattice ~loc chains =
     let declared = Grades.GradeLattice.of_chains ~at:loc chains in
-    if not (Grades.GradeRegistry.uses_lattice GS.R.name) then
+    if
+      not
+        (Grades.GradeRegistry.uses_lattice GS.R.name
+        || Grades.GradeRegistry.uses_lattice GS.E.name)
+    then
       Error.syntax ~loc "%s" (Grades.GradeRegistry.without_lattice GS.R.name);
     let lattice = Option.value GS.lattice ~default:Grades.GradeLattice.default in
     if not (Grades.GradeLattice.equal declared lattice) then

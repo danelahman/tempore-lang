@@ -1424,6 +1424,11 @@ is accepted, while a wait in place of the third rinse would be rejected:
     Variable `next` is unboxed with grade `(Rinse, 2)` accumulated since it was
     bound, which is not below its box grade `(Rinse, 3)`
 
+`at-least-counts-with-top` adds a greatest grade `⊤` above the unit, which
+absorbs products and joins. The other grades are as in `at-least-counts`. It
+is the resource grade algebra of a grade system with `finite-run-sets`
+([Grade systems](#grade-systems)).
+
 See [`examples/at_least_counts/rinses.tpe`](examples/at_least_counts/rinses.tpe).
 
 ### Inter-arrival grades
@@ -1503,11 +1508,26 @@ grade algebra:
 | `time-interval` | `time-lower-bound` | `∣[d, a]∣ = [d, ∞)` |
 | `time-interval` | `time-upper-bound` | `∣[d, a]∣ = [0, a]` |
 | `timed-regex-interval`, `timed-regex-finite-interval` | `time-interval` | the least interval containing the durations of the runs of `ε` |
+| `timed-regex-lower-bound`, `timed-regex-finite-lower-bound` | `time-lower-bound` | the infimum of the durations of the runs of `ε` |
+| `timed-regex-upper-bound`, `timed-regex-finite-upper-bound` | `time-upper-bound` | the supremum of the durations of the runs of `ε` |
+| `banked-traces-lower-bound` | `time-lower-bound` | the least duration of a trace of `ε`, at the lower running times |
+| `banked-traces-upper-bound` | `time-upper-bound` | the greatest duration of a trace of `ε`, at the upper running times |
+| `banked-traces-interval` | `time-interval` | both of the above, of the two ends |
+| `finite-run-sets` | `at-most-counts` | the greatest number of calls of each operation in a run of `ε` |
+| `finite-run-sets` | `at-least-counts-with-top` | the least number of calls of each operation in a run of `ε` |
+| `banked-traces-lower-bound` | `at-least-counts` | the least number of calls of each operation in a trace of `ε` |
+| `time-lower-bound-lattice` | `time-lower-bound`, `lattice` | `∣(n, ℓ)∣ = n`, `∣(n, ℓ)∣ = ℓ` |
 
-Each system also exists over rational delays, both names ending in
-`-rational`. An end keeps its openness, and in the timed regex grades an
-operation takes its running time. A pair without a system is refused, naming
-the resource grade algebras of the effect grade algebra.
+The systems with time resource grades also exist over rational delays, both
+names ending in `-rational`. The others are over whole time steps. An end
+keeps its openness, and in the timed regex and banked trace grades an
+operation takes its running time.
+
+The top of the finite run sets is mapped to the top of the counts, for which
+the at-least counts gain a top `⊤` above the unit. The projections of
+`time-lower-bound-lattice` are over the grade lattice the program declares. A
+pair without a system is refused, naming the resource grade algebras of the
+effect grade algebra.
 
 The literals of boxes `box ρ e` and of box types `[ρ]a` are read by the
 resource grade algebra, and those of effects `! ε`, operation signatures
@@ -1537,7 +1557,8 @@ not leave the dough the 45 minutes its box grade demands:
 A two-sided box grade such as `box [45, 90] d` is a syntax error: ``In the
 `time-lower-bound` resource grade algebra, lower bounds are unbounded above``.
 The web interface uses the identity systems. See
-[`examples/grade_systems/`](examples/grade_systems/).
+[`examples/grade_systems/`](examples/grade_systems/), where a session key may
+encrypt at most three messages under `finite-run-sets` and `at-most-counts`.
 
 ## Eternal types
 
