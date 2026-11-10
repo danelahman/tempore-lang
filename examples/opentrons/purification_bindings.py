@@ -67,7 +67,7 @@ def MagnetOff(ctx, unit):
     return ()
 
 
-def RemoveSupernatant(ctx, beads):
+def RemoveSupernatant(ctx, unit):
     ctx["pipette"].transfer(80, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(90)
     return ()
@@ -85,13 +85,13 @@ def RemoveEthanol(ctx, unit):
     return ()
 
 
-def RemoveResidualEthanol(ctx, beads):
+def RemoveResidualEthanol(ctx, unit):
     ctx["pipette"].transfer(10, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(45)
     return ()
 
 
-def EluteDNA(ctx, beads):
+def EluteDNA(ctx, unit):
     ctx["pipette"].transfer(25, ctx["reservoir"]["A3"], ctx["samples"], mix_after=(5, 20), new_tip="always")
     tempore_elapse(90)
     return ()

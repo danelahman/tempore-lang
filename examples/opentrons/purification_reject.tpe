@@ -37,9 +37,9 @@ default MagnetOn () = delay 1/2
 operation MagnetOff : unit ~> unit ! {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1/2
 
-operation RemoveSupernatant : beads ~> unit ! {RemoveSupernatant}
+operation RemoveSupernatant : unit ~> unit ! {RemoveSupernatant}
   within [1, 2]
-default RemoveSupernatant beads = delay 3/2
+default RemoveSupernatant () = delay 3/2
 
 operation AddEthanol : unit ~> unit ! {AddEthanol} within (0, 1]
 default AddEthanol () = delay 3/4
@@ -47,12 +47,12 @@ default AddEthanol () = delay 3/4
 operation RemoveEthanol : unit ~> unit ! {RemoveEthanol} within [1, 2]
 default RemoveEthanol () = delay 3/2
 
-operation RemoveResidualEthanol : beads ~> unit ! {RemoveResidualEthanol}
+operation RemoveResidualEthanol : unit ~> unit ! {RemoveResidualEthanol}
   within (0, 1]
-default RemoveResidualEthanol beads = delay 3/4
+default RemoveResidualEthanol () = delay 3/4
 
-operation EluteDNA : beads ~> unit ! {EluteDNA} within [1, 2]
-default EluteDNA beads = delay 3/2
+operation EluteDNA : unit ~> unit ! {EluteDNA} within [1, 2]
+default EluteDNA () = delay 3/2
 
 operation Transfer : token ~> unit ! {Transfer} within [1, 2]
 default Transfer valid = delay 3/2
@@ -73,7 +73,7 @@ let separate (binding : [[5, 10]]beads) =
 let clear (settling : [[3, 5]]beads) =
   delay 4;
   unbox settling as beads in
-  perform RemoveSupernatant beads;
+  perform RemoveSupernatant ();
   box {AddEthanol; idle [1/2, 3/2]} beads
 
 let wash (soaking : [{AddEthanol; idle [1/2, 3/2]}]beads) =
@@ -88,14 +88,14 @@ let final_wash (rinsing : [{AddEthanol; idle [1/2, 3/2]; RemoveEthanol}]beads) =
   delay 3/4;
   perform RemoveEthanol ();
   unbox rinsing as beads in
-  perform RemoveResidualEthanol beads;
+  perform RemoveResidualEthanol ();
   box {[3, 5]; MagnetOff} beads
 
 let elute (drying : [{[3, 5]; MagnetOff}]beads) =
   delay 7/2;
   perform MagnetOff ();
   unbox drying as beads in
-  perform EluteDNA beads;
+  perform EluteDNA ();
   box {[2, 5]; MagnetOn; [2, 5]} beads
 
 let collect (eluting : [{[2, 5]; MagnetOn; [2, 5]}]beads) =
@@ -122,14 +122,14 @@ let separate_long (binding : [[5, 10]]beads) =
 let clear_long (settling : [[3, 5]]beads) =
   delay 5;
   unbox settling as beads in
-  perform RemoveSupernatant beads;
+  perform RemoveSupernatant ();
   box {AddEthanol; idle [1/2, 3/2]} beads
 
 let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
   delay 5;
   perform MagnetOff ();
   unbox drying as beads in
-  perform EluteDNA beads;
+  perform EluteDNA ();
   box {[2, 5]; MagnetOn; [2, 5]} beads
 
 let purification_generous () =
