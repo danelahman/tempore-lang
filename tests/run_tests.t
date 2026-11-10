@@ -8852,16 +8852,36 @@ single-dash form of the help option is not accepted.
   $ ../tempore -help
   ../tempore: unknown option '-help'.
   Run Tempore as '../tempore [filename.tpe] ...'
-    --api-level        Set the apiLevel of the protocol written with --bind (default: 2.30)
-    --bind             With --emit-opentrons, write an Opentrons protocol whose operations are performed by the functions of the given Python binding file
-    --board            With --package, type the program under the running-time bounds of the operations of the packages on the given board of the Arduino backend, where they give them (default: the bounds of their declarations); a device written with --device has the board of its manifest
-    --build            Build the project written with --device with PlatformIO, passing its output through and exiting with its exit code
-    --capture          After --upload, or without an upload with --device, read the serial port of --port at the baud rate of the board for the given number of seconds, printing its lines, and then the last complete profile among them, if any
-    --debug            Print the inferred type schemes of the top-level definitions before running
-    --device           With --emit-arduino, write a PlatformIO project of the device described by the given manifest, of the definitions reached from its tasks
-    --emit-arduino     Typecheck the files and write them, compiled to C++, to the given directory, without running them; a name without a directory component names a directory in _arduino/projects
-    --emit-opentrons   Typecheck the files and write them, compiled to Python, to the given file, without running them; a file name without a directory names a file in _opentrons/protocols
-    --grades           Select the grade algebra (default: time-lower-bound); accepted:
+  
+    --api-level        Set the apiLevel of the protocol written with --bind
+                       (default: 2.30)
+    --bind             With --emit-opentrons, write an Opentrons protocol whose
+                       operations are performed by the functions of the given
+                       Python binding file
+    --board            With --package, type the program under the running-time
+                       bounds of the operations of the packages on the given board
+                       of the Arduino backend, where they give them (default: the
+                       bounds of their declarations); a device written with
+                       --device has the board of its manifest
+    --build            Build the project written with --device with PlatformIO,
+                       passing its output through and exiting with its exit code
+    --capture          After --upload, or without an upload with --device, read
+                       the serial port of --port at the baud rate of the board for
+                       the given number of seconds, printing its lines, and then
+                       the last complete profile among them, if any
+    --debug            Print the inferred type schemes of the top-level
+                       definitions before running
+    --device           With --emit-arduino, write a PlatformIO project of the
+                       device described by the given manifest, of the definitions
+                       reached from its tasks
+    --emit-arduino     Typecheck the files and write them, compiled to C++, to the
+                       given directory, without running them; a name without a
+                       directory component names a directory in _arduino/projects
+    --emit-opentrons   Typecheck the files and write them, compiled to Python, to
+                       the given file, without running them; a file name without a
+                       directory names a file in _opentrons/protocols
+    --grades           Select the grade algebra (default: time-lower-bound);
+                       accepted:
         Time:
           time-lower-bound                           Lower bounds
           time-upper-bound                           Upper bounds
@@ -8881,52 +8901,90 @@ single-dash form of the help option is not accepted.
           banked-traces-interval-rational            Intervals (rational)
         Regular trace languages:
           regular-trace-languages-symbolic           Upper bounds (symbolic)
-              symbolic expressions over letter sets; inclusion by gap derivatives by minterms, depth-first
-          regular-trace-languages-rational-symbolic  Upper bounds (rational, symbolic)
-              symbolic expressions over letter and delay sets; inclusion by gap derivatives by minterms, depth-first
+              symbolic expressions over letter sets; inclusion by gap derivatives
+              by minterms, depth-first
+          regular-trace-languages-rational-symbolic  Upper bounds (rational,
+                                                     symbolic)
+              symbolic expressions over letter and delay sets; inclusion by gap
+              derivatives by minterms, depth-first
         Regex grades with banked delays:
           banked-regex-lower-bound-symbolic          Lower bounds (symbolic)
-              symbolic expressions over letter sets; inclusion by gap derivatives with a closure reader, breadth-first
+              symbolic expressions over letter sets; inclusion by gap derivatives
+              with a closure reader, breadth-first
           banked-regex-upper-bound-symbolic          Upper bounds (symbolic)
-              symbolic expressions over letter sets; inclusion by gap derivatives with a closure reader, breadth-first
+              symbolic expressions over letter sets; inclusion by gap derivatives
+              with a closure reader, breadth-first
           banked-regex-interval-symbolic             Intervals (symbolic)
-              symbolic expressions over letter sets; inclusion by gap derivatives with a closure reader, breadth-first
-          banked-regex-lower-bound-rational-symbolic Lower bounds (rational, symbolic)
-              symbolic expressions over letter and delay sets; inclusion by gap derivatives with a closure reader, breadth-first
-          banked-regex-upper-bound-rational-symbolic Upper bounds (rational, symbolic)
-              symbolic expressions over letter and delay sets; inclusion by gap derivatives with a closure reader, breadth-first
-          banked-regex-interval-rational-symbolic    Intervals (rational, symbolic)
-              symbolic expressions over letter and delay sets; inclusion by gap derivatives with a closure reader, breadth-first
+              symbolic expressions over letter sets; inclusion by gap derivatives
+              with a closure reader, breadth-first
+          banked-regex-lower-bound-rational-symbolic Lower bounds (rational,
+                                                     symbolic)
+              symbolic expressions over letter and delay sets; inclusion by gap
+              derivatives with a closure reader, breadth-first
+          banked-regex-upper-bound-rational-symbolic Upper bounds (rational,
+                                                     symbolic)
+              symbolic expressions over letter and delay sets; inclusion by gap
+              derivatives with a closure reader, breadth-first
+          banked-regex-interval-rational-symbolic    Intervals (rational,
+                                                     symbolic)
+              symbolic expressions over letter and delay sets; inclusion by gap
+              derivatives with a closure reader, breadth-first
         Timed regex grades:
           timed-regex-lower-bound                    Lower bounds
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
           timed-regex-upper-bound                    Upper bounds
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
           timed-regex-interval                       Intervals
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
           timed-regex-lower-bound-rational           Lower bounds (rational)
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
           timed-regex-upper-bound-rational           Upper bounds (rational)
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
           timed-regex-interval-rational              Intervals (rational)
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
         Finite timed regex grades:
           timed-regex-finite-lower-bound             Lower bounds
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
           timed-regex-finite-upper-bound             Upper bounds
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
           timed-regex-finite-interval                Intervals
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
           timed-regex-finite-lower-bound-rational    Lower bounds (rational)
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
           timed-regex-finite-upper-bound-rational    Upper bounds (rational)
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
           timed-regex-finite-interval-rational       Intervals (rational)
-              expressions over time spans, idle waits and operation sets; inclusion by partial derivatives with a time span reader, breadth-first
+              expressions over time spans, idle waits and operation sets;
+              inclusion by partial derivatives with a time span reader,
+              breadth-first
         Grade lattices:
           lattice                                    Grade lattice
-          time-lower-bound-lattice                   Lower bounds × lattice (embargoes)
-          time-upper-bound-lattice                   Upper bounds × lattice (expiring capabilities)
+          time-lower-bound-lattice                   Lower bounds × lattice
+                                                     (embargoes)
+          time-upper-bound-lattice                   Upper bounds × lattice
+                                                     (expiring capabilities)
           time-interval-lattice                      Intervals × lattice
           flow-sensitive-levels                      Flow-sensitive levels
         Time with an energy budget:
@@ -8941,17 +8999,42 @@ single-dash form of the help option is not accepted.
           at-least-counts                            At-least counts
         Inter-arrival grades:
           inter-arrival                              Inter-arrival grades
-        Further implementations of the regular grades, kept for benchmarking, are accepted by --grades with the suffixes -letter-automata, -symbolic-by-letters and -letter-derivatives in place of -symbolic, and -rational-automata in place of -rational-symbolic.
+        Further implementations of the regular grades, kept for benchmarking, are
+        accepted by --grades with the suffixes -letter-automata,
+        -symbolic-by-letters and -letter-derivatives in place of -symbolic, and
+        -rational-automata in place of -rational-symbolic.
     --help             Display this list of options
-    --host-runs        With --emit-arduino, also compile the run commands, and write a main program for the host that executes them and prints their results as the interpreter does
-    --host-simulate    With --device, build the project for the host with c++ and run its tasks for the given number of seconds of simulated time, printing the log of the device with the events of its tasks
-    --monitor          Set what a protocol written with --bind or a device written with --device does when an operation's running time is outside its bounds, or a step of a periodic task takes its period or longer: abort, warn or off (default: abort)
+    --host-runs        With --emit-arduino, also compile the run commands, and
+                       write a main program for the host that executes them and
+                       prints their results as the interpreter does
+    --host-simulate    With --device, build the project for the host with c++ and
+                       run its tasks for the given number of seconds of simulated
+                       time, printing the log of the device with the events of its
+                       tasks
+    --monitor          Set what a protocol written with --bind or a device written
+                       with --device does when an operation's running time is
+                       outside its bounds, or a step of a periodic task takes its
+                       period or longer: abort, warn or off (default: abort)
     --no-stdlib        Do not load the standard library
-    --package          Load the declarations of the operations of the given peripheral package of the Arduino backend before the files, so that the program may perform them, run by their default implementations; repeatable; the packages of a device written with --device are those of its manifest
-    --pio              Use the given executable as the PlatformIO of --build and --upload (default: pio on the PATH, or else in _arduino/venv)
-    --port             Upload through the given serial port under --upload (default: the port PlatformIO detects), and read it under --capture
-    --profile          Build the project written with --device with the profile of the running times of its operations and periodic tasks, logged every 5 seconds in place of the trace under --host-simulate
-    --resource-grades  Select the resource grade algebra, that of the grades of boxes and box types, the effects being graded by the grade algebra of --grades and resources by their images under a morphism of grade algebras (default: the grade algebra of --grades, the morphism being the identity); accepted after the grade algebras of --grades, with the morphism:
+    --package          Load the declarations of the operations of the given
+                       peripheral package of the Arduino backend before the files,
+                       so that the program may perform them, run by their default
+                       implementations; repeatable; the packages of a device
+                       written with --device are those of its manifest
+    --pio              Use the given executable as the PlatformIO of --build and
+                       --upload (default: pio on the PATH, or else in
+                       _arduino/venv)
+    --port             Upload through the given serial port under --upload
+                       (default: the port PlatformIO detects), and read it under
+                       --capture
+    --profile          Build the project written with --device with the profile of
+                       the running times of its operations and periodic tasks,
+                       logged every 5 seconds in place of the trace under
+                       --host-simulate
+    --resource-grades  Select the grade algebra of the resource grades, those of
+                       boxes and box types; effects are graded by that of
+                       --grades. The pair must be one of those listed, with the
+                       morphism (default: the algebra of --grades):
           time-interval                        time-lower-bound
               ∣[d, a]∣ = [d, ∞), the lower end kept with its openness
           time-interval-rational               time-lower-bound-rational
@@ -8961,21 +9044,40 @@ single-dash form of the help option is not accepted.
           time-interval-rational               time-upper-bound-rational
               ∣[d, a]∣ = [0, a], the upper end kept with its openness
           timed-regex-interval                 time-interval
-              ∣g∣ = the least interval containing the durations of the runs of g, operations taking their running times
+              ∣g∣ = the least interval containing the durations of the runs of g,
+              operations taking their running times
           timed-regex-interval-rational        time-interval-rational
-              ∣g∣ = the least interval containing the durations of the runs of g, operations taking their running times
+              ∣g∣ = the least interval containing the durations of the runs of g,
+              operations taking their running times
           timed-regex-finite-interval          time-interval
-              ∣g∣ = the least interval containing the durations of the runs of g, operations taking their running times
+              ∣g∣ = the least interval containing the durations of the runs of g,
+              operations taking their running times
           timed-regex-finite-interval-rational time-interval-rational
-              ∣g∣ = the least interval containing the durations of the runs of g, operations taking their running times
-    --robot            Set the robot of the protocol written with --bind: flex (default: flex)
-    --simulate         Run the Opentrons simulator on the protocol written with --bind, passing its run log through and exiting with its exit code
-    --simulator        Use the given executable as the Opentrons simulator of --simulate (default: opentrons_simulate on the PATH, or else in _opentrons)
-    --time-unit        Set the length of a unit of duration of the protocol written with --bind: seconds, minutes, hours or a positive number of seconds (default: seconds)
-    --timeline         Print the timeline of each run after its result: its delays and calls of operations performed by their default implementations, with the events of these indented below them, each with its grade, and the resources boxed, with their grades, and unboxed, each row with the grade accumulated before it; long grades are shortened
-    --timeline-full    Print the timelines of --timeline with their grades in full; implies --timeline
+              ∣g∣ = the least interval containing the durations of the runs of g,
+              operations taking their running times
+    --robot            Set the robot of the protocol written with --bind: flex
+                       (default: flex)
+    --simulate         Run the Opentrons simulator on the protocol written with
+                       --bind, passing its run log through and exiting with its
+                       exit code
+    --simulator        Use the given executable as the Opentrons simulator of
+                       --simulate (default: opentrons_simulate on the PATH, or
+                       else in _opentrons)
+    --time-unit        Set the length of a unit of duration of the protocol
+                       written with --bind: seconds, minutes, hours or a positive
+                       number of seconds (default: seconds)
+    --timeline         Print the timeline of each run after its result: its delays
+                       and calls of operations performed by their default
+                       implementations, with the events of these indented below
+                       them, each with its grade, and the resources boxed, with
+                       their grades, and unboxed, each row with the grade
+                       accumulated before it; long grades are shortened
+    --timeline-full    Print the timelines of --timeline with their grades in
+                       full; implies --timeline
     --typecheck-only   Typecheck the files without running them
-    --upload           Build the project written with --device with PlatformIO and upload it to the board, passing its output through and exiting with its exit code
+    --upload           Build the project written with --device with PlatformIO and
+                       upload it to the board, passing its output through and
+                       exiting with its exit code
   [2]
 
 The exit code of an accepted program a run of which fails is 3: for a run

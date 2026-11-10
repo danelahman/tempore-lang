@@ -98,6 +98,30 @@ let duration_of_string option s =
 
 let accepted_grade_names = List.map fst Grades.GradeRegistry.grade_modules
 
+(* The number of characters of the UTF-8 string [s]. *)
+let char_length s =
+  String.fold_left
+    (fun n c -> if Char.code c land 0xC0 = 0x80 then n else n + 1)
+    0 s
+
+(* Greedy line filling of the words of [text] to lines of at most [width]
+   columns: the first line starts at column [first], the following lines at
+   column [indent]. Lines are broken at spaces only, and a word wider than
+   the line stands alone. *)
+let wrap ~width ~first ~indent text =
+  let words = List.filter (( <> ) "") (String.split_on_char ' ' text) in
+  let rec fill column line = function
+    | [] -> [ line ]
+    | w :: ws when line = "" -> fill (column + char_length w) w ws
+    | w :: ws when column + 1 + char_length w <= width ->
+        fill (column + 1 + char_length w) (line ^ " " ^ w) ws
+    | w :: ws -> line :: fill (indent + char_length w) w ws
+  in
+  String.concat ("\n" ^ String.make indent ' ') (fill first "" words)
+
+(* The width of the help text, in columns. *)
+let help_width = 80
+
 (* The accepted grades, one per line and grouped as the web selector groups
    them, each with its title in a column after the longest name and, for a
    regular grade, its representation and inclusion test on an indented line
@@ -112,11 +136,16 @@ let accepted_grades_help =
          Grades.GradeRegistry.groups)
   in
   let line (name, (info : Grades.GradeRegistry.info)) =
-    Printf.sprintf "\n        %-*s %s%s" width name info.title
+    let title_column = 8 + width + 1 in
+    Printf.sprintf "\n        %-*s %s%s" width name
+      (wrap ~width:help_width ~first:title_column ~indent:title_column
+         info.title)
       (match info.implementation with
       | Some i ->
-          Printf.sprintf "\n            %s; inclusion by %s"
-            i.representation_short i.inclusion_short
+          Printf.sprintf "\n            %s"
+            (wrap ~width:help_width ~first:12 ~indent:12
+               (Printf.sprintf "%s; inclusion by %s" i.representation_short
+                  i.inclusion_short))
       | None -> "")
   in
   let group (g : Grades.GradeRegistry.group) =
@@ -127,11 +156,12 @@ let accepted_grades_help =
           (String.concat "" (List.map line grades))
   in
   String.concat "" (List.map group Grades.GradeRegistry.groups)
-  ^ "\n\
-    \      Further implementations of the regular grades, kept for \
-     benchmarking, are accepted by --grades with the suffixes \
-     -letter-automata, -symbolic-by-letters and -letter-derivatives in place \
-     of -symbolic, and -rational-automata in place of -rational-symbolic."
+  ^ "\n      "
+  ^ wrap ~width:help_width ~first:6 ~indent:6
+      "Further implementations of the regular grades, kept for benchmarking, \
+       are accepted by --grades with the suffixes -letter-automata, \
+       -symbolic-by-letters and -letter-derivatives in place of -symbolic, and \
+       -rational-automata in place of -rational-symbolic."
 
 (* The accepted resource grades, one per line after the effect grades of
    --grades they are accepted with, in a column after the longest name, each
@@ -149,7 +179,8 @@ let accepted_resource_grades_help =
     (List.map
        (fun (e : Grades.GradeSystemRegistry.entry) ->
          Printf.sprintf "\n        %-*s %s\n            %s" width e.effects
-           e.resources e.morphism)
+           e.resources
+           (wrap ~width:help_width ~first:12 ~indent:12 e.morphism))
        systems)
 
 let parse_args_to_config () =
@@ -190,182 +221,213 @@ let parse_args_to_config () =
              (Printf.sprintf "option '%s': '%s' is not one of %s" option value
                 (String.concat ", " (List.map fst values))))
   in
-  let usage = "Run Tempore as '" ^ Sys.argv.(0) ^ " [filename.tpe] ...'"
+  let usage = "Run Tempore as '" ^ Sys.argv.(0) ^ " [filename.tpe] ...'\n"
   and anonymous filename = filenames := filename :: !filenames
   (* The options, in alphabetical order. [--help] is listed rather than left
      to [Arg] to add, which would put it last; it refers back to the list to
      print it, hence the reference. *)
   and options = ref [] in
+  (* Fills the description of each option to [help_width] columns, with a
+     hanging indent at the column [Arg.align] puts the descriptions at; the
+     lines after the first newline of a description are already filled. *)
+  let fill_descriptions specs =
+    let key_width =
+      List.fold_left (fun n (key, _, _) -> max n (String.length key)) 0 specs
+    in
+    let column = 2 + key_width + 2 in
+    List.map
+      (fun (key, spec, doc) ->
+        match String.index_opt doc '\n' with
+        | _ when doc = "" -> (key, spec, doc)
+        | index ->
+            let head, tail =
+              match index with
+              | Some i ->
+                  (String.sub doc 0 i, String.sub doc i (String.length doc - i))
+              | None -> (doc, "")
+            in
+            ( key,
+              spec,
+              " "
+              ^ wrap ~width:help_width ~first:column ~indent:column
+                  (String.trim head)
+              ^ tail ))
+      specs
+  in
   options :=
     Arg.align
-      [
-        ( "--api-level",
-          Arg.String (fun level -> api_level := Some level),
-          " Set the apiLevel of the protocol written with --bind (default: \
-           2.30)" );
-        ( "--bind",
-          Arg.String (fun filename -> bind := Some filename),
-          " With --emit-opentrons, write an Opentrons protocol whose \
-           operations are performed by the functions of the given Python \
-           binding file" );
-        ( "--board",
-          Arg.String
-            (fun name ->
-              if List.mem name ArduinoBackend.ArduinoBoard.names then
-                board := Some name
-              else
-                raise
-                  (Arg.Bad
-                     (Printf.sprintf "option '--board': '%s' is not one of %s"
-                        name
-                        (String.concat ", " ArduinoBackend.ArduinoBoard.names)))),
-          " With --package, type the program under the running-time bounds of \
-           the operations of the packages on the given board of the Arduino \
-           backend, where they give them (default: the bounds of their \
-           declarations); a device written with --device has the board of its \
-           manifest" );
-        ( "--build",
-          Arg.Set build,
-          " Build the project written with --device with PlatformIO, passing \
-           its output through and exiting with its exit code" );
-        ( "--capture",
-          Arg.String
-            (fun s -> capture := Some (duration_of_string "--capture" s)),
-          " After --upload, or without an upload with --device, read the \
-           serial port of --port at the baud rate of the board for the given \
-           number of seconds, printing its lines, and then the last complete \
-           profile among them, if any" );
-        ( "--debug",
-          Arg.Set debug,
-          " Print the inferred type schemes of the top-level definitions \
-           before running" );
-        ( "--device",
-          Arg.String (fun filename -> device := Some filename),
-          " With --emit-arduino, write a PlatformIO project of the device \
-           described by the given manifest, of the definitions reached from \
-           its tasks" );
-        ( "--emit-arduino",
-          Arg.String (fun directory -> emit_arduino := Some directory),
-          " Typecheck the files and write them, compiled to C++, to the given \
-           directory, without running them; a name without a directory \
-           component names a directory in _arduino/projects" );
-        ( "--emit-opentrons",
-          Arg.String (fun filename -> emit_opentrons := Some filename),
-          " Typecheck the files and write them, compiled to Python, to the \
-           given file, without running them; a file name without a directory \
-           names a file in _opentrons/protocols" );
-        ( "--grades",
-          Arg.Set_string grades,
-          Printf.sprintf " Select the grade algebra (default: %s); accepted:%s"
-            Grades.GradeRegistry.default_name accepted_grades_help );
-        ( "--help",
-          Arg.Unit
-            (fun () -> raise (Arg.Help (Arg.usage_string !options usage))),
-          " Display this list of options" );
-        ( "--host-runs",
-          Arg.Set host_runs,
-          " With --emit-arduino, also compile the run commands, and write a \
-           main program for the host that executes them and prints their \
-           results as the interpreter does" );
-        ( "--host-simulate",
-          Arg.String
-            (fun s ->
-              host_simulate := Some (duration_of_string "--host-simulate" s)),
-          " With --device, build the project for the host with c++ and run its \
-           tasks for the given number of seconds of simulated time, printing \
-           the log of the device with the events of its tasks" );
-        ( "--monitor",
-          Arg.String (choice "--monitor" Utils.Monitor.policies monitor),
-          " Set what a protocol written with --bind or a device written with \
-           --device does when an operation's running time is outside its \
-           bounds, or a step of a periodic task takes its period or longer: \
-           abort, warn or off (default: abort)" );
-        ( "--no-stdlib",
-          Arg.Clear use_stdlib,
-          " Do not load the standard library" );
-        ( "--package",
-          Arg.String
-            (fun name ->
-              if List.mem name ArduinoBackend.ArduinoPackage.names then
-                packages := name :: !packages
-              else
-                raise
-                  (Arg.Bad
-                     (Printf.sprintf "option '--package': '%s' is not one of %s"
-                        name
-                        (String.concat ", " ArduinoBackend.ArduinoPackage.names)))),
-          " Load the declarations of the operations of the given peripheral \
-           package of the Arduino backend before the files, so that the \
-           program may perform them, run by their default implementations; \
-           repeatable; the packages of a device written with --device are \
-           those of its manifest" );
-        ( "--pio",
-          Arg.String (fun path -> pio := Some path),
-          " Use the given executable as the PlatformIO of --build and --upload \
-           (default: pio on the PATH, or else in _arduino/venv)" );
-        ( "--port",
-          Arg.String (fun name -> port := Some name),
-          " Upload through the given serial port under --upload (default: the \
-           port PlatformIO detects), and read it under --capture" );
-        ( "--profile",
-          Arg.Set profile,
-          " Build the project written with --device with the profile of the \
-           running times of its operations and periodic tasks, logged every 5 \
-           seconds in place of the trace under --host-simulate" );
-        ( "--resource-grades",
-          Arg.String (fun name -> resource_grades := Some name),
-          " Select the resource grade algebra, that of the grades of boxes and \
-           box types, the effects being graded by the grade algebra of \
-           --grades and resources by their images under a morphism of grade \
-           algebras (default: the grade algebra of --grades, the morphism \
-           being the identity); accepted after the grade algebras of --grades, \
-           with the morphism:" ^ accepted_resource_grades_help );
-        ( "--robot",
-          Arg.String
-            (choice "--robot"
-               OpentronsBackend.OpentronsProtocol.[ ("flex", Flex) ]
-               robot),
-          " Set the robot of the protocol written with --bind: flex (default: \
-           flex)" );
-        ( "--simulate",
-          Arg.Set simulate,
-          " Run the Opentrons simulator on the protocol written with --bind, \
-           passing its run log through and exiting with its exit code" );
-        ( "--simulator",
-          Arg.String (fun path -> simulator := Some path),
-          " Use the given executable as the Opentrons simulator of --simulate \
-           (default: opentrons_simulate on the PATH, or else in _opentrons)" );
-        ( "--time-unit",
-          Arg.String (fun s -> time_unit := Some (time_unit_of_string s)),
-          " Set the length of a unit of duration of the protocol written with \
-           --bind: seconds, minutes, hours or a positive number of seconds \
-           (default: seconds)" );
-        ( "--timeline",
-          Arg.Set timeline,
-          " Print the timeline of each run after its result: its delays and \
-           calls of operations performed by their default implementations, \
-           with the events of these indented below them, each with its grade, \
-           and the resources boxed, with their grades, and unboxed, each row \
-           with the grade accumulated before it; long grades are shortened" );
-        ( "--timeline-full",
-          Arg.Set timeline_full,
-          " Print the timelines of --timeline with their grades in full; \
-           implies --timeline" );
-        ( "--typecheck-only",
-          Arg.Set typecheck_only,
-          " Typecheck the files without running them" );
-        ( "--upload",
-          Arg.Set upload,
-          " Build the project written with --device with PlatformIO and upload \
-           it to the board, passing its output through and exiting with its \
-           exit code" );
-        (* [Arg] would otherwise add a single-dash "-help" alongside "--help";
+      (fill_descriptions
+         [
+           ( "--api-level",
+             Arg.String (fun level -> api_level := Some level),
+             " Set the apiLevel of the protocol written with --bind (default: \
+              2.30)" );
+           ( "--bind",
+             Arg.String (fun filename -> bind := Some filename),
+             " With --emit-opentrons, write an Opentrons protocol whose \
+              operations are performed by the functions of the given Python \
+              binding file" );
+           ( "--board",
+             Arg.String
+               (fun name ->
+                 if List.mem name ArduinoBackend.ArduinoBoard.names then
+                   board := Some name
+                 else
+                   raise
+                     (Arg.Bad
+                        (Printf.sprintf
+                           "option '--board': '%s' is not one of %s" name
+                           (String.concat ", " ArduinoBackend.ArduinoBoard.names)))),
+             " With --package, type the program under the running-time bounds \
+              of the operations of the packages on the given board of the \
+              Arduino backend, where they give them (default: the bounds of \
+              their declarations); a device written with --device has the \
+              board of its manifest" );
+           ( "--build",
+             Arg.Set build,
+             " Build the project written with --device with PlatformIO, \
+              passing its output through and exiting with its exit code" );
+           ( "--capture",
+             Arg.String
+               (fun s -> capture := Some (duration_of_string "--capture" s)),
+             " After --upload, or without an upload with --device, read the \
+              serial port of --port at the baud rate of the board for the \
+              given number of seconds, printing its lines, and then the last \
+              complete profile among them, if any" );
+           ( "--debug",
+             Arg.Set debug,
+             " Print the inferred type schemes of the top-level definitions \
+              before running" );
+           ( "--device",
+             Arg.String (fun filename -> device := Some filename),
+             " With --emit-arduino, write a PlatformIO project of the device \
+              described by the given manifest, of the definitions reached from \
+              its tasks" );
+           ( "--emit-arduino",
+             Arg.String (fun directory -> emit_arduino := Some directory),
+             " Typecheck the files and write them, compiled to C++, to the \
+              given directory, without running them; a name without a \
+              directory component names a directory in _arduino/projects" );
+           ( "--emit-opentrons",
+             Arg.String (fun filename -> emit_opentrons := Some filename),
+             " Typecheck the files and write them, compiled to Python, to the \
+              given file, without running them; a file name without a \
+              directory names a file in _opentrons/protocols" );
+           ( "--grades",
+             Arg.Set_string grades,
+             Printf.sprintf
+               " Select the grade algebra (default: %s); accepted:%s"
+               Grades.GradeRegistry.default_name accepted_grades_help );
+           ( "--help",
+             Arg.Unit
+               (fun () -> raise (Arg.Help (Arg.usage_string !options usage))),
+             " Display this list of options" );
+           ( "--host-runs",
+             Arg.Set host_runs,
+             " With --emit-arduino, also compile the run commands, and write a \
+              main program for the host that executes them and prints their \
+              results as the interpreter does" );
+           ( "--host-simulate",
+             Arg.String
+               (fun s ->
+                 host_simulate := Some (duration_of_string "--host-simulate" s)),
+             " With --device, build the project for the host with c++ and run \
+              its tasks for the given number of seconds of simulated time, \
+              printing the log of the device with the events of its tasks" );
+           ( "--monitor",
+             Arg.String (choice "--monitor" Utils.Monitor.policies monitor),
+             " Set what a protocol written with --bind or a device written \
+              with --device does when an operation's running time is outside \
+              its bounds, or a step of a periodic task takes its period or \
+              longer: abort, warn or off (default: abort)" );
+           ( "--no-stdlib",
+             Arg.Clear use_stdlib,
+             " Do not load the standard library" );
+           ( "--package",
+             Arg.String
+               (fun name ->
+                 if List.mem name ArduinoBackend.ArduinoPackage.names then
+                   packages := name :: !packages
+                 else
+                   raise
+                     (Arg.Bad
+                        (Printf.sprintf
+                           "option '--package': '%s' is not one of %s" name
+                           (String.concat ", "
+                              ArduinoBackend.ArduinoPackage.names)))),
+             " Load the declarations of the operations of the given peripheral \
+              package of the Arduino backend before the files, so that the \
+              program may perform them, run by their default implementations; \
+              repeatable; the packages of a device written with --device are \
+              those of its manifest" );
+           ( "--pio",
+             Arg.String (fun path -> pio := Some path),
+             " Use the given executable as the PlatformIO of --build and \
+              --upload (default: pio on the PATH, or else in _arduino/venv)" );
+           ( "--port",
+             Arg.String (fun name -> port := Some name),
+             " Upload through the given serial port under --upload (default: \
+              the port PlatformIO detects), and read it under --capture" );
+           ( "--profile",
+             Arg.Set profile,
+             " Build the project written with --device with the profile of the \
+              running times of its operations and periodic tasks, logged every \
+              5 seconds in place of the trace under --host-simulate" );
+           ( "--resource-grades",
+             Arg.String (fun name -> resource_grades := Some name),
+             " Select the grade algebra of the resource grades, those of boxes \
+              and box types; effects are graded by that of --grades. The pair \
+              must be one of those listed, with the morphism (default: the \
+              algebra of --grades):" ^ accepted_resource_grades_help );
+           ( "--robot",
+             Arg.String
+               (choice "--robot"
+                  OpentronsBackend.OpentronsProtocol.[ ("flex", Flex) ]
+                  robot),
+             " Set the robot of the protocol written with --bind: flex \
+              (default: flex)" );
+           ( "--simulate",
+             Arg.Set simulate,
+             " Run the Opentrons simulator on the protocol written with \
+              --bind, passing its run log through and exiting with its exit \
+              code" );
+           ( "--simulator",
+             Arg.String (fun path -> simulator := Some path),
+             " Use the given executable as the Opentrons simulator of \
+              --simulate (default: opentrons_simulate on the PATH, or else in \
+              _opentrons)" );
+           ( "--time-unit",
+             Arg.String (fun s -> time_unit := Some (time_unit_of_string s)),
+             " Set the length of a unit of duration of the protocol written \
+              with --bind: seconds, minutes, hours or a positive number of \
+              seconds (default: seconds)" );
+           ( "--timeline",
+             Arg.Set timeline,
+             " Print the timeline of each run after its result: its delays and \
+              calls of operations performed by their default implementations, \
+              with the events of these indented below them, each with its \
+              grade, and the resources boxed, with their grades, and unboxed, \
+              each row with the grade accumulated before it; long grades are \
+              shortened" );
+           ( "--timeline-full",
+             Arg.Set timeline_full,
+             " Print the timelines of --timeline with their grades in full; \
+              implies --timeline" );
+           ( "--typecheck-only",
+             Arg.Set typecheck_only,
+             " Typecheck the files without running them" );
+           ( "--upload",
+             Arg.Set upload,
+             " Build the project written with --device with PlatformIO and \
+              upload it to the board, passing its output through and exiting \
+              with its exit code" );
+           (* [Arg] would otherwise add a single-dash "-help" alongside "--help";
            listing it here with an empty doc string keeps it out of the help
            text and makes it fail like any other unknown option. *)
-        ( "-help",
-          Arg.Unit (fun () -> raise (Arg.Bad "unknown option '-help'")),
-          "" );
-      ];
+           ( "-help",
+             Arg.Unit (fun () -> raise (Arg.Bad "unknown option '-help'")),
+             "" );
+         ]);
   Arg.parse !options anonymous usage;
   let requires option given needed present =
     if given && not present then begin
