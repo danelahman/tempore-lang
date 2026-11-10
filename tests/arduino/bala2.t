@@ -35,30 +35,34 @@ the unit, a start of the balancing before the robot is held upright, and a
 supervisory iteration that may exceed the 200 ms of a move:
 
   $ for v in stale hasty redrawn; do packages --typecheck-only $app/balance.tpe bala2/$v.tpe; echo "[$?]"; done
-  File "bala2/stale.tpe", lines 14-21, characters 2-58:
-  14 |   unbox fresh as imu in
+  File "bala2/stale.tpe", lines 12-19, characters 2-58:
+  12 |   unbox fresh as imu in
          ^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `fresh` is unboxed with grade `[2.4, 3.55]` accumulated since it was bound, which is not below its box grade `[0, 2]`
-    File "bala2/stale.tpe", line 7, characters 24-29:
-    7 |   box [0, 2] reading as fresh in
-                                ^^^^^
+    File "bala2/stale.tpe", line 5, characters 6-11:
+    5 |   let fresh = fresh_imu () in
+              ^^^^^
     `fresh` is bound here
-    File "bala2/stale.tpe", line 8, characters 22-45:
-    8 |   let left1, right1 = perform ReadEncoders () in
+    File "bala2/stale.tpe", line 6, characters 22-45:
+    6 |   let left1, right1 = perform ReadEncoders () in
                               ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[0.45, 1]` accumulates here (operation `ReadEncoders`)
-    File "bala2/stale.tpe", line 9, characters 2-11:
-    9 |   delay 1.5;
+    File "bala2/stale.tpe", line 7, characters 2-11:
+    7 |   delay 1.5;
           ^^^^^^^^^
     grade `[1.5, 1.5]` accumulates here (delay)
-    File "bala2/stale.tpe", line 10, characters 22-45:
-    10 |   let left2, right2 = perform ReadEncoders () in
-                               ^^^^^^^^^^^^^^^^^^^^^^^
+    File "bala2/stale.tpe", line 8, characters 22-45:
+    8 |   let left2, right2 = perform ReadEncoders () in
+                              ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[0.45, 1]` accumulates here (operation `ReadEncoders`)
-    File "bala2/stale.tpe", line 13, characters 38-58:
-    13 |   let balancing, bias, target, turn = perform Setpoints () in
+    File "bala2/stale.tpe", line 11, characters 38-58:
+    11 |   let balancing, bias, target, turn = perform Setpoints () in
                                                ^^^^^^^^^^^^^^^^^^^^
     grade `[0, 0.05]` accumulates here (operation `Setpoints`)
+    File "bala2/stale.tpe", line 5, characters 14-23:
+    5 |   let fresh = fresh_imu () in
+                      ^^^^^^^^^
+    the inequality goes through the type of `fresh_imu` here
     Note: the resource inequality `[2.4, 3.55] <= [0, 2]` does not hold
   [1]
   File "bala2/hasty.tpe", lines 8-10, characters 2-18:

@@ -154,13 +154,10 @@ let tilts () : float * float ! {ReadImu} =
 (* The box grades below name operations without delays: such a grade
    excludes every operation it does not name. *)
 
-(* Correctly accepted by the typechecker: a reference reads the unit four
-   times, 10 ms apart, checks that it is at rest and sounds a tone, high if
-   it is and low otherwise. The offsets are boxed with the check and the
-   tone, without delays: they are installed only after a check at rest,
-   with no other operation, in particular no reconfiguration, between. *)
-let take () : reference
-    ! {(ReadImu; 10)^3; ReadImu; CheckAtRest; Beep} =
+(* Reads the unit four times, 10 ms apart, and returns the mean offsets
+   boxed with the check at rest and the tone. *)
+let measured () : [{CheckAtRest; Beep}]reference
+    ! {(ReadImu; 10)^3; ReadImu} =
   let x1, y1 = tilts () in
   delay 10;
   let x2, y2 = tilts () in
@@ -169,7 +166,16 @@ let take () : reference
   delay 10;
   let x4, y4 = tilts () in
   let offsets = Offsets ((x1 +. x2 +. x3 +. x4) /. 4.0, (y1 +. y2 +. y3 +. y4) /. 4.0) in
-  box {CheckAtRest; Beep} offsets as unchecked in
+  box {CheckAtRest; Beep} offsets
+
+(* Correctly accepted by the typechecker: a reference reads the unit four
+   times, 10 ms apart, checks that it is at rest and sounds a tone, high if
+   it is and low otherwise. The offsets are boxed with the check and the
+   tone, without delays: they are installed only after a check at rest,
+   with no other operation, in particular no reconfiguration, between. *)
+let take () : reference
+    ! {(ReadImu; 10)^3; ReadImu; CheckAtRest; Beep} =
+  let unchecked = measured () in
   let rest = perform CheckAtRest () in
   (if rest then perform Beep (2000, 100) else perform Beep (400, 400));
   unbox unchecked as checked in
@@ -187,12 +193,17 @@ let take () : reference
 *)
 (*
 let take_unchecked () : reference =
-  let x, y = tilts () in
-  box {CheckAtRest; Beep} (Offsets (x, y)) as unchecked in
+  let unchecked = measured () in
   perform Beep (2000, 100);
   unbox unchecked as checked in
   checked
 *)
+
+(* Reads the unit once, and returns the acceleration boxed for the reading
+   of the touch screen. *)
+let first_reading () : [{ReadTouch}]vector ! {ReadImu} =
+  let accel, _ = perform ReadImu () in
+  box {ReadTouch} accel
 
 (* Correctly accepted by the typechecker: the step reads the unit and then
    the touch screen; on a tap on the sensor button, it reconfigures the
@@ -227,8 +238,7 @@ let step ((reference, age, rate, touching) : state) : state
          (ShowTextAt | ShowTimeAt); ShowTextAt)} =
   box {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest | skip)} reference
     as kept in
-  let accel, _ = perform ReadImu () in
-  box {ReadTouch} accel as reading in
+  let reading = first_reading () in
   let touched, x, y = perform ReadTouch () in
   let tapped = touched && not touching in
   if tapped && on_sensor x y then (
@@ -325,8 +335,7 @@ let step_reconfigured ((reference, age, rate, touching) : state) : state =
 *)
 (*
 let step_stale ((reference, age, rate, touching) : state) : state =
-  let accel, _ = perform ReadImu () in
-  box {ReadTouch} accel as reading in
+  let reading = first_reading () in
   let touched, x, y = perform ReadTouch () in
   if touched && not touching && on_sensor x y then (
     let rate = if rate = 100 then 400 else 100 in

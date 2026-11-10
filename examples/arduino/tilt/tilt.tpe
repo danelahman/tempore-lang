@@ -56,6 +56,12 @@ let start () : float =
   let accel, _ = perform ReadImu () in
   tilt_x_of_accel accel
 
+(* Reads the tilt last published, and returns it boxed for a period of the
+   step. *)
+let fresh_tilt () : [[0, 20)]float ! [0, 0.05] =
+  let tilt = perform Latest () in
+  box [0, 20) tilt
+
 (* Correctly accepted by the typechecker: the display clears the screen and
    writes the name of the example in text of size 2 at the top; it then
    reads the tilt last published, writes the label and shows the tilt. The
@@ -65,8 +71,7 @@ let start () : float =
 let show () =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Tilt display");
-  let tilt = perform Latest () in
-  box [0, 20) tilt as fresh in
+  let fresh = fresh_tilt () in
   perform ShowText "Tilt (degrees)";
   unbox fresh as shown in
   perform ShowNumber shown;
@@ -85,8 +90,7 @@ let show () =
 *)
 (*
 let show_stale () =
-  let tilt = perform Latest () in
-  box [0, 20) tilt as fresh in
+  let fresh = fresh_tilt () in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Tilt display");
   perform ShowText "Tilt (degrees)";

@@ -60,18 +60,22 @@ reconfiguration without a check at rest, and a step that draws a reading taken b
 reconfiguration:
 
   $ for v in unchecked reconfigured stale; do packages --typecheck-only $app/level.tpe level/$v.tpe; echo "[$?]"; done
-  File "level/unchecked.tpe", lines 7-8, characters 2-9:
-  7 |   unbox unchecked as checked in
+  File "level/unchecked.tpe", lines 6-7, characters 2-9:
+  6 |   unbox unchecked as checked in
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `unchecked` is unboxed with grade `{Beep}` accumulated since it was bound, which is not below its box grade `{CheckAtRest; Beep}`
-    File "level/unchecked.tpe", line 5, characters 46-55:
-    5 |   box {CheckAtRest; Beep} (Offsets (x, y)) as unchecked in
-                                                      ^^^^^^^^^
+    File "level/unchecked.tpe", line 4, characters 6-15:
+    4 |   let unchecked = measured () in
+              ^^^^^^^^^
     `unchecked` is bound here
-    File "level/unchecked.tpe", line 6, characters 2-26:
-    6 |   perform Beep (2000, 100);
+    File "level/unchecked.tpe", line 5, characters 2-26:
+    5 |   perform Beep (2000, 100);
           ^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Beep}` accumulates here (operation `Beep`)
+    File "level/unchecked.tpe", line 4, characters 18-26:
+    4 |   let unchecked = measured () in
+                          ^^^^^^^^
+    the inequality goes through the type of `measured` here
     Note: the resource inequality `{Beep} <= {CheckAtRest; Beep}` does not hold
   [1]
   File "level/reconfigured.tpe", lines 15-17, characters 2-38:
@@ -97,26 +101,30 @@ reconfiguration:
     Note: the resource inequality `{ReadImu; ReadTouch; ConfigureImu?} <= {(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest)?}` does not hold
     Note: the grade `[{ReadImu; ReadTouch; ConfigureImu}, {ReadImu; ReadTouch; ConfigureImu?}]` is below `{ReadImu; ReadTouch; ConfigureImu?}` but not below `{(ReadImu | ReadTouch)*; (ConfigureImu; CheckAtRest)?}`
   [1]
-  File "level/stale.tpe", lines 11-13, characters 4-41:
-  11 |     unbox reading as kept_accel in
+  File "level/stale.tpe", lines 10-12, characters 4-41:
+  10 |     unbox reading as kept_accel in
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `reading` is unboxed with grade `{ReadTouch; ConfigureImu; Beep}` accumulated since it was bound, which is not below its box grade `{ReadTouch}`
-    File "level/stale.tpe", line 5, characters 27-34:
-    5 |   box {ReadTouch} accel as reading in
-                                   ^^^^^^^
+    File "level/stale.tpe", line 4, characters 6-13:
+    4 |   let reading = first_reading () in
+              ^^^^^^^
     `reading` is bound here
-    File "level/stale.tpe", line 6, characters 22-42:
-    6 |   let touched, x, y = perform ReadTouch () in
+    File "level/stale.tpe", line 5, characters 22-42:
+    5 |   let touched, x, y = perform ReadTouch () in
                               ^^^^^^^^^^^^^^^^^^^^
     grade `{ReadTouch}` accumulates here (operation `ReadTouch`)
-    File "level/stale.tpe", line 9, characters 4-29:
-    9 |     perform ConfigureImu rate;
+    File "level/stale.tpe", line 8, characters 4-29:
+    8 |     perform ConfigureImu rate;
             ^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{ConfigureImu}` accumulates here (operation `ConfigureImu`)
-    File "level/stale.tpe", line 10, characters 4-26:
-    10 |     perform Beep (600, 50);
-             ^^^^^^^^^^^^^^^^^^^^^^
+    File "level/stale.tpe", line 9, characters 4-26:
+    9 |     perform Beep (600, 50);
+            ^^^^^^^^^^^^^^^^^^^^^^
     grade `{Beep}` accumulates here (operation `Beep`)
+    File "level/stale.tpe", line 4, characters 16-29:
+    4 |   let reading = first_reading () in
+                        ^^^^^^^^^^^^^
+    the inequality goes through the type of `first_reading` here
     Note: the resource inequality `{ReadTouch; ConfigureImu; Beep} <= {ReadTouch}` does not hold
   [1]
 

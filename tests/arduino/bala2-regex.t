@@ -53,26 +53,30 @@ stopping the balancing, and a measurement of the bias that shows the rates left 
 its readings:
 
   $ for v in stopped balancing shown; do packages --typecheck-only $app/balance_regex.tpe bala2-regex/$v.tpe; echo "[$?]"; done
-  File "bala2-regex/stopped.tpe", lines 11-19, characters 2-39:
-  11 |   unbox fresh as imu in
+  File "bala2-regex/stopped.tpe", lines 10-18, characters 2-39:
+  10 |   unbox fresh as imu in
          ^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `fresh` is unboxed with grade `{ReadEncoders; Setpoints; SetMotors?}` accumulated since it was bound, which is not below its box grade `{(ReadEncoders | Setpoints)*}`
-    File "bala2-regex/stopped.tpe", line 7, characters 47-52:
-    7 |   box {(ReadEncoders | Setpoints)*} reading as fresh in
-                                                       ^^^^^
+    File "bala2-regex/stopped.tpe", line 6, characters 6-11:
+    6 |   let fresh = fresh_imu () in
+              ^^^^^
     `fresh` is bound here
-    File "bala2-regex/stopped.tpe", line 8, characters 20-43:
-    8 |   let left, right = perform ReadEncoders () in
+    File "bala2-regex/stopped.tpe", line 7, characters 20-43:
+    7 |   let left, right = perform ReadEncoders () in
                             ^^^^^^^^^^^^^^^^^^^^^^^
     grade `{ReadEncoders}` accumulates here (operation `ReadEncoders`)
-    File "bala2-regex/stopped.tpe", line 9, characters 38-58:
-    9 |   let balancing, bias, target, turn = perform Setpoints () in
+    File "bala2-regex/stopped.tpe", line 8, characters 38-58:
+    8 |   let balancing, bias, target, turn = perform Setpoints () in
                                               ^^^^^^^^^^^^^^^^^^^^
     grade `{Setpoints}` accumulates here (operation `Setpoints`)
-    File "bala2-regex/stopped.tpe", line 10, characters 2-56:
-    10 |   (if balancing then () else perform SetMotors (0i, 0i));
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "bala2-regex/stopped.tpe", line 9, characters 2-56:
+    9 |   (if balancing then () else perform SetMotors (0i, 0i));
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{SetMotors?}` accumulates here (this computation)
+    File "bala2-regex/stopped.tpe", line 6, characters 14-23:
+    6 |   let fresh = fresh_imu () in
+                      ^^^^^^^^^
+    the inequality goes through the type of `fresh_imu` here
     Note: the resource inequality `{ReadEncoders; Setpoints; SetMotors?} <= {(ReadEncoders | Setpoints)*}` does not hold
     Note: the grade `[{ReadEncoders; Setpoints; SetMotors}, {ReadEncoders; Setpoints; SetMotors?}]` is below `{ReadEncoders; Setpoints; SetMotors?}` but not below `{(ReadEncoders | Setpoints)*}`
   [1]
@@ -95,8 +99,8 @@ The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json $app/balance_regex.tpe | grep -c Wrote
-  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 359, characters 26-27:
-  359 |       let s, _ = continue k with () in
+  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 362, characters 26-27:
+  362 |       let s, _ = continue k with () in
                                   ^
   Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
   34
@@ -136,8 +140,8 @@ bounds, and prints the other events as they are:
   > }
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json --host-simulate 8 $app/balance_regex.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
-  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 359, characters 26-27:
-  359 |       let s, _ = continue k with () in
+  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 362, characters 26-27:
+  362 |       let s, _ = continue k with () in
                                   ^
   Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
   [31.245 ms] Display cleared

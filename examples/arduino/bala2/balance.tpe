@@ -138,17 +138,21 @@ let magnitude (x : float) = if x < 0.0 then ~-.x else x
 let clamp (limit : float) (x : float) =
   if x < ~-.limit then ~-.limit else if x > limit then limit else x
 
-(* Correctly accepted by the typechecker: the step reads the unit, boxes the
-   reading for 2 ms, reads the encoders and the setpoints, and unboxes the
-   reading after 0.45 to 1.05 ms; it ends within 1.2 to 2.8 ms, below its
+(* Reads the unit once, and returns the reading boxed for 2 ms. *)
+let fresh_imu () : [[0, 2]]imu =
+  let reading = perform ReadImu () in
+  box [0, 2] reading
+
+(* Correctly accepted by the typechecker: the step reads the unit, the
+   reading boxed for 2 ms, reads the encoders and the setpoints, and unboxes
+   the reading after 0.45 to 1.05 ms; it ends within 1.2 to 2.8 ms, below its
    period. It publishes the tilt, the speed and the reference tilt before
    it commands the motors. While a turn is commanded, the heading held
    follows the difference of the counts. Beyond the cutoff, or stopped, it
    stops the motors, clears the integral and holds the present heading. *)
 let step ((tilt, speed, integral, position, heading) : state) : state
     ! [0, 5) =
-  let reading = perform ReadImu () in
-  box [0, 2] reading as fresh in
+  let fresh = fresh_imu () in
   let left, right = perform ReadEncoders () in
   let balancing, bias, target, turn = perform Setpoints () in
   unbox fresh as imu in
@@ -205,10 +209,8 @@ let start () : state =
        Note: the resource inequality `[2.4, 3.55] <= [0, 2]` does not hold
 *)
 (*
-let step_stale ((tilt, speed, integral, position, heading) : state) : state
-    ! [0, 5) =
-  let reading = perform ReadImu () in
-  box [0, 2] reading as fresh in
+let step_stale ((tilt, speed, integral, position, heading) : state) : state =
+  let fresh = fresh_imu () in
   let left1, right1 = perform ReadEncoders () in
   delay 1.5;
   let left2, right2 = perform ReadEncoders () in

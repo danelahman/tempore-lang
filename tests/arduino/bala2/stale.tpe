@@ -1,10 +1,8 @@
 (* A control step that uses the reading of the unit after two reads of the
    encoders 1.5 ms apart, after balance.tpe. *)
 
-let step_stale ((tilt, speed, integral, position, heading) : state) : state
-    ! [0, 5) =
-  let reading = perform ReadImu () in
-  box [0, 2] reading as fresh in
+let step_stale ((tilt, speed, integral, position, heading) : state) : state =
+  let fresh = fresh_imu () in
   let left1, right1 = perform ReadEncoders () in
   delay 1.5;
   let left2, right2 = perform ReadEncoders () in

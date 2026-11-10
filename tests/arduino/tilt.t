@@ -40,26 +40,30 @@ tilt read before the screen is cleared, and a step that shows the tilt
 itself and may last its period:
 
   $ for v in stale shown; do packages --typecheck-only $app/tilt.tpe tilt/$v.tpe; echo "[$?]"; done
-  File "tilt/stale.tpe", lines 9-11, characters 2-11:
-  9 |   unbox fresh as shown in
+  File "tilt/stale.tpe", lines 8-10, characters 2-11:
+  8 |   unbox fresh as shown in
         ^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `fresh` is unboxed with grade `[31.1, 93.5]` accumulated since it was bound, which is not below its box grade `[0, 20)`
-    File "tilt/stale.tpe", line 5, characters 22-27:
-    5 |   box [0, 20) tilt as fresh in
-                              ^^^^^
+    File "tilt/stale.tpe", line 4, characters 6-11:
+    4 |   let fresh = fresh_tilt () in
+              ^^^^^
     `fresh` is bound here
-    File "tilt/stale.tpe", line 6, characters 2-25:
-    6 |   perform ClearDisplay ();
+    File "tilt/stale.tpe", line 5, characters 2-25:
+    5 |   perform ClearDisplay ();
           ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[31, 48]` accumulates here (operation `ClearDisplay`)
-    File "tilt/stale.tpe", line 7, characters 2-46:
-    7 |   perform ShowTextAt (0, 0, 2, "Tilt display");
+    File "tilt/stale.tpe", line 6, characters 2-46:
+    6 |   perform ShowTextAt (0, 0, 2, "Tilt display");
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `[0.05, 33]` accumulates here (operation `ShowTextAt`)
-    File "tilt/stale.tpe", line 8, characters 2-35:
-    8 |   perform ShowText "Tilt (degrees)";
+    File "tilt/stale.tpe", line 7, characters 2-35:
+    7 |   perform ShowText "Tilt (degrees)";
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `[0.05, 12.5]` accumulates here (operation `ShowText`)
+    File "tilt/stale.tpe", line 4, characters 14-24:
+    4 |   let fresh = fresh_tilt () in
+                      ^^^^^^^^^^
+    the inequality goes through the type of `fresh_tilt` here
     Note: the resource inequality `[31.1, 93.5] <= [0, 20)` does not hold
   [1]
   File "tilt/shown.tpe", lines 3-8, characters 30-6:

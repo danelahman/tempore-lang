@@ -1,8 +1,7 @@
 (* The display of tilt.tpe reading the tilt before it clears the screen. *)
 
 let show_stale () =
-  let tilt = perform Latest () in
-  box [0, 20) tilt as fresh in
+  let fresh = fresh_tilt () in
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Tilt display");
   perform ShowText "Tilt (degrees)";
