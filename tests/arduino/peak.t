@@ -35,22 +35,26 @@ a write:
   Typing error: This function's body has grade `((Publish, 1), (ReadImu, 1), (StorePeak, 1))`, which does not match its annotated grade `((Publish, 1), (ReadImu, 1))`
     Note: the effect inequality `((Publish, 1), (ReadImu, 1), (StorePeak, 1)) <= ((Publish, 1), (ReadImu, 1))` does not hold
   [1]
-  File "peak/stale.tpe", lines 9-11, characters 2-12:
-  9 |   unbox copy as peak in
+  File "peak/stale.tpe", lines 8-10, characters 2-12:
+  8 |   unbox copy as peak in
         ^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `copy` is unboxed with grade `((Latest, 1), (StorePeak, 1))` accumulated since it was bound, which is not below its box grade `((StorePeak, 0), (_, ∞))`
-    File "peak/stale.tpe", line 5, characters 43-47:
-    5 |   box ((StorePeak, 0), (_, ∞)) stored as copy in
-                                                 ^^^^
+    File "peak/stale.tpe", line 4, characters 6-10:
+    4 |   let copy = perform LoadPeak () in
+              ^^^^
     `copy` is bound here
-    File "peak/stale.tpe", line 6, characters 13-42:
-    6 |   let tilt = magnitude (perform Latest ()) in
+    File "peak/stale.tpe", line 5, characters 13-42:
+    5 |   let tilt = magnitude (perform Latest ()) in
                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `(Latest, 1)` accumulates here (this computation)
-    File "peak/stale.tpe", line 8, characters 2-50:
-    8 |   (if exceeds then perform StorePeak tilt else ());
+    File "peak/stale.tpe", line 7, characters 2-50:
+    7 |   (if exceeds then perform StorePeak tilt else ());
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `(StorePeak, 1)` accumulates here (this computation)
+    File "peak/stale.tpe", line 6, characters 16-56:
+    6 |   let exceeds = unbox copy as peak in tilt > peak +. 0.5 in
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    the inequality goes through the unboxing of `copy` here
     Note: the resource inequality `((Latest, 1), (StorePeak, 1)) <= ((StorePeak, 0), (_, ∞))` does not hold
   [1]
 

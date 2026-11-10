@@ -190,18 +190,23 @@ let fifty_more (m : float) (w : float) (s : sense * nat) : sense * nat
   let s = ten_more m w s in
   s
 
+(* Reads the magnitude once, and returns it boxed with the reading of the
+   time. *)
+let fresh_load () : [{ReadClock}]float ! {ReadImu} =
+  let a = load () in
+  box {ReadClock} a
+
 (* A reading of the unit 2.5 ms after the last, unless the push was found,
    and the time read after it: whether the push was found, and its time.
-   The reading is boxed with ReadClock, without delays: the push is judged
-   only from a reading whose time was read at once, with no operation
-   between. *)
+   The reading is returned boxed with ReadClock, without delays: the push is
+   judged only from a reading whose time was read at once, with no
+   operation between. *)
 let poll_fast (m : float) (w : float) ((found, at) : bool * nat) : bool * nat
     ! {skip | idle 2.5; ReadImu; ReadClock} =
   if found then (found, at)
   else (
     delay 5/2;
-    let a = load () in
-    box {ReadClock} a as fresh in
+    let fresh = fresh_load () in
     let t = perform ReadClock () in
     unbox fresh as reading in
     if absolute (reading -. m) > w then (true, t) else (false, at))
@@ -254,15 +259,15 @@ let recall () : unit ! {Beep; [100, 120]; Beep} =
    with no operation between, a redraw of the screen in particular, and
    within a second of the gun.
 
-   The box of the reaction window, created with it, holds the measure of the
-   reaction time. It admits the measure only after the gun, its time and
-   nothing but polls, each reading of the unit followed at once by the
-   reading of its time, and no pause longer than 2.5 ms between the time of
-   a poll and the next reading: a push is thus seen within 4.05 ms of its
-   start. It bounds no duration, which the box of the athlete does; and a
-   repetition admits any number of rounds, none included, so that it
-   demands no polls until a push or the end of the window, and admits the
-   polls ended once the push is found. *)
+   The box of the reaction window, created with it around the function that
+   measures the reaction time, checks the schedule of the body: the gun, its
+   time and nothing but polls before the measure, each reading of the unit
+   followed at once by the reading of its time, and no pause longer than
+   2.5 ms between the time of a poll and the next reading. A push is thus
+   seen within 4.05 ms of its start. It bounds no duration, which the box
+   of the athlete does; and a repetition admits any number of rounds, none
+   included, so that it demands no polls until a push or the end of the
+   window, and admits the polls ended once the push is found. *)
 let fire (gun : at_gun) (m : float) (w : float) : outcome
     ! {Beep; ReadClock; [0, 810]} =
   box {Beep; ReadClock; (idle [0, 2.5]; ReadImu; ReadClock)*} elapsed

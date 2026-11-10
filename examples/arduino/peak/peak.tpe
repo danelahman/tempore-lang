@@ -35,12 +35,13 @@ default Publish _ = ()
 operation Latest : unit ~> float ! (Latest, 1)
 default Latest () = 0.0
 
-(* The record in the flash memory, through bindings.cpp: LoadPeak reads it,
-   and StorePeak writes it, which erases a sector of the flash from time to
+(* The record in the flash memory, through bindings.cpp: LoadPeak reads it
+   and returns the copy boxed with no write of the flash allowed, and
+   StorePeak writes it, which erases a sector of the flash from time to
    time; a sector endures a limited number of erasures. *)
 
-operation LoadPeak : unit ~> float ! (LoadPeak, 1)
-default LoadPeak () = 0.0
+operation LoadPeak : unit ~> [((StorePeak, 0), (_, ∞))]float ! (LoadPeak, 1)
+default LoadPeak () = box ((StorePeak, 0), (_, ∞)) 0.0
 
 operation StorePeak : float ~> unit ! (StorePeak, 1)
 default StorePeak _ = ()
@@ -94,14 +95,13 @@ let screen (peak : float) =
   perform ShowTextAt (188, 230, 1, "Typechecked by Tempore")
 
 (* Correctly accepted by the typechecker: an iteration of the recorder writes
-   the flash at most once. It reads the record, boxed with no write of the
-   flash allowed, and the magnitude of the tilt last published; it writes
-   and shows the tilt if it exceeds the record by more than half a degree,
-   and otherwise shows the record, unboxed on the path without a write; it
-   then waits one second. *)
+   the flash at most once. It reads the record, returned boxed with no write
+   of the flash allowed, and the magnitude of the tilt last published; it
+   writes and shows the tilt if it exceeds the record by more than half a
+   degree, and otherwise shows the record, unboxed on the path without a
+   write; it then waits one second. *)
 let record () : unit ! ((StorePeak, 1), (_, ∞)) =
-  let stored = perform LoadPeak () in
-  box ((StorePeak, 0), (_, ∞)) stored as copy in
+  let copy = perform LoadPeak () in
   let tilt = magnitude (perform Latest ()) in
   let exceeds = unbox copy as peak in tilt > peak +. 0.5 in
   (if exceeds then (
@@ -124,8 +124,7 @@ let record () : unit ! ((StorePeak, 1), (_, ∞)) =
 *)
 (*
 let record_stale () =
-  let stored = perform LoadPeak () in
-  box ((StorePeak, 0), (_, ∞)) stored as copy in
+  let copy = perform LoadPeak () in
   let tilt = magnitude (perform Latest ()) in
   let exceeds = unbox copy as peak in tilt > peak +. 0.5 in
   (if exceeds then perform StorePeak tilt else ());

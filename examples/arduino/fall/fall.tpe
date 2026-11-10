@@ -182,11 +182,11 @@ let cancel () =
 (* Correctly accepted by the typechecker: the alarm, raised: a tone every
    second, the alarm flashing and the time since it was raised, until a tap
    stops it, for at most n seconds. It needs no box: the box of the fall
-   licenses raising it, and the alarm then lasts until it is stopped. The
-   grade is the alarm: rounds of twenty polls of the screen, 50 ms apart
-   with no other operation, the alarm, the time and a tone, ended by the
-   polls of a tap, its tone, the message and a wait of 2 s, and nothing
-   else. *)
+   checks the time at which it is raised, and the alarm then lasts until it
+   is stopped. The grade is the alarm: rounds of twenty polls of the screen,
+   50 ms apart with no other operation, the alarm, the time and a tone,
+   ended by the polls of a tap, its tone, the message and a wait of 2 s, and
+   nothing else. *)
 let rec alarm (n : nat) (seconds : nat) : unit
     ! {((ReadTouch; idle 50)^20; ShowColourTextAt; ShowTimeAt; Beep)*;
        (skip | (ReadTouch; idle 50)^20; Beep; ShowColourTextAt^2; idle 2000)} =
@@ -224,15 +224,16 @@ let raise ((Fall (least, peak)) : fall) =
 
 (* Correctly accepted by the typechecker: the response to a fall redraws the
    screen, shows the prompt, in orange, sounds a tone and counts down 10
-   seconds, polling the screen. The fall is boxed with the two lines of the
-   prompt, the tone and a delay of 10 to 30 seconds: the alarm is raised
-   only after the prompt and the tone, at least 10 and at most 30 seconds
-   after them. The countdown is written out, so that the alarm is raised
-   only on the path on which no second was tapped, 10000.5 to 10950 ms
-   after the tone. Within the delay '[10000, 30000]' of the box grade any
-   operation may come, at the upper bound of its running time: the box
-   demands its three operations first, with none between, and bounds the
-   time to the alarm, but not the operations within that delay. *)
+   seconds, polling the screen. The box of the fall, unboxed before the
+   alarm, checks the schedule of the body: the two lines of the prompt and
+   the tone, with none between, and then 10 to 30 seconds, so that the
+   alarm is raised at least 10 and at most 30 seconds after them. The
+   countdown is written out, so that the alarm is raised only on the path
+   on which no second was tapped, 10000.5 to 10950 ms after the tone. Within
+   the delay '[10000, 30000]' of the box grade any operation may come, at
+   the upper bound of its running time: the box demands its three
+   operations first and bounds the time to the alarm, but not the
+   operations within that delay. *)
 let respond (fall : fall) =
   frame ();
   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
@@ -263,13 +264,15 @@ let respond (fall : fall) =
   raise detected
 
 (* Correctly accepted by the typechecker: a suspected fall, from the reading
-   'first' below 0.3 g. The reading is boxed with a delay of at least 100 ms
-   and ten readings, each after a wait of 9.5 to 10.5 ms, with no other
-   operation: the free fall is confirmed only after exactly ten further
-   readings, at least 102 ms, and from these readings alone. An impact is
-   then searched for, and the end of the free fall boxed with a delay of at
-   most a second: a fall is reported only if the search, of at most 920 ms,
-   finds an impact. The result is the number of falls, counted or not. *)
+   'first' below 0.3 g. The box of the first reading, unboxed once the free
+   fall is confirmed, checks the schedule of the body: a delay of at least
+   100 ms and ten readings, each after a wait of 9.5 to 10.5 ms, with no
+   other operation. The free fall is thus confirmed only after exactly ten
+   further readings, at least 102 ms, and from these readings alone. The box
+   of the end of the free fall checks that the search for an impact, of at
+   most 920 ms, ends within a second of the end of the free fall; a fall is
+   reported only if the search finds an impact. The result is the number of
+   falls, counted or not. *)
 let suspect (falls : nat) (first : float) : nat =
   box [{100}, {(idle [9.5, 10.5]; ReadImu)^10}] first as onset in
   let falling = confirm () in
