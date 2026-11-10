@@ -11,9 +11,12 @@
 # above with one tip; every other liquid is moved with a new tip for each
 # sample. TakeSamples returns the samples paired with the token Token, a
 # tempore_Con with the tag of the label Token, and Transfer receives the
-# token alone. Each function declares the nominal duration of its action in
-# seconds by tempore_elapse, the duration the virtual clock of a simulation
-# advances by.
+# token alone. AddBeads returns the beads Beads, a tempore_Con with the tag
+# of the label Beads, and the other functions that take the beads return
+# the value they are given, which stands for the box of the next phase,
+# boxes being erased. Each function declares the nominal duration of its
+# action in seconds by tempore_elapse, the duration the virtual clock of a
+# simulation advances by.
 
 SAMPLES = ["A1", "B1", "C1", "D1"]
 
@@ -52,7 +55,7 @@ def TakeSamples(ctx, unit):
 def AddBeads(ctx, samples):
     ctx["pipette"].transfer(50, ctx["reservoir"]["A1"], ctx["samples"], mix_after=(5, 40), new_tip="always")
     tempore_elapse(90)
-    return "beads"
+    return tempore_Con(tempore_LABELS.index("Beads"), None)
 
 
 def MagnetOn(ctx, unit):
@@ -67,10 +70,10 @@ def MagnetOff(ctx, unit):
     return ()
 
 
-def RemoveSupernatant(ctx, unit):
+def RemoveSupernatant(ctx, beads):
     ctx["pipette"].transfer(80, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(90)
-    return ()
+    return beads
 
 
 def AddEthanol(ctx, unit):
@@ -85,16 +88,16 @@ def RemoveEthanol(ctx, unit):
     return ()
 
 
-def RemoveResidualEthanol(ctx, unit):
+def RemoveResidualEthanol(ctx, beads):
     ctx["pipette"].transfer(10, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(45)
-    return ()
+    return beads
 
 
-def EluteDNA(ctx, unit):
+def EluteDNA(ctx, beads):
     ctx["pipette"].transfer(25, ctx["reservoir"]["A3"], ctx["samples"], mix_after=(5, 20), new_tip="always")
     tempore_elapse(90)
-    return ()
+    return beads
 
 
 def Transfer(ctx, tok):

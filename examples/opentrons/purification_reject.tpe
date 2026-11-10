@@ -1,6 +1,6 @@
 (* As the bead purification example, with the generous end of several
    windows, one ethanol wash in place of two, a soak off the magnet, and a
-   token kept unboxed across the steps.
+   token kept unboxed across the phases.
 
    Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
@@ -17,8 +17,8 @@
      - Product: concatenation of traces, componentwise *)
 
 type sample = string
-type beads = string
 
+noneternal type beads = Beads
 noneternal type token = Token
 
 operation TakeSamples : unit ~> sample * [[0, 40]]token ! {TakeSamples}
@@ -28,18 +28,11 @@ default TakeSamples () =
   box [0, 40] Token as tok in
   ("samples", tok)
 
-operation AddBeads : sample ~> beads ! {AddBeads} within [1, 2]
-default AddBeads samples = delay 3/2; "beads"
-
 operation MagnetOn : unit ~> unit ! {MagnetOn} within (0, 1]
 default MagnetOn () = delay 1/2
 
 operation MagnetOff : unit ~> unit ! {MagnetOff} within (0, 1]
 default MagnetOff () = delay 1/2
-
-operation RemoveSupernatant : unit ~> unit ! {RemoveSupernatant}
-  within [1, 2]
-default RemoveSupernatant () = delay 3/2
 
 operation AddEthanol : unit ~> unit ! {AddEthanol} within (0, 1]
 default AddEthanol () = delay 3/4
@@ -47,12 +40,35 @@ default AddEthanol () = delay 3/4
 operation RemoveEthanol : unit ~> unit ! {RemoveEthanol} within [1, 2]
 default RemoveEthanol () = delay 3/2
 
-operation RemoveResidualEthanol : unit ~> unit ! {RemoveResidualEthanol}
-  within (0, 1]
-default RemoveResidualEthanol () = delay 3/4
+operation AddBeads : sample ~>
+  [{idle [5, 10]; MagnetOn; idle [3, 5]}]beads ! {AddBeads}
+  within [1, 2]
+default AddBeads samples =
+  delay 3/2;
+  box {idle [5, 10]; MagnetOn; idle [3, 5]} Beads
 
-operation EluteDNA : unit ~> unit ! {EluteDNA} within [1, 2]
-default EluteDNA () = delay 3/2
+operation RemoveSupernatant : beads ~>
+  [{AddEthanol; idle [1/2, 3/2]; RemoveEthanol;
+    AddEthanol; idle [1/2, 3/2]; RemoveEthanol}]beads ! {RemoveSupernatant}
+  within [1, 2]
+default RemoveSupernatant Beads =
+  delay 3/2;
+  box {AddEthanol; idle [1/2, 3/2]; RemoveEthanol;
+       AddEthanol; idle [1/2, 3/2]; RemoveEthanol} Beads
+
+operation RemoveResidualEthanol : beads ~>
+  [{idle [3, 5]; MagnetOff}]beads ! {RemoveResidualEthanol}
+  within (0, 1]
+default RemoveResidualEthanol Beads =
+  delay 3/4;
+  box {idle [3, 5]; MagnetOff} Beads
+
+operation EluteDNA : beads ~>
+  [{idle [2, 5]; MagnetOn; idle [2, 5]; Transfer; idle [2, 5]}]beads
+  ! {EluteDNA} within [1, 2]
+default EluteDNA Beads =
+  delay 3/2;
+  box {idle [2, 5]; MagnetOn; idle [2, 5]; Transfer; idle [2, 5]} Beads
 
 operation Transfer : token ~> unit ! {Transfer} within [1, 2]
 default Transfer valid = delay 3/2
@@ -60,147 +76,141 @@ default Transfer valid = delay 3/2
 operation AddMasterMix : beads ~> unit ! {AddMasterMix} within [1, 2]
 default AddMasterMix eluates = delay 3/2
 
-let bind (samples : sample) =
-  let beads = perform AddBeads samples in
-  box [5, 10] beads
-
-let separate (binding : [[5, 10]]beads) =
+let clear (binding : [{idle [5, 10]; MagnetOn; idle [3, 5]}]beads) =
   delay 15/2;
-  unbox binding as beads in
   perform MagnetOn ();
-  box [3, 5] beads
-
-let clear (settling : [[3, 5]]beads) =
   delay 4;
-  unbox settling as beads in
-  perform RemoveSupernatant ();
-  box {AddEthanol; idle [1/2, 3/2]} beads
+  unbox binding as beads in
+  perform RemoveSupernatant beads
 
-let wash (soaking : [{AddEthanol; idle [1/2, 3/2]}]beads) =
+let washes (cleared : [{AddEthanol; idle [1/2, 3/2]; RemoveEthanol;
+                        AddEthanol; idle [1/2, 3/2]; RemoveEthanol}]beads) =
   perform AddEthanol ();
   delay 1;
-  unbox soaking as beads in
   perform RemoveEthanol ();
-  box {AddEthanol; idle [1/2, 3/2]; RemoveEthanol} beads
-
-let final_wash (rinsing : [{AddEthanol; idle [1/2, 3/2]; RemoveEthanol}]beads) =
   perform AddEthanol ();
   delay 3/4;
   perform RemoveEthanol ();
-  unbox rinsing as beads in
-  perform RemoveResidualEthanol ();
-  box {[3, 5]; MagnetOff} beads
+  unbox cleared as beads in
+  perform RemoveResidualEthanol beads
 
-let elute (drying : [{[3, 5]; MagnetOff}]beads) =
+let elute (drying : [{idle [3, 5]; MagnetOff}]beads) =
   delay 7/2;
   perform MagnetOff ();
   unbox drying as beads in
-  perform EluteDNA ();
-  box {[2, 5]; MagnetOn; [2, 5]} beads
-
-let collect (eluting : [{[2, 5]; MagnetOn; [2, 5]}]beads) =
-  delay 3;
-  perform MagnetOn ();
-  delay 5/2;
-  unbox eluting as eluates in
-  box {Transfer} (fun () -> box [2, 5] eluates)
+  perform EluteDNA beads
 
 (* Correctly rejected by the typechecker: the binding, the settling on the
-   magnet and the air-dry each take the upper end of their windows, which
+   magnet, and the air-dry each take the upper end of their windows, which
    their boxes accept, but the eluates reach the cold block up to 43.25
    minutes after the samples are taken out of the cold:
 
-     Typing error: Variable `tok` is unboxed with grade ... accumulated
-       since it was bound, which is not below its box grade `{[0, 40]}`
+     Typing error: Variable `tok` is unboxed with grade `{AddBeads; idle 10;
+       MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol;
+       AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5;
+       MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it
+       was bound, which is not below its box grade `{[0, 40]}`
+       Note: the resource inequality `{AddBeads; idle 10; MagnetOn; idle 5;
+       RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol;
+       idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff;
+       EluteDNA; idle 3; MagnetOn; idle 2.5} <= {[0, 40]}` does not hold
 *)
-let separate_long (binding : [[5, 10]]beads) =
+let clear_long (binding : [{idle [5, 10]; MagnetOn; idle [3, 5]}]beads) =
   delay 10;
-  unbox binding as beads in
   perform MagnetOn ();
-  box [3, 5] beads
-
-let clear_long (settling : [[3, 5]]beads) =
   delay 5;
-  unbox settling as beads in
-  perform RemoveSupernatant ();
-  box {AddEthanol; idle [1/2, 3/2]} beads
+  unbox binding as beads in
+  perform RemoveSupernatant beads
 
-let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
+let elute_long (drying : [{idle [3, 5]; MagnetOff}]beads) =
   delay 5;
   perform MagnetOff ();
   unbox drying as beads in
-  perform EluteDNA ();
-  box {[2, 5]; MagnetOn; [2, 5]} beads
+  perform EluteDNA beads
 
 let purification_generous () =
   let (samples, tok) = perform TakeSamples () in
-  let binding = bind samples in
-  let collected =
-    collect
-      (elute_long (final_wash (wash (clear_long (separate_long binding)))))
+  let eluting =
+    elute_long (washes (clear_long (perform AddBeads samples)))
   in
+  delay 3;
+  perform MagnetOn ();
+  delay 5/2;
   unbox tok as valid in
   perform Transfer valid;
-  unbox collected as cool in
-  let cooling = cool () in
   delay 7/2;
-  unbox cooling as eluates in
+  unbox eluting as eluates in
   perform AddMasterMix eluates
 
-(* Correctly rejected by the typechecker: the beads are washed once, and the
-   final wash finds them in the box of the first wash, which does not allow
-   for the removal of its ethanol before the box is opened:
+(* Correctly rejected by the typechecker: the beads are washed once, and are
+   unboxed before the box of the washes admits it:
 
-     Typing error: The resource inequality
-       `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol} <=
-       {AddEthanol; idle [0.5, 1.5]}` does not hold
+     Typing error: Variable `cleared` is unboxed with grade `{AddEthanol;
+       idle 1; RemoveEthanol}` accumulated since it was bound, which is not
+       below its box grade `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol;
+       AddEthanol; idle [0.5, 1.5]; RemoveEthanol}`
+       Note: the resource inequality `{AddEthanol; idle 1; RemoveEthanol} <=
+       {AddEthanol; idle [0.5, 1.5]; RemoveEthanol; AddEthanol;
+       idle [0.5, 1.5]; RemoveEthanol}` does not hold
 *)
-let purification_one_wash () =
-  let (samples, tok) = perform TakeSamples () in
-  let binding = bind samples in
-  let collected = collect (elute (final_wash (clear (separate binding)))) in
-  unbox tok as valid in
-  perform Transfer valid;
-  unbox collected as cool in
-  let cooling = cool () in
-  delay 7/2;
-  unbox cooling as eluates in
-  perform AddMasterMix eluates
+let washes_one (cleared : [{AddEthanol; idle [1/2, 3/2]; RemoveEthanol;
+                            AddEthanol; idle [1/2, 3/2]; RemoveEthanol}]beads) =
+  perform AddEthanol ();
+  delay 1;
+  perform RemoveEthanol ();
+  unbox cleared as beads in
+  perform RemoveResidualEthanol beads
 
 (* Correctly rejected by the typechecker: the plate is moved off the magnet
-   during the first soak, and the ethanol is removed off the magnet:
+   during the first soak, and the ethanol is removed off the magnet, which
+   aspirates the beads. With the time span `[1/2, 3/2]` in place of
+   `idle [1/2, 3/2]` it is accepted, the move fitting beside the wait of half
+   a minute:
 
-     Typing error: Variable `soaking` is unboxed with grade `{AddEthanol;
-       MagnetOff; idle 0.5}` accumulated since it was bound, which is not below
-       its box grade ...
+     Typing error: Variable `cleared` is unboxed with grade `{AddEthanol;
+       MagnetOff; idle 0.5; RemoveEthanol; AddEthanol; idle 0.75;
+       RemoveEthanol}` accumulated since it was bound, which is not below its
+       box grade `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol; AddEthanol;
+       idle [0.5, 1.5]; RemoveEthanol}`
+       Note: the resource inequality ... does not hold
 *)
-let wash_off_magnet (soaking : [{AddEthanol; idle [1/2, 3/2]}]beads) =
+let washes_off_magnet
+    (cleared : [{AddEthanol; idle [1/2, 3/2]; RemoveEthanol;
+                 AddEthanol; idle [1/2, 3/2]; RemoveEthanol}]beads) =
   perform AddEthanol ();
   perform MagnetOff ();
   delay 1/2;
-  unbox soaking as beads in
   perform RemoveEthanol ();
-  box {AddEthanol; idle [1/2, 3/2]; RemoveEthanol} beads
+  perform AddEthanol ();
+  delay 3/4;
+  perform RemoveEthanol ();
+  unbox cleared as beads in
+  perform RemoveResidualEthanol beads
 
 (* Correctly rejected by the typechecker: the token is unboxed when the
-   samples are taken out of the cold and kept unboxed across the steps:
+   samples are taken out of the cold and kept unboxed across the phases, and
+   its type is not eternal:
 
      Typing error: Variable `valid` is used with grade `{AddBeads; idle 7.5;
-       MagnetOn; ...; MagnetOn; idle 2.5}` accumulated since it was bound,
-       but its type `token` is not eternal
+       MagnetOn; idle 4; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol;
+       AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5;
+       MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it
+       was bound, but its type `token` is not eternal
+       Note: the resource inequality `{AddBeads; idle 7.5; MagnetOn; idle 4;
+       RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol;
+       idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5; MagnetOff;
+       EluteDNA; idle 3; MagnetOn; idle 2.5} <= {skip}` does not hold
 *)
 let purification_stale_token () =
   let (samples, tok) = perform TakeSamples () in
   unbox tok as valid in
-  let binding = bind samples in
-  let collected =
-    collect (elute (final_wash (wash (clear (separate binding)))))
-  in
+  let eluting = elute (washes (clear (perform AddBeads samples))) in
+  delay 3;
+  perform MagnetOn ();
+  delay 5/2;
   perform Transfer valid;
-  unbox collected as cool in
-  let cooling = cool () in
   delay 7/2;
-  unbox cooling as eluates in
+  unbox eluting as eluates in
   perform AddMasterMix eluates
 
 run purification_generous ()

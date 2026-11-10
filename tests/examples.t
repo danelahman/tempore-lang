@@ -1513,32 +1513,34 @@ tests show those runs in detail.
     {idle 0.5},
     { resource_0 ↦ Token ! {[0, 40]} },
     {idle 1.5},
-    { resource_1 ↦ "beads" ! {[5, 10]} },
+    { resource_1 ↦ Beads ! {idle [5, 10]; MagnetOn; idle [3, 5]} },
     {idle 7.5},
     {idle 0.5},
-    { resource_2 ↦ "beads" ! {[3, 5]} },
     {idle 4},
     {idle 1.5},
-    { resource_3 ↦ "beads" ! {AddEthanol; idle [0.5, 1.5]} },
+    { resource_2 ↦
+        Beads
+        ! {AddEthanol; idle [0.5, 1.5]; RemoveEthanol; AddEthanol; idle [0.5, 1.5]; RemoveEthanol}
+    },
     {idle 0.75},
     {idle 1},
     {idle 1.5},
-    { resource_4 ↦ "beads" ! {AddEthanol; idle [0.5, 1.5]; RemoveEthanol} },
     {idle 0.75},
     {idle 0.75},
     {idle 1.5},
     {idle 0.75},
-    { resource_5 ↦ "beads" ! {[3, 5]; MagnetOff} },
+    { resource_3 ↦ Beads ! {idle [3, 5]; MagnetOff} },
     {idle 3.5},
     {idle 0.5},
     {idle 1.5},
-    { resource_6 ↦ "beads" ! {[2, 5]; MagnetOn; [2, 5]} },
+    { resource_4 ↦
+        Beads
+        ! {idle [2, 5]; MagnetOn; idle [2, 5]; Transfer; idle [2, 5]}
+    },
     {idle 3},
     {idle 0.5},
     {idle 2.5},
-    { resource_7 ↦ <fun> ! {Transfer} },
     {idle 1.5},
-    { resource_8 ↦ "beads" ! {[2, 5]} },
     {idle 3.5},
     {idle 1.5}
   ]
@@ -1546,75 +1548,116 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/purification_reject.tpe
   ======================================================================
-  File "../examples/opentrons/purification_reject.tpe", lines 142-148, characters 2-30:
-  142 |   unbox tok as valid in
+  File "../examples/opentrons/purification_reject.tpe", lines 139-143, characters 2-30:
+  139 |   unbox tok as valid in
           ^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `tok` is unboxed with grade `{AddBeads; idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
-    File "../examples/opentrons/purification_reject.tpe", line 136, characters 16-19:
-    136 |   let (samples, tok) = perform TakeSamples () in
+    File "../examples/opentrons/purification_reject.tpe", line 132, characters 16-19:
+    132 |   let (samples, tok) = perform TakeSamples () in
                           ^^^
     `tok` is bound here
-    File "../examples/opentrons/purification_reject.tpe", line 137, characters 16-28:
-    137 |   let binding = bind samples in
-                          ^^^^^^^^^^^^
-    grade `{AddBeads}` accumulates here (this computation)
-    File "../examples/opentrons/purification_reject.tpe", lines 139-140, characters 4-75:
-    139 |     collect
-              ^^^^^^^
-    grade `{idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulates here (this computation)
+    File "../examples/opentrons/purification_reject.tpe", line 134, characters 4-63:
+    134 |     elute_long (washes (clear_long (perform AddBeads samples)))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{AddBeads; idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA}` accumulates here (this computation)
+    File "../examples/opentrons/purification_reject.tpe", line 136, characters 2-9:
+    136 |   delay 3;
+            ^^^^^^^
+    grade `{idle 3}` accumulates here (delay)
+    File "../examples/opentrons/purification_reject.tpe", line 137, characters 2-21:
+    137 |   perform MagnetOn ();
+            ^^^^^^^^^^^^^^^^^^^
+    grade `{MagnetOn}` accumulates here (operation `MagnetOn`)
+    File "../examples/opentrons/purification_reject.tpe", line 138, characters 2-11:
+    138 |   delay 5/2;
+            ^^^^^^^^^
+    grade `{idle 2.5}` accumulates here (delay)
     Note: the resource inequality `{AddBeads; idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5} <= {[0, 40]}` does not hold
   
-  File "../examples/opentrons/purification_reject.tpe", line 161, characters 34-44:
-  161 |   let collected = collect (elute (final_wash (clear (separate binding)))) in
-                                          ^^^^^^^^^^
-  Typing error: The resource inequality `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol} <= {AddEthanol; idle [0.5, 1.5]}` does not hold
-    File "../examples/opentrons/purification_reject.tpe", lines 86-92, characters 0-31:
-    86 | let final_wash (rinsing : [{AddEthanol; idle [1/2, 3/2]; RemoveEthanol}]beads) =
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    `final_wash` is defined here
-    File "../examples/opentrons/purification_reject.tpe", line 161, characters 46-51:
-    161 |   let collected = collect (elute (final_wash (clear (separate binding)))) in
-                                                        ^^^^^
-    the inequality goes through the type of `clear` here
-  
-  File "../examples/opentrons/purification_reject.tpe", lines 181-183, characters 2-56:
-  181 |   unbox soaking as beads in
+  File "../examples/opentrons/purification_reject.tpe", lines 161-162, characters 2-37:
+  161 |   unbox cleared as beads in
           ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `soaking` is unboxed with grade `{AddEthanol; MagnetOff; idle 0.5}` accumulated since it was bound, which is not below its box grade `{AddEthanol; idle [0.5, 1.5]}`
-    File "../examples/opentrons/purification_reject.tpe", line 177, characters 21-28:
-    177 | let wash_off_magnet (soaking : [{AddEthanol; idle [1/2, 3/2]}]beads) =
-                               ^^^^^^^
-    `soaking` is bound here
-    File "../examples/opentrons/purification_reject.tpe", line 178, characters 2-23:
-    178 |   perform AddEthanol ();
+  Typing error: Variable `cleared` is unboxed with grade `{AddEthanol; idle 1; RemoveEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol; AddEthanol; idle [0.5, 1.5]; RemoveEthanol}`
+    File "../examples/opentrons/purification_reject.tpe", line 156, characters 16-23:
+    156 | let washes_one (cleared : [{AddEthanol; idle [1/2, 3/2]; RemoveEthanol;
+                          ^^^^^^^
+    `cleared` is bound here
+    File "../examples/opentrons/purification_reject.tpe", line 158, characters 2-23:
+    158 |   perform AddEthanol ();
             ^^^^^^^^^^^^^^^^^^^^^
     grade `{AddEthanol}` accumulates here (operation `AddEthanol`)
-    File "../examples/opentrons/purification_reject.tpe", line 179, characters 2-22:
-    179 |   perform MagnetOff ();
+    File "../examples/opentrons/purification_reject.tpe", line 159, characters 2-9:
+    159 |   delay 1;
+            ^^^^^^^
+    grade `{idle 1}` accumulates here (delay)
+    File "../examples/opentrons/purification_reject.tpe", line 160, characters 2-26:
+    160 |   perform RemoveEthanol ();
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{RemoveEthanol}` accumulates here (operation `RemoveEthanol`)
+    Note: the resource inequality `{AddEthanol; idle 1; RemoveEthanol} <= {AddEthanol; idle [0.5, 1.5]; RemoveEthanol; AddEthanol; idle [0.5, 1.5]; RemoveEthanol}` does not hold
+  
+  File "../examples/opentrons/purification_reject.tpe", lines 187-188, characters 2-37:
+  187 |   unbox cleared as beads in
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `cleared` is unboxed with grade `{AddEthanol; MagnetOff; idle 0.5; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol; AddEthanol; idle [0.5, 1.5]; RemoveEthanol}`
+    File "../examples/opentrons/purification_reject.tpe", line 178, characters 5-12:
+    178 |     (cleared : [{AddEthanol; idle [1/2, 3/2]; RemoveEthanol;
+               ^^^^^^^
+    `cleared` is bound here
+    File "../examples/opentrons/purification_reject.tpe", line 180, characters 2-23:
+    180 |   perform AddEthanol ();
+            ^^^^^^^^^^^^^^^^^^^^^
+    grade `{AddEthanol}` accumulates here (operation `AddEthanol`)
+    File "../examples/opentrons/purification_reject.tpe", line 181, characters 2-22:
+    181 |   perform MagnetOff ();
             ^^^^^^^^^^^^^^^^^^^^
     grade `{MagnetOff}` accumulates here (operation `MagnetOff`)
-    File "../examples/opentrons/purification_reject.tpe", line 180, characters 2-11:
-    180 |   delay 1/2;
+    File "../examples/opentrons/purification_reject.tpe", line 182, characters 2-11:
+    182 |   delay 1/2;
             ^^^^^^^^^
     grade `{idle 0.5}` accumulates here (delay)
-    Note: the resource inequality `{AddEthanol; MagnetOff; idle 0.5} <= {AddEthanol; idle [0.5, 1.5]}` does not hold
+    File "../examples/opentrons/purification_reject.tpe", line 183, characters 2-26:
+    183 |   perform RemoveEthanol ();
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{RemoveEthanol}` accumulates here (operation `RemoveEthanol`)
+    File "../examples/opentrons/purification_reject.tpe", line 184, characters 2-23:
+    184 |   perform AddEthanol ();
+            ^^^^^^^^^^^^^^^^^^^^^
+    grade `{AddEthanol}` accumulates here (operation `AddEthanol`)
+    File "../examples/opentrons/purification_reject.tpe", line 185, characters 2-11:
+    185 |   delay 3/4;
+            ^^^^^^^^^
+    grade `{idle 0.75}` accumulates here (delay)
+    File "../examples/opentrons/purification_reject.tpe", line 186, characters 2-26:
+    186 |   perform RemoveEthanol ();
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{RemoveEthanol}` accumulates here (operation `RemoveEthanol`)
+    Note: the resource inequality `{AddEthanol; MagnetOff; idle 0.5; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol} <= {AddEthanol; idle [0.5, 1.5]; RemoveEthanol; AddEthanol; idle [0.5, 1.5]; RemoveEthanol}` does not hold
   
-  File "../examples/opentrons/purification_reject.tpe", line 199, characters 19-24:
-  199 |   perform Transfer valid;
+  File "../examples/opentrons/purification_reject.tpe", line 211, characters 19-24:
+  211 |   perform Transfer valid;
                            ^^^^^
   Typing error: Variable `valid` is used with grade `{AddBeads; idle 7.5; MagnetOn; idle 4; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, but its type `token` is not eternal
-    File "../examples/opentrons/purification_reject.tpe", line 194, characters 15-20:
-    194 |   unbox tok as valid in
+    File "../examples/opentrons/purification_reject.tpe", line 206, characters 15-20:
+    206 |   unbox tok as valid in
                          ^^^^^
     `valid` is bound here
-    File "../examples/opentrons/purification_reject.tpe", line 195, characters 16-28:
-    195 |   let binding = bind samples in
-                          ^^^^^^^^^^^^
-    grade `{AddBeads}` accumulates here (this computation)
-    File "../examples/opentrons/purification_reject.tpe", line 197, characters 4-66:
-    197 |     collect (elute (final_wash (wash (clear (separate binding)))))
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `{idle 7.5; MagnetOn; idle 4; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulates here (this computation)
+    File "../examples/opentrons/purification_reject.tpe", line 207, characters 16-65:
+    207 |   let eluting = elute (washes (clear (perform AddBeads samples))) in
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{AddBeads; idle 7.5; MagnetOn; idle 4; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5; MagnetOff; EluteDNA}` accumulates here (this computation)
+    File "../examples/opentrons/purification_reject.tpe", line 208, characters 2-9:
+    208 |   delay 3;
+            ^^^^^^^
+    grade `{idle 3}` accumulates here (delay)
+    File "../examples/opentrons/purification_reject.tpe", line 209, characters 2-21:
+    209 |   perform MagnetOn ();
+            ^^^^^^^^^^^^^^^^^^^
+    grade `{MagnetOn}` accumulates here (operation `MagnetOn`)
+    File "../examples/opentrons/purification_reject.tpe", line 210, characters 2-11:
+    210 |   delay 5/2;
+            ^^^^^^^^^
+    grade `{idle 2.5}` accumulates here (delay)
     Note: the resource inequality `{AddBeads; idle 7.5; MagnetOn; idle 4; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5} <= {skip}` does not hold
   ======================================================================
   ../examples/opentrons/reagents.tpe
