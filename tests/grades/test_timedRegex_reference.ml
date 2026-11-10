@@ -180,7 +180,7 @@ let verdict name x y expected =
 let up = word ~upper:true
 let low = word ~upper:false
 
-let f4 =
+let product_rows =
   [
     verdict "upper premise" (up "1") (up "1") true;
     verdict "upper premise" (up "1") (up "idle 1 1") true;
@@ -191,7 +191,7 @@ let f4 =
   ]
 
 (* The rows of the upper bounds, a program below a bound, with the verdicts of
-   the design's upper instance. *)
+   the upper instance. *)
 let upper_rows =
   List.map
     (fun (name, p, b, expected) -> verdict name (up p) (up b) expected)
@@ -216,7 +216,7 @@ let upper_rows =
     ]
 
 (* The rows of the lower bounds, a run below a guarantee given flanks, with
-   the verdicts of the prototype's coverage order. *)
+   the verdicts of the coverage order. *)
 let lower_rows =
   List.map
     (fun (name, r, g, expected) -> verdict name (low r) (flanked g) expected)
@@ -379,11 +379,11 @@ let restricted =
   ]
 
 (* An item that overflows a stretch of an upper bound into a later stretch of
-   the same gap, an idle wait between them passed at length 0 (suggested by
-   the formalisation): the reference and the core over whole steps and over
-   halves, the lengths in units of the grid and [A] of running time
-   [[1, hi]]. A word of duration the sum of the caps of the greater grade
-   fixes its idle wait inside the overflowing item. *)
+   the same gap, an idle wait between them passed at length 0: the reference
+   and the core over whole steps and over halves, the lengths in units of the
+   grid and [A] of running time [[1, hi]]. A word of duration the sum of
+   the caps of the greater grade fixes its idle wait inside the overflowing
+   item. *)
 let overflow =
   let rb names iv = R.Letter (R.Stretch (R.Names names, iv)) in
   let up = R.at_most in
@@ -571,7 +571,7 @@ let cross_checks =
 let () =
   let checks =
     List.concat
-      (f4 @ upper_rows @ lower_rows @ unflanked @ open_ends @ positive
+      (product_rows @ upper_rows @ lower_rows @ unflanked @ open_ends @ positive
      @ restricted @ overflow)
     @ cross_checks
     @ [

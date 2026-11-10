@@ -1,7 +1,7 @@
 (** Grade algebras: partially ordered monoids with a greatest element and binary
     joins.
 
-    The instances the prototype offers are defined in {!TimeGrades},
+    The instances Tempore offers are defined in {!TimeGrades},
     {!RationalTimeGrades}, {!FiniteRunSetGrades}, {!BankedTraceGrades},
     {!RegularTraceLanguages}, {!RegularTraceLanguagesDerivative},
     {!RegularTraceLanguagesPlain}, {!RegularTraceLanguagesRational},

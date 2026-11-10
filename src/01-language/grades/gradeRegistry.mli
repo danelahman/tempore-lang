@@ -1,4 +1,4 @@
-(** The grade algebras the prototype offers. *)
+(** The grade algebras Tempore offers. *)
 
 val grade_modules : (string * (module Grade.S)) list
 (** All available grades by name, the default first. The names accepted by the

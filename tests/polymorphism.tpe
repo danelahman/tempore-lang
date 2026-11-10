@@ -1,4 +1,4 @@
-(* The following expression is currently not supported
+(* The following expression is not supported
     ```let a = (let f x = x in (f 5, f "foo")```) because:
     - Expressions of the form ```let a = <expr>, where <expr> is not a pure
         expressions, are not supported.

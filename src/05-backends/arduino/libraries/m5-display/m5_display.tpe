@@ -8,7 +8,7 @@
    bounds and show nothing.
 
    The bounds of the running times are measured on an M5Stack Gray core and
-   an M5Stack CoreS3 Lite by the profile of the device (2026-10-14): the
+   an M5Stack CoreS3 Lite by the profile of the device: the
    lower bound is the least time measured over both, rounded down, and the
    upper bound 1.5 times the greatest, rounded up. ClearDisplay took 31.354
    to 31.814 ms. ShowText and ShowNumber took 0.858 to 2.561 ms and 0.061 to
@@ -29,7 +29,7 @@
 
    On the profile m5stack-gray-radio, an M5Stack Gray with its Wi-Fi radio
    running on core 0, the tasks of the application on core 1 and the link
-   encrypted, the profile of the device (2026-10-19) measured ClearDisplay,
+   encrypted, the profile of the device measured ClearDisplay,
    called once per run right after the start of the radio, at 35.345 to
    35.543 ms, and ShowTextAt at 4.104 to 10.631 ms. The bounds of
    ClearDisplay there are [31, 53.5]: the upper bound 1.5 times the greatest
@@ -39,7 +39,7 @@
 
    On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
    core 0, the tasks of the application on core 1 and the link encrypted, the
-   profile of the device (2026-10-19, two sessions of the remote controller,
+   profile of the device (two sessions of the remote controller,
    110 s and 276 s) measured ClearDisplay at 31.913 to 31.964 ms, ShowTextAt
    at 3.199 to 5.188 ms, ShowNumberAt at 3.334 to 4.427 ms, ShowColourTextAt
    at 1.543 to 4.606 ms, DrawButton at 3.591 to 4.072 ms and DrawLevel at
@@ -73,13 +73,13 @@
    greatest time per character measured at size 2, 1.28 ms each: 21.7 ms,
    33 ms with the margin. A text that wraps over several lines is not within
    these bounds. Their lower bound is that of ShowText. On an M5Stack CoreS3
-   Lite the profile of the device (2026-10-14) measured ShowTextAt at 2.599
+   Lite the profile of the device measured ShowTextAt at 2.599
    to 5.498 ms and ShowNumberAt at 1.818 to 4.119 ms, on some texts of the
    digital level only; a shorter text took 2.404 ms, below these, so the
    least time depends on the text and the lower bound stays that of
    ShowText on every board. ShowTimeAt and ShowColourTextAt have the bounds
    of ShowTextAt, and ShowColourNumberAt those of ShowNumberAt, PROVISIONAL,
-   not yet measured.
+   not measured.
 
    DrawButton (x, y, w, h, s) draws a button: a rectangle with rounded
    corners from the pixel (x, y), w by h pixels, filled with dark grey and

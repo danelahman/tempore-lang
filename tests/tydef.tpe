@@ -2,7 +2,7 @@ type baire = nat -> nat
 
 type 'a tree = Empty | Node of 'a * 'a tree * 'a tree
 
-(* Records are currently not supported.
+(* Records are not supported.
 type complex = {re : float; im : float}
 *)
 
@@ -20,7 +20,7 @@ and bull =
 
 run Tail
 
-(* Records are currently not supported.
+(* Records are not supported.
 run {re = 1.2; im = 2.4}
 *)
 

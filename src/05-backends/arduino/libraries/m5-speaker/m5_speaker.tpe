@@ -8,21 +8,21 @@
    and plays nothing.
 
    The bounds are measured on an M5Stack CoreS3 Lite by the profile of the
-   device (2026-10-14): the lower bound is the least time measured, rounded
+   device: the lower bound is the least time measured, rounded
    down, and the upper bound 1.5 times the greatest, rounded up. Beep took
    0.055 to 0.082 ms in the digital level, and its monitor reported 0.03 ms
-   in the sprint start system (2026-10-15), whose task has a lower priority
+   in the sprint start system, whose task has a lower priority
    than the task of the speaker: [0, 0.15].
 
    On the profile m5stack-gray-radio, an M5Stack Gray with its radio
-   running, the profile of the device (2026-10-19, the remote BALA2 at a
+   running, the profile of the device (the remote BALA2 at a
    period of 5 ms) measured Beep at 0.169 to 0.186 ms, and its monitor
    0.107 ms on a second robot: [0.1, 0.3]. The default implementation takes
    0.15 ms, within the bounds of every board.
 
    On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
    core 0, the tasks of the application on core 1 and the link encrypted, the
-   profile of the device (2026-10-19, two sessions of the remote controller,
+   profile of the device (two sessions of the remote controller,
    110 s and 276 s) measured Beep at 0.061 to 0.068 ms, within the declared
    bounds, which hold there. *)
 

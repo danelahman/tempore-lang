@@ -7,16 +7,16 @@
    second, each as the components along the x, y and z axes of the unit. The
    default implementation reads a unit at rest with its z axis up.
 
-   The bounds of the running time are measured by the profile of the device
-   (2026-10-14): the lower bound is the least time measured, rounded down,
-   and the upper bound 1.5 times the greatest, rounded up. On an M5Stack Gray
-   core, whose MPU6886 is read in one transaction of 14 bytes, ReadImu took
-   0.577 to 0.833 ms: [0.55, 1.25]. On an M5Stack CoreS3 Lite, whose BMI270
-   was read by one M5.Imu.update followed by M5.Imu.getImuData, it took
-   0.224 to 1.000 ms: [0.2, 1.5]. The bounds below cover both
-   boards; the descriptor package.json gives those of each board, which
-   replace them for a device of that board. The default implementation
-   takes 0.6 ms, within the bounds of each.
+   The bounds of the running time are measured by the profile of the device:
+   the lower bound is the least time measured, rounded down, and the upper
+   bound 1.5 times the greatest, rounded up. On an M5Stack Gray core, whose
+   MPU6886 is read in one transaction of 14 bytes, ReadImu took 0.577 to
+   0.833 ms: [0.55, 1.25]. On an M5Stack CoreS3 Lite, whose BMI270 is read by
+   one M5.Imu.update followed by M5.Imu.getImuData, it took 0.224 to 1.000
+   ms: [0.2, 1.5]. The bounds below cover both boards; the descriptor
+   package.json gives those of each board, which replace them for a device
+   of that board. The default implementation takes 0.6 ms, within the bounds
+   of each.
 
    ConfigureImu rate sets the output data rate of the accelerometer to the
    greatest rate supported not above rate hertz, without changing its range:
@@ -34,7 +34,7 @@
    CheckAtRest returns true.
 
    The bounds of ConfigureImu and CheckAtRest are measured on an M5Stack
-   CoreS3 Lite by the profile of the device (2026-10-14), by the same rule:
+   CoreS3 Lite by the profile of the device, by the same rule:
    ConfigureImu took 0.122 to 0.252 ms, [0.1, 0.4], and CheckAtRest 17.976 to
    18.982 ms, [17.95, 28.5], with its readings then 5 ms apart from the end
    of one to the start of the next. Started 6 ms apart, the readings take
@@ -43,7 +43,7 @@
 
    On the profile m5stack-gray-radio, an M5Stack Gray with its Wi-Fi radio
    running on core 0, the tasks of the application on core 1 and the link
-   encrypted, the profile of the device (2026-10-19) measured ReadImu at
+   encrypted, the profile of the device measured ReadImu at
    0.631 to 1.462 ms and CheckAtRest at 18.646 to 21.775 ms. Their bounds
    there have the upper bound 1.5 times the greatest time measured with the
    radio, rounded up, and the lower bound of the Gray without it: ReadImu
@@ -51,7 +51,7 @@
 
    On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
    core 0, the tasks of the application on core 1 and the link encrypted, the
-   profile of the device (2026-10-19, two sessions of the remote controller,
+   profile of the device (two sessions of the remote controller,
    110 s and 276 s) measured ReadImu at 0.806 to 1.298 ms: [0.2, 1.95], the
    upper bound 1.5 times the greatest time measured with the radio, rounded
    up, and the lower bound that of the CoreS3 without it. *)

@@ -38,7 +38,7 @@
    milliseconds; ShowButton (x, y, w, h, active, s) draws a button labelled
    s from (x, y), w by h pixels, with a white border: dark grey with a white
    label, or, active, yellow with a black label. Their bounds are
-   PROVISIONAL, not yet measured. *)
+   PROVISIONAL, not measured. *)
 
 operation CountStep : nat ~> unit ! {CountStep} within (0, 0.2]
 default CountStep _ = delay 1/10

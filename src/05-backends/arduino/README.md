@@ -191,7 +191,7 @@ lower bound is the least time measured, rounded down, and the upper bound 1.5
 times the greatest, rounded up. On a profile with the radio, the bounds are
 measured with the radio running and are never narrower than those of the
 board without it, which an operation not measured with the radio keeps.
-Bounds not yet measured are provisional; each declaration states its
+Bounds not measured are provisional; each declaration states its
 measurements and how the bounds not measured directly, such as those of
 `i2c`, are derived.
 

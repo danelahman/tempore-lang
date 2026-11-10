@@ -13,7 +13,7 @@
 
    On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on
    core 0, the tasks of the application on core 1 and the link encrypted, the
-   profile of the device (2026-10-19, two sessions of the remote controller,
+   profile of the device (two sessions of the remote controller,
    110 s and 276 s) measured SendStart at 0.033 to 0.224 ms, SendStop at
    0.041 to 0.205 ms, SendBeat at 0.015 to 0.311 ms and SendDrive at 0.130 to
    0.290 ms. Their bounds there are the least time measured, rounded down,

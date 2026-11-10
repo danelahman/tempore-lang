@@ -1,14 +1,14 @@
 (* Tests of the run consistency of the intervals of the trace grades with
    banked delays, whether some run meets both ends: the joint walk of finite
    traces against a search of the runs covering a guarantee and permitted by a
-   bound, over whole time steps and rational delays; the examples of the
-   formalisation; the agreement of the decisions of the regular families with
-   the joint walk on star-free literals, over whole time steps and rational
-   delays, and of the decisions on gap graphs with that by closures over ticks
-   on random literals, those over rational delays on literals of whole delays
-   without complements or the catch-all letter, whose languages are the same; open ends, pumping, matched operations, durations apart,
-   and the counterexamples of intervals whose component counterexample admits
-   no run. *)
+   bound, over whole time steps and rational delays; two worked examples; the
+   agreement of the decisions of the regular families with the joint walk on
+   star-free literals, over whole time steps and rational delays, and of the
+   decisions on gap graphs with that by closures over ticks on random
+   literals, those over rational delays on literals of whole delays without
+   complements or the catch-all letter, whose languages are the same; open
+   ends, pumping, matched operations, durations apart, and the counterexamples
+   of intervals whose component counterexample admits no run. *)
 
 module Grade = Grades.Grade
 module Rational = Grades.Rational
@@ -191,9 +191,9 @@ let verdicts (module G : Grade.S) cases =
 
 let write ends = [ ("Write", closed ends); ("Read", closed (1, 1)) ]
 
-(* The examples of the formalisation: a delay of 2 guaranteed and a write
-   permitted, consistent iff a write takes at least 2; and a write guaranteed
-   with only reads permitted. *)
+(* Two worked examples: a delay of 2 guaranteed and a write permitted,
+   consistent iff a write takes at least 2; and a write guaranteed with only
+   reads permitted. *)
 let formalisation =
   let cases =
     [

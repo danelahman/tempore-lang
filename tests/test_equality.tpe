@@ -6,7 +6,7 @@ run [1;2;3] = []
 run [1;2;3] = [1;2;3]
 
 (* Nested structures *)
-(* Records are currently not supported.
+(* Records are not supported.
 
     type ('a,'b) rabbit = { eye : 'a; tail : 'b list }
     

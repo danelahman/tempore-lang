@@ -46,7 +46,7 @@
    setpoints. The default implementations describe a balancing robot without
    moves. The upper bounds of their running times are 1.5 times the greatest
    times measured with the radio running on core 0, the tasks on core 1 and the
-   link encrypted (2026-10-19), rounded up, or those of balance.tpe if larger:
+   link encrypted, rounded up, or those of balance.tpe if larger:
    Publish took at most 0.020 ms, Setpoints 0.064 ms, and 0.115 ms in a run at a
    period of 5 ms, LatestTilt 0.348 ms, StartBalancing 0.007 ms, StopBalancing
    0.016 ms and Move 0.437 ms. *)
@@ -75,15 +75,14 @@ default Move _ = delay 1/100
 
 (* Reading () returns the last reading of the unit by the step, as read by
    ReadImu, and its number, counted from 1 at the first reading; bound in
-   bindings.cpp. It took at most 0.039 ms, and 0.406 ms on a second robot
-   (2026-10-19). *)
+   bindings.cpp. It took at most 0.039 ms, and 0.406 ms on a second robot. *)
 operation Reading : unit ~> int * imu ! {Reading} within (0, 0.65]
 default Reading () = delay 1/100; (1i, ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0)))
 
 (* ReportStatus code sends the status of the robot to the controller: the code
    of its phase, by remote_phase_code of the package bala2-radio, and the tilt
-   last published by the step; bound in bindings.cpp. It took 0.131 to 2.384 ms
-   (2026-10-19), and 0.137 to 3.778 ms in a run at a period of 5 ms. *)
+   last published by the step; bound in bindings.cpp. It took 0.131 to 2.384 ms,
+   and 0.137 to 3.778 ms in a run at a period of 5 ms. *)
 operation ReportStatus : nat ~> unit ! {ReportStatus} within (0, 5.7]
 default ReportStatus _ = delay 1/10
 

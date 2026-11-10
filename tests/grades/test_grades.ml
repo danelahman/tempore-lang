@@ -3109,8 +3109,8 @@ let timed_regex_laws =
   @ lower (module G.Finite.Rational.LowerBound)
 
 (* An item that overflows a stretch of an upper bound into a later stretch of
-   the same gap, an idle wait between them passed at length 0 (suggested by
-   the formalisation). [x = {idle ≤1; (≤2 & A)}] is below
+   the same gap, an idle wait between them passed at length 0.
+   [x = {idle ≤1; (≤2 & A)}] is below
    [y = {(≤2 & A); idle ≤1; (≤1 & A)}]: a word of [x] of a wait [a ≤ 1] and an
    [A]-stretch [b ≤ 2] fits [y] with the idle wait at length 0, the first
    stretch of length [min (a + b) 2] and the last of the rest, at most 1, the
@@ -3221,13 +3221,13 @@ let star_running_times =
     operations = [ "A"; "B" ];
   }
 
-(* The timed regex orders over the rationals with open ends and star (suggested
-   by the formalisation), at {!star_running_times}. Open ends add up: [idle <1;
-   (<1 & A)] has the word of a wait [5/6] and an [A] of [1/3], of duration
-   [7/6], and [m] stretches [(<1 & A)] have words of every duration below [m];
-   over whole steps [<1] is [0], and both orders hold. An unbounded stretch is
-   below the star of a bounded one, but below no word of it. The star-free cases
-   hold of the finite traces likewise. *)
+(* The timed regex orders over the rationals with open ends and star, at
+   {!star_running_times}. Open ends add up: [idle <1; (<1 & A)] has the word
+   of a wait [5/6] and an [A] of [1/3], of duration [7/6], and [m] stretches
+   [(<1 & A)] have words of every duration below [m]; over whole steps [<1] is
+   [0], and both orders hold. An unbounded stretch is below the star of a
+   bounded one, but below no word of it. The star-free cases hold of the
+   finite traces likewise. *)
 let timed_regex_star =
   let module G = Grades.TimedRegexGrades in
   let checks (type a) (module M : Grade.S with type t = a) cases =

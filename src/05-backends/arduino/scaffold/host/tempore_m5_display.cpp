@@ -7,7 +7,7 @@
 // millisecond, and a text at a position 1 millisecond and 20 microseconds a
 // character, so that the footer of the examples, of 40 characters over a band
 // of 240 by 10 pixels, takes 2.76 ms, near the least time of ShowTextAt
-// measured on an M5Stack CoreS3 Lite (2026-10-14), 2.599 ms.
+// measured on an M5Stack CoreS3 Lite, 2.599 ms.
 
 #include <Arduino.h>
 #include <M5Unified.h>

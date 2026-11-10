@@ -26,10 +26,10 @@
 
 (* The exchange between the tasks, through bindings.cpp: the step publishes
    the tilt, in degrees, and the display reads the tilt last published. The
-   bounds of the running times are measured on the device by its profile
-   (2026-10-14): Publish took 0 to 0.028 ms and Latest 0.001 to 0.004 ms;
-   with the margin of the packages, 1.5 times the greatest time, rounded up,
-   each is bounded by 0.05 ms. *)
+   bounds of the running times are measured on the device by its profile:
+   Publish took 0 to 0.028 ms and Latest 0.001 to 0.004 ms; with the margin
+   of the packages, 1.5 times the greatest time, rounded up, each is bounded
+   by 0.05 ms. *)
 
 operation Publish : float ~> unit ! [0, 0.05]
 default Publish _ = delay 1/100

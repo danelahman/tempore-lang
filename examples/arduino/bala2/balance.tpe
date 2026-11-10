@@ -37,14 +37,13 @@
    200 ms is replaced by zero setpoints. The default implementations
    describe a balancing robot without moves.
 
-   The bounds of the running times are measured on the device by its profile
-   (2026-10-14): Publish took 0 to 0.008 ms, Setpoints 0 to 0.028 ms, LatestTilt
-   0 to 0.012 ms, StopBalancing 0.021 ms and Move 0.002 to 0.019 ms; with the
-   margin of the packages, 1.5 times the greatest time, rounded up, each is
-   bounded by 0.05 ms. StartBalancing, which stores as many values as Move, is
-   bounded as Move; it is not measured in its present form, without a line to
-   the log. Publish, measured with two values, stores four, as many as Setpoints
-   loads, and is bounded as Setpoints. *)
+   The bounds of the running times are measured on the device by its profile:
+   Publish took 0 to 0.008 ms, Setpoints 0 to 0.028 ms, LatestTilt 0 to 0.012
+   ms, StopBalancing 0.021 ms and Move 0.002 to 0.019 ms; with the margin of
+   the packages, 1.5 times the greatest time, rounded up, each is bounded by
+   0.05 ms. StartBalancing, which stores as many values as Move, is bounded as
+   Move; it is not measured. Publish, measured with two values, stores four,
+   as many as Setpoints loads, and is bounded as Setpoints. *)
 
 type calibration = Calibration of float
 

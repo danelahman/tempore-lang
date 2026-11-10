@@ -15,7 +15,7 @@
    device that holds the clock no longer than those measured. They are not
    measured for these operations, but derived from the transactions of the
    packages m5-imu and bala2-base on an M5Stack Gray core, measured by the
-   profile of the device (2026-10-14), with the margin of those packages:
+   profile of the device, with the margin of those packages:
    the lower bound is the least time, rounded down, and the upper bound 1.5
    times the greatest, rounded up. A write, of 3 to 6 bytes, is bounded by
    a write of 6 bytes, 0.220 to 0.292 ms, less the transfer of 3 bytes,
