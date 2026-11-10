@@ -1,4 +1,4 @@
-(* A probe that measures each sample only after at least three rinses.
+(* A probe that measures each loaded sample only after at least three rinses.
 
    Run this example with the 'at-least-counts' grade algebra, e.g.
 
@@ -17,6 +17,12 @@ type sample = Sample of string
 operation Rinse : unit ~> unit ! (Rinse, 1)
 operation Measure : sample ~> nat ! (Measure, 1)
 
+(* A load returns the next sample boxed at '(Rinse, 3)', in reach after three
+   rinses. The unit is the top, so a noneternal type would not stop an
+   unboxed sample from being measured before them, and the box comes from
+   the load. *)
+operation Load : string ~> [(Rinse, 3)]sample ! (Load, 1)
+
 (* Correctly accepted by the typechecker: three rinses guarantee three. *)
 let rinse_thrice () : unit ! (Rinse, 3) =
   perform Rinse ();
@@ -29,12 +35,12 @@ let rinse_thrice () : unit ! (Rinse, 3) =
 let rinse_after viscous : unit ! (Rinse, 3) =
   if viscous then (rinse_thrice (); perform Rinse ()) else rinse_thrice ()
 
-(* Correctly accepted by the typechecker: the second sample, boxed at
-   '(Rinse, 3)' when the first is measured, is in reach after three rinses;
-   the wait for the probe to drain counts nothing. *)
+(* Correctly accepted by the typechecker: the second sample, loaded when the
+   first is measured, is in reach after three rinses; the wait for the probe
+   to drain counts nothing. *)
 let measure_two (a, b) : nat * nat ! ((Measure, 2), (Rinse, 3)) =
   let x = perform Measure a in
-  box (Rinse, 3) b as next in
+  let next = perform Load b in
   rinse_after false;
   delay 30;
   unbox next as b' in
@@ -53,7 +59,7 @@ let measure_two (a, b) : nat * nat ! ((Measure, 2), (Rinse, 3)) =
 (*
 let measure_drained (a, b) =
   let x = perform Measure a in
-  box (Rinse, 3) b as next in
+  let next = perform Load b in
   perform Rinse ();
   perform Rinse ();
   delay 30;
@@ -75,4 +81,4 @@ let rinse_after_water water : unit ! (Rinse, 3) =
   if water then (perform Rinse (); perform Rinse ()) else rinse_thrice ()
 *)
 
-run measure_two (Sample "buffer", Sample "serum")
+run measure_two (Sample "buffer", "serum")

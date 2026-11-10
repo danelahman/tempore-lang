@@ -119,7 +119,7 @@ tests show those runs in detail.
   === Run 1 (unhandled operation) ===
   perform Measure (Sample "buffer") (op_var.
     (let x = return op_var in
-     box (Rinse, 3) (Sample "serum") as next in
+     let next = perform Load "serum" (op_var. return op_var) in
      rinse_after false;
      delay 30 (return ());
      unbox next as b' in
@@ -131,7 +131,9 @@ tests show those runs in detail.
   ======================================================================
   === Run 1 ===
   return ()
-  State: []
+  State: [
+    { resource_0 ↦ Token "alice" ! (Request, 2) }
+  ]
   
   === Run 2 ===
   return (Token "bob")

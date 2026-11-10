@@ -18,7 +18,8 @@
    '[0, r]', so a box is unboxed while the time since boxing is certain to be
    within its grade. *)
 
-type token = Token of nat
+(* A token is noneternal, so it is kept across calls only inside its box. *)
+noneternal type token = Token of nat
 type file = File of string
 
 (* A token is valid for less than 60 seconds from its authentication, the
@@ -61,6 +62,27 @@ let mirror_thrice () =
   let b = perform Download token in
   delay 1;
   unbox t as token in
+  let c = perform Download token in
+  (a, b, c)
+*)
+
+(* Correctly rejected by the typechecker: the third download reuses the token
+   unboxed for the second, which is kept across the second download:
+
+     Typing error: Variable `token` is used with grade `46` accumulated since
+       it was bound, but its type `token` is not eternal
+       ...
+       Note: the resource inequality `46 <= 0` does not hold
+*)
+(*
+let mirror_kept () =
+  let t = perform Authenticate () in
+  unbox t as token in
+  let a = perform Download token in
+  delay 1;
+  unbox t as token in
+  let b = perform Download token in
+  delay 1;
   let c = perform Download token in
   (a, b, c)
 *)

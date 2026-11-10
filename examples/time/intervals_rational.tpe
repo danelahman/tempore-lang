@@ -16,9 +16,9 @@ operation CheckIn : unit ~> unit ! [0.25, 0.5]
 
 default CheckIn () = delay 3/8
 
-(* Correctly accepted by the typechecker: the next dose is released between
-   four and six hours after the last, and waiting 4.25 hours and checking in
-   accumulates [4.5, 4.75], which lies inside [4, 6]. *)
+(* Correctly accepted by the typechecker: the box checks that the next dose
+   is given four to six hours after the last, and waiting 4.25 hours and
+   checking in accumulates [4.5, 4.75], which lies inside [4, 6]. *)
 let next_dose dose =
   box [4, 6] dose as d in
   delay 4.25;

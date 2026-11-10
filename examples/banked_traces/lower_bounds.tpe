@@ -207,7 +207,7 @@ let deliver_ping () =
 
 (* Correctly accepted by the typechecker: the same demand spelled out as an
    event instead of as ticks --- both traces of 'Deliver' begin with a 'Tx',
-   so the receipt is ready as soon as one has gone out. *)
+   so the box lets the receipt be read as soon as one has gone out. *)
 let deliver_by_events () =
   box {Tx} (Receipt "ping") as slot in
   perform Deliver "ping";
@@ -366,8 +366,8 @@ let extrude_layer_slow h =
 *)
 
 (* Correctly rejected by the typechecker: a delivery may consist of a single
-   transmission, which banks only two ticks, not the four the receipt
-   demands:
+   transmission, which banks only two ticks, not the four the box demands
+   before the receipt is read:
 
      Typing error: Variable `slot` is unboxed with grade `{Tx | Tx; Tx}`
        accumulated since it was bound, which is not below its box grade `{4}`

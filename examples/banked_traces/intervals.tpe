@@ -179,10 +179,10 @@ let send_retry =
   | x -> x
   | Send msg k -> perform Tx msg; perform Tx msg; continue k with ()
 
-(* Correctly accepted by the typechecker: the receipt may be read only once a
-   transmission has gone out, which banks at least the two ticks the lower
-   bound demands, and the session expires after the six ticks of the upper
-   bound, which a retried send costs at most. *)
+(* Correctly accepted by the typechecker: the box lets the receipt be read only
+   once a transmission has gone out, which banks at least the two ticks the
+   lower bound demands, and within the six ticks of the upper bound, which a
+   retried send costs at most. *)
 let send_telemetry () =
   handle
     box [2, 6] (Receipt "telemetry") as slot in
@@ -435,8 +435,8 @@ let send_lazy =
   | Send msg k -> perform Tx msg; delay 1; continue k with ()
 *)
 
-(* Correctly rejected by the typechecker: the session expires after five
-   ticks, which does not pay for a retried send, which costs 3 + 3:
+(* Correctly rejected by the typechecker: the box allows only five ticks
+   before the receipt is read, which do not pay for a retried send, 3 + 3:
 
      Typing error: Variable `slot` is unboxed with grade
        `[{Tx | Tx; Tx}, {Tx | Tx; Tx}]` accumulated since it was bound, which is
@@ -454,8 +454,8 @@ let send_telemetry_impatient () =
   with send_retry
 *)
 
-(* Correctly rejected by the typechecker: the receipt is not ready after four
-   ticks if the send consists of a single transmission, which banks only two:
+(* Correctly rejected by the typechecker: the box demands four ticks before the
+   receipt is read, and a send of a single transmission banks only two:
 
      Typing error: Variable `slot` is unboxed with grade
        `[{Tx | Tx; Tx}, {Tx | Tx; Tx}]` accumulated since it was bound, which is

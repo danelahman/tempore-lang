@@ -19,7 +19,8 @@
    each operation the greatest number of its calls in one run, so a box is
    unboxed while the calls since boxing are certain to be within its grade. *)
 
-type key = Key of nat
+(* A key is noneternal, so it is kept across calls only inside its box. *)
+noneternal type key = Key of nat
 type packet = Packet of nat * string
 
 (* A handshake yields a key that may be used while at most three messages
@@ -77,9 +78,28 @@ let long_session () =
   (first, second, third)
 *)
 
-(* Correctly rejected by the typechecker: a key cached with a bound on the
-   messages alone, which bounds every other operation by 0, so that the
-   acknowledgements of the first transfer already exceed it:
+(* Correctly rejected by the typechecker: the third transfer reuses the key
+   unboxed for the second, which is kept across the second transfer:
+
+     Typing error: Variable `key` is used with grade `((Ack, 2), (Send, 2))`
+       accumulated since it was bound, but its type `key` is not eternal
+       ...
+       Note: the resource inequality `((Ack, 2), (Send, 2)) <= 0` does not hold
+*)
+(*
+let kept_session () =
+  let k = perform Handshake () in
+  unbox k as key in
+  let first = transfer key "first" in
+  unbox k as key in
+  let second = transfer key "second" in
+  let third = transfer key "third" in
+  (first, second, third)
+*)
+
+(* Correctly rejected by the typechecker: a session with a key cached with a
+   bound on the messages alone, which bounds every other operation by 0, so
+   that the acknowledgements of the first transfer already exceed it:
 
      Typing error: Variable `cached` is unboxed with grade
        `((Ack, 2), (Send, 2))` accumulated since it was bound, which is not
@@ -89,8 +109,8 @@ let long_session () =
          does not hold
 *)
 (*
-let cached_session key =
-  box (Send, 3) key as cached in
+let cached_session (cached : [(Send, 3)]key) =
+  unbox cached as key in
   let first = transfer key "first" in
   unbox cached as key in
   let second = transfer key "second" in

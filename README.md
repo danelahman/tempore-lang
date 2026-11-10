@@ -1414,15 +1414,17 @@ none. An operation not listed is guaranteed no call, or the calls of the entry
 itself, as under `at-most-counts`; a default implementation would have to
 perform the operation itself, so a counted operation has none.
 
-For example, where the next sample is boxed at `(Rinse, 3)`, the program
+For example, where a load returns the next sample boxed at `(Rinse, 3)`, the
+program
 
 ```
 operation Rinse : unit ~> unit ! (Rinse, 1)
 operation Measure : string ~> nat ! (Measure, 1)
+operation Load : string ~> [(Rinse, 3)]string ! (Load, 1)
 
 let measure_two (a, b) : nat * nat ! ((Measure, 2), (Rinse, 3)) =
   let x = perform Measure a in
-  box (Rinse, 3) b as next in
+  let next = perform Load b in
   perform Rinse ();
   perform Rinse ();
   perform Rinse ();

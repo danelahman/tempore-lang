@@ -50,11 +50,11 @@ let polls () =
   unbox p as start' in
   u - start'
 
-(* Correctly accepted by the typechecker: the lane of the athlete is boxed,
-   and the start is recorded for it, with its time stamp, only if the time
-   stamp follows the start signal at once, without a time span in which
-   another operation could fit between them, and the first poll follows
-   within 750 milliseconds. *)
+(* Correctly accepted by the typechecker: the box of the athlete's lane
+   checks that the time stamp follows the start signal at once, without a
+   time span in which another operation could fit between them, and that the
+   first poll follows within 750 milliseconds, before the start is recorded
+   for the lane with its time stamp. *)
 let stamped (lane : nat) =
   box {Beep; ReadClock; [0, 750]} lane as s in
   perform Beep ();

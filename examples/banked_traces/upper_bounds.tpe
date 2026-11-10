@@ -154,9 +154,9 @@ let send_retry =
   | x -> x
   | Send msg k -> perform Tx msg; perform Tx msg; continue k with ()
 
-(* Correctly accepted by the typechecker: the receipt must be collected within
-   seven ticks, which pays for the costlier alternative of 'Send', costing at
-   most 3 + 3 = 6. *)
+(* Correctly accepted by the typechecker: the box allows up to seven ticks
+   before the receipt is read, which pays for the costlier alternative of
+   'Send', costing at most 3 + 3 = 6. *)
 let send_telemetry () =
   handle
     box 7 (Receipt "telemetry") as slot in
@@ -167,7 +167,7 @@ let send_telemetry () =
 
 (* Correctly accepted by the typechecker: a strict super-grade of what the send
    costs, spelled out as events instead of ticks --- each alternative of 'Send'
-   fits inside one of the two traces the receipt allows. *)
+   fits inside one of the two traces the box allows. *)
 let send_by_events () =
   box {Tx; Tx | 10} (Receipt "telemetry") as slot in
   perform Send "telemetry";
@@ -322,9 +322,9 @@ let send_lazy =
   | Send msg k -> perform Tx msg; delay 1; continue k with ()
 *)
 
-(* Correctly rejected by the typechecker: the session expires after five
-   ticks, which does not pay for the two-transmission alternative of 'Send',
-   which costs 3 + 3:
+(* Correctly rejected by the typechecker: the box allows only five ticks
+   before the receipt is read, which do not pay for the two-transmission
+   alternative of 'Send', which costs 3 + 3:
 
      Typing error: Variable `slot` is unboxed with grade `{Tx | Tx; Tx}`
        accumulated since it was bound, which is not below its box grade `{5}`

@@ -16,7 +16,9 @@
    below the savepoint are all still there, however many edits were made and
    undone above it. *)
 
-type position = Position of nat
+(* A position is noneternal, so it is kept across edits and undos only inside
+   its box. *)
+noneternal type position = Position of nat
 
 (* An edit pushes one undo record, and an undo pops one. No code pushes or
    pops a record, so neither has a default implementation, and a run stops at
@@ -25,9 +27,10 @@ operation Edit : string ~> unit ! (1, 1)
 
 operation Undo : unit ~> unit ! (-1, 0)
 
-(* Taking a savepoint and jumping to one change no record. *)
-operation Savepoint : unit ~> position ! (0, 0)
-default Savepoint () = Position 0
+(* Taking a savepoint and jumping to one change no record. A savepoint is the
+   position boxed at (0, [0, ∞), ∞). *)
+operation Savepoint : unit ~> [(0, [0, ∞), ∞)]position ! (0, 0)
+default Savepoint () = box (0, [0, ∞), ∞) (Position 0)
 
 operation Jump : position ~> unit ! (0, 0)
 default Jump p = ()
@@ -35,8 +38,7 @@ default Jump p = ()
 (* Correctly accepted by the typechecker: two edits, both undone, return the
    stack to the level of the savepoint without falling below it. *)
 let discard_drafts () : unit ! (0, 2) =
-  let p = perform Savepoint () in
-  box (0, [0, ∞), ∞) p as saved in
+  let saved = perform Savepoint () in
   perform Edit "first draft";
   perform Edit "second draft";
   perform Undo ();
@@ -47,8 +49,7 @@ let discard_drafts () : unit ! (0, 2) =
 (* Correctly accepted by the typechecker: an edit undone and followed by
    another leaves one record more than at the savepoint, never fewer. *)
 let redraft () : unit ! (1, 1) =
-  let p = perform Savepoint () in
-  box (0, [0, ∞), ∞) p as saved in
+  let saved = perform Savepoint () in
   perform Edit "first draft";
   perform Undo ();
   perform Edit "second draft";
@@ -65,10 +66,24 @@ let redraft () : unit ! (1, 1) =
 *)
 (*
 let undo_past_savepoint () =
-  let p = perform Savepoint () in
-  box (0, [0, ∞), ∞) p as saved in
+  let saved = perform Savepoint () in
   perform Undo ();
   unbox saved as q in
+  perform Jump q
+*)
+
+(* Correctly rejected by the typechecker: the position unboxed at once is kept
+   across the undo, which pops a record below the savepoint:
+
+     Typing error: Variable `q` is used with grade `(-1, 0)` accumulated since
+       it was bound, but its type `position` is not eternal
+       Note: the resource inequality `(-1, 0) <= (0, 0)` does not hold
+*)
+(*
+let jump_after_undo () =
+  let saved = perform Savepoint () in
+  unbox saved as q in
+  perform Undo ();
   perform Jump q
 *)
 
@@ -82,8 +97,7 @@ let undo_past_savepoint () =
 *)
 (*
 let undo_too_far () =
-  let p = perform Savepoint () in
-  box (0, [0, ∞), ∞) p as saved in
+  let saved = perform Savepoint () in
   perform Edit "first draft";
   perform Undo ();
   perform Undo ();
