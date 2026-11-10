@@ -77,17 +77,19 @@ is specified by the application, which boxes it.
 
 The descriptor maps each grade algebra the package supports to a file of
 declarations, and may name a file of definitions, types and functions shared
-by all of them, such as the tilt filters of `m5-imu`. Every package is
-declared under `time-interval-rational`, under the regex grades with banked
-delays over rational delays (`banked-regex-*-rational-symbolic`), the timed
-regex grades (`timed-regex-{lower-bound,upper-bound,interval}-rational`) and
+by all of them, such as the tilt filters of `m5-imu`. Every package but
+`bala2-radio` (below) is declared under `time-interval-rational`, under the
+regex grades with banked delays over rational delays
+(`banked-regex-*-rational-symbolic`), the timed regex grades
+(`timed-regex-{lower-bound,upper-bound,interval}-rational`) and
 `inter-arrival`, with running-time bounds in milliseconds, and under
 `at-most-counts`, each call counting once.
 
 ### The packages
 
-- `i2c`: `I2cWrite8`, `I2cWrite16`, `I2cWrite32`, `I2cRead8`, `I2cRead16` and
-  `I2cRead32`, register transactions on the bus `Wire`.
+- `i2c`: `I2cWrite8`, `I2cWrite16`, `I2cWrite32`, `I2cRead8`, `I2cRead16`,
+  `I2cRead32`, `I2cReadInt8`, `I2cReadInt16` and `I2cReadInt32`, register
+  transactions on the bus `Wire`.
 - `m5-imu`:
   - `ReadImu`, the accelerometer and gyroscope of an M5Stack core, with the
     tilt filters `tilt_x` and `tilt_y`;

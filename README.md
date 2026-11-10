@@ -570,8 +570,8 @@ The two variants are:
   is accepted, as `Open; Read; Write; Write; Close` is one of the traces the
   star permits, while leaving out `perform Close ()` would be rejected:
 
-      This function's body has grade `{Open; Read; Write; Write}`, which does
-      not match its annotated grade `{Open; (Read | Write)*; Close}`
+      This function's body has grade `{Open; Read; Write^2}`, which does not
+      match its annotated grade `{Open; (Read | Write)*; Close}`
 
   See [`examples/regular_trace_languages/upper_bounds.tpe`](examples/regular_trace_languages/upper_bounds.tpe).
 
@@ -675,11 +675,12 @@ benchmarking, are accepted by `--grades` with one of these suffixes in place of
 - `-letter-derivatives`: expressions over single letters; inclusion by
   derivatives by single letters.
 
-Likewise, `regular-trace-languages-rational-automata` and the timed
-`-rational-automata` variants below implement the rational grades by minimal
-deterministic symbolic automata over sets of operations and sets of delays;
-inclusion by a breadth-first search of the product with the complement, or with
-a reader of the closure. The automata read a bounded repetition by unrolling it.
+Likewise, `regular-trace-languages-rational-automata` and the
+`-rational-automata` variants of the regex grades with banked delays implement
+the rational grades by minimal deterministic symbolic automata over sets of
+operations and sets of delays; inclusion by a breadth-first search of the
+product with the complement, or with a reader of the closure. The automata
+read a bounded repetition by unrolling it.
 
 They can be compared by running
 `dune exec --profile release bench/regular/bench_regular.exe`; see
@@ -1532,10 +1533,10 @@ grade algebra:
 | `banked-traces-lower-bound` | `at-least-counts` | the least number of calls of each operation in a trace of `ε` |
 | `time-lower-bound-lattice` | `time-lower-bound`, `lattice` | `∣(n, ℓ)∣ = n`, `∣(n, ℓ)∣ = ℓ` |
 
-The systems with time resource grades also exist over rational delays, both
-names ending in `-rational`. The others are over whole time steps. An end
-keeps its openness, and in the timed regex and banked trace grades an
-operation takes its running time.
+The systems with time resource grades, but that of `time-lower-bound-lattice`,
+also exist over rational delays, both names ending in `-rational`. The others
+are over whole time steps. An end keeps its openness, and in the timed regex
+and banked trace grades an operation takes its running time.
 
 The top of the finite run sets is mapped to the top of the counts, for which
 the at-least counts gain a top `⊤` above the unit. The projections of

@@ -105,6 +105,7 @@ Without `--bind`, only the compiled program is written. The options below
 require `--bind`:
 
 - `--api-level <level>` sets the `apiLevel` (default 2.30);
+- `--robot flex` sets the robot (default `flex`, the only one);
 - `--time-unit <unit>` sets the length of a unit of duration: `seconds` (the
   default), `minutes`, `hours` or a positive number of seconds;
 - `--monitor abort|warn|off` sets the monitor policy (default `abort`);
@@ -251,7 +252,7 @@ each is a minute.
   bead purification under `timed-regex-interval-rational` whose steps each
   take the beads in a box and return them in the box of the next step,
   exactly two washes accepted, and whose eluates are boxed in two successive
-  stages, all within the box of a permit for the time the samples spend at
+  stages, all within the box of a token for the time the samples spend at
   room temperature, which the transfer to the cold block takes. The
   typechecker proves, under the declared running times of the operations:
   - the beads bind for 5 to 10 minutes before the plate goes on the magnet,
