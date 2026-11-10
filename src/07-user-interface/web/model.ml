@@ -31,19 +31,32 @@ let edit_update edit_model = function
       and after = String.sub source stop (String.length source - stop) in
       { edit_model with unparsed_code = before ^ indentation ^ after }
   | LoadExample (group, e) ->
-      (* Loading an example selects its grades and its backend, its settings
-         replacing those of the backend. *)
+      (* Loading an example selects its grades, its resource grades and its
+         backend, its settings replacing those of the backend. *)
       {
         edit_model with
         unparsed_code = e.source;
         selected_grades = e.grade;
+        selected_resources = e.resources;
         selected_example = Some (group, e.title);
         selected_backend = e.backend;
         backend_settings =
           (e.backend, e.settings)
           :: List.remove_assoc e.backend edit_model.backend_settings;
       }
-  | SelectGrades name -> { edit_model with selected_grades = name }
+  | SelectGrades name ->
+      {
+        edit_model with
+        selected_grades = name;
+        selected_resources =
+          WebChoices.valid_resources ~grade:name edit_model.selected_resources;
+      }
+  | SelectResources resources ->
+      {
+        edit_model with
+        selected_resources =
+          WebChoices.valid_resources ~grade:edit_model.selected_grades resources;
+      }
   | SelectBackend key -> { edit_model with selected_backend = key }
   | SetInput (key, value) ->
       let backend = edit_model.selected_backend in
@@ -104,6 +117,7 @@ let edit_init =
       use_stdlib = true;
       unparsed_code = "";
       selected_grades = Grades.GradeRegistry.default_name;
+      selected_resources = None;
       selected_example = None;
       selected_backend = BackendRegistry.default.key;
       backend_settings = [];
@@ -131,6 +145,7 @@ let choices edit_model =
     grade = Some edit_model.selected_grades;
     backend = Some edit_model.selected_backend;
     settings = edit_model.backend_settings;
+    resources = edit_model.selected_resources;
   }
 
 (* The bundled examples, as the parameters of the page's address name them. *)
@@ -139,6 +154,7 @@ let catalogue =
     {
       WebLink.example = { WebChoices.path = e.path; group; title = e.title };
       grade = e.grade;
+      resources = e.resources;
       backend = e.backend;
     }
   in
@@ -163,9 +179,9 @@ let unedited edit_model =
   | None -> false
 
 (* The editor as the page opens with the choices [c] restored: the example
-   loaded first, as it sets the grades, the backend and its inputs, which the
-   remembered ones then override. The backend is selected without its default
-   example. *)
+   loaded first, as it sets the grades, the resource grades, the backend and
+   its inputs, which the remembered ones then override, the resource grades
+   with the grades. The backend is selected without its default example. *)
 let restore_edit (c : WebChoices.t) =
   let c = WebChoices.sanitise c in
   let loaded =
@@ -182,6 +198,7 @@ let restore_edit (c : WebChoices.t) =
       (List.filter_map Fun.id
          [
            Option.map (fun g -> SelectGrades g) c.grade;
+           Option.map (fun _ -> SelectResources c.resources) c.grade;
            Option.map (fun b -> SelectBackend b) c.backend;
          ])
   in
@@ -308,12 +325,14 @@ let fatal message =
 (* Whether an edit moves the text that the reported errors point into. *)
 let edits_source = function
   | ChangeSource _ | InsertIndent _ | LoadExample _ -> true
-  | UseStdlib _ | SelectGrades _ | SelectBackend _ | SetInput _ -> false
+  | UseStdlib _ | SelectGrades _ | SelectResources _ | SelectBackend _
+  | SetInput _ ->
+      false
 
 (* Whether an edit changes the program or the options it is checked under. *)
 let edits_program = function
   | ChangeSource _ | InsertIndent _ | LoadExample _ | UseStdlib _
-  | SelectGrades _ ->
+  | SelectGrades _ | SelectResources _ ->
       true
   | SelectBackend _ | SetInput _ -> false
 
@@ -887,19 +906,11 @@ let rec make_run_state : type run_state.
     observer;
   }
 
-(* The program of [edit_model] loaded under the grades [G], in a program
-   declaring the grade lattice [lattice], after the declarations [declared]:
-   the program loaded, or else the errors reported
+(* The program of [edit_model] loaded under the grade system [GS], after the
+   declarations [declared]: the program loaded, or else the errors reported
    and what the check has found. *)
-let check_with (module G : Grades.Grade.S) lattice edit_model declared =
-  let module B =
-    WebInterpreter.Make
-      (Grades.GradeSystem.Declaring
-         (struct
-           let lattice = lattice
-         end)
-         (G))
-  in
+let check_with (module GS : Grades.GradeSystem.S) edit_model declared =
+  let module B = WebInterpreter.Make (GS) in
   let module L = Loader.Loader (B) in
   (* The standard library is loaded as a source of its own, so that an editor
      location is a location in what the user typed. *)
@@ -969,9 +980,11 @@ let check_with (module G : Grades.Grade.S) lattice edit_model declared =
 let failed declared errors =
   (errors, { definitions = []; links = []; accepted = None; declared })
 
-(* The program of [edit_model] checked under the grades selected, over the
-   grade lattice the program declares, after the declarations [declared] of the
-   selected backend; an exception raised meanwhile is reported as an error. *)
+(* The program of [edit_model] checked under the grade system of the grades
+   and the resource grades selected, over the grade lattice the program
+   declares ({!Grades.GradeSystemRegistry.select}), after the declarations
+   [declared] of the selected backend; an exception raised meanwhile is
+   reported as an error. *)
 let check_program edit_model declared =
   match
     List.assoc_opt edit_model.selected_grades Grades.GradeRegistry.grade_modules
@@ -993,7 +1006,13 @@ let check_program edit_model declared =
                declared
             @ [ ("", edit_model.unparsed_code) ])
         in
-        check_with grades lattice edit_model declared
+        match
+          Grades.GradeSystemRegistry.select ?lattice
+            ~effects:edit_model.selected_grades
+            ~resources:edit_model.selected_resources grades
+        with
+        | Ok system -> check_with system edit_model declared
+        | Error message -> Error (failed declared [ fatal message ])
       with exn -> Error (failed declared (errors_of_exception Checking exn)))
 
 (* The program of [edit_model] checked as by [check_program], the check of
@@ -1009,6 +1028,7 @@ let checked_program cache edit_model =
         {
           source = edit_model.unparsed_code;
           grades = edit_model.selected_grades;
+          resources = edit_model.selected_resources;
           use_stdlib = edit_model.use_stdlib;
           declared;
         } (fun () -> check_program edit_model declared)
@@ -1064,7 +1084,7 @@ let rec edited model edit_msg =
         compilation = outdated model.compilation;
       }
   | UseStdlib _ | ChangeSource _ | InsertIndent _ | LoadExample _
-  | SelectGrades _ ->
+  | SelectGrades _ | SelectResources _ ->
       edited_program model edit_msg
 
 (* The model after [edit_msg], which changes the program or its options. A
@@ -1250,7 +1270,7 @@ let edit model edit_msg =
           edit_msg,
         [ After (compile_delay, Recompile compile_serial) ] )
   | UseStdlib _ | ChangeSource _ | InsertIndent _ | LoadExample _
-  | SelectGrades _ | SelectBackend _ ->
+  | SelectGrades _ | SelectResources _ | SelectBackend _ ->
       (edited model edit_msg, [])
 
 (* The inputs of the backend at rest since the change of [serial], unless
@@ -1454,8 +1474,8 @@ let respond model msg =
 (* Whether a message changes the choices the browser remembers. *)
 let changes_choices = function
   | EditMsg
-      ( UseStdlib _ | LoadExample _ | SelectGrades _ | SelectBackend _
-      | SetInput _ ) ->
+      ( UseStdlib _ | LoadExample _ | SelectGrades _ | SelectResources _
+      | SelectBackend _ | SetInput _ ) ->
       true
   | _ -> false
 

@@ -1,6 +1,7 @@
 (* Tests of the choices the web interface remembers: the round trip of their
    encoding, the refusal of malformed encodings, and the removal of unknown
-   grades, backends and inputs. Silent on success. *)
+   grades, backends and inputs, and of resource grades not paired with the
+   grades. Silent on success. *)
 
 let fail = TestSupport.Failures.fail
 
@@ -26,6 +27,14 @@ let choices =
         ("arduino", [ ("manifest", ""); ("monitor", "warn") ]);
         ("interpreter", []);
       ];
+    resources = None;
+  }
+
+let proofing =
+  {
+    choices with
+    grade = Some "time-interval";
+    resources = Some "time-lower-bound";
   }
 
 let () =
@@ -36,16 +45,26 @@ let () =
         fail "round trip: %s" (WebChoices.encode c))
     [
       choices;
+      proofing;
       {
         WebChoices.use_stdlib = true;
         example = None;
         grade = None;
         backend = None;
         settings = [];
+        resources = None;
       };
     ];
-  (* malformed encodings *)
+  (* the resources written last, and only when selected *)
   let encoded = WebChoices.encode choices in
+  if
+    WebChoices.encode proofing
+    <> WebChoices.encode { proofing with resources = None }
+       ^ "1:116:time-lower-bound"
+  then fail "the resources are not the last field";
+  if WebChoices.decode (encoded ^ "1:1") <> None then
+    fail "malformed resources accepted";
+  (* malformed encodings *)
   List.iter
     (fun s ->
       if WebChoices.decode s <> None then fail "malformed accepted: %S" s)
@@ -87,6 +106,19 @@ let () =
     unknown.settings
     <> [ ("opentrons", [ ("binding", "first"); ("monitor", "off") ]) ]
   then fail "unknown settings kept";
-  if WebChoices.sanitise choices <> choices then fail "known choices changed"
+  if WebChoices.sanitise choices <> choices then fail "known choices changed";
+  if WebChoices.sanitise proofing <> proofing then
+    fail "paired resource grades changed";
+  List.iter
+    (fun (name, c) ->
+      if (WebChoices.sanitise c).resources <> None then
+        fail "resource grades kept: %s" name)
+    [
+      ("unknown grade", { proofing with grade = Some "no-such-grades" });
+      ("no grade", { proofing with grade = None });
+      ("unpaired", { proofing with grade = Some "time-interval-rational" });
+      ("unknown", { proofing with resources = Some "no-such-grades" });
+      ("the grades", { proofing with resources = Some "time-interval" });
+    ]
 
 let () = TestSupport.Failures.finish ()

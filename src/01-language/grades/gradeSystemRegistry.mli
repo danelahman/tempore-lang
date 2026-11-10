@@ -81,6 +81,25 @@ val resources_of : string -> string list
     registered grade systems of the effect grade algebra [effects], in the order
     of {!systems}. *)
 
+val morphism : effects:string -> resources:string -> string option
+(** [morphism ~effects ~resources] is the description of the morphism of the
+    registered grade system of the effect grade algebra [effects] and the
+    resource grade algebra [resources], if there is one. *)
+
+val select :
+  ?lattice:GradeLattice.t ->
+  effects:string ->
+  resources:string option ->
+  (module Grade.S) ->
+  ((module GradeSystem.S), string) result
+(** [select ?lattice ~effects ~resources (module G)] is the grade system of the
+    effect grade algebra [effects], [G] being that algebra over the grade
+    lattice [lattice] the program declares, if any: the registered grade system
+    of [effects] and [resources] over [lattice] ({!find}) if [resources] names
+    another algebra, and otherwise the identity system of [G], declaring
+    [lattice]. A pair without a registered grade system is an error, its message
+    naming the resource grade algebras of [effects]. *)
+
 val by_resources : (string * (string list * string) list) list
 (** The registered grade systems grouped by resource grade algebra, in the order
     in which the algebras first occur in {!systems}: each algebra with its

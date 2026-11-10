@@ -30,7 +30,8 @@ val opened : query:string -> string option -> model * side_effect list
     choices encoded by [stored] ({!WebChoices.encode}) are restored as far as
     they are still valid: the example, found by its path or else by its group
     and title, loaded as from the gallery, or else the default one; then the
-    grades and the backend selected, if known, the latter without loading its
+    grades, the resource grades and the backend selected, if known, the resource
+    grades with the grades they are paired with, the backend without loading its
     default example; then the inputs set; without [stored], or if it encodes no
     choices, the model is {!init}. With parameters, the choices
     {!WebLink.resolve} yields are restored likewise, with a notice of the

@@ -1,6 +1,7 @@
 type key = {
   source : string;
   grades : string;
+  resources : string option;
   use_stdlib : bool;
   declared : BackendRegistry.source list;
 }

@@ -1,6 +1,7 @@
 (* Tests of the reading of the example index: the forms of its example
-   lines, with and without a backend and settings, the checks of grades,
-   backends and settings, and the example index of the repository. Silent on
+   lines, with and without resource grades, a backend and settings, the checks
+   of grades, resource grades, backends and settings, and the example index of
+   the repository. Silent on
    success. *)
 
 let fail = TestSupport.Failures.fail
@@ -20,6 +21,16 @@ let () =
         || e.path <> "examples/dir/a.tpe"
       then fail "five fields: backend %s, path %s" e.backend e.path
   | None -> fail "five fields: not an example");
+  (* resource grades after the grades *)
+  (match example "G | T | time-interval -> time-lower-bound | a.tpe | D." with
+  | Some e ->
+      if e.grade <> "time-interval" || e.resources <> Some "time-lower-bound"
+      then fail "resource grades: grade %s" e.grade
+      else ignore (ExampleIndex.checked e)
+  | None -> fail "resource grades: not an example");
+  (match example "G | T | time-interval | a.tpe | D." with
+  | Some { resources = None; _ } -> ()
+  | _ -> fail "no resource grades: read");
   (* six fields: a backend, no settings *)
   (match example "G | T | time-interval | a.tpe | D. | opentrons" with
   | Some e ->
@@ -65,6 +76,10 @@ let () =
       | None -> fail "not an example: %S" line)
     [
       "G | T | no-such-grade | a.tpe | D.";
+      "G | T | time-interval -> no-such-grade | a.tpe | D.";
+      "G | T | time-interval -> at-most-counts | a.tpe | D.";
+      "G | T | time-interval -> time-interval | a.tpe | D.";
+      "G | T | no-such-grade -> time-lower-bound | a.tpe | D.";
       "G | T | time-interval | a.tpe | D. | no-such-backend";
       "G | T | time-interval | a.tpe | D. | opentrons | colour=red";
       "G | T | time-interval | a.tpe | D. | opentrons | robot=ot3";

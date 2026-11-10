@@ -5,7 +5,8 @@
    groups and examples it describes, in the order of the index, and the example
    loaded when the page is opened; invoked by a dune rule, see
    src/07-user-interface/web/dune. It fails on a grade or a backend the
-   registries do not list, on a setting of an input its backend does not have
+   registries do not list, on a resource grade algebra no registered grade
+   system pairs with the grade, on a setting of an input its backend does not have
    or of a choice the input does not offer, on a group without exactly one
    summary or a summary without a group, on two groups of one short form, and
    unless the default lines name listed examples, at most one of each backend
@@ -67,15 +68,19 @@ let print_example buf root (entry : ExampleIndex.entry) =
        "        {\n\
        \          title = %s;\n\
        \          grade = %s;\n\
+       \          resources = %s;\n\
        \          source = %s;\n\
        \          description = %s;\n\
        \          path = %s;\n\
        \          backend = %s;\n\
        \          settings = [ %s ];\n\
        \        };\n"
-       (quoted entry.title) (quoted entry.grade) (quoted source)
-       (quoted entry.description) (quoted entry.path) (quoted entry.backend)
-       settings)
+       (quoted entry.title) (quoted entry.grade)
+       (Option.fold ~none:"None"
+          ~some:(fun r -> "Some " ^ quoted r)
+          entry.resources)
+       (quoted source) (quoted entry.description) (quoted entry.path)
+       (quoted entry.backend) settings)
 
 let print_group buf root
     (({ label; short; summary } : ExampleIndex.summary), entries) =
@@ -95,6 +100,8 @@ let preamble =
    type example = {\n\
   \  title : string;  (** shown on its card, without the group's prefix *)\n\
   \  grade : string;  (** the grade algebra the web interface switches to *)\n\
+  \  resources : string option;  (** the resource grade algebra it switches \
+   to, [None] for the identity grade system *)\n\
   \  source : string;\n\
   \  description : string;  (** shown on its card *)\n\
   \  path : string;  (** relative to the project root, for links from the \

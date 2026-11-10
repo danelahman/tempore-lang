@@ -2,14 +2,20 @@
    percent-decoding and repeated keys, the round trip of serialisation over
    random byte strings, the line numbers and the lines they name, and the
    choices the page opens with under parameters and remembered choices, with
-   unknown examples, grades and backends ignored. Silent on success. *)
+   unknown examples, grades and backends, and resource grades not paired with
+   the grades, ignored. Silent on success. *)
 
 let fail = TestSupport.Failures.fail
 let grades_a = Grades.GradeRegistry.default_name
 let grades_b = fst (List.nth Grades.GradeRegistry.grade_modules 1)
 
-let entry path group title grade backend =
-  { WebLink.example = { WebChoices.path; group; title }; grade; backend }
+let entry ?resources path group title grade backend =
+  {
+    WebLink.example = { WebChoices.path; group; title };
+    grade;
+    resources;
+    backend;
+  }
 
 let sensor =
   entry "examples/introduction/sensor.tpe" "Introduction" "Sensor" grades_a
@@ -22,8 +28,12 @@ let robot =
 let elisa =
   entry "examples/opentrons/elisa.tpe" "Opentrons" "ELISA" grades_a "opentrons"
 
+let proofing =
+  entry ~resources:"time-lower-bound" "examples/grade_systems/proofing.tpe"
+    "Grade systems" "Bread proofing" "time-interval" "interpreter"
+
 let catalogue =
-  let entries = [ sensor; robot; elisa ] in
+  let entries = [ sensor; robot; elisa; proofing ] in
   {
     WebLink.find =
       (fun path ->
@@ -40,6 +50,7 @@ let defaults =
     grade = Some grades_a;
     backend = Some "interpreter";
     settings = [];
+    resources = None;
   }
 
 let remembered =
@@ -53,10 +64,11 @@ let remembered =
         ("opentrons", [ ("time-unit", "minutes") ]);
         ("arduino", [ ("monitor", "warn") ]);
       ];
+    resources = None;
   }
 
-let link ?example ?grades ?backend ?line () =
-  { WebLink.example; grades; backend; line }
+let link ?example ?grades ?resources ?backend ?line () =
+  { WebLink.example; grades; resources; backend; line }
 
 let check_parse query expected =
   let parsed = WebLink.parse query in
@@ -84,6 +96,8 @@ let () =
     (WebLink.empty, [ WebLink.Example; Grades; Backend ]);
   check_parse "?grades&backend=b" (link ~backend:"b" (), [ WebLink.Grades ]);
   check_parse "?example=%C3%BC" (link ~example:"\xC3\xBC" (), []);
+  check_parse "?resources=r&grades=g" (link ~grades:"g" ~resources:"r" (), []);
+  check_parse "?resources=" (WebLink.empty, [ WebLink.Resources ]);
   (* serialisation *)
   if WebLink.serialise WebLink.empty <> "" then fail "serialise empty";
   if
@@ -94,6 +108,10 @@ let () =
     WebLink.serialise (link ~grades:"a b&c=d" ~backend:"x" ())
     <> "?grades=a%20b%26c%3Dd&backend=x"
   then fail "serialise reserved characters";
+  if
+    WebLink.serialise (link ~resources:"r" ~backend:"b" ~grades:"g" ())
+    <> "?grades=g&resources=r&backend=b"
+  then fail "serialise the resource grades";
   List.iter
     (fun l ->
       if WebLink.parse (WebLink.serialise l) <> (l, []) then
@@ -122,7 +140,7 @@ let () =
   for _ = 1 to 2000 do
     let l =
       link ?example:(optional value) ?grades:(optional value)
-        ?backend:(optional value)
+        ?resources:(optional value) ?backend:(optional value)
         ?line:(optional (fun () -> 1 + Random.State.int random 100_000))
         ()
     in
@@ -137,6 +155,7 @@ let () =
     [
       (link ~example:"" (), WebLink.Example);
       (link ~grades:"" (), WebLink.Grades);
+      (link ~resources:"" (), WebLink.Resources);
       (link ~backend:"" (), WebLink.Backend);
     ];
   (* line numbers: positive decimal numbers, leading zeros allowed *)
@@ -247,6 +266,59 @@ let () =
     remembered [ WebLink.Line ];
   check_resolve "line with a backend alone" ~remembered
     "?backend=arduino&line=42" robot_choices [ WebLink.Line ];
+  (* the resource grades of an example, overridden, kept with the grades they
+     are paired with, and the identity grade system named by the grades *)
+  let proofing_choices =
+    {
+      remembered with
+      example = Some proofing.example;
+      grade = Some "time-interval";
+      resources = Some "time-lower-bound";
+      backend = Some "interpreter";
+    }
+  in
+  check_resolve "example of a grade system" ~remembered
+    "?example=grade_systems/proofing.tpe" proofing_choices [];
+  check_resolve "identity grade system" ~remembered
+    "?example=grade_systems/proofing.tpe&resources=time-interval"
+    { proofing_choices with resources = None }
+    [];
+  check_resolve "other resource grades" ~remembered
+    "?example=grade_systems/proofing.tpe&resources=time-upper-bound"
+    { proofing_choices with resources = Some "time-upper-bound" }
+    [];
+  check_resolve "grades without the example's resource grades" ~remembered
+    "?example=grade_systems/proofing.tpe&grades=time-interval-rational"
+    {
+      proofing_choices with
+      grade = Some "time-interval-rational";
+      resources = None;
+    }
+    [];
+  check_resolve "grades with resource grades" ~remembered
+    "?example=grade_systems/proofing.tpe&grades=time-interval-rational&resources=time-upper-bound-rational"
+    {
+      proofing_choices with
+      grade = Some "time-interval-rational";
+      resources = Some "time-upper-bound-rational";
+    }
+    [];
+  check_resolve "unpaired resource grades" ~remembered
+    "?example=grade_systems/proofing.tpe&resources=at-most-counts"
+    proofing_choices [ WebLink.Resources ];
+  check_resolve "unknown resource grades" ~remembered
+    "?example=grade_systems/proofing.tpe&resources=no-such" proofing_choices
+    [ WebLink.Resources ];
+  check_resolve "remembered resource grades" ~remembered:proofing_choices
+    "?backend=interpreter" proofing_choices [];
+  check_resolve "grades alone, remembered resource grades"
+    ~remembered:proofing_choices "?grades=time-interval"
+    { proofing_choices with resources = None }
+    [];
+  check_resolve "resource grades alone" ~remembered:proofing_choices
+    "?resources=time-upper-bound"
+    { proofing_choices with resources = Some "time-upper-bound" }
+    [];
   (* the parameters naming choices *)
   let check_of_choices name choices expected =
     if WebLink.of_choices catalogue choices <> expected then
@@ -261,6 +333,31 @@ let () =
   check_of_choices "no example"
     { remembered with example = None }
     (link ~grades:grades_b ~backend:"opentrons" ());
+  check_of_choices "the example's grade system" proofing_choices
+    (link ~example:"grade_systems/proofing.tpe" ());
+  check_of_choices "the identity grade system"
+    { proofing_choices with resources = None }
+    (link ~example:"grade_systems/proofing.tpe" ~resources:"time-interval" ());
+  check_of_choices "other grades, identity grade system"
+    {
+      proofing_choices with
+      grade = Some "time-interval-rational";
+      resources = None;
+    }
+    (link ~example:"grade_systems/proofing.tpe" ~grades:"time-interval-rational"
+       ());
+  check_of_choices "an identity example under a grade system"
+    {
+      defaults with
+      grade = Some "time-interval";
+      resources = Some "time-lower-bound";
+    }
+    (link ~example:"introduction/sensor.tpe" ~grades:"time-interval"
+       ~resources:"time-lower-bound" ());
+  check_of_choices "no example, a grade system"
+    { proofing_choices with example = None }
+    (link ~grades:"time-interval" ~resources:"time-lower-bound"
+       ~backend:"interpreter" ());
   check_of_choices "unknown example"
     {
       remembered with
@@ -279,11 +376,34 @@ let () =
         || reopened.example <> choices.example
         || reopened.grade <> choices.grade
         || reopened.backend <> choices.backend
+        || reopened.resources <> choices.resources
       then fail "reopened %s" name)
     [
       ("robot", robot_choices);
       ("robot under other grades", { robot_choices with grade = Some grades_a });
       ("elisa", remembered);
+      ("proofing", proofing_choices);
+      ("proofing, identity", { proofing_choices with resources = None });
+      ( "proofing, other resource grades",
+        { proofing_choices with resources = Some "time-upper-bound" } );
+      ( "proofing, other grades",
+        {
+          proofing_choices with
+          grade = Some "time-interval-rational";
+          resources = None;
+        } );
+      ( "proofing, other grade system",
+        {
+          proofing_choices with
+          grade = Some "time-interval-rational";
+          resources = Some "time-lower-bound-rational";
+        } );
+      ( "elisa under a grade system",
+        {
+          remembered with
+          grade = Some "time-interval";
+          resources = Some "time-upper-bound";
+        } );
     ]
 
 let () = TestSupport.Failures.finish ()

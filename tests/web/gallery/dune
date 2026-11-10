@@ -1,0 +1,19 @@
+; Unit tests of the examples of the web interface's gallery under the grade
+; systems the example index names: the grade algebras of each row against the
+; header of its example, and the check of each example as the web interface
+; performs it, the examples of a grade system other than an identity one also
+; run, and checked under the identity grade system.
+
+(test
+ (name test_gallery)
+ (libraries
+  utils
+  grades
+  loader
+  webInterpreter
+  exampleIndex
+  backendRegistry
+  testSupport)
+ (deps
+  %{project_root}/examples/index
+  (glob_files_rec %{project_root}/examples/*)))

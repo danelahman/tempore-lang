@@ -7,10 +7,19 @@ module Location = Utils.Location
 let panel = Widgets.panel
 let panel_block = div ~a:[ class_ "panel-block" ]
 
-let select ?(a = []) empty_description msg describe_choice selected choices =
+(* A select of [choices], each shown as [describe_choice] gives it and, with
+   [describe_title], with that tooltip; [select_a] are further attributes of
+   the select itself. *)
+let select ?(a = []) ?(select_a = []) ?describe_title empty_description msg
+    describe_choice selected choices =
   let view_choice choice =
     elt "option"
-      ~a:[ bool_prop "selected" (selected choice) ]
+      ~a:
+        (bool_prop "selected" (selected choice)
+        ::
+        (match describe_title with
+        | Some describe -> [ attr "title" (describe choice) ]
+        | None -> []))
       [ text (describe_choice choice) ]
   in
   div ~a
@@ -18,13 +27,14 @@ let select ?(a = []) empty_description msg describe_choice selected choices =
       (* index 0 is the placeholder below, and a browser may report it *)
       elt "select"
         ~a:
-          [
-            on "change"
-              Vdom.Decoder.(
-                map
-                  (fun i -> Option.map msg (List.nth_opt choices (i - 1)))
-                  (field "target.selectedIndex" Int));
-          ]
+          (select_a
+          @ [
+              on "change"
+                Vdom.Decoder.(
+                  map
+                    (fun i -> Option.map msg (List.nth_opt choices (i - 1)))
+                    (field "target.selectedIndex" Int));
+            ])
         (elt "option"
            ~a:
              [
@@ -1352,9 +1362,11 @@ let view_backend (edit_model : Model.edit_model) =
         else [ div ~a:[ class_ "backend-choices" ] choices ]);
     ]
 
-(* The description of the grades [name], the tooltip adding how a regular
-   grade is decided and the command running them. *)
-let view_grades_summary name =
+(* The description of the grades selected, the tooltip adding how a regular
+   grade is decided and the command running them with the resource grades
+   selected. *)
+let view_grades_summary (edit_model : Model.edit_model) =
+  let name = edit_model.selected_grades in
   let description, implementation =
     match Grades.GradeRegistry.info name with
     | Some info ->
@@ -1369,7 +1381,11 @@ let view_grades_summary name =
       [
         class_ "grades-summary";
         attr "title"
-          (implementation ^ "./tempore --grades " ^ name ^ " file.tpe");
+          (implementation ^ "./tempore --grades " ^ name
+          ^ Option.fold ~none:""
+              ~some:(fun r -> " --resource-grades " ^ r)
+              edit_model.selected_resources
+          ^ " file.tpe");
       ]
     [ text description ]
 
@@ -1407,7 +1423,80 @@ let view_grades (edit_model : Model.edit_model) =
                      (g.label, g.short, Grades.GradeRegistry.listed g))
                    Grades.GradeRegistry.groups);
             ];
-          view_grades_summary edit_model.selected_grades;
+          view_grades_summary edit_model;
+        ];
+    ]
+
+(* [text] with its first letter in upper case and a closing full stop. *)
+let sentence text = String.capitalize_ascii text ^ "."
+
+(* The name of the grades [name] as the grade selector shows the selected
+   one: the short form of its group's label and its title. *)
+let grades_label name =
+  match
+    List.find_opt
+      (fun (g : Grades.GradeRegistry.group) -> List.mem_assoc name g.grades)
+      Grades.GradeRegistry.groups
+  with
+  | Some g -> g.short ^ " \xC2\xB7 " ^ (List.assoc name g.grades).title
+  | None -> name
+
+(* The resource grades of the grade systems of the grades selected: the
+   identity grade system, then the resource grade algebras
+   {!Grades.GradeSystemRegistry.resources_of} the grades, each named by
+   [grades_label], its tooltip the morphism of its grade system; disabled
+   where the grades have no grade system but the identity one. Then the
+   morphism of the grade system selected. *)
+let view_resources (edit_model : Model.edit_model) =
+  let grades = edit_model.selected_grades in
+  let morphism = function
+    | None ->
+        "the identity grade system, each effect grade its own resource grade"
+    | Some resources ->
+        Option.value ~default:resources
+          (Grades.GradeSystemRegistry.morphism ~effects:grades ~resources)
+  in
+  let choices =
+    None
+    :: List.map Option.some (Grades.GradeSystemRegistry.resources_of grades)
+  in
+  let disabled = List.length choices < 2 in
+  div
+    ~a:[ class_ "panel-block" ]
+    [
+      div
+        ~a:[ class_ "field" ]
+        [
+          elt "label"
+            ~a:[ class_ "label"; attr "for" "resources-select" ]
+            [ text "Resource grade algebra" ];
+          div
+            ~a:[ class_ "control is-expanded" ]
+            [
+              select
+                ~a:[ class_ "select is-fullwidth" ]
+                ~select_a:
+                  (attr "id" "resources-select"
+                  :: Vdom.disabled disabled
+                  ::
+                  (if disabled then
+                     [
+                       attr "title"
+                         "The grade algebra selected has no grade system with \
+                          other resource grades.";
+                     ]
+                   else []))
+                ~describe_title:(fun r -> sentence (morphism r))
+                "Select resource grades"
+                (fun r -> Model.EditMsg (Model.SelectResources r))
+                (function
+                  | None -> "Same as effects" | Some r -> grades_label r)
+                (fun r -> r = edit_model.selected_resources)
+                choices;
+            ];
+          elt "p"
+            ~a:[ class_ "grades-summary" ]
+            [ text (sentence (morphism edit_model.selected_resources)) ];
         ];
     ]
 
@@ -1498,6 +1587,7 @@ let view_code_options (model : Model.model) =
       view_use_stdlib model.edit_model;
       view_example model.edit_model model.notices.notice;
       view_grades model.edit_model;
+      view_resources model.edit_model;
       view_checks model;
     ]
 
@@ -1992,14 +2082,16 @@ let example_path (e : Examples_tpe.example) =
       (String.length e.path - String.length prefix)
   else e.path
 
-(* Whether [query], trimmed, occurs in the group, title, grade, description or
-   path under examples/ of an example, ignoring case. *)
+(* Whether [query], trimmed, occurs in the group, title, grade, resource
+   grades, description or path under examples/ of an example, ignoring case. *)
 let matches query group (e : Examples_tpe.example) =
   Widgets.contains
     ~sub:(String.lowercase_ascii (String.trim query))
     (String.lowercase_ascii
        (String.concat " "
-          [ group; e.title; e.grade; e.description; example_path e ]))
+          ([ group; e.title; e.grade ]
+          @ Option.to_list e.resources
+          @ [ e.description; example_path e ])))
 
 let example_group_id k = Printf.sprintf "example-group-%d" k
 
@@ -2027,7 +2119,14 @@ let view_example_card ~current group (e : Examples_tpe.example) =
       elt "span"
         ~a:[ class_ "example-card-meta" ]
         [
-          elt "span" ~a:[ class_ "example-card-grade" ] [ text e.grade ];
+          elt "span"
+            ~a:[ class_ "example-card-grade" ]
+            [
+              text
+                (Option.fold ~none:e.grade
+                   ~some:(fun r -> e.grade ^ " \xE2\x86\x92 " ^ r)
+                   e.resources);
+            ];
           elt "span" ~a:[ class_ "example-card-path" ] [ text (example_path e) ];
         ];
     ]

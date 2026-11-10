@@ -4,6 +4,9 @@
 type key = {
   source : string;  (** the program in the editor *)
   grades : string;  (** the name of the grades selected *)
+  resources : string option;
+      (** the name of the resource grades selected, [None] for the identity
+          grade system *)
   use_stdlib : bool;  (** whether the standard library is loaded *)
   declared : BackendRegistry.source list;
       (** the declarations the selected backend loads before the program *)

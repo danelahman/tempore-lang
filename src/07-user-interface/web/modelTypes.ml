@@ -143,11 +143,18 @@ and edit_msg =
           browser counts selections in. *)
   | LoadExample of string * Examples_tpe.example
       (** Load a bundled example, given with the label of its group: its source,
-          the grades it is meant to be run with, and its backend with the
-          settings of its inputs. The group is carried along with the example
-          because two examples of different groups may share a title. *)
+          the grades and the resource grades it is meant to be run with, and its
+          backend with the settings of its inputs. The group is carried along
+          with the example because two examples of different groups may share a
+          title. *)
   | SelectGrades of string
-      (** Select the grades to use (by name from [grade_modules]). *)
+      (** Select the grades to use (by name from [grade_modules]), keeping the
+          resource grades selected while a registered grade system pairs them
+          with the grades. *)
+  | SelectResources of string option
+      (** Select the resource grades to use (by name from [grade_modules]), or
+          the identity grade system of the grades with [None]; resource grades
+          no registered grade system pairs with the grades select the latter. *)
   | SelectBackend of string
       (** Select the backend (by key from {!BackendRegistry.entries}). *)
   | SetInput of string * string
@@ -258,6 +265,10 @@ type edit_model = {
   unparsed_code : string;
   selected_grades : string;
       (** Name of the currently selected grades (key in [grade_modules]). *)
+  selected_resources : string option;
+      (** Name of the currently selected resource grades (key in
+          [grade_modules]), paired with the grades by a registered grade system;
+          [None] for the identity grade system of the grades. *)
   selected_example : (string * string) option;
       (** Group and title of the bundled example last loaded; editing it keeps
           the selection, so the example button still says where the program came

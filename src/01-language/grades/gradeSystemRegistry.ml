@@ -368,6 +368,47 @@ let resources_of effects =
     (fun e -> if String.equal e.effects effects then Some e.resources else None)
     systems
 
+let morphism ~effects ~resources =
+  List.find_map
+    (fun e ->
+      if String.equal e.effects effects && String.equal e.resources resources
+      then Some e.morphism
+      else None)
+    systems
+
+(* The names [names] quoted and listed, the last two joined by "and". *)
+let listed names =
+  match List.rev_map (fun name -> "`" ^ name ^ "`") names with
+  | [] -> ""
+  | [ name ] -> name
+  | last :: rest -> String.concat ", " (List.rev rest) ^ " and " ^ last
+
+let select ?lattice ~effects ~resources (module G : Grade.S) =
+  match resources with
+  | Some resources when not (String.equal resources effects) -> (
+      match find ?lattice ~effects ~resources () with
+      | Some system -> Ok system
+      | None ->
+          Error
+            (Printf.sprintf
+               "The grade algebra `%s` has no grade system with the resource \
+                grade algebra `%s`; %s"
+               effects resources
+               (match resources_of effects with
+               | [] ->
+                   Printf.sprintf
+                     "its only resource grade algebra is `%s` itself" effects
+               | others ->
+                   "its resource grade algebras are "
+                   ^ listed (effects :: others))))
+  | Some _ | None ->
+      Ok
+        (module GradeSystem.Declaring
+                  (struct
+                    let lattice = lattice
+                  end)
+                  (G) : GradeSystem.S)
+
 let by_resources =
   let add groups e =
     let rec go = function

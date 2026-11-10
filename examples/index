@@ -18,7 +18,12 @@
 # - title: the heading of the example's card, without a prefix already given
 #   by the group.
 # - grade: the grade algebra the web interface switches to when the example
-#   is loaded (a key of Grades.GradeRegistry.grade_modules).
+#   is loaded (a key of Grades.GradeRegistry.grade_modules), optionally
+#   followed by '->' and the resource grade algebra it switches to, for an
+#   example run under a grade system other than an identity one, e.g.
+#   'time-interval -> time-lower-bound' (a pair of
+#   Grades.GradeSystemRegistry.systems); the grade algebras of the example's
+#   header.
 # - path: the example's file, relative to this directory.
 # - description: one sentence, shown on the example's card.
 # - backend: the backend whose gallery lists the example, and which the web
@@ -104,6 +109,12 @@ Other grade algebras | Savepoints | watermarks | watermarks/savepoints.tpe | A t
 Other grade algebras | Rate limits | at-most-counts | at_most_counts/rate_limits.tpe | A client whose logins and requests are checked against rate limits on each operation.
 Other grade algebras | Probe rinses | at-least-counts | at_least_counts/rinses.tpe | A probe whose next sample is in reach only after at least three rinses since the last measurement.
 Other grade algebras | Energy budget | time-upper-bound-energy | energy/energy_budget.tpe | A battery-powered sensor node whose reports are bounded in time and energy, and whose readings are current for a time and an energy draw.
+
+group | Grade systems | Grade systems | Effects and boxes graded by different grade algebras, the resource grade of an effect grade given by a morphism between them.
+Grade systems | Bread proofing | time-interval -> time-lower-bound | grade_systems/proofing.tpe | A bread dough boxed to rest at least 45 minutes, the bakes graded by intervals of minutes whose lower ends bound the time since boxing.
+Grade systems | Access token | time-interval-rational -> time-upper-bound-rational | grade_systems/token.tpe | An access token boxed for less than a minute, the downloads graded by intervals of seconds whose upper ends bound the time since boxing.
+Grade systems | Latte | timed-regex-interval-rational -> time-interval-rational | grade_systems/latte.tpe | A latte whose steps follow timed protocols, its coffee and milk boxed for windows of seconds that bound the durations of the runs since boxing.
+Grade systems | Session key | finite-run-sets -> at-most-counts | grade_systems/session_key.tpe | A session key boxed to encrypt at most three messages, the transfers graded by their runs and the key by the calls of each operation in them.
 
 group | BALA2 | BALA2 | The self-balancing robot with an M5Stack Gray core (ESP32, MPU6886 inertial unit) on a base with two motors and encoders, programmed through the board profile m5stack-gray, and m5stack-gray-radio with its radio running.
 BALA2 | Balancing robot | time-interval-rational | arduino/bala2/balance.tpe | The M5Stack BALA2 balancing robot, whose 5 ms control step uses each reading of the inertial unit within 2 ms and whose supervision starts the balancing only within 10 minutes of a calibration. | arduino | manifest=arduino/bala2/balance.device.json bindings=arduino/bala2/bindings.cpp

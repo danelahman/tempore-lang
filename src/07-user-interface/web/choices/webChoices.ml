@@ -6,12 +6,15 @@ type t = {
   grade : string option;
   backend : string option;
   settings : (string * BackendRegistry.settings) list;
+  resources : string option;
 }
 
 let key = "tempore.choices.1"
 
 (* The choices as a sequence of tokens: an option is a count, 0 or 1, followed
-   by its value, and a list its length followed by its elements. *)
+   by its value, and a list its length followed by its elements. The resources
+   come last, and only when selected, so that choices without them are encoded
+   as choices of the fields before. *)
 let tokens c =
   let option f = function None -> [ "0" ] | Some x -> "1" :: f x in
   let list f xs = string_of_int (List.length xs) :: List.concat_map f xs in
@@ -25,6 +28,7 @@ let tokens c =
         (fun (backend, settings) ->
           backend :: list (fun (k, v) -> [ k; v ]) settings)
         c.settings;
+      Option.fold ~none:[] ~some:(fun r -> [ "1"; r ]) c.resources;
     ]
 
 let encode c =
@@ -117,8 +121,9 @@ let decode s =
           ((backend, settings), ts))
         ts
     in
+    let resources, ts = if ts = [] then (None, ts) else option token ts in
     if ts <> [] then None
-    else Some { use_stdlib; example; grade; backend; settings }
+    else Some { use_stdlib; example; grade; backend; settings; resources }
   with Malformed -> None
 
 (* [first pairs] is [pairs] with every repeated key but the first removed. *)
@@ -128,6 +133,11 @@ let first pairs =
        (fun kept (k, v) ->
          if List.mem_assoc k kept then kept else (k, v) :: kept)
        [] pairs)
+
+let valid_resources ~grade resources =
+  Option.bind resources (fun r ->
+      if List.mem r (Grades.GradeSystemRegistry.resources_of grade) then Some r
+      else None)
 
 let sanitise c =
   let accepted (inputs : BackendRegistry.input list) (k, v) =
@@ -146,6 +156,8 @@ let sanitise c =
       Option.bind c.grade (fun g ->
           if List.mem_assoc g Grades.GradeRegistry.grade_modules then Some g
           else None);
+    resources =
+      Option.bind c.grade (fun grade -> valid_resources ~grade c.resources);
     backend =
       Option.bind c.backend (fun b ->
           Option.map

@@ -1,7 +1,8 @@
 (** The parameters of the address of the web interface: the query
-    [?example=p&grades=g&backend=b&line=n], naming a bundled example by its path
-    [p] relative to the directory [examples], a key [g] of
-    {!Grades.GradeRegistry.grade_modules}, a key [b] of
+    [?example=p&grades=g&resources=r&backend=b&line=n], naming a bundled example
+    by its path [p] relative to the directory [examples], a key [g] of
+    {!Grades.GradeRegistry.grade_modules}, the key [r] of the resource grade
+    algebra there, [g] itself naming the identity grade system, a key [b] of
     {!BackendRegistry.entries} and a line [n] of the example, from 1; each
     parameter is optional. *)
 
@@ -9,6 +10,7 @@ type t = {
   example : string option;
       (** the path, relative to [examples] or to the project root *)
   grades : string option;
+  resources : string option;
   backend : string option;
   line : int option;  (** a line of the example, from 1 *)
 }
@@ -17,7 +19,7 @@ val empty : t
 (** The parameters of a query without any. *)
 
 (** A parameter of the address. *)
-type parameter = Example | Grades | Backend | Line
+type parameter = Example | Grades | Resources | Backend | Line
 
 val name : parameter -> string
 (** [name p] is the key [p] is written under in a query. *)
@@ -32,17 +34,21 @@ val parse : string -> t * parameter list
 
 val serialise : t -> string
 (** [serialise link] is the query of [link], [?] followed by its parameters in
-    the order [example], [grades], [backend], [line], percent-encoded except for
-    unreserved characters and [/]; the empty string if [link] has none.
-    [parse (serialise l) = (l, [])] for parameters [l] of non-empty values and a
-    positive [line]. *)
+    the order [example], [grades], [resources], [backend], [line],
+    percent-encoded except for unreserved characters and [/]; the empty string
+    if [link] has none. [parse (serialise l) = (l, [])] for parameters [l] of
+    non-empty values and a positive [line]. *)
 
 type entry = {
   example : WebChoices.example;  (** its path relative to the project root *)
   grade : string;  (** the grades it is meant to be run with *)
+  resources : string option;
+      (** the resource grades it is meant to be run with, [None] for the
+          identity grade system *)
   backend : string;  (** its backend *)
 }
-(** A bundled example, with the grades and the backend loading it selects. *)
+(** A bundled example, with the grades, the resource grades and the backend
+    loading it selects. *)
 
 type catalogue = {
   find : string -> entry option;
@@ -61,22 +67,28 @@ val resolve :
 (** [resolve catalogue ~defaults remembered link] is the choices the page opens
     with under the address parameters [link] and the choices [remembered] the
     browser keeps, or [defaults] without them, and the parameters ignored as
-    naming no example, grades or backend.
+    naming no example, grades, resource grades paired with the grades, or
+    backend.
 
     A known [example] replaces the remembered example, its own grades and
     backend applying and its settings replacing the remembered settings of its
     backend. Without one, a known [backend] keeps the remembered example if it
     is of that backend, and is otherwise accompanied by the backend's default
     example, if it has one, as selecting the backend loads it. Known [grades]
-    and [backend] then override those of the example. The remaining choices are
-    the remembered ones. A [line] is ignored without a known [example]; whether
-    the example has that line is left to the caller. *)
+    and [backend] then override those of the example. The resource grades are
+    those of the example, or else the remembered ones unless [grades] are given,
+    each kept while a registered grade system pairs them with the grades;
+    [resources] paired with the grades override them, [resources] equal to the
+    grades selecting the identity grade system. The remaining choices are the
+    remembered ones. A [line] is ignored without a known [example]; whether the
+    example has that line is left to the caller. *)
 
 val of_choices : catalogue -> WebChoices.t -> t
 (** [of_choices catalogue choices] is the parameters naming [choices]: the
-    example, and the grades and the backend where they differ from the example's
-    own; without a known example, the grades and the backend alone. It names no
-    line. *)
+    example, and the grades, the resource grades and the backend where they
+    differ from those [resolve] takes from the example, the identity grade
+    system named by the grades as [resources]; without a known example, the
+    grades, the resource grades and the backend alone. It names no line. *)
 
 val line_bytes : string -> int -> (int * int) option
 (** [line_bytes source n] is the bytes of line [n] of [source], counted from 1,

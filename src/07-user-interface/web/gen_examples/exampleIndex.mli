@@ -6,6 +6,9 @@ type entry = {
   title : string;
   grade : string;
       (** the grade algebra the web interface switches to when it is loaded *)
+  resources : string option;
+      (** the resource grade algebra it switches to, where the example is run
+          under a grade system other than an identity one *)
   path : string;  (** relative to the project root *)
   description : string;
   backend : string;  (** the key of its backend, ["interpreter"] unless given *)
@@ -30,9 +33,10 @@ val line_of_string : string -> line option
 
 val checked : entry -> entry
 (** [checked entry] is [entry], if its grade is one that {!Grades.GradeRegistry}
-    lists, its backend one that {!BackendRegistry} lists, and each of its
-    settings names an input of the backend and, for an input of choices, one of
-    its choices.
+    lists, its resource grade algebra, if any, one that a grade system of
+    {!Grades.GradeSystemRegistry} pairs with its grade, its backend one that
+    {!BackendRegistry} lists, and each of its settings names an input of the
+    backend and, for an input of choices, one of its choices.
 
     Raises [Failure] otherwise. *)
 

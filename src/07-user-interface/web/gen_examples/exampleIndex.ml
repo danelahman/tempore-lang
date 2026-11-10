@@ -2,6 +2,7 @@ type entry = {
   group : string;
   title : string;
   grade : string;
+  resources : string option;
   path : string;
   description : string;
   backend : string;
@@ -25,12 +26,25 @@ let settings_of_string field =
           failwith
             (Printf.sprintf "malformed setting of the example index: %s" pair))
 
-let example group title grade path description backend settings =
+(* The grades field: the effect grade algebra, optionally followed by [->] and
+   the resource grade algebra. *)
+let grades_of_string field =
+  match String.index_opt field '>' with
+  | Some i when i > 0 && field.[i - 1] = '-' ->
+      ( String.trim (String.sub field 0 (i - 1)),
+        Some
+          (String.trim (String.sub field (i + 1) (String.length field - i - 1)))
+      )
+  | _ -> (field, None)
+
+let example group title grades path description backend settings =
+  let grade, resources = grades_of_string grades in
   Example
     {
       group;
       title;
       grade;
+      resources;
       path = "examples/" ^ path;
       description;
       backend;
@@ -86,6 +100,20 @@ let checked (entry : entry) =
     failwith
       (Printf.sprintf "the example index names the unknown grade `%s` for %s"
          entry.grade entry.path);
+  Option.iter
+    (fun resources ->
+      if
+        not
+          (List.mem resources
+             (Grades.GradeSystemRegistry.resources_of entry.grade))
+      then
+        failwith
+          (Printf.sprintf
+             "the example index names the grade algebra `%s` with the resource \
+              grade algebra `%s`, which no registered grade system pairs, for \
+              %s"
+             entry.grade resources entry.path))
+    entry.resources;
   match BackendRegistry.find entry.backend with
   | None ->
       failwith

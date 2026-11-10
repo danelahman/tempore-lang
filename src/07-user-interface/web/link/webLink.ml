@@ -1,21 +1,30 @@
 type t = {
   example : string option;
   grades : string option;
+  resources : string option;
   backend : string option;
   line : int option;
 }
 
-let empty = { example = None; grades = None; backend = None; line = None }
+let empty =
+  {
+    example = None;
+    grades = None;
+    resources = None;
+    backend = None;
+    line = None;
+  }
 
-type parameter = Example | Grades | Backend | Line
+type parameter = Example | Grades | Resources | Backend | Line
 
 let name = function
   | Example -> "example"
   | Grades -> "grades"
+  | Resources -> "resources"
   | Backend -> "backend"
   | Line -> "line"
 
-let parameters = [ Example; Grades; Backend; Line ]
+let parameters = [ Example; Grades; Resources; Backend; Line ]
 
 (* A positive number in decimal digits, leading zeros allowed, within the range
    of [int]. *)
@@ -103,6 +112,7 @@ let parse query =
   ( {
       example = get Example;
       grades = get Grades;
+      resources = get Resources;
       backend = get Backend;
       line = Option.bind (get Line) line_number;
     },
@@ -117,6 +127,7 @@ let serialise link =
       [
         (Example, link.example);
         (Grades, link.grades);
+        (Resources, link.resources);
         (Backend, link.backend);
         (Line, Option.map string_of_int link.line);
       ]
@@ -124,7 +135,12 @@ let serialise link =
   | [] -> ""
   | fields -> "?" ^ String.concat "&" fields
 
-type entry = { example : WebChoices.example; grade : string; backend : string }
+type entry = {
+  example : WebChoices.example;
+  grade : string;
+  resources : string option;
+  backend : string;
+}
 
 type catalogue = {
   find : string -> entry option;
@@ -163,6 +179,9 @@ let resolve catalogue ~defaults remembered (link : t) =
     | None -> (None, [])
   in
   let grades, ignored_grades = checked Grades known_grades link.grades in
+  let resources, ignored_unknown_resources =
+    checked Resources known_grades link.resources
+  in
   let backend, ignored_backend = checked Backend known_backend link.backend in
   let ignored_line =
     if Option.is_some link.line && Option.is_none entry then [ Line ] else []
@@ -198,7 +217,28 @@ let resolve catalogue ~defaults remembered (link : t) =
           backend = first backend base.backend;
         }
   in
-  (choices, ignored_example @ ignored_grades @ ignored_backend @ ignored_line)
+  (* the resources of the example, or else the remembered ones unless grades
+     are named, kept while they are paired with the grades; then those named,
+     the grades themselves naming the identity grade system *)
+  let implied =
+    Option.bind choices.grade (fun grade ->
+        WebChoices.valid_resources ~grade
+          (match entry with
+          | Some entry -> entry.resources
+          | None -> if Option.is_some grades then None else base.resources))
+  in
+  let resources, ignored_resources =
+    match (resources, choices.grade) with
+    | Some r, Some g when String.equal r g -> (None, [])
+    | Some r, Some grade when WebChoices.valid_resources ~grade (Some r) <> None
+      ->
+        (Some r, [])
+    | Some _, _ -> (implied, [ Resources ])
+    | None, _ -> (implied, ignored_unknown_resources)
+  in
+  ( { choices with resources },
+    ignored_example @ ignored_grades @ ignored_resources @ ignored_backend
+    @ ignored_line )
 
 let of_choices catalogue (choices : WebChoices.t) =
   let relative path =
@@ -216,9 +256,16 @@ let of_choices catalogue (choices : WebChoices.t) =
         | Some v when v <> own -> Some v
         | _ -> None
       in
+      let grade = Option.value ~default:entry.grade choices.grade in
       {
         example = Some (relative entry.example.path);
         grades = differing entry.grade choices.grade;
+        resources =
+          (if
+             choices.resources
+             = WebChoices.valid_resources ~grade entry.resources
+           then None
+           else Some (Option.value ~default:grade choices.resources));
         backend = differing entry.backend choices.backend;
         line = None;
       }
@@ -226,6 +273,7 @@ let of_choices catalogue (choices : WebChoices.t) =
       {
         example = None;
         grades = choices.grade;
+        resources = choices.resources;
         backend = choices.backend;
         line = None;
       }

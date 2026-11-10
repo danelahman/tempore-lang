@@ -1236,45 +1236,19 @@ let run_with (module GS : Grades.GradeSystem.S) config =
          large to decide under this grade algebra";
       exit 2
 
-(* The names [names] quoted and listed, the last two joined by "and". *)
-let listed names =
-  match List.rev_map (fun name -> "`" ^ name ^ "`") names with
-  | [] -> ""
-  | [ name ] -> name
-  | last :: rest -> String.concat ", " (List.rev rest) ^ " and " ^ last
-
-(* The grade system of [config], its effects graded by the grade algebra of
-   --grades, over the grade lattice [lattice] the program declares, if any:
-   the registered grade system of the resource grade algebra of
-   --resource-grades if that is another one, and otherwise the identity system
-   of [G], [G] being the grade algebra of --grades over [lattice]. *)
-let grade_system config (module G : Grades.Grade.S) lattice =
-  match config.resource_grades with
-  | Some resources when not (String.equal resources config.grades) -> (
-      match
-        Grades.GradeSystemRegistry.find ?lattice ~effects:config.grades
-          ~resources ()
-      with
-      | Some system -> system
-      | None ->
-          Printf.eprintf
-            "The grade algebra `%s` has no grade system with the resource \
-             grade algebra `%s`; %s\n"
-            config.grades resources
-            (match Grades.GradeSystemRegistry.resources_of config.grades with
-            | [] ->
-                Printf.sprintf "its only resource grade algebra is `%s` itself"
-                  config.grades
-            | others ->
-                "its resource grade algebras are "
-                ^ listed (config.grades :: others));
-          exit 1)
-  | Some _ | None ->
-      (module Grades.GradeSystem.Declaring
-                (struct
-                  let lattice = lattice
-                end)
-                (G) : Grades.GradeSystem.S)
+(* The grade system of [config], its effects graded by the grade algebra [G] of
+   --grades over the grade lattice [lattice] the program declares, if any, and
+   its resources by that of --resource-grades
+   ({!Grades.GradeSystemRegistry.select}). *)
+let grade_system config grade lattice =
+  match
+    Grades.GradeSystemRegistry.select ?lattice ~effects:config.grades
+      ~resources:config.resource_grades grade
+  with
+  | Ok system -> system
+  | Error message ->
+      prerr_endline message;
+      exit 1
 
 let main () =
   let config = parse_args_to_config () in

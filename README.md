@@ -176,6 +176,15 @@ You can load an existing example or write your own program, choose which grade
 algebra to use, typecheck the program, and step through its reductions while
 watching resource usage.
 
+The **Resource grade algebra** selector, under the grade algebra selector,
+chooses the grade system (see [Grade systems](#grade-systems)): **Same as
+effects** for the identity system, or one of the resource grade algebras the
+registered systems pair with the selected effect grade algebra, each with its
+morphism as a tooltip. It is disabled for an effect grade algebra without such
+a system, and falls back to **Same as effects** when the effect grade algebra
+changes to one that the selected resource grade algebra is not paired with.
+Loading an example selects both.
+
 The documentation page shows this README and those of the Arduino and Opentrons
 backends, chosen by the tabs of its side panel, each with its own table of
 contents.
@@ -197,9 +206,12 @@ editor switches between the program and the binding file and compiled protocol.
 
 The address of the page names, in its query parameters, the example
 (`example`, its path relative to `examples`), the grade algebra (`grades`),
-the backend (`backend`: `interpreter`, `arduino` or `opentrons`) and a line of
-the example to highlight (`line`, from 1), as in
-<https://tempore-lang.ee/?example=arduino/bala2/balance.tpe&line=42>.
+the resource grade algebra (`resources`, the grade algebra itself for the
+identity system), the backend (`backend`: `interpreter`, `arduino` or
+`opentrons`) and a line of the example to highlight (`line`, from 1), as in
+<https://tempore-lang.ee/?example=arduino/bala2/balance.tpe&line=42>. With an
+example, `grades`, `resources` and `backend` are named only where they differ
+from the example's.
 
 ## Temporal resources
 
@@ -1556,9 +1568,11 @@ not leave the dough the 45 minutes its box grade demands:
 
 A two-sided box grade such as `box [45, 90] d` is a syntax error: ``In the
 `time-lower-bound` resource grade algebra, lower bounds are unbounded above``.
-The web interface uses the identity systems. See
-[`examples/grade_systems/`](examples/grade_systems/), where a session key may
-encrypt at most three messages under `finite-run-sets` and `at-most-counts`.
+The web interface selects the resource grade algebra by the **Resource grade
+algebra** selector (see [Web interface](#web-interface)), and its gallery lists
+the examples of [`examples/grade_systems/`](examples/grade_systems/), where a
+session key may encrypt at most three messages under `finite-run-sets` and
+`at-most-counts`.
 
 ## Eternal types
 

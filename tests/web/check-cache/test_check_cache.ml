@@ -20,6 +20,7 @@ let key =
   {
     WebCheckCache.source = "run delay 1";
     grades = Grades.GradeRegistry.default_name;
+    resources = None;
     use_stdlib = true;
     declared = [ declaration ];
   }
@@ -72,6 +73,7 @@ let () =
                  (fun (name, _) -> name <> key.grades)
                  Grades.GradeRegistry.grade_modules);
         } );
+      ("resources", { key with resources = Some "time-lower-bound" });
       ("use_stdlib", { key with use_stdlib = false });
       ("declarations", { key with declared = [] });
       ( "file name",
