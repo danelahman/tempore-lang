@@ -128,6 +128,11 @@ let magnitude (x : float) = if x < 0.0 then ~-.x else x
 let clamp (limit : float) (x : float) =
   if x < ~-.limit then ~-.limit else if x > limit then limit else x
 
+(* Reads the unit once, and returns the reading boxed for the step. *)
+let fresh_imu () : [{(ReadEncoders | Setpoints)*}]imu ! {ReadImu} =
+  let reading = perform ReadImu () in
+  box {(ReadEncoders | Setpoints)*} reading
+
 (* Correctly accepted by the typechecker: the step reads the unit, the
    encoders and the setpoints, publishes the tilt, the speed and the
    reference tilt, and commands the motors, each once and in this order; its
@@ -139,8 +144,7 @@ let clamp (limit : float) (x : float) =
    of the counts; stopped, the step holds the present heading. *)
 let step ((tilt, speed, integral, position, heading) : state) : state
     ! {ReadImu; ReadEncoders; Setpoints; Publish; SetMotors} =
-  let reading = perform ReadImu () in
-  box {(ReadEncoders | Setpoints)*} reading as fresh in
+  let fresh = fresh_imu () in
   let left, right = perform ReadEncoders () in
   let balancing, bias, target, turn = perform Setpoints () in
   unbox fresh as imu in
@@ -333,6 +337,11 @@ type starting = [{LatestTilt; ([0, 1) & ~(ReceiveMessage | Move))}]calibration
 type calibrated =
   [[{≥1000 & ~Move}, {≤600000 & ~Move}]](unit -> starting)
 
+(* Checks that the robot is at rest, and returns the verdict boxed. *)
+let check_rest () : [{(Reading; idle 10)*}]bool ! {CheckAtRest} =
+  let rest = perform CheckAtRest () in
+  box {(Reading; idle 10)*} rest
+
 (* The measurement of the bias, only at rest: it reports the phase p, and
    CheckAtRest of the package m5-imu checks that the robot is still, and
    the readings are sampled at once after it. The verdict of the check is
@@ -349,8 +358,7 @@ let rec measure (p : phase) (n : nat) : calibrated
         ShowTextAt; (ShowNumberAt | skip); idle 500; ShowTextAt)*;
        ReportStatus; CheckAtRest; (Reading; idle 10)*} =
   report p;
-  let rest = perform CheckAtRest () in
-  box {(Reading; idle 10)*} rest as checked in
+  let checked = check_rest () in
   let samples = sample () in
   unbox checked as checked_rest in
   let judged = verdict checked_rest samples in
