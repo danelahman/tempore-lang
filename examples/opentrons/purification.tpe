@@ -28,7 +28,7 @@
    the supernatant, exactly two ethanol washes, air-drying, elution,
    collection. The eluates are then boxed in two successive stages: the
    transfer to the cold block, and from there the addition of the PCR master
-   mix. The samples are taken out of the cold together with a permit boxed
+   mix. The samples are taken out of the cold together with a token boxed
    for the time they may spend at room temperature, which the transfer to
    the cold block takes. Modelled on the Opentrons Protocol Library protocol
    kapa-amp-cleanup; the windows are the example's own. *)
@@ -36,18 +36,18 @@
 type sample = string
 type beads = string
 
-(* A permit for the samples to be out of the cold. The type warm is not
-   eternal: a permit crosses time only in a box. *)
-noneternal type warm = Warm
+(* A token for the samples to be out of the cold. The type token is not
+   eternal: a token crosses time only in a box. *)
+noneternal type token = Token
 
 (* The samples are taken out of the cold block in at most a minute, and
-   returned with a permit for at most 40 minutes at room temperature. *)
-operation TakeSamples : unit ~> sample * [[0, 40]]warm ! {TakeSamples}
+   returned with a token for at most 40 minutes at room temperature. *)
+operation TakeSamples : unit ~> sample * [[0, 40]]token ! {TakeSamples}
   within (0, 1]
 default TakeSamples () =
   delay 1/2;
-  box [0, 40] Warm as permit in
-  ("samples", permit)
+  box [0, 40] Token as tok in
+  ("samples", tok)
 
 (* The beads are mixed into the samples, the supernatant and the ethanol
    removed, the elution buffer mixed in, the eluates transferred to a plate
@@ -55,7 +55,7 @@ default TakeSamples () =
    minutes each; the plate is moved
    onto and off the magnetic block, the ethanol added from above and the
    residual ethanol removed, in at most a minute. The transfer takes the
-   permit of the samples, and ends their time at room temperature. *)
+   token of the samples, and ends their time at room temperature. *)
 operation AddBeads : sample ~> beads ! {AddBeads} within [1, 2]
 default AddBeads samples = delay 3/2; "beads"
 
@@ -82,8 +82,8 @@ default RemoveResidualEthanol beads = delay 3/4
 operation EluteDNA : beads ~> unit ! {EluteDNA} within [1, 2]
 default EluteDNA beads = delay 3/2
 
-operation Transfer : warm ~> unit ! {Transfer} within [1, 2]
-default Transfer warm = delay 3/2
+operation Transfer : token ~> unit ! {Transfer} within [1, 2]
+default Transfer valid = delay 3/2
 
 operation AddMasterMix : beads ~> unit ! {AddMasterMix} within [1, 2]
 default AddMasterMix eluates = delay 3/2
@@ -173,21 +173,21 @@ let collect (eluting : [{[2, 5]; MagnetOn; [2, 5]}]beads) =
 (* Correctly accepted by the typechecker: every step is taken within the
    window of its box, the eluates reach the cold block 27.25 to 38.25
    minutes after the samples are taken out of the cold, and take the master
-   mix two to five minutes later. The permit is boxed for at most 40 minutes
+   mix two to five minutes later. The token is boxed for at most 40 minutes
    at room temperature, a box whose scope encloses the boxes of the steps:
    the windows of the steps allow up to 49 minutes in all, so the box of the
-   permit bounds their combination. A third wash is rejected as the one
+   token bounds their combination. A third wash is rejected as the one
    wash below is, its box not allowing for the removal of the ethanol. Each
    value is used once: the samples by the binding, the beads by the steps,
-   and the permit by the transfer. *)
+   and the token by the transfer. *)
 let purification () =
-  let (samples, permit) = perform TakeSamples () in
+  let (samples, tok) = perform TakeSamples () in
   let binding = bind samples in
   let collected =
     collect (elute (final_wash (wash (clear (separate binding)))))
   in
-  unbox permit as warm in
-  perform Transfer warm;
+  unbox tok as valid in
+  perform Transfer valid;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
@@ -199,7 +199,7 @@ let purification () =
    their boxes accept, but the eluates reach the cold block up to 43.25
    minutes after the samples are taken out of the cold:
 
-     Typing error: Variable `permit` is unboxed with grade `{AddBeads; idle 10;
+     Typing error: Variable `tok` is unboxed with grade `{AddBeads; idle 10;
        MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol;
        AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5;
        MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it
@@ -230,14 +230,14 @@ let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
   box {[2, 5]; MagnetOn; [2, 5]} beads
 
 let purification_generous () =
-  let (samples, permit) = perform TakeSamples () in
+  let (samples, tok) = perform TakeSamples () in
   let binding = bind samples in
   let collected =
     collect
       (elute_long (final_wash (wash (clear_long (separate_long binding)))))
   in
-  unbox permit as warm in
-  perform Transfer warm;
+  unbox tok as valid in
+  perform Transfer valid;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
@@ -254,11 +254,11 @@ let purification_generous () =
 *)
 (*
 let purification_one_wash () =
-  let (samples, permit) = perform TakeSamples () in
+  let (samples, tok) = perform TakeSamples () in
   let binding = bind samples in
   let collected = collect (elute (final_wash (clear (separate binding)))) in
-  unbox permit as warm in
-  perform Transfer warm;
+  unbox tok as valid in
+  perform Transfer valid;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
@@ -288,29 +288,29 @@ let wash_off_magnet (soaking : [{AddEthanol; idle [1/2, 3/2]}]beads) =
   box {AddEthanol; idle [1/2, 3/2]; RemoveEthanol} beads
 *)
 
-(* Correctly rejected by the typechecker: the permit is unboxed when the
+(* Correctly rejected by the typechecker: the token is unboxed when the
    samples are taken out of the cold and kept unboxed across the steps, and
    its type is not eternal:
 
-     Typing error: Variable `warm` is used with grade `{AddBeads; idle 7.5;
+     Typing error: Variable `valid` is used with grade `{AddBeads; idle 7.5;
        MagnetOn; idle 4; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol;
        AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5;
        MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it
-       was bound, but its type `warm` is not eternal
+       was bound, but its type `token` is not eternal
        Note: the resource inequality `{AddBeads; idle 7.5; MagnetOn; idle 4;
        RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol;
        idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5; MagnetOff;
        EluteDNA; idle 3; MagnetOn; idle 2.5} <= {skip}` does not hold
 *)
 (*
-let purification_stale_permit () =
-  let (samples, permit) = perform TakeSamples () in
-  unbox permit as warm in
+let purification_stale_token () =
+  let (samples, tok) = perform TakeSamples () in
+  unbox tok as valid in
   let binding = bind samples in
   let collected =
     collect (elute (final_wash (wash (clear (separate binding)))))
   in
-  perform Transfer warm;
+  perform Transfer valid;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;

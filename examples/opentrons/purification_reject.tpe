@@ -1,6 +1,6 @@
 (* As the bead purification example, with the generous end of several
    windows, one ethanol wash in place of two, a soak off the magnet, and a
-   permit kept unboxed across the steps.
+   token kept unboxed across the steps.
 
    Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
@@ -19,14 +19,14 @@
 type sample = string
 type beads = string
 
-noneternal type warm = Warm
+noneternal type token = Token
 
-operation TakeSamples : unit ~> sample * [[0, 40]]warm ! {TakeSamples}
+operation TakeSamples : unit ~> sample * [[0, 40]]token ! {TakeSamples}
   within (0, 1]
 default TakeSamples () =
   delay 1/2;
-  box [0, 40] Warm as permit in
-  ("samples", permit)
+  box [0, 40] Token as tok in
+  ("samples", tok)
 
 operation AddBeads : sample ~> beads ! {AddBeads} within [1, 2]
 default AddBeads samples = delay 3/2; "beads"
@@ -54,8 +54,8 @@ default RemoveResidualEthanol beads = delay 3/4
 operation EluteDNA : beads ~> unit ! {EluteDNA} within [1, 2]
 default EluteDNA beads = delay 3/2
 
-operation Transfer : warm ~> unit ! {Transfer} within [1, 2]
-default Transfer warm = delay 3/2
+operation Transfer : token ~> unit ! {Transfer} within [1, 2]
+default Transfer valid = delay 3/2
 
 operation AddMasterMix : beads ~> unit ! {AddMasterMix} within [1, 2]
 default AddMasterMix eluates = delay 3/2
@@ -110,7 +110,7 @@ let collect (eluting : [{[2, 5]; MagnetOn; [2, 5]}]beads) =
    their boxes accept, but the eluates reach the cold block up to 43.25
    minutes after the samples are taken out of the cold:
 
-     Typing error: Variable `permit` is unboxed with grade ... accumulated
+     Typing error: Variable `tok` is unboxed with grade ... accumulated
        since it was bound, which is not below its box grade `{[0, 40]}`
 *)
 let separate_long (binding : [[5, 10]]beads) =
@@ -133,14 +133,14 @@ let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
   box {[2, 5]; MagnetOn; [2, 5]} beads
 
 let purification_generous () =
-  let (samples, permit) = perform TakeSamples () in
+  let (samples, tok) = perform TakeSamples () in
   let binding = bind samples in
   let collected =
     collect
       (elute_long (final_wash (wash (clear_long (separate_long binding)))))
   in
-  unbox permit as warm in
-  perform Transfer warm;
+  unbox tok as valid in
+  perform Transfer valid;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
@@ -156,11 +156,11 @@ let purification_generous () =
        {AddEthanol; idle [0.5, 1.5]}` does not hold
 *)
 let purification_one_wash () =
-  let (samples, permit) = perform TakeSamples () in
+  let (samples, tok) = perform TakeSamples () in
   let binding = bind samples in
   let collected = collect (elute (final_wash (clear (separate binding)))) in
-  unbox permit as warm in
-  perform Transfer warm;
+  unbox tok as valid in
+  perform Transfer valid;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
@@ -182,21 +182,21 @@ let wash_off_magnet (soaking : [{AddEthanol; idle [1/2, 3/2]}]beads) =
   perform RemoveEthanol ();
   box {AddEthanol; idle [1/2, 3/2]; RemoveEthanol} beads
 
-(* Correctly rejected by the typechecker: the permit is unboxed when the
+(* Correctly rejected by the typechecker: the token is unboxed when the
    samples are taken out of the cold and kept unboxed across the steps:
 
-     Typing error: Variable `warm` is used with grade `{AddBeads; idle 7.5;
+     Typing error: Variable `valid` is used with grade `{AddBeads; idle 7.5;
        MagnetOn; ...; MagnetOn; idle 2.5}` accumulated since it was bound,
-       but its type `warm` is not eternal
+       but its type `token` is not eternal
 *)
-let purification_stale_permit () =
-  let (samples, permit) = perform TakeSamples () in
-  unbox permit as warm in
+let purification_stale_token () =
+  let (samples, tok) = perform TakeSamples () in
+  unbox tok as valid in
   let binding = bind samples in
   let collected =
     collect (elute (final_wash (wash (clear (separate binding)))))
   in
-  perform Transfer warm;
+  perform Transfer valid;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;

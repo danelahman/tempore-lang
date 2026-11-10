@@ -401,7 +401,7 @@ errors nor warnings.
 The bead purification by steps that unbox and rebox the beads: boxes generate
 no actions, so the protocol performs only the operations and the delays of
 the steps; the binding function of TakeSamples returns the samples paired
-with the permit, and that of AddBeads the beads.
+with the token, and that of AddBeads the beads.
 
   $ ../../tempore --grades timed-regex-interval-rational --emit-opentrons purification.py \
   >   --bind $examples/purification_bindings.py --time-unit minutes $examples/purification.tpe
@@ -480,10 +480,10 @@ The rejected variants of the examples.
   Typing error: Variable `k` is unboxed with grade `{RemoveLiquid; RemoveEthanol; idle 1; AddEthanol; RemoveEthanol; idle 1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}`
   Typing error: Variable `settled` is used with grade `{RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}` accumulated since it was bound, but its type `beads` is not eternal
   $ ../../tempore --grades timed-regex-interval-rational --typecheck-only $examples/purification_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `permit` is unboxed with grade `{AddBeads; idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
+  Typing error: Variable `tok` is unboxed with grade `{AddBeads; idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
   Typing error: The resource inequality `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol} <= {AddEthanol; idle [0.5, 1.5]}` does not hold
   Typing error: Variable `soaking` is unboxed with grade `{AddEthanol; MagnetOff; idle 0.5}` accumulated since it was bound, which is not below its box grade `{AddEthanol; idle [0.5, 1.5]}`
-  Typing error: Variable `warm` is used with grade `{AddBeads; idle 7.5; MagnetOn; idle 4; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, but its type `warm` is not eternal
+  Typing error: Variable `valid` is used with grade `{AddBeads; idle 7.5; MagnetOn; idle 4; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, but its type `token` is not eternal
   $ ../../tempore --grades time-upper-bound-lattice --typecheck-only $examples/contamination_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `article_tip` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(∞, Low)`
   $ for name in reagents staggered beads stopread; do

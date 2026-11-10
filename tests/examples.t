@@ -1511,7 +1511,7 @@ tests show those runs in detail.
   return ()
   State: [
     {idle 0.5},
-    { resource_0 ↦ Warm ! {[0, 40]} },
+    { resource_0 ↦ Token ! {[0, 40]} },
     {idle 1.5},
     { resource_1 ↦ "beads" ! {[5, 10]} },
     {idle 7.5},
@@ -1547,13 +1547,13 @@ tests show those runs in detail.
   ../examples/opentrons/purification_reject.tpe
   ======================================================================
   File "../examples/opentrons/purification_reject.tpe", lines 142-148, characters 2-30:
-  142 |   unbox permit as warm in
-          ^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `permit` is unboxed with grade `{AddBeads; idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
-    File "../examples/opentrons/purification_reject.tpe", line 136, characters 16-22:
-    136 |   let (samples, permit) = perform TakeSamples () in
-                          ^^^^^^
-    `permit` is bound here
+  142 |   unbox tok as valid in
+          ^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `tok` is unboxed with grade `{AddBeads; idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
+    File "../examples/opentrons/purification_reject.tpe", line 136, characters 16-19:
+    136 |   let (samples, tok) = perform TakeSamples () in
+                          ^^^
+    `tok` is bound here
     File "../examples/opentrons/purification_reject.tpe", line 137, characters 16-28:
     137 |   let binding = bind samples in
                           ^^^^^^^^^^^^
@@ -1599,14 +1599,14 @@ tests show those runs in detail.
     grade `{idle 0.5}` accumulates here (delay)
     Note: the resource inequality `{AddEthanol; MagnetOff; idle 0.5} <= {AddEthanol; idle [0.5, 1.5]}` does not hold
   
-  File "../examples/opentrons/purification_reject.tpe", line 199, characters 19-23:
-  199 |   perform Transfer warm;
-                           ^^^^
-  Typing error: Variable `warm` is used with grade `{AddBeads; idle 7.5; MagnetOn; idle 4; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, but its type `warm` is not eternal
-    File "../examples/opentrons/purification_reject.tpe", line 194, characters 18-22:
-    194 |   unbox permit as warm in
-                            ^^^^
-    `warm` is bound here
+  File "../examples/opentrons/purification_reject.tpe", line 199, characters 19-24:
+  199 |   perform Transfer valid;
+                           ^^^^^
+  Typing error: Variable `valid` is used with grade `{AddBeads; idle 7.5; MagnetOn; idle 4; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, but its type `token` is not eternal
+    File "../examples/opentrons/purification_reject.tpe", line 194, characters 15-20:
+    194 |   unbox tok as valid in
+                         ^^^^^
+    `valid` is bound here
     File "../examples/opentrons/purification_reject.tpe", line 195, characters 16-28:
     195 |   let binding = bind samples in
                           ^^^^^^^^^^^^
