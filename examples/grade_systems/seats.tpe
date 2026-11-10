@@ -1,0 +1,104 @@
+(* A seat map boxed to be shown only while no seat has been booked since it was loaded.
+
+   Run this example with the 'finite-run-sets' effect and the 'at-most-counts'
+   resource grade algebras, e.g.
+
+     ./tempore --grades finite-run-sets \
+       --resource-grades at-most-counts \
+       examples/grade_systems/seats.tpe
+
+   Grades {...} of effects, (Op, n) of boxes: these runs, at most n calls
+     - Unit {skip} and 0: the empty run, no call
+     - Top ⊤ and ∞: every run, no bound
+     - Product: concatenation of runs, addition of the counts *)
+
+(* Effects are graded by the finite sets of runs of a booking and resources by
+   the numbers of calls of its operations: the box of a seat map says how
+   often each operation may be called while it is shown, and a function's
+   effect which runs it may exhibit. The resource grade of a set of runs gives
+   each operation the greatest number of its calls in one run, so a box is
+   unboxed while the calls since boxing are certain to be within its grade. A
+   finite set of runs admits no runs of every length, so the finite run sets
+   alone cannot state no booking among any other calls and delays. *)
+
+(* A seat map is noneternal, so it is kept across calls only inside its box. *)
+noneternal type seats = Seats of nat
+
+(* A seat map is loaded boxed at '((Book, 0), (_, ∞))': it shows the seats
+   free while no seat has been booked since, any number of the other
+   operations being called. *)
+operation Load    : unit ~> [((Book, 0), (_, ∞))]seats ! {Load}
+operation Choose  : seats ~> nat ! {Choose}
+operation Confirm : nat ~> bool ! {Confirm}
+operation Book    : nat ~> unit ! {Book}
+
+(* Correctly accepted by the typechecker: a seat chosen on the map and, unless
+   it is confirmed, another chosen on the same map, and booked. The second
+   unbox follows a choice and a confirmation, the resource grade
+   '((Choose, 1), (Confirm, 1))' within '((Book, 0), (_, ∞))'. *)
+let book_seat () : unit !
+    {Load; Choose; Confirm; Book | Load; Choose; Confirm; Choose; Book} =
+  let map = perform Load () in
+  unbox map as seats in
+  let seat = perform Choose seats in
+  let confirmed = perform Confirm seat in
+  if confirmed then perform Book seat
+  else (
+    unbox map as seats in
+    let other = perform Choose seats in
+    perform Book other)
+
+(* Correctly accepted by the typechecker: two seats booked one at a time, each
+   on a map loaded after the bookings before it. Under the finite run sets
+   alone, the box grade would have to list the runs between loading and
+   choosing, which would forbid every further confirmation and wait. *)
+let book_pair () =
+  book_seat ();
+  book_seat ()
+
+(* Correctly rejected by the typechecker: a map loaded before the first
+   booking still shows the first seat as free when the second is chosen:
+
+     Typing error: Variable `next` is unboxed with grade
+       `((Book, 1), (Choose, 2), (Confirm, 1), (Load, 1))` accumulated since
+       it was bound, which is not below its box grade `((Book, 0), (_, ∞))`
+       ...
+       Note: the resource inequality
+         `((Book, 1), (Choose, 2), (Confirm, 1), (Load, 1)) <= ((Book, 0), (_, ∞))`
+         does not hold
+*)
+(*
+let book_pair_prefetched () =
+  let next = perform Load () in
+  book_seat ();
+  unbox next as seats in
+  let seat = perform Choose seats in
+  perform Book seat
+*)
+
+(* Correctly rejected by the typechecker: the second choice reuses the map
+   unboxed for the first, which is kept across the confirmation:
+
+     Typing error: Variable `seats` is used with grade
+       `((Choose, 1), (Confirm, 1))` accumulated since it was bound, but its
+       type `seats` is not eternal
+       ...
+       Note: the resource inequality `((Choose, 1), (Confirm, 1)) <= 0` does
+         not hold
+*)
+(*
+let book_seat_kept () =
+  let map = perform Load () in
+  unbox map as seats in
+  let seat = perform Choose seats in
+  let confirmed = perform Confirm seat in
+  if confirmed then perform Book seat
+  else (
+    let other = perform Choose seats in
+    perform Book other)
+*)
+
+(* The operations have no default implementations, since only performing an
+   operation realises its grade; the run uses delays alone, which count no
+   call. *)
+run box ((Book, 0), (_, ∞)) (Seats 12) as map in delay 5; unbox map as seats in seats

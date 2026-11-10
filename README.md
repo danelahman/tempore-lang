@@ -1570,11 +1570,24 @@ not leave the dough the 45 minutes its box grade demands:
 
 A two-sided box grade such as `box [45, 90] d` is a syntax error: ``In the
 `time-lower-bound` resource grade algebra, lower bounds are unbounded above``.
-The web interface selects the resource grade algebra by the **Resource grade
-algebra** selector (see [Web interface](#web-interface)), and its gallery lists
-the examples of [`examples/grade_systems/`](examples/grade_systems/), where a
-session key may encrypt at most three messages under `finite-run-sets` and
-`at-most-counts`.
+A system is essential where its resource grades state what no effect grade
+states: a count of the finite run sets bounds the calls of an operation among
+any number of other calls and delays, which no finite set of runs admits. The
+other systems give simpler resource grades for requirements an
+effect grade also states: `[45, ∞)` for `45`, `{Approve; Approve}` for
+`(Approve, 2)` under the lower trace bounds, and `(0, ℓ)` for `ℓ` under
+`time-lower-bound-lattice`.
+
+The essential systems are those of
+[`approvals.tpe`](examples/grade_systems/approvals.tpe),
+[`session_key.tpe`](examples/grade_systems/session_key.tpe) and
+[`seats.tpe`](examples/grade_systems/seats.tpe), and the simpler resource
+grades those of [`proofing.tpe`](examples/grade_systems/proofing.tpe),
+[`token.tpe`](examples/grade_systems/token.tpe) and
+[`latte.tpe`](examples/grade_systems/latte.tpe). The web interface selects the
+resource grade algebra by the **Resource grade algebra** selector (see
+[Web interface](#web-interface)), and its gallery lists the examples of the
+essential systems.
 
 ## Eternal types
 

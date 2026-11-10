@@ -30,15 +30,13 @@ let settings (entry : ExampleIndex.entry) =
 
 (* Whether each example of a grade system other than an identity one is
    accepted under the identity grade system of its effect grade algebra: the
-   box grades of the bread proofing and of the session key are not literals of
-   the effect grade algebra, while those of the access token and of the latte
-   are, and their unboxes are within them there too. *)
+   box grades of the release approvals, the session key and the seat map
+   count calls among any others, which no finite set of runs states. *)
 let identity_verdicts =
   [
-    ("examples/grade_systems/proofing.tpe", false);
-    ("examples/grade_systems/token.tpe", true);
-    ("examples/grade_systems/latte.tpe", true);
+    ("examples/grade_systems/approvals.tpe", false);
     ("examples/grade_systems/session_key.tpe", false);
+    ("examples/grade_systems/seats.tpe", false);
   ]
 
 (* The number of steps a run of an example is allowed before it counts as
@@ -133,7 +131,7 @@ let () =
       (fun (e : ExampleIndex.entry) -> Option.is_some e.resources)
       entries
   in
-  if List.length systems <> 4 then
-    fail "the gallery lists %d examples of grade systems, not 4"
+  if List.length systems <> 3 then
+    fail "the gallery lists %d examples of grade systems, not 3"
       (List.length systems);
   TestSupport.Failures.finish ()

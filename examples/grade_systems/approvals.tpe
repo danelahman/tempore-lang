@@ -1,0 +1,101 @@
+(* A release boxed to be deployed only after two approvals, the reviews graded by their runs.
+
+   Run this example with the 'finite-run-sets' effect and the
+   'at-least-counts-with-top' resource grade algebras, e.g.
+
+     ./tempore --grades finite-run-sets \
+       --resource-grades at-least-counts-with-top \
+       examples/grade_systems/approvals.tpe
+
+   Grades {...} of effects, (Op, n) of boxes: these runs, at least n calls
+     - Unit {skip} and 0: the empty run, no call
+     - Top ⊤ and ⊤: every run, no guarantee
+     - Product: concatenation of runs, addition of the counts *)
+
+(* Effects are graded by the finite sets of runs of a review and resources by
+   the numbers of calls of its operations: the box of a release says how often
+   each operation must have been called before it is deployed, and a
+   function's effect which runs it may exhibit. The resource grade of a set of
+   runs gives each operation the least number of its calls in one run, so a
+   box is unboxed once the calls since boxing are certain to meet its grade.
+   A finite set of runs admits no runs of every length, so the finite run sets
+   alone cannot state two approvals among any other calls and delays. *)
+
+type release = Release of nat
+
+(* A release is packaged boxed at '(Approve, 2)', deployable after two
+   approvals, whatever else is called meanwhile. A noneternal type would
+   require of an unboxed release only that no computation of grade '⊤'
+   precede its use, so the box comes from the packaging. *)
+operation Package : nat ~> [(Approve, 2)]release ! {Package}
+operation Test    : nat ~> bool ! {Test}
+operation Fix     : nat ~> unit ! {Fix}
+operation Approve : string ~> unit ! {Approve}
+operation Deploy  : release ~> unit ! {Deploy}
+
+(* Correctly accepted by the typechecker: a first reviewer approves, the tests
+   run, a fix is made and checked for two hours if they fail, and a second
+   reviewer approves. Each run calls 'Approve' twice. *)
+let review (version : nat) : unit !
+    {Approve; Test; Approve | Approve; Test; Fix; 2; Approve} =
+  perform Approve "Ada";
+  let passed = perform Test version in
+  if passed then ()
+  else (
+    perform Fix version;
+    delay 2);
+  perform Approve "Grace"
+
+(* Correctly accepted by the typechecker: a release packaged, reviewed and
+   deployed; the unbox follows the review, the resource grade
+   '((Approve, 2), (Test, 1))' meeting '(Approve, 2)'. Under the finite run
+   sets alone, the box grade would have to list the runs of 'review', which
+   would forbid every further test, fix and wait. *)
+let release (version : nat) =
+  let r = perform Package version in
+  review version;
+  unbox r as rel in
+  perform Deploy rel
+
+(* Correctly rejected by the typechecker: an urgent hotfix skips the second
+   reviewer, and a branch guarantees the lesser count of its arms:
+
+     Typing error: Variable `r` is unboxed with grade `(Approve, 1)`
+       accumulated since it was bound, which is not below its box grade
+       `(Approve, 2)`
+       ...
+       Note: the resource inequality `(Approve, 1) >= (Approve, 2)` does not
+         hold
+*)
+(*
+let hotfix (version : nat) (urgent : bool) =
+  let r = perform Package version in
+  perform Approve "Ada";
+  if urgent then () else perform Approve "Grace";
+  unbox r as rel in
+  perform Deploy rel
+*)
+
+(* Correctly rejected by the typechecker: an approval given before the release
+   is packaged does not count towards its box:
+
+     Typing error: Variable `r` is unboxed with grade `(Approve, 1)`
+       accumulated since it was bound, which is not below its box grade
+       `(Approve, 2)`
+       ...
+       Note: the resource inequality `(Approve, 1) >= (Approve, 2)` does not
+         hold
+*)
+(*
+let approved_early (version : nat) =
+  perform Approve "Ada";
+  let r = perform Package version in
+  perform Approve "Grace";
+  unbox r as rel in
+  perform Deploy rel
+*)
+
+(* The operations have no default implementations, since only performing an
+   operation realises its grade; the run boxes a release and waits, which
+   counts no approval, so the release stays in its box. *)
+run box (Approve, 2) (Release 1) as r in delay 3; r
