@@ -3513,6 +3513,116 @@ let timed_regex_star_reference =
              | Error e -> "error: " ^ e));
       ]
 
+(* The closures of the timed regex grades: [r⁺] is [r; r*] on either side and
+   [(l, u)⁺] is [(l⁺, u⁺)], printed in normal form and equal to the expected
+   grades: of an operation, a time span, an idle wait, an alternation, a star,
+   which is its own closure, the unit, and the top. The finite grades declare
+   none. Besides, the closure laws on the samples of the grades with
+   repetition under [other_running_times] and [star_running_times], and, over
+   rational delays, [fractional_running_times]. *)
+let timed_regex_closures =
+  let module G = Grades.TimedRegexGrades in
+  let closes (type a) (module M : Grade.S with type t = a) cases =
+    let module P = Reader (M) in
+    let lit text =
+      match P.parse text with
+      | Ok rho -> rho
+      | Error e -> failwith (M.name ^ ": " ^ text ^ ": " ^ e)
+    in
+    List.concat_map
+      (fun (x, shown, y) ->
+        let name = M.name ^ ": the closure of " ^ x in
+        match M.plus (lit x) with
+        | None -> [ check name false "none declared" ]
+        | Some p ->
+            [
+              expect (name ^ " printed") Fun.id ~expected:shown (M.show p);
+              check
+                (name ^ " is " ^ y)
+                (M.equal running_times p (lit y))
+                (M.show p);
+            ])
+      cases
+  in
+  let none (type a) (module M : Grade.S with type t = a) =
+    let module P = Reader (M) in
+    List.map
+      (fun x ->
+        check
+          (M.name ^ ": no closure of " ^ x)
+          (match P.parse x with
+          | Ok rho -> Option.is_none (M.plus rho)
+          | Error _ -> false)
+          "")
+      [ "{A}"; "{skip}"; "⊤" ]
+  in
+  let shared =
+    [
+      ("{A}", "{A; A*}", "{A; A*}");
+      ("{A | B}", "{(A | B); (A | B)*}", "{(A | B); (A | B)*}");
+      ("{skip}", "{skip}", "{skip}");
+      ("⊤", "{≥0}", "⊤");
+    ]
+  in
+  let upper =
+    shared
+    @ [
+        ("{(A; 1)*}", "{(A; ≤1)*}", "{(A; 1)*}");
+        ("{≤2}", "{≥0}", "⊤");
+        ("{idle ≤2}", "{idle ≥0}", "{idle ≥0}");
+      ]
+  in
+  let lower =
+    shared
+    @ [
+        ("{(A; 1)*}", "{(A; ≥1)*}", "{(A; 1)*}");
+        ("{≥2}", "{≥2; ≥2?}", "{≥2}");
+        ("{idle ≥2}", "{idle ≥2; (idle ≥2)?}", "{idle ≥2}");
+      ]
+  in
+  let interval =
+    shared
+    @ [
+        ("{(A; 1)*}", "{(A; 1)*}", "{(A; 1)*}");
+        ( "[{≥0; A}, {A; ≤3}]",
+          "[{≥0; A; (≥0; A)*}, {A; ≤3; (A; ≤3)*}]",
+          "[{≥0; A; (≥0; A)*}, {A; ≤3; (A; ≤3)*}]" );
+      ]
+  in
+  let laws (type a) (module M : Grade.S with type t = a) =
+    let name = M.name in
+    let family = Option.get (family name) in
+    let samples = samples (module M) family in
+    List.concat_map
+      (fun (context, bounds) -> closure_laws (module M) ~context bounds samples)
+      ([
+         ("A:[2, 4], B:[0, 1], C:[3, 3]", other_running_times);
+         ("A:(0, 1], B:[1, 2)", star_running_times);
+       ]
+      @
+      if String.ends_with ~suffix:"-rational" name then
+        [ ("A:[1/2, 3/2], B:[2/3, 2/3], C:[0, 5/2]", fractional_running_times) ]
+      else [])
+  in
+  closes (module G.UpperBound) upper
+  @ closes (module G.Rational.UpperBound) upper
+  @ closes (module G.LowerBound) lower
+  @ closes (module G.Rational.LowerBound) lower
+  @ closes (module G.Interval) interval
+  @ closes (module G.Rational.Interval) interval
+  @ none (module G.Finite.UpperBound)
+  @ none (module G.Finite.LowerBound)
+  @ none (module G.Finite.Interval)
+  @ none (module G.Finite.Rational.UpperBound)
+  @ none (module G.Finite.Rational.LowerBound)
+  @ none (module G.Finite.Rational.Interval)
+  @ laws (module G.UpperBound)
+  @ laws (module G.Rational.UpperBound)
+  @ laws (module G.LowerBound)
+  @ laws (module G.Rational.LowerBound)
+  @ laws (module G.Interval)
+  @ laws (module G.Rational.Interval)
+
 (* The laws of the mode-switch costs on grades over the modes [Off], [On] and
    [Idle], the modes not named and [Stuck]: changes of mode, operations
    performed only in some modes, traces stuck at a cost, entries of the modes
@@ -4588,8 +4698,8 @@ let () =
     @ time_grade_laws @ schedule_laws @ resource_construction_laws @ finite_laws
     @ declared_lattice_laws @ declared_lattice_structure @ ranges @ flow_tops
     @ duration_bounds @ mode_time_laws @ timed_regex_laws @ timed_regex_overflow
-    @ timed_regex_star @ timed_regex_star_reference @ energy_products
-    @ system_laws
+    @ timed_regex_star @ timed_regex_star_reference @ timed_regex_closures
+    @ energy_products @ system_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

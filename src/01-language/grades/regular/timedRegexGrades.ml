@@ -1,3 +1,12 @@
+(** The timed regex grades: lower bounds, upper bounds and intervals of the
+    expressions of {!TimedRegex}, ordered by {!TimedRegexOrder}, over whole time
+    steps and over the rationals, with repetition and without ({!Finite}).
+
+    The grades with repetition declare the closure [r⁺ = r; r*] of a bound [r],
+    the least bound above [r] that absorbs its square, and the closure
+    [(l, u)⁺ = (l⁺, u⁺)] of an interval. The grades without repetition declare
+    none. *)
+
 open Grade
 module I = TimedRegex
 module Ops = I.Ops
@@ -160,7 +169,9 @@ module Make (D : DELAYS) (N : NAMES) = struct
       else Option.map of_word (C.counterexample (compared bounds [ r; s ]) r s)
 
     let unit_least = false
-    let plus _ = None
+
+    (* The closure [r⁺ = r; r*], over expressions with repetition only. *)
+    let plus r = if N.finite then None else Some (E.concat r (E.star r))
     let commutative = false
     let needs_op_bounds = true
     let duration_ends = if S.lower then Lower_end else Upper_end
@@ -420,7 +431,12 @@ module Make (D : DELAYS) (N : NAMES) = struct
             Option.map (fun e -> (l, e)) (UpperBound.counterexample bounds u u'))
 
     let unit_least = false
-    let plus _ = None
+
+    (* The closure [(l, u)⁺ = (l⁺, u⁺)], componentwise. *)
+    let plus (l, u) =
+      Option.bind (LowerBound.plus l) (fun l ->
+          Option.map (fun u -> (l, u)) (UpperBound.plus u))
+
     let commutative = false
     let needs_op_bounds = true
     let duration_ends = Both_ends
