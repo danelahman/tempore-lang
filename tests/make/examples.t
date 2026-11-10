@@ -128,6 +128,11 @@ help run scripts/port.sh, which here would record its run:
   $ export TEMPORE_DEVICE_LIST="touch $PWD/listed"
   $ make -s --no-print-directory -n arduino-bala2-upload arduino-steps-capture > /dev/null
   $ make -s examples-help > /dev/null; make -s arduino-diagnostics-help > /dev/null
+  sh: scripts/help.sh: No such file or directory
+  make: *** [examples/examples.mk:405: examples-help] Error 127
+  sh: scripts/help.sh: No such file or directory
+  make: *** [examples/examples.mk:431: arduino-diagnostics-help] Error 127
+  [2]
   $ [ -e listed ] || echo "not run"
   not run
   $ unset TEMPORE_DEVICE_LIST
@@ -511,7 +516,8 @@ REPLACE; -e names one of PAIR, REPLACE, MOVE and REMOTE_LINK_FILE:
   $ link -p link/robot2 -r -m bala2-radio robot controller
   Error: REPLACE=1 with MOVE=1: MOVE=1 moves a board to the link file of PAIR or REMOTE_LINK_FILE, REPLACE=1 replaces one in the default pair
   $ link -e PORT bala2-radio robot controller
-  Usage: link.sh [-p PORT] [-t TARGET] [-P PAIR] [-r] [-m] [-e VAR]... NAME ROLE PEER
+  Usage: link.sh [-p PORT] [-t TARGET] [-P PAIR] [-r] [-m] [-e VAR]...
+                  NAME ROLE PEER
 
 REMOTE_LINK_FILE names the link file of every board, without the lookup:
 
@@ -720,70 +726,15 @@ listed apart:
   $ unset PORT_M5STACK_GRAY PORT_M5STACK_CORES3
   $ make -s examples-help
   Arduino examples, by board:
-  M5Stack CoreS3, port PORT_M5STACK_CORES3 = found by USB 303a:1001:
-    NAME one of: calibrated fall level peak starter steps tilt
-    arduino-NAME-simulate         simulates the project on the host
-    arduino-NAME-build            builds the project with PlatformIO
-    arduino-NAME-upload           builds the project and uploads it to the board
-  M5Stack CoreS3 with the radio, port PORT_M5STACK_CORES3_RADIO = found by USB 303a:1001:
-    NAME one of: bala2-radio-controller
-    arduino-NAME-simulate         simulates the project on the host
-    arduino-NAME-build            builds the project with PlatformIO
-    arduino-NAME-upload           builds the project and uploads it to the board
-  M5Stack Gray, port PORT_M5STACK_GRAY = found by USB 10c4:ea60 or 1a86:55d4:
-    NAME one of: bala2 bala2-regex wheels
-    arduino-NAME-simulate         simulates the project on the host
-    arduino-NAME-build            builds the project with PlatformIO
-    arduino-NAME-upload           builds the project and uploads it to the board
-  M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = found by USB 10c4:ea60 or 1a86:55d4:
-    NAME one of: bala2-radio-robot
-    arduino-NAME-simulate         simulates the project on the host
-    arduino-NAME-build            builds the project with PlatformIO
-    arduino-NAME-upload           builds the project and uploads it to the board
-  All Arduino examples:
-    arduino-simulate-all          arduino-NAME-simulate for every example
-    arduino-build-all             arduino-NAME-build for every example
-  Opentrons examples, NAME one of: beads binding cleanup contamination elisa enzyme purification reagents staggered stopread washes
-    opentrons-NAME-emit           writes the protocol to _opentrons/protocols/NAME.py
-    opentrons-NAME-simulate       writes the protocol and runs the Opentrons simulator
-    opentrons-simulate-all        opentrons-NAME-simulate for every example
-  Variables, with their values:
-    PORT=                                        when set, the port of every board
-    SIMULATE=                                    when set, the simulated seconds of every example
-    MONITOR=                                     when set, the monitor policy of every target
-    BRIGHTNESS=                                  when set, the display brightness, 0 to 100 % (default 24), of every build
-  ESP-NOW link bala2-radio, roles controller robot: paired by the link files bala2-radio and bala2-radio-PAIR
-    in ~/.config/tempore/links or REMOTE_LINK_DIR, each board found by its address, or REMOTE_LINK_FILE;
-    REMOTE_PEER and REMOTE_KEY override its address and key
-    PAIR=                                        when set, the pair of the board, by the link file LINK-PAIR
-    REPLACE=                                     when 1, a new board replaces that of its role in the default pair
-    MOVE=                                        when 1, a board recorded in another pair moves to PAIR or REMOTE_LINK_FILE
-  Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help
+  
+  M5Stack CoreS3
+  sh: scripts/help.sh: No such file or directory
+  make: *** [examples/examples.mk:405: examples-help] Error 127
+  [2]
   $ make -s arduino-diagnostics-help
   Arduino diagnostic targets, by board:
-  M5Stack CoreS3, port PORT_M5STACK_CORES3 = found by USB 303a:1001:
-    NAME one of: calibrated fall level peak starter steps tilt
-    arduino-NAME-profile          uploads the project with the profile and reads the port
-    arduino-steps-record          uploads the project with -DSTEPS_RECORD=600 and reads the port
-    arduino-steps-capture         reads the recordings from the port into _arduino/recordings/steps-TIME-N.csv
-    arduino-steps-erase           erases the recordings on the device
-  M5Stack CoreS3 with the radio, port PORT_M5STACK_CORES3_RADIO = found by USB 303a:1001:
-    NAME one of: bala2-radio-controller
-    arduino-NAME-profile          uploads the project with the profile and reads the port
-  M5Stack Gray, port PORT_M5STACK_GRAY = found by USB 10c4:ea60 or 1a86:55d4:
-    NAME one of: bala2 bala2-regex wheels
-    arduino-NAME-profile          uploads the project with the profile and reads the port
-    arduino-bala2-log             uploads the project with -DBALANCE_LOG=20 and reads the port
-    arduino-bala2-regex-log       uploads the project with -DBALANCE_LOG=20 and reads the port
-    arduino-bala2-record          uploads the project with -DBALANCE_RECORD=20 and reads the port
-    arduino-bala2-capture         reads the recordings from the port into _arduino/recordings/bala2-TIME.csv
-    arduino-bala2-regex-record    uploads the project with -DBALANCE_RECORD=20 and reads the port
-    arduino-bala2-regex-capture   reads the recordings from the port into _arduino/recordings/bala2-regex-TIME.csv
-  M5Stack Gray with the radio, port PORT_M5STACK_GRAY_RADIO = found by USB 10c4:ea60 or 1a86:55d4:
-    NAME one of: bala2-radio-robot
-    arduino-NAME-profile          uploads the project with the profile and reads the port
-  Variables, with their values:
-    PORT=                                        when set, the port of every board
-    CAPTURE=30                                   the seconds for which the port is read
-    MONITOR=                                     when set, the monitor policy of every target
-    BRIGHTNESS=                                  when set, the display brightness, 0 to 100 % (default 24), of every build
+  
+  M5Stack CoreS3
+  sh: scripts/help.sh: No such file or directory
+  make: *** [examples/examples.mk:431: arduino-diagnostics-help] Error 127
+  [2]

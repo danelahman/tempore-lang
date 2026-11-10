@@ -61,7 +61,8 @@
 set -eu
 
 usage() {
-  echo "Usage: link.sh [-p PORT] [-t TARGET] [-P PAIR] [-r] [-m] [-e VAR]... NAME ROLE PEER" >&2
+  echo "Usage: link.sh [-p PORT] [-t TARGET] [-P PAIR] [-r] [-m] [-e VAR]..." >&2
+  echo "                NAME ROLE PEER" >&2
   exit 2
 }
 

@@ -354,68 +354,86 @@ define newline
 
 endef
 
-# The help of the Arduino examples of the board $(1): its title, port
-# variable and port, and the targets of its examples.
-define arduino_board_help
-	@echo "$(call board_title,$(1)), port $(call port_variable,$(1)) = $(call board_port_help,$(1)):"
-	@echo "  NAME one of: $(ARDUINO_EXAMPLES_$(1))"
-	@echo "  arduino-NAME-simulate         simulates the project on the host"
-	@echo "  arduino-NAME-build            builds the project with PlatformIO"
-	@echo "  arduino-NAME-upload           builds the project and uploads it to the board"
+# The wrapping of the help text to 80 columns: HELP_WRAP FIRST REST TEXT, and
+# HELP_ROW KEY TEXT, a row of a table with the text in the column 32.
+HELP_WRAP = @sh scripts/help.sh wrap
+HELP_ROW = @sh scripts/help.sh row
+
+# The variable rows of the help, PORT, SIMULATE, CAPTURE, MONITOR and
+# BRIGHTNESS, that the Arduino and the diagnostic helps share.
+define port_row
+$(HELP_ROW) "  PORT=$(PORT)" "when set, the port of every board"
+endef
+define monitor_rows
+$(HELP_ROW) "  MONITOR=$(MONITOR)" "when set, the monitor policy of every target"
+	$(HELP_ROW) "  BRIGHTNESS=$(BRIGHTNESS)" "when set, the display brightness, 0 to 100 % (default 24), of every build"
 endef
 
-# The help of the diagnostic targets of the Arduino examples of the board
-# $(1): its title, port variable and port, and the targets of its examples.
+# The heading of the board $(1) in the help: its title, and below it its port
+# variable and port, and the examples of the board.
+define board_heading
+@echo
+	@echo "$(call board_title,$(1))"
+	$(HELP_WRAP) "  port " "      " "$(call port_variable,$(1)) = $(call board_port_help,$(1))"
+	$(HELP_WRAP) "  NAME one of: " "               " "$(ARDUINO_EXAMPLES_$(1))"
+endef
+
+# The help of the Arduino examples of the board $(1).
+define arduino_board_help
+	$(call board_heading,$(1))
+	$(HELP_ROW) "  arduino-NAME-simulate" "simulates the project on the host"
+	$(HELP_ROW) "  arduino-NAME-build" "builds the project with PlatformIO"
+	$(HELP_ROW) "  arduino-NAME-upload" "builds the project and uploads it to the board"
+endef
+
+# The help of the diagnostic targets of the Arduino examples of the board $(1).
 define arduino_diagnostics_board_help
-	@echo "$(call board_title,$(1)), port $(call port_variable,$(1)) = $(call board_port_help,$(1)):"
-	@echo "  NAME one of: $(ARDUINO_EXAMPLES_$(1))"
-	@echo "  arduino-NAME-profile          uploads the project with the profile and reads the port"
-	@$(foreach name,$(ARDUINO_LOGS_$(1)),printf '  %-29s %s\n' \
-	  "arduino-$(name)-log" \
-	  "uploads the project with $(ARDUINO_LOG_FLAGS_$(name)) and reads the port";)
-	@$(foreach name,$(ARDUINO_RECORDS_$(1)),printf '  %-29s %s\n' \
-	  "arduino-$(name)-record" \
-	  "uploads the project with $(ARDUINO_RECORD_FLAGS_$(name)) and reads the port" \
-	  "arduino-$(name)-capture" \
-	  "reads the recordings from the port into $(ARDUINO_CAPTURED_$(name))" \
-	  $(if $(filter $(name),$(ARDUINO_ERASES_$(1))),"arduino-$(name)-erase" \
-	  "erases the recordings on the device");)
+	$(call board_heading,$(1))
+	$(HELP_ROW) "  arduino-NAME-profile" "uploads with the profile and reads the port"
+	$(foreach name,$(ARDUINO_LOGS_$(1)),$(HELP_ROW) "  arduino-$(name)-log" "uploads with $(ARDUINO_LOG_FLAGS_$(name)) and reads the port"$(newline))
+	$(foreach name,$(ARDUINO_RECORDS_$(1)),$(HELP_ROW) "  arduino-$(name)-record" "uploads with $(ARDUINO_RECORD_FLAGS_$(name)) and reads the port"$(newline)	$(HELP_ROW) "  arduino-$(name)-capture" "reads the recordings from the port into $(ARDUINO_CAPTURED_$(name))"$(newline)	$(if $(filter $(name),$(ARDUINO_ERASES_$(1))),$(HELP_ROW) "  arduino-$(name)-erase" "erases the recordings on the device"$(newline)))
+endef
+
+# The help of the ESP-NOW link $(1).
+define link_help
+@echo
+	$(HELP_WRAP) "" "  " "ESP-NOW link $(1), roles $(LINK_ROLES_$(1)): paired by the link files $(1) and $(1)-PAIR in ~/.config/tempore/links or REMOTE_LINK_DIR, each board found by its address, or REMOTE_LINK_FILE. REMOTE_PEER and REMOTE_KEY override its address and key."
 endef
 
 examples-help:
 	@echo "Arduino examples, by board:"
 	$(foreach board,$(sort $(ARDUINO_BOARDS)),$(call arduino_board_help,$(board))$(newline))
+	@echo
 	@echo "All Arduino examples:"
-	@echo "  arduino-simulate-all          arduino-NAME-simulate for every example"
-	@echo "  arduino-build-all             arduino-NAME-build for every example"
-	@echo "Opentrons examples, NAME one of: $(OPENTRONS_EXAMPLES)"
-	@echo "  opentrons-NAME-emit           writes the protocol to _opentrons/protocols/NAME.py"
-	@echo "  opentrons-NAME-simulate       writes the protocol and runs the Opentrons simulator"
-	@echo "  opentrons-simulate-all        opentrons-NAME-simulate for every example"
+	$(HELP_ROW) "  arduino-simulate-all" "arduino-NAME-simulate for every example"
+	$(HELP_ROW) "  arduino-build-all" "arduino-NAME-build for every example"
+	@echo
+	@echo "Opentrons examples:"
+	$(HELP_WRAP) "  NAME one of: " "               " "$(OPENTRONS_EXAMPLES)"
+	$(HELP_ROW) "  opentrons-NAME-emit" "writes the protocol to _opentrons/protocols/NAME.py"
+	$(HELP_ROW) "  opentrons-NAME-simulate" "writes the protocol and runs the simulator"
+	$(HELP_ROW) "  opentrons-simulate-all" "opentrons-NAME-simulate for every example"
+	@echo
 	@echo "Variables, with their values:"
-	@printf '  %-44s %s\n' \
-	  "PORT=$(PORT)" "when set, the port of every board" \
-	  "SIMULATE=$(SIMULATE)" "when set, the simulated seconds of every example" \
-	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target" \
-	  "BRIGHTNESS=$(BRIGHTNESS)" "when set, the display brightness, 0 to 100 % (default 24), of every build"
-	@$(foreach link,$(sort $(ARDUINO_LINKS)),echo "ESP-NOW link $(link), roles $(LINK_ROLES_$(link)): paired by the link files $(link) and $(link)-PAIR"; \
-	  echo "  in ~/.config/tempore/links or REMOTE_LINK_DIR, each board found by its address, or REMOTE_LINK_FILE;"; \
-	  echo "  REMOTE_PEER and REMOTE_KEY override its address and key";)
-	@printf '  %-44s %s\n' \
-	  "PAIR=$(PAIR)" "when set, the pair of the board, by the link file LINK-PAIR" \
-	  "REPLACE=$(REPLACE)" "when 1, a new board replaces that of its role in the default pair" \
-	  "MOVE=$(MOVE)" "when 1, a board recorded in another pair moves to PAIR or REMOTE_LINK_FILE"
-	@echo "Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help"
+	$(call port_row)
+	$(HELP_ROW) "  SIMULATE=$(SIMULATE)" "when set, the simulated seconds of every example"
+	$(call monitor_rows)
+	$(foreach link,$(sort $(ARDUINO_LINKS)),$(call link_help,$(link))$(newline))
+	$(HELP_ROW) "  PAIR=$(PAIR)" "when set, the pair of the board, by the link file LINK-PAIR"
+	$(HELP_ROW) "  REPLACE=$(REPLACE)" "when 1, a new board replaces that of its role in the default pair"
+	$(HELP_ROW) "  MOVE=$(MOVE)" "when 1, a board recorded in another pair moves to PAIR or REMOTE_LINK_FILE"
+	@echo
+	@echo "Diagnostic targets, for profiles, logs and recordings:"
+	@echo "  make arduino-diagnostics-help"
 
 arduino-diagnostics-help:
 	@echo "Arduino diagnostic targets, by board:"
 	$(foreach board,$(sort $(ARDUINO_BOARDS)),$(call arduino_diagnostics_board_help,$(board))$(newline))
+	@echo
 	@echo "Variables, with their values:"
-	@printf '  %-44s %s\n' \
-	  "PORT=$(PORT)" "when set, the port of every board" \
-	  "CAPTURE=$(CAPTURE)" "the seconds for which the port is read" \
-	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target" \
-	  "BRIGHTNESS=$(BRIGHTNESS)" "when set, the display brightness, 0 to 100 % (default 24), of every build"
+	$(call port_row)
+	$(HELP_ROW) "  CAPTURE=$(CAPTURE)" "the seconds for which the port is read"
+	$(call monitor_rows)
 
 .PHONY: tempore-cli opentrons-simulate-all arduino-simulate-all \
   arduino-build-all examples-help arduino-diagnostics-help \
