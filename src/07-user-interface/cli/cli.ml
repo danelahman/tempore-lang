@@ -163,25 +163,57 @@ let accepted_grades_help =
        -symbolic-by-letters and -letter-derivatives in place of -symbolic, and \
        -rational-automata in place of -rational-symbolic."
 
-(* The accepted resource grades, one per line after the effect grades of
-   --grades they are accepted with, in a column after the longest name, each
-   with its morphism on an indented line below; indented as
+(* The accepted resource grades, grouped by resource algebra in the order of
+   the registry, each with one clause per set of effect grade algebras of
+   --grades sharing a description; the algebras ending in "-rational" whose
+   clauses are those of the algebra without the suffix, over the "-rational"
+   effect algebras, are listed together in a closing entry. Indented as
    [accepted_grades_help]. *)
 let accepted_resource_grades_help =
-  let systems = Grades.GradeSystemRegistry.systems in
-  let width =
-    List.fold_left max 0
-      (List.map
-         (fun (e : Grades.GradeSystemRegistry.entry) -> String.length e.effects)
-         systems)
+  let groups = Grades.GradeSystemRegistry.by_resources in
+  let suffix = "-rational" in
+  let base name =
+    if String.ends_with ~suffix name then
+      Some (String.sub name 0 (String.length name - String.length suffix))
+    else None
   in
-  String.concat ""
-    (List.map
-       (fun (e : Grades.GradeSystemRegistry.entry) ->
-         Printf.sprintf "\n        %-*s %s\n            %s" width e.effects
-           e.resources
-           (wrap ~width:help_width ~first:12 ~indent:12 e.morphism))
-       systems)
+  let counterpart clauses =
+    List.map
+      (fun (effects, m) -> (List.map (fun e -> e ^ suffix) effects, m))
+      clauses
+  in
+  let bundled (name, clauses) =
+    match Option.bind (base name) (fun b -> List.assoc_opt b groups) with
+    | Some base_clauses -> counterpart base_clauses = clauses
+    | None -> false
+  in
+  let plain, rational = List.partition (fun g -> not (bundled g)) groups in
+  let entry name body = Printf.sprintf "\n        %s%s" name body in
+  let alternatives effects =
+    match List.rev effects with
+    | [] -> ""
+    | [ e ] -> e
+    | last :: before -> String.concat ", " (List.rev before) ^ " or " ^ last
+  in
+  let clause (effects, description) =
+    "\n            "
+    ^ wrap ~width:help_width ~first:12 ~indent:12
+        (Printf.sprintf "with --grades %s: %s" (alternatives effects)
+           description)
+  in
+  let listing (name, clauses) =
+    entry name (String.concat "" (List.map clause clauses))
+  in
+  let closing =
+    match rational with
+    | [] -> ""
+    | _ ->
+        entry
+          (wrap ~width:help_width ~first:8 ~indent:8
+             (String.concat ", " (List.map fst rational)))
+          "\n            as above, with the -rational algebras of --grades"
+  in
+  String.concat "" (List.map listing plain) ^ closing
 
 let parse_args_to_config () =
   let filenames = ref []
@@ -375,10 +407,9 @@ let parse_args_to_config () =
               5 seconds in place of the trace under --host-simulate" );
            ( "--resource-grades",
              Arg.String (fun name -> resource_grades := Some name),
-             " Select the grade algebra of the resource grades, those of boxes \
-              and box types; effects are graded by that of --grades. The pair \
-              must be one of those listed, with the morphism (default: the \
-              algebra of --grades):" ^ accepted_resource_grades_help );
+             " Select the grade algebra of the grades of boxes and box types \
+              (default: the algebra of --grades); accepted:"
+             ^ accepted_resource_grades_help );
            ( "--robot",
              Arg.String
                (choice "--robot"

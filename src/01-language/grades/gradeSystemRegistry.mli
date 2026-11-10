@@ -43,9 +43,8 @@ type entry = {
       (** The grade system in a program declaring a grade lattice, over it,
           where its grade algebras are built on one. *)
   morphism : string;
-      (** The morphism, in one line, e.g.
-          ["∣[d, a]∣ = \[d, ∞), the lower end kept with its openness"]; shown by
-          [--help]. *)
+      (** The resource grade of an effect grade, in words, e.g. the lower end of
+          an effect grade; shown by [--help] after the effect algebras. *)
 }
 (** A registered grade system. *)
 
@@ -81,3 +80,9 @@ val resources_of : string -> string list
 (** [resources_of effects] is the names of the resource grade algebras of the
     registered grade systems of the effect grade algebra [effects], in the order
     of {!systems}. *)
+
+val by_resources : (string * (string list * string) list) list
+(** The registered grade systems grouped by resource grade algebra, in the order
+    in which the algebras first occur in {!systems}: each algebra with its
+    clauses, the names of the effect grade algebras sharing a morphism
+    description and that description, in the order of {!systems}. *)

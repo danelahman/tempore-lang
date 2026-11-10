@@ -182,44 +182,42 @@ let projection select morphism =
   in
   entry ~over_lattice:(fun lattice -> over (Some lattice)) (over None) morphism
 
-let lower_end = "∣[d, a]∣ = [d, ∞), the lower end kept with its openness"
-let upper_end = "∣[d, a]∣ = [0, a], the upper end kept with its openness"
+let lower_end = "the lower end of an effect grade, [d, a] becoming [d, ∞)"
+let upper_end = "the upper end of an effect grade, [d, a] becoming [0, a]"
 
 let duration_hull =
-  "∣g∣ = the least interval containing the durations of the runs of g, \
-   operations taking their running times"
+  "the least and the greatest duration of the runs of an effect grade, by the \
+   running times of its operations"
 
 let duration_infimum =
-  "∣g∣ = [d, ∞), d the infimum of the durations of the runs of g, operations \
-   taking their running times"
+  "the least duration of the runs of an effect grade, by the running times of \
+   its operations"
 
 let duration_supremum =
-  "∣g∣ = [0, d], d the supremum of the durations of the runs of g, operations \
-   taking their running times"
+  "the greatest duration of the runs of an effect grade, by the running times \
+   of its operations"
 
 let fastest_trace =
-  "∣P∣ = [d, ∞), d the least duration of a trace of P, each operation at the \
-   lower end of its running time"
+  "the least total running time of the traces of an effect grade"
 
 let slowest_trace =
-  "∣P∣ = [0, d], d the greatest duration of a trace of P, each operation at \
-   the upper end of its running time, and ∣⊤∣ = ∞"
+  "the greatest total running time of the traces of an effect grade"
 
 let trace_hull =
-  "∣[P, Q]∣ = [d, d'], d the least duration of a trace of P, each operation at \
-   the lower end of its running time, and d' the greatest of a trace of Q, \
-   each at the upper end, d' = ∞ where Q = ⊤"
+  "the least and the greatest total running time of the traces of an effect \
+   grade"
 
 let most_calls =
-  "∣P∣ = the greatest number of calls of each operation in a trace of P, and \
-   ∣⊤∣ = ⊤"
+  "for each operation, the greatest number of its calls in a run of an effect \
+   grade"
 
 let least_run_calls =
-  "∣P∣ = the least number of calls of each operation in a trace of P, and ∣⊤∣ \
-   = ⊤"
+  "for each operation, the least number of its calls in a run of an effect \
+   grade, the top kept"
 
 let least_calls =
-  "∣P∣ = the least number of calls of each operation in a trace of P"
+  "for each operation, the least number of its calls in a trace of an effect \
+   grade"
 
 let systems =
   [
@@ -342,10 +340,10 @@ let systems =
     entry (module LeastCalls) least_calls;
     projection
       (fun (module P : PROJECTIONS) -> (module P.First : GradeSystem.S))
-      "∣(n, ℓ)∣ = n, the first component";
+      "the time component of an effect grade";
     projection
       (fun (module P : PROJECTIONS) -> (module P.Second : GradeSystem.S))
-      "∣(n, ℓ)∣ = ℓ, the second component";
+      "the lattice component of an effect grade";
   ]
 
 let find ?lattice ~effects ~resources () =
@@ -369,3 +367,21 @@ let resources_of effects =
   List.filter_map
     (fun e -> if String.equal e.effects effects then Some e.resources else None)
     systems
+
+let by_resources =
+  let add groups e =
+    let rec go = function
+      | [] -> [ (e.resources, [ ([ e.effects ], e.morphism) ]) ]
+      | (r, clauses) :: rest when String.equal r e.resources ->
+          let rec merge = function
+            | [] -> [ ([ e.effects ], e.morphism) ]
+            | (es, m) :: more when String.equal m e.morphism ->
+                (es @ [ e.effects ], m) :: more
+            | c :: more -> c :: merge more
+          in
+          (r, merge clauses) :: rest
+      | g :: rest -> g :: go rest
+    in
+    go groups
+  in
+  List.fold_left add [] systems

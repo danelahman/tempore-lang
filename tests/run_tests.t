@@ -9032,86 +9032,54 @@ single-dash form of the help option is not accepted.
                        the running times of its operations and periodic tasks,
                        logged every 5 seconds in place of the trace under
                        --host-simulate
-    --resource-grades  Select the grade algebra of the resource grades, those of
-                       boxes and box types; effects are graded by that of
-                       --grades. The pair must be one of those listed, with the
-                       morphism (default: the algebra of --grades):
-          time-interval                           time-lower-bound
-              ∣[d, a]∣ = [d, ∞), the lower end kept with its openness
-          time-interval-rational                  time-lower-bound-rational
-              ∣[d, a]∣ = [d, ∞), the lower end kept with its openness
-          time-interval                           time-upper-bound
-              ∣[d, a]∣ = [0, a], the upper end kept with its openness
-          time-interval-rational                  time-upper-bound-rational
-              ∣[d, a]∣ = [0, a], the upper end kept with its openness
-          timed-regex-interval                    time-interval
-              ∣g∣ = the least interval containing the durations of the runs of g,
-              operations taking their running times
-          timed-regex-interval-rational           time-interval-rational
-              ∣g∣ = the least interval containing the durations of the runs of g,
-              operations taking their running times
-          timed-regex-finite-interval             time-interval
-              ∣g∣ = the least interval containing the durations of the runs of g,
-              operations taking their running times
-          timed-regex-finite-interval-rational    time-interval-rational
-              ∣g∣ = the least interval containing the durations of the runs of g,
-              operations taking their running times
-          timed-regex-lower-bound                 time-lower-bound
-              ∣g∣ = [d, ∞), d the infimum of the durations of the runs of g,
-              operations taking their running times
-          timed-regex-lower-bound-rational        time-lower-bound-rational
-              ∣g∣ = [d, ∞), d the infimum of the durations of the runs of g,
-              operations taking their running times
-          timed-regex-upper-bound                 time-upper-bound
-              ∣g∣ = [0, d], d the supremum of the durations of the runs of g,
-              operations taking their running times
-          timed-regex-upper-bound-rational        time-upper-bound-rational
-              ∣g∣ = [0, d], d the supremum of the durations of the runs of g,
-              operations taking their running times
-          timed-regex-finite-lower-bound          time-lower-bound
-              ∣g∣ = [d, ∞), d the infimum of the durations of the runs of g,
-              operations taking their running times
-          timed-regex-finite-lower-bound-rational time-lower-bound-rational
-              ∣g∣ = [d, ∞), d the infimum of the durations of the runs of g,
-              operations taking their running times
-          timed-regex-finite-upper-bound          time-upper-bound
-              ∣g∣ = [0, d], d the supremum of the durations of the runs of g,
-              operations taking their running times
-          timed-regex-finite-upper-bound-rational time-upper-bound-rational
-              ∣g∣ = [0, d], d the supremum of the durations of the runs of g,
-              operations taking their running times
-          banked-traces-lower-bound               time-lower-bound
-              ∣P∣ = [d, ∞), d the least duration of a trace of P, each operation
-              at the lower end of its running time
-          banked-traces-lower-bound-rational      time-lower-bound-rational
-              ∣P∣ = [d, ∞), d the least duration of a trace of P, each operation
-              at the lower end of its running time
-          banked-traces-upper-bound               time-upper-bound
-              ∣P∣ = [0, d], d the greatest duration of a trace of P, each
-              operation at the upper end of its running time, and ∣⊤∣ = ∞
-          banked-traces-upper-bound-rational      time-upper-bound-rational
-              ∣P∣ = [0, d], d the greatest duration of a trace of P, each
-              operation at the upper end of its running time, and ∣⊤∣ = ∞
-          banked-traces-interval                  time-interval
-              ∣[P, Q]∣ = [d, d'], d the least duration of a trace of P, each
-              operation at the lower end of its running time, and d' the greatest
-              of a trace of Q, each at the upper end, d' = ∞ where Q = ⊤
-          banked-traces-interval-rational         time-interval-rational
-              ∣[P, Q]∣ = [d, d'], d the least duration of a trace of P, each
-              operation at the lower end of its running time, and d' the greatest
-              of a trace of Q, each at the upper end, d' = ∞ where Q = ⊤
-          finite-run-sets                         at-most-counts
-              ∣P∣ = the greatest number of calls of each operation in a trace of
-              P, and ∣⊤∣ = ⊤
-          finite-run-sets                         at-least-counts-with-top
-              ∣P∣ = the least number of calls of each operation in a trace of P,
-              and ∣⊤∣ = ⊤
-          banked-traces-lower-bound               at-least-counts
-              ∣P∣ = the least number of calls of each operation in a trace of P
-          time-lower-bound-lattice                time-lower-bound
-              ∣(n, ℓ)∣ = n, the first component
-          time-lower-bound-lattice                lattice
-              ∣(n, ℓ)∣ = ℓ, the second component
+    --resource-grades  Select the grade algebra of the grades of boxes and box
+                       types (default: the algebra of --grades); accepted:
+          time-lower-bound
+              with --grades time-interval: the lower end of an effect grade, [d,
+              a] becoming [d, ∞)
+              with --grades timed-regex-lower-bound or
+              timed-regex-finite-lower-bound: the least duration of the runs of an
+              effect grade, by the running times of its operations
+              with --grades banked-traces-lower-bound: the least total running
+              time of the traces of an effect grade
+              with --grades time-lower-bound-lattice: the time component of an
+              effect grade
+          time-lower-bound-rational
+              with --grades time-interval-rational: the lower end of an effect
+              grade, [d, a] becoming [d, ∞)
+              with --grades timed-regex-lower-bound-rational or
+              timed-regex-finite-lower-bound-rational: the least duration of the
+              runs of an effect grade, by the running times of its operations
+              with --grades banked-traces-lower-bound-rational: the least total
+              running time of the traces of an effect grade
+          time-upper-bound
+              with --grades time-interval: the upper end of an effect grade, [d,
+              a] becoming [0, a]
+              with --grades timed-regex-upper-bound or
+              timed-regex-finite-upper-bound: the greatest duration of the runs of
+              an effect grade, by the running times of its operations
+              with --grades banked-traces-upper-bound: the greatest total running
+              time of the traces of an effect grade
+          time-interval
+              with --grades timed-regex-interval or timed-regex-finite-interval:
+              the least and the greatest duration of the runs of an effect grade,
+              by the running times of its operations
+              with --grades banked-traces-interval: the least and the greatest
+              total running time of the traces of an effect grade
+          at-most-counts
+              with --grades finite-run-sets: for each operation, the greatest
+              number of its calls in a run of an effect grade
+          at-least-counts-with-top
+              with --grades finite-run-sets: for each operation, the least number
+              of its calls in a run of an effect grade, the top kept
+          at-least-counts
+              with --grades banked-traces-lower-bound: for each operation, the
+              least number of its calls in a trace of an effect grade
+          lattice
+              with --grades time-lower-bound-lattice: the lattice component of an
+              effect grade
+          time-upper-bound-rational, time-interval-rational
+              as above, with the -rational algebras of --grades
     --robot            Set the robot of the protocol written with --bind: flex
                        (default: flex)
     --simulate         Run the Opentrons simulator on the protocol written with
