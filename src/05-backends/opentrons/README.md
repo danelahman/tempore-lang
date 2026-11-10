@@ -241,10 +241,11 @@ each is a minute.
   - the elution buffer is added only after exactly two ethanol washes and an
     air-dry of 2 to 3 minutes.
 - [`purification.tpe`](../../../examples/opentrons/purification.tpe): a
-  bead purification under `timed-regex-interval-rational`
-  whose steps each take the beads in a box and return them in the box of the
-  next step, exactly two washes accepted, and whose eluates are boxed in two
-  successive stages, all within a box of the time at room temperature. The
+  bead purification under `timed-regex-interval-rational` whose steps each
+  take the beads in a box and return them in the box of the next step,
+  exactly two washes accepted, and whose eluates are boxed in two successive
+  stages, all within the box of a permit for the time the samples spend at
+  room temperature, which the transfer to the cold block takes. The
   typechecker proves, under the declared running times of the operations:
   - the beads bind for 5 to 10 minutes before the plate goes on the magnet,
     and settle for 3 to 5 minutes before the supernatant is removed;
@@ -254,9 +255,9 @@ each is a minute.
     magnet for the elution buffer;
   - the eluates are taken after 2 to 5 minutes in the buffer and 2 to 5
     minutes of settling on the magnet;
-  - the eluates reach the cold block at most 40 minutes after the beads are
-    added, with no other step before the transfer, and take the master mix
-    2 to 5 minutes later.
+  - the eluates reach the cold block at most 40 minutes after the samples
+    are taken out of the cold, with no other step before the transfer, and
+    take the master mix 2 to 5 minutes later.
 
 ## Adding an example
 <!-- web-skip -->

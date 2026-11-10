@@ -1,5 +1,6 @@
 (* As the bead purification example, with the generous end of several
-   windows, one ethanol wash in place of two, and a soak off the magnet.
+   windows, one ethanol wash in place of two, a soak off the magnet, and a
+   permit kept unboxed across the steps.
 
    Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
@@ -17,6 +18,12 @@
 
 type sample = string
 type beads = string
+
+noneternal type warm = Warm
+
+operation TakeSamples : sample ~> [[0, 40]]warm ! {TakeSamples}
+  within (0, 1]
+default TakeSamples samples = delay 1/2; box [0, 40] Warm
 
 operation AddBeads : sample ~> beads ! {AddBeads} within [1, 2]
 default AddBeads samples = delay 3/2; "beads"
@@ -44,8 +51,8 @@ default RemoveResidualEthanol beads = delay 3/4
 operation EluteDNA : beads ~> unit ! {EluteDNA} within [1, 2]
 default EluteDNA beads = delay 3/2
 
-operation Transfer : sample ~> unit ! {Transfer} within [1, 2]
-default Transfer samples = delay 3/2
+operation Transfer : warm * sample ~> unit ! {Transfer} within [1, 2]
+default Transfer (warm, samples) = delay 3/2
 
 operation AddMasterMix : beads ~> unit ! {AddMasterMix} within [1, 2]
 default AddMasterMix eluates = delay 3/2
@@ -97,10 +104,10 @@ let collect (eluting : [{[2, 5]; MagnetOn; [2, 5]}]beads) =
 
 (* Correctly rejected by the typechecker: the binding, the settling on the
    magnet and the air-dry each take the upper end of their windows, which
-   their boxes accept, but the eluates reach the cold block up to 41.25
-   minutes after the beads were added:
+   their boxes accept, but the eluates reach the cold block up to 43.25
+   minutes after the samples are taken out of the cold:
 
-     Typing error: Variable `warm` is unboxed with grade ... accumulated
+     Typing error: Variable `permit` is unboxed with grade ... accumulated
        since it was bound, which is not below its box grade `{[0, 40]}`
 *)
 let separate_long (binding : [[5, 10]]beads) =
@@ -123,14 +130,14 @@ let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
   box {[2, 5]; MagnetOn; [2, 5]} beads
 
 let purification_generous (samples : sample) =
+  let permit = perform TakeSamples samples in
   let binding = bind samples in
-  box [0, 40] samples as warm in
   let collected =
     collect
       (elute_long (final_wash (wash (clear_long (separate_long binding)))))
   in
-  unbox warm as warm_samples in
-  perform Transfer warm_samples;
+  unbox permit as warm in
+  perform Transfer (warm, samples);
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
@@ -146,11 +153,11 @@ let purification_generous (samples : sample) =
        {AddEthanol; idle [0.5, 1.5]}` does not hold
 *)
 let purification_one_wash (samples : sample) =
+  let permit = perform TakeSamples samples in
   let binding = bind samples in
-  box [0, 40] samples as warm in
   let collected = collect (elute (final_wash (clear (separate binding)))) in
-  unbox warm as warm_samples in
-  perform Transfer warm_samples;
+  unbox permit as warm in
+  perform Transfer (warm, samples);
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
@@ -171,5 +178,26 @@ let wash_off_magnet (soaking : [{AddEthanol; idle [1/2, 3/2]}]beads) =
   unbox soaking as beads in
   perform RemoveEthanol ();
   box {AddEthanol; idle [1/2, 3/2]; RemoveEthanol} beads
+
+(* Correctly rejected by the typechecker: the permit is unboxed when the
+   samples are taken out of the cold and kept unboxed across the steps:
+
+     Typing error: Variable `warm` is used with grade `{AddBeads; idle 7.5;
+       MagnetOn; ...; MagnetOn; idle 2.5}` accumulated since it was bound,
+       but its type `warm` is not eternal
+*)
+let purification_stale_permit (samples : sample) =
+  let permit = perform TakeSamples samples in
+  unbox permit as warm in
+  let binding = bind samples in
+  let collected =
+    collect (elute (final_wash (wash (clear (separate binding)))))
+  in
+  perform Transfer (warm, samples);
+  unbox collected as cool in
+  let cooling = cool () in
+  delay 7/2;
+  unbox cooling as eluates in
+  perform AddMasterMix eluates
 
 run purification_generous "samples"

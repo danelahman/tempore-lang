@@ -400,7 +400,8 @@ errors nor warnings.
 
 The bead purification by steps that unbox and rebox the beads: boxes generate
 no actions, so the protocol performs only the operations and the delays of
-the steps, and the binding function of AddBeads returns the beads.
+the steps; the binding function of TakeSamples returns the permit, and that
+of AddBeads the beads.
 
   $ ../../tempore --grades timed-regex-interval-rational --emit-opentrons purification.py \
   >   --bind $examples/purification_bindings.py --time-unit minutes $examples/purification.tpe
@@ -409,7 +410,10 @@ the steps, and the binding function of AddBeads returns the beads.
   requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
   load_labware('opentrons_flex_96_tiprack_200ul', 'B3')
   load_labware('nest_12_reservoir_15ml', 'D1')
-  load_labware('nest_96_wellplate_100ul_pcr_full_skirt', 'D2')
+  load_module('temperature module gen2', 'C3')
+  temperature module gen2.load_adapter('opentrons_96_well_aluminum_block')
+  opentrons_96_well_aluminum_block.load_labware('nest_96_wellplate_100ul_pcr_full_skirt', label='samples')
+  temperature module gen2.set_temperature(4)
   load_module('temperature module gen2', 'D3')
   temperature module gen2.load_adapter('opentrons_96_well_aluminum_block')
   opentrons_96_well_aluminum_block.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt', label='eluates')
@@ -418,48 +422,50 @@ the steps, and the binding function of AddBeads returns the beads.
   load_trash_bin('A3')
   load_instrument('flex_1channel_1000', 'left', tip_racks=[opentrons_flex_96_tiprack_200ul in B3])
   comment: Tempore run 1
-  pipette.transfer(50, A1 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 40), new_tip='always')
-  comment: Tempore timeline: At 0 s: operation `AddBeads` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore timeline: At 90 s: delay of 450 s
+  move_labware(nest_96_wellplate_100ul_pcr_full_skirt in opentrons_96_well_aluminum_block, 'D2', use_gripper=True)
+  comment: Tempore timeline: At 0 s: operation `TakeSamples` took 30 s, within its running-time bounds (0, 60] s
+  pipette.transfer(50, A1 of D1, [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], mix_after=(5, 40), new_tip='always')
+  comment: Tempore timeline: At 30 s: operation `AddBeads` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 120 s: delay of 450 s
   delay(seconds=450.0)
-  move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
-  comment: Tempore timeline: At 540 s: operation `MagnetOn` took 30 s, within its running-time bounds (0, 60] s
-  comment: Tempore timeline: At 570 s: delay of 240 s
+  move_labware(nest_96_wellplate_100ul_pcr_full_skirt in opentrons_96_well_aluminum_block, magneticBlockV1, use_gripper=True)
+  comment: Tempore timeline: At 570 s: operation `MagnetOn` took 30 s, within its running-time bounds (0, 60] s
+  comment: Tempore timeline: At 600 s: delay of 240 s
   delay(seconds=240.0)
-  pipette.transfer(80, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
-  comment: Tempore timeline: At 810 s: operation `RemoveSupernatant` took 90 s, within its running-time bounds [60, 120] s
-  pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='once')
-  comment: Tempore timeline: At 900 s: operation `AddEthanol` took 45 s, within its running-time bounds (0, 60] s
-  comment: Tempore timeline: At 945 s: delay of 60 s
+  pipette.transfer(80, [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], A12 of D1, new_tip='always')
+  comment: Tempore timeline: At 840 s: operation `RemoveSupernatant` took 90 s, within its running-time bounds [60, 120] s
+  pipette.transfer(150, A2 of D1, [top of A1 of opentrons_96_well_aluminum_block, top of B1 of opentrons_96_well_aluminum_block, top of C1 of opentrons_96_well_aluminum_block, top of D1 of opentrons_96_well_aluminum_block], new_tip='once')
+  comment: Tempore timeline: At 930 s: operation `AddEthanol` took 45 s, within its running-time bounds (0, 60] s
+  comment: Tempore timeline: At 975 s: delay of 60 s
   delay(seconds=60.0)
-  pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
-  comment: Tempore timeline: At 1005 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
-  pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='once')
-  comment: Tempore timeline: At 1095 s: operation `AddEthanol` took 45 s, within its running-time bounds (0, 60] s
-  comment: Tempore timeline: At 1140 s: delay of 45 s
+  pipette.transfer(150, [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], A12 of D1, new_tip='always')
+  comment: Tempore timeline: At 1035 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
+  pipette.transfer(150, A2 of D1, [top of A1 of opentrons_96_well_aluminum_block, top of B1 of opentrons_96_well_aluminum_block, top of C1 of opentrons_96_well_aluminum_block, top of D1 of opentrons_96_well_aluminum_block], new_tip='once')
+  comment: Tempore timeline: At 1125 s: operation `AddEthanol` took 45 s, within its running-time bounds (0, 60] s
+  comment: Tempore timeline: At 1170 s: delay of 45 s
   delay(seconds=45.0)
-  pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
-  comment: Tempore timeline: At 1185 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
-  pipette.transfer(10, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
-  comment: Tempore timeline: At 1275 s: operation `RemoveResidualEthanol` took 45 s, within its running-time bounds (0, 60] s
-  comment: Tempore timeline: At 1320 s: delay of 210 s
+  pipette.transfer(150, [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], A12 of D1, new_tip='always')
+  comment: Tempore timeline: At 1215 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
+  pipette.transfer(10, [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], A12 of D1, new_tip='always')
+  comment: Tempore timeline: At 1305 s: operation `RemoveResidualEthanol` took 45 s, within its running-time bounds (0, 60] s
+  comment: Tempore timeline: At 1350 s: delay of 210 s
   delay(seconds=210.0)
-  move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, 'D2', use_gripper=True)
-  comment: Tempore timeline: At 1530 s: operation `MagnetOff` took 30 s, within its running-time bounds (0, 60] s
-  pipette.transfer(25, A3 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 20), new_tip='always')
-  comment: Tempore timeline: At 1560 s: operation `EluteDNA` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore timeline: At 1650 s: delay of 180 s
+  move_labware(nest_96_wellplate_100ul_pcr_full_skirt in opentrons_96_well_aluminum_block, 'D2', use_gripper=True)
+  comment: Tempore timeline: At 1560 s: operation `MagnetOff` took 30 s, within its running-time bounds (0, 60] s
+  pipette.transfer(25, A3 of D1, [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], mix_after=(5, 20), new_tip='always')
+  comment: Tempore timeline: At 1590 s: operation `EluteDNA` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 1680 s: delay of 180 s
   delay(seconds=180.0)
-  move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
-  comment: Tempore timeline: At 1830 s: operation `MagnetOn` took 30 s, within its running-time bounds (0, 60] s
-  comment: Tempore timeline: At 1860 s: delay of 150 s
+  move_labware(nest_96_wellplate_100ul_pcr_full_skirt in opentrons_96_well_aluminum_block, magneticBlockV1, use_gripper=True)
+  comment: Tempore timeline: At 1860 s: operation `MagnetOn` took 30 s, within its running-time bounds (0, 60] s
+  comment: Tempore timeline: At 1890 s: delay of 150 s
   delay(seconds=150.0)
-  pipette.transfer(20, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], new_tip='always')
-  comment: Tempore timeline: At 2010 s: operation `Transfer` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore timeline: At 2100 s: delay of 210 s
+  pipette.transfer(20, [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], new_tip='always')
+  comment: Tempore timeline: At 2040 s: operation `Transfer` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 2130 s: delay of 210 s
   delay(seconds=210.0)
   pipette.transfer(25, A4 of D1, [A1 of opentrons_96_well_aluminum_block, B1 of opentrons_96_well_aluminum_block, C1 of opentrons_96_well_aluminum_block, D1 of opentrons_96_well_aluminum_block], mix_after=(3, 30), new_tip='always')
-  comment: Tempore timeline: At 2310 s: operation `AddMasterMix` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 2340 s: operation `AddMasterMix` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore run 1 returns ()
 
 The rejected variants of the examples.
@@ -471,9 +477,10 @@ The rejected variants of the examples.
   $ ../../tempore --grades timed-regex-interval-rational --typecheck-only $examples/cleanup_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `k` is unboxed with grade `{RemoveEthanol; idle 1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; 1; RemoveEthanol}`
   $ ../../tempore --grades timed-regex-interval-rational --typecheck-only $examples/purification_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `warm` is unboxed with grade `{idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
+  Typing error: Variable `permit` is unboxed with grade `{AddBeads; idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
   Typing error: The resource inequality `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol} <= {AddEthanol; idle [0.5, 1.5]}` does not hold
   Typing error: Variable `soaking` is unboxed with grade `{AddEthanol; MagnetOff; idle 0.5}` accumulated since it was bound, which is not below its box grade `{AddEthanol; idle [0.5, 1.5]}`
+  Typing error: Variable `warm` is used with grade `{AddBeads; idle 7.5; MagnetOn; idle 4; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 3.5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, but its type `warm` is not eternal
   $ ../../tempore --grades time-upper-bound-lattice --typecheck-only $examples/contamination_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `article_tip` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(∞, Low)`
   $ for name in reagents staggered beads stopread; do

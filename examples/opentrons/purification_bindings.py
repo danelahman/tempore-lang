@@ -1,16 +1,18 @@
 # Binding functions of the operations of purification.tpe for the Opentrons
 # Flex.
 #
-# The samples are the first four wells of a PCR plate on the deck, moved onto
-# and off a magnetic block by the gripper. The reservoir holds the beads (A1),
-# the ethanol (A2), the elution buffer (A3) and the PCR master mix (A4), and
+# The samples are the first four wells of a PCR plate on the aluminium block
+# of a temperature module held at 4 °C, moved by the gripper to the deck and
+# onto and off a magnetic block. The reservoir holds the beads (A1), the
+# ethanol (A2), the elution buffer (A3) and the PCR master mix (A4), and
 # receives the liquid waste (A12); the eluates go to a PCR plate on the
-# aluminium block of the temperature module, held at 4 °C, where the master
-# mix is mixed into them. The ethanol is added to every sample from
+# aluminium block of a second temperature module, held at 4 °C, where the
+# master mix is mixed into them. The ethanol is added to every sample from
 # above with one tip; every other liquid is moved with a new tip for each
-# sample. Each function declares the nominal duration of its action in
-# seconds by tempore_elapse, the duration the virtual clock of a simulation
-# advances by.
+# sample. TakeSamples returns the permit Warm, a tempore_Con with the tag of
+# the label Warm, and Transfer receives it paired with the samples. Each
+# function declares the nominal duration of its action in seconds by
+# tempore_elapse, the duration the virtual clock of a simulation advances by.
 
 SAMPLES = ["A1", "B1", "C1", "D1"]
 
@@ -18,7 +20,10 @@ SAMPLES = ["A1", "B1", "C1", "D1"]
 def setup(protocol):
     tips = protocol.load_labware("opentrons_flex_96_tiprack_200ul", "B3")
     reservoir = protocol.load_labware("nest_12_reservoir_15ml", "D1")
-    plate = protocol.load_labware("nest_96_wellplate_100ul_pcr_full_skirt", "D2")
+    cold = protocol.load_module("temperature module gen2", "C3")
+    cold_block = cold.load_adapter("opentrons_96_well_aluminum_block")
+    plate = cold_block.load_labware("nest_96_wellplate_100ul_pcr_full_skirt", label="samples")
+    cold.set_temperature(4)
     module = protocol.load_module("temperature module gen2", "D3")
     block = module.load_adapter("opentrons_96_well_aluminum_block")
     eluates = block.load_labware("opentrons_96_wellplate_200ul_pcr_full_skirt", label="eluates")
@@ -35,6 +40,12 @@ def setup(protocol):
         "samples": [plate[well] for well in SAMPLES],
         "eluates": [eluates[well] for well in SAMPLES],
     }
+
+
+def TakeSamples(ctx, samples):
+    ctx["protocol"].move_labware(ctx["plate"], "D2", use_gripper=True)
+    tempore_elapse(30)
+    return tempore_Con(tempore_LABELS.index("Warm"), None)
 
 
 def AddBeads(ctx, samples):
@@ -85,7 +96,7 @@ def EluteDNA(ctx, beads):
     return ()
 
 
-def Transfer(ctx, samples):
+def Transfer(ctx, warm_and_samples):
     ctx["pipette"].transfer(20, ctx["samples"], ctx["eluates"], new_tip="always")
     tempore_elapse(90)
     return ()
