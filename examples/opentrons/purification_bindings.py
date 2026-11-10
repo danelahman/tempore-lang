@@ -9,10 +9,11 @@
 # aluminium block of a second temperature module, held at 4 °C, where the
 # master mix is mixed into them. The ethanol is added to every sample from
 # above with one tip; every other liquid is moved with a new tip for each
-# sample. TakeSamples returns the permit Warm, a tempore_Con with the tag of
-# the label Warm, and Transfer receives it paired with the samples. Each
-# function declares the nominal duration of its action in seconds by
-# tempore_elapse, the duration the virtual clock of a simulation advances by.
+# sample. TakeSamples returns the samples paired with the permit Warm, a
+# tempore_Con with the tag of the label Warm, and Transfer receives the
+# permit alone. Each function declares the nominal duration of its action in
+# seconds by tempore_elapse, the duration the virtual clock of a simulation
+# advances by.
 
 SAMPLES = ["A1", "B1", "C1", "D1"]
 
@@ -42,10 +43,10 @@ def setup(protocol):
     }
 
 
-def TakeSamples(ctx, samples):
+def TakeSamples(ctx, unit):
     ctx["protocol"].move_labware(ctx["plate"], "D2", use_gripper=True)
     tempore_elapse(30)
-    return tempore_Con(tempore_LABELS.index("Warm"), None)
+    return ("samples", tempore_Con(tempore_LABELS.index("Warm"), None))
 
 
 def AddBeads(ctx, samples):
@@ -96,7 +97,7 @@ def EluteDNA(ctx, beads):
     return ()
 
 
-def Transfer(ctx, warm_and_samples):
+def Transfer(ctx, warm):
     ctx["pipette"].transfer(20, ctx["samples"], ctx["eluates"], new_tip="always")
     tempore_elapse(90)
     return ()

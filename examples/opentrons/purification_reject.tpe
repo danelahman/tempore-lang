@@ -21,9 +21,12 @@ type beads = string
 
 noneternal type warm = Warm
 
-operation TakeSamples : sample ~> [[0, 40]]warm ! {TakeSamples}
+operation TakeSamples : unit ~> sample * [[0, 40]]warm ! {TakeSamples}
   within (0, 1]
-default TakeSamples samples = delay 1/2; box [0, 40] Warm
+default TakeSamples () =
+  delay 1/2;
+  box [0, 40] Warm as permit in
+  ("samples", permit)
 
 operation AddBeads : sample ~> beads ! {AddBeads} within [1, 2]
 default AddBeads samples = delay 3/2; "beads"
@@ -51,8 +54,8 @@ default RemoveResidualEthanol beads = delay 3/4
 operation EluteDNA : beads ~> unit ! {EluteDNA} within [1, 2]
 default EluteDNA beads = delay 3/2
 
-operation Transfer : warm * sample ~> unit ! {Transfer} within [1, 2]
-default Transfer (warm, samples) = delay 3/2
+operation Transfer : warm ~> unit ! {Transfer} within [1, 2]
+default Transfer warm = delay 3/2
 
 operation AddMasterMix : beads ~> unit ! {AddMasterMix} within [1, 2]
 default AddMasterMix eluates = delay 3/2
@@ -129,15 +132,15 @@ let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
   perform EluteDNA beads;
   box {[2, 5]; MagnetOn; [2, 5]} beads
 
-let purification_generous (samples : sample) =
-  let permit = perform TakeSamples samples in
+let purification_generous () =
+  let (samples, permit) = perform TakeSamples () in
   let binding = bind samples in
   let collected =
     collect
       (elute_long (final_wash (wash (clear_long (separate_long binding)))))
   in
   unbox permit as warm in
-  perform Transfer (warm, samples);
+  perform Transfer warm;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
@@ -152,12 +155,12 @@ let purification_generous (samples : sample) =
        `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol} <=
        {AddEthanol; idle [0.5, 1.5]}` does not hold
 *)
-let purification_one_wash (samples : sample) =
-  let permit = perform TakeSamples samples in
+let purification_one_wash () =
+  let (samples, permit) = perform TakeSamples () in
   let binding = bind samples in
   let collected = collect (elute (final_wash (clear (separate binding)))) in
   unbox permit as warm in
-  perform Transfer (warm, samples);
+  perform Transfer warm;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
@@ -186,18 +189,18 @@ let wash_off_magnet (soaking : [{AddEthanol; idle [1/2, 3/2]}]beads) =
        MagnetOn; ...; MagnetOn; idle 2.5}` accumulated since it was bound,
        but its type `warm` is not eternal
 *)
-let purification_stale_permit (samples : sample) =
-  let permit = perform TakeSamples samples in
+let purification_stale_permit () =
+  let (samples, permit) = perform TakeSamples () in
   unbox permit as warm in
   let binding = bind samples in
   let collected =
     collect (elute (final_wash (wash (clear (separate binding)))))
   in
-  perform Transfer (warm, samples);
+  perform Transfer warm;
   unbox collected as cool in
   let cooling = cool () in
   delay 7/2;
   unbox cooling as eluates in
   perform AddMasterMix eluates
 
-run purification_generous "samples"
+run purification_generous ()

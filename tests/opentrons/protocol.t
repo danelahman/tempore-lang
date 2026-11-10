@@ -400,8 +400,8 @@ errors nor warnings.
 
 The bead purification by steps that unbox and rebox the beads: boxes generate
 no actions, so the protocol performs only the operations and the delays of
-the steps; the binding function of TakeSamples returns the permit, and that
-of AddBeads the beads.
+the steps; the binding function of TakeSamples returns the samples paired
+with the permit, and that of AddBeads the beads.
 
   $ ../../tempore --grades timed-regex-interval-rational --emit-opentrons purification.py \
   >   --bind $examples/purification_bindings.py --time-unit minutes $examples/purification.tpe
