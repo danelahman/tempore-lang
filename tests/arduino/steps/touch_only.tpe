@@ -13,10 +13,8 @@ let rec wait_touch (n : nat) (since : nat) (c : counter) : counter * key
       else if t - since > window then (c, Elsewhere)
       else wait_touch m since c
 
-let respond_touch (c : counter) (k : key) =
+let respond_touch (c : counter) (tap : tap) =
   let _, _, _, _, _, _, _, since = c in
-  box ((ReadImu, [0, 50], [0, 50], [0, 50]),
-       (ReadTouch, [300, ∞), [0, ∞), [0, ∞))) k as tap in
   let c = settle (prompt c true) in
   let c, second = wait_touch 100 since c in
   unbox tap as first in

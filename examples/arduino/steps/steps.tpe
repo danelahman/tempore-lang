@@ -217,19 +217,20 @@ let bar (a : float) = nat_of_float (a *. 160.0)
    along a line, the time of the reading at which it rose, and the time of
    the second reading.
 
-   The filter after the first reading is boxed until the second, with a
-   count: exactly one reading, started 10 to 43 ms after the box, and the
-   decision at its end. The unit samples at 100 Hz, and a reading within
-   10 ms of another may return the same sample; the decision of the round,
-   the rise and the test of the line, is thus taken after a new sample.
+   The box of the filter after the first reading, unboxed after the second,
+   checks the schedule of the body: exactly one reading, started 10 to 43 ms
+   after the box, and the decision at its end. The unit samples at 100 Hz,
+   and a reading within 10 ms of another may return the same sample; the
+   decision of the round, the rise and the test of the line, is thus taken
+   after a new sample.
 
-   The decision is boxed until it is paired with the time of the second
-   reading, with exactly one ReadClock, started at most 0.1 ms after the box
-   and ended within 0.05 ms. A rise at the second reading is thus timed by
-   it, and one at the first by the time read after the first; the time of
-   the round alone, 10.2 to 44.55 ms after that time, would let the gaps
-   between rises err by up to 34.35 ms, across the shortest gap of
-   250 ms. *)
+   The box of the decision checks that it is used within its window: exactly
+   one ReadClock before it is paired with the time of the second reading,
+   started at most 0.1 ms after the box and ended within 0.05 ms. A rise at
+   the second reading is thus timed by it, and one at the first by the time
+   read after the first; the time of the round alone, 10.2 to 44.55 ms after
+   that time, would let the gaps between rises err by up to 34.35 ms, across
+   the shortest gap of 250 ms. *)
 let sense (f : filter) =
   let x = reading () in
   let before = perform ReadClock () in
@@ -515,28 +516,30 @@ let reset ((f, rhythm, _, (s, _, _, _, c, _), turn, touch, _, now) : counter)
   confirmed
 
 (* Correctly accepted by the typechecker: the response to a tap begun on the
-   button k, with the prompt "Tap Reset again to reset" and the button
-   active, while the rounds go on. The button is boxed until the reset, over
-   the recursive call of 'wait', with the product of two entries: readings
-   of the unit at least every 50 ms, so that no step is missed while the
-   prompt is shown, and no reading of the touch screen within 300 ms, longer
-   than a tap, so that the tap and the bounces of its contact are not read
-   as a second. The fifteen rounds of 'settle' read none, at least 306 ms;
-   fourteen, at least 285.6 ms, are rejected. A second tap on the same
-   button at most 'window' ms after the first resets the count; a tap on the
-   other button, or none, clears the prompt, and a touch elsewhere does
-   nothing. The boxes of each round, in 'sense', are bound and unboxed
-   within this one, each checked against its own grade.
+   button in the box 'tap', with the prompt "Tap Reset again to reset" and
+   the button active, while the rounds go on. The button is boxed by the
+   caller at the tap, and unboxed after the recursive call of 'wait', with
+   the product of two entries: readings of the unit at least every 50 ms, so
+   that no step is missed while the prompt is shown, and no reading of the
+   touch screen within 300 ms, longer than a tap, so that the tap and the
+   bounces of its contact are not read as a second. The fifteen rounds of
+   'settle' read none, at least 306 ms; fourteen, at least 285.6 ms, are
+   rejected. A second tap on the same button at most 'window' ms after the
+   first resets the count; a tap on the other button, or none, clears the
+   prompt, and a touch elsewhere does nothing. The boxes of each round, in
+   'sense', are bound and unboxed within this one, each checked against its
+   own grade.
 
    The steps found while the prompt is shown are shown at once and passed to
    CountStep with the next count, or cleared by the reset: a rate limit of
    the counts is not closed under sequencing, so that the loop of the
    counter could not follow the recursive call with a count, while the
    invariant of no count is. *)
-let respond (c : counter) (k : key) =
+type tap = [((ReadImu, [0, 50], [0, 50], [0, 50]),
+             (ReadTouch, [300, ∞), [0, ∞), [0, ∞)))]key
+
+let respond (c : counter) (tap : tap) =
   let _, _, _, _, _, _, _, since = c in
-  box ((ReadImu, [0, 50], [0, 50], [0, 50]),
-       (ReadTouch, [300, ∞), [0, ∞), [0, ∞))) k as tap in
   let c = settle (prompt c true) in
   let c, second = wait 100 since c in
   unbox tap as first in
@@ -579,7 +582,11 @@ let rec listen (n : nat) (c : counter) : counter
       let k = tapped c in
       if k = Calibration then c
       else if k = Reset then
-        let c = respond c k in
+        let c =
+          respond c
+            (box ((ReadImu, [0, 50], [0, 50], [0, 50]),
+                  (ReadTouch, [300, ∞), [0, ∞), [0, ∞))) k)
+        in
         listen m c
       else listen m c
 
@@ -618,13 +625,14 @@ let resume (g : vector) ((_, _, steps, _, turn, _, _, now) : counter) :
    admits.
 
    The sampling: with "Hold still", "Calibrating: not counting" and the
-   Calibrate button active, the number of samples is boxed with exactly 50
-   readings, the starts of consecutive readings 10 to 45 ms apart, and at
-   most 50 ms before the first and after the last; the box is returned, and
-   unboxed where the mean is formed. The mean thus divides the sum by the
-   number of readings taken, and the unit, at 100 Hz, returns a new sample
-   at each. A count is not closed under recursion, whose grade states none,
-   so the readings are written out.
+   Calibrate button active, the number of samples is boxed; the box,
+   returned and unboxed where the mean is formed, checks that the body takes
+   exactly 50 readings, the starts of consecutive readings 10 to 45 ms
+   apart, and at most 50 ms before the first and after the last, before the
+   mean is computed. The mean thus divides the sum by the number of readings
+   taken, and the unit, at 100 Hz, returns a new sample at each. A count is
+   not closed under recursion, whose grade states none, so the readings are
+   written out.
 
    The readiness: the gain, 1 g over the magnitude of the mean, and the
    direction of gravity are boxed after the screen of the counter is drawn,
