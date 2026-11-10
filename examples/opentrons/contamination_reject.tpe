@@ -14,18 +14,14 @@
 noneternal type tip = Tip
 type column = nat
 
-operation ChangeTip : unit ~> unit ! (1, Low)
-default ChangeTip () = delay 1
+operation ChangeTip : unit ~> [(∞, Low)]tip ! (1, Low)
+default ChangeTip () = delay 1; box (∞, Low) Tip
 
 operation AddWater : tip * column ~> unit ! (1, Low)
 default AddWater (t, column) = delay 1
 
 operation AddArticle : tip * column ~> unit ! (1, High)
 default AddArticle (t, column) = delay 1
-
-let new_tip () =
-  perform ChangeTip ();
-  box (∞, Low) Tip
 
 (* Correctly rejected by the typechecker: the tip that added the test article
    is used again for the water control:
@@ -37,7 +33,7 @@ let new_tip () =
        Note: the resource inequality `(1, High) <= (∞, Low)` does not hold
 *)
 let shared_tip () =
-  let article_tip = new_tip () in
+  let article_tip = perform ChangeTip () in
   unbox article_tip as t in
   perform AddArticle (t, 1);
   unbox article_tip as t in

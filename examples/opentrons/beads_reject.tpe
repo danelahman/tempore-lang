@@ -1,4 +1,5 @@
-(* As the bead clean-up example, with the beads air-dried for too long.
+(* As the bead clean-up example, with the beads air-dried for too long, and
+   moved off the magnet by their name from before the air-dry.
 
    Run this example with the 'time-interval' grade algebra, e.g.
 
@@ -9,31 +10,46 @@
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
 
-type beads = string
+noneternal type beads = Beads of string
 
-operation MagnetOff : beads ~> unit ! [0, 1]
-default MagnetOff beads = ()
+operation MagnetOff : beads ~> beads ! [0, 1]
+default MagnetOff (Beads name) = Beads name
 
 operation FinalWash : beads ~> [[2, 3]]beads ! [1, 2]
-default FinalWash beads = delay 1; box [2, 3] beads
+default FinalWash (Beads name) = delay 1; box [2, 3] (Beads name)
 
-operation EluteDNA : beads ~> unit ! [1, 2]
-default EluteDNA beads = delay 1
+operation EluteDNA : beads ~> [[2, ∞)]beads ! [1, 2]
+default EluteDNA (Beads name) = delay 1; box [2, ∞) (Beads name)
 
-(* Correctly rejected by the typechecker: the elution buffer is added four to
-   five minutes after the last ethanol wash, when the beads are overdried:
+(* Correctly rejected by the typechecker: the plate is moved off the magnet
+   four minutes after the last ethanol wash, when the beads are overdried:
 
-     Typing error: Variable `drying` is unboxed with grade `[4, 5]`
+     Typing error: Variable `drying` is unboxed with grade `[4, 4]`
        accumulated since it was bound, which is not below its box grade
        `[2, 3]`
        ...
-       Note: the resource inequality `[4, 5] <= [2, 3]` does not hold
+       Note: the resource inequality `[4, 4] <= [2, 3]` does not hold
 *)
-let overdried (beads : beads) =
-  let drying = perform FinalWash beads in
+let overdried (washed : beads) =
+  let drying = perform FinalWash washed in
   delay 4;
-  perform MagnetOff beads;
   unbox drying as dried in
-  perform EluteDNA dried
+  let released = perform MagnetOff dried in
+  perform EluteDNA released
 
-run overdried "beads"
+(* Correctly rejected by the typechecker: the beads air-drying in the box of
+   the last wash are moved off the magnet by the name they had before it,
+   four minutes after it, and the type beads is not eternal:
+
+     Typing error: Variable `washed` is used with grade `[5, 6]` accumulated
+       since it was bound, but its type `beads` is not eternal
+       ...
+       Note: the resource inequality `[5, 6] <= [0, 0]` does not hold
+*)
+let overdried_unboxed (washed : beads) =
+  let drying = perform FinalWash washed in
+  delay 4;
+  let released = perform MagnetOff washed in
+  perform EluteDNA released
+
+run overdried (Beads "beads")

@@ -4,11 +4,13 @@
 # column of a PCR plate, go to the wells of its first column. The reservoir
 # holds the wash buffer (A2), the detection antibody concentrate and diluent
 # (A3, A4), the substrate (A5) and the stop solution (A6), and receives the
-# liquid waste (A12). A plate is passed as its name. Dilute returns the
-# Tempore value Reagent "detection antibody" and Develop the value Developed
-# name, each a tempore_Con with the tag of its label, which Stop unwraps. Each
-# function declares the nominal duration of its action in seconds by
-# tempore_elapse, the duration the virtual clock of a simulation advances by.
+# liquid waste (A12). A plate is passed as the Tempore value Plate name, a
+# tempore_Con whose argument is its name; AddSample, Wash and Detect return the
+# plate they are given. Dilute returns the Tempore value Reagent "detection
+# antibody" and Develop the value Developed plate, each a tempore_Con with the
+# tag of its label, which Stop unwraps. Each function declares the nominal
+# duration of its action in seconds by tempore_elapse, the duration the virtual
+# clock of a simulation advances by.
 
 WELLS = ["A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1"]
 
@@ -73,6 +75,6 @@ def Stop(ctx, developed):
 
 
 def Read(ctx, plate):
-    ctx["protocol"].comment("Read the absorbances of %s at 450 nm" % plate)
+    ctx["protocol"].comment("Read the absorbances of %s at 450 nm" % plate.arg)
     tempore_elapse(90)
     return 0

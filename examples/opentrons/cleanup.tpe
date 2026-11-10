@@ -41,10 +41,12 @@
 
    The atomic operations declare their running times and have binding
    functions; the compound operations have neither, and are performed by the
-   handler 'cleanup_steps'. The beads are named by a string, of the type
-   beads. *)
+   handler 'cleanup_steps'. The beads are a value of the type beads, which is
+   not eternal: the compound operations take the beads and return them,
+   boxed for the wait that follows, and the beads cross time only in such a
+   box. The atomic operations act on the plate. *)
 
-type beads = string
+noneternal type beads = Beads of string
 
 (* The atomic operations. Mixing the beads into the samples, removing the
    supernatant or the ethanol, adding the elution buffer and transferring the
@@ -78,13 +80,16 @@ default Transfer () = delay 2
 (* The compound operations, their running-time bounds derived from their
    grades. Binding adds the beads, lets them bind the sample for five to ten
    minutes and engages the magnet; the beads it returns settle on the magnet
-   for three to five minutes. An ethanol wash adds the ethanol and removes it
-   after a minute. The elution resuspends the beads off the magnet in the
-   buffer for two to five minutes, engages the magnet and, after three to five
-   minutes, transfers the eluates. The upper bounds are the example's own. *)
+   for three to five minutes. The wash removes the supernatant and washes the
+   beads in exactly two ethanol washes, each of which adds the ethanol and
+   removes it after a minute; the beads it returns air-dry for two to three
+   minutes. The elution resuspends the beads off the magnet in the buffer for
+   two to five minutes, engages the magnet and, after three to five minutes,
+   transfers the eluates. The upper bounds are the example's own. *)
 operation Bind : beads ~> [[3, 5]] beads ! {AddBeads; [5, 10]; MagnetOn}
 
-operation EthanolWash : unit ~> unit ! {AddEthanol; 1; RemoveEthanol}
+operation Wash : beads ~> [[2, 3]] beads
+  ! {RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}
 
 operation EluteDNA : beads ~> beads
   ! {MagnetOff; AddBuffer; [2, 5]; MagnetOn; [3, 5]; Transfer}
@@ -95,58 +100,86 @@ operation EluteDNA : beads ~> beads
 let cleanup_steps =
   handler
   | x -> x
-  | Bind beads k ->
+  | Bind (Beads name) k ->
       perform AddBeads ();
       delay 7;
       perform MagnetOn ();
-      continue k with (box [3, 5] beads)
-  | EthanolWash () k ->
+      continue k with (box [3, 5] (Beads name))
+  | Wash (Beads name) k ->
+      perform RemoveLiquid ();
       perform AddEthanol ();
       delay 1;
       perform RemoveEthanol ();
-      continue k with ()
-  | EluteDNA beads k ->
+      perform AddEthanol ();
+      delay 1;
+      perform RemoveEthanol ();
+      continue k with (box [2, 3] (Beads name))
+  | EluteDNA (Beads name) k ->
       perform MagnetOff ();
       perform AddBuffer ();
       delay 3;
       perform MagnetOn ();
       delay 4;
       perform Transfer ();
-      continue k with beads
+      continue k with (Beads name)
 
-(* The protocol. The supernatant is removed once the beads have settled. The
-   washed beads may take the elution buffer after exactly two ethanol washes
-   and an air-dry of two to three minutes. *)
+(* The protocol. The beads are washed once they have settled, and take the
+   elution buffer after an air-dry of two to three minutes. *)
 let cleanup (beads : beads) =
   let settling = perform Bind beads in
   delay 4;
   unbox settling as settled in
-  perform RemoveLiquid ();
-  box {(AddEthanol; 1; RemoveEthanol)^2; [2, 3]} settled as washed in
-  perform EthanolWash ();
-  perform EthanolWash ();
+  let drying = perform Wash settled in
   delay 3;
-  unbox washed as dried in
+  unbox drying as dried in
   perform EluteDNA dried
 
-(* Correctly rejected by the typechecker: the ethanol wash removes the ethanol
-   without the minute of washing:
+(* Correctly rejected by the typechecker: the first ethanol wash removes the
+   ethanol without the minute of washing:
 
-     Typing error: Variable `k` is unboxed with grade
-       `{AddEthanol; RemoveEthanol}` accumulated since it was bound, which is
-       not below its box grade `{AddEthanol; 1; RemoveEthanol}`
-       Note: the resource inequality
-       `{AddEthanol; RemoveEthanol} <= {AddEthanol; 1; RemoveEthanol}` does
-       not hold
+     Typing error: Variable `k` is unboxed with grade `{RemoveLiquid;
+       AddEthanol; RemoveEthanol; AddEthanol; idle 1; RemoveEthanol}`
+       accumulated since it was bound, which is not below its box grade
+       `{RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}`
+       Note: the resource inequality `{RemoveLiquid; AddEthanol;
+       RemoveEthanol; AddEthanol; idle 1; RemoveEthanol} <= {RemoveLiquid;
+       (AddEthanol; 1; RemoveEthanol)^2}` does not hold
 *)
 (*
 let no_wait =
   handler
   | x -> x
-  | EthanolWash () k ->
+  | Wash (Beads name) k ->
+      perform RemoveLiquid ();
       perform AddEthanol ();
       perform RemoveEthanol ();
-      continue k with ()
+      perform AddEthanol ();
+      delay 1;
+      perform RemoveEthanol ();
+      continue k with (box [2, 3] (Beads name))
 *)
 
-run handle cleanup "beads" with cleanup_steps
+(* Correctly rejected by the typechecker: the wash performs one ethanol wash
+   in place of two:
+
+     Typing error: Variable `k` is unboxed with grade `{RemoveLiquid;
+       AddEthanol; idle 1; RemoveEthanol}` accumulated since it was bound,
+       which is not below its box grade `{RemoveLiquid; (AddEthanol; 1;
+       RemoveEthanol)^2}`
+       Note: the resource inequality `{RemoveLiquid; AddEthanol; idle 1;
+       RemoveEthanol} <= {RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}`
+       does not hold
+*)
+(*
+let one_wash =
+  handler
+  | x -> x
+  | Wash (Beads name) k ->
+      perform RemoveLiquid ();
+      perform AddEthanol ();
+      delay 1;
+      perform RemoveEthanol ();
+      continue k with (box [2, 3] (Beads name))
+*)
+
+run handle cleanup (Beads "beads") with cleanup_steps

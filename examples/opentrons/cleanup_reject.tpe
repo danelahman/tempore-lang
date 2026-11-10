@@ -1,5 +1,6 @@
-(* As the bead clean-up by compound operations, with an ethanol wash that
-   removes the ethanol before adding it.
+(* As the bead clean-up by compound operations, with ethanol washes that
+   remove the ethanol before adding it, and the elution buffer added to the
+   beads by their name from before the wash.
 
    Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
@@ -15,32 +16,74 @@
      - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
+noneternal type beads = Beads of string
+
+operation AddBeads : unit ~> unit ! {AddBeads} within [1, 2]
+default AddBeads () = delay 2
+
+operation MagnetOn : unit ~> unit ! {MagnetOn} within (0, 1]
+default MagnetOn () = delay 1
+
+operation MagnetOff : unit ~> unit ! {MagnetOff} within (0, 1]
+default MagnetOff () = delay 1
+
+operation RemoveLiquid : unit ~> unit ! {RemoveLiquid} within [1, 2]
+default RemoveLiquid () = delay 1
+
 operation AddEthanol : unit ~> unit ! {AddEthanol} within (0, 1]
 default AddEthanol () = delay 1
 
 operation RemoveEthanol : unit ~> unit ! {RemoveEthanol} within [1, 2]
 default RemoveEthanol () = delay 2
 
-operation EthanolWash : unit ~> unit ! {AddEthanol; 1; RemoveEthanol}
+operation AddBuffer : unit ~> unit ! {AddBuffer} within [1, 2]
+default AddBuffer () = delay 1
 
-(* Correctly rejected by the typechecker: the case performs the steps of the
-   wash in the reverse order:
+operation Transfer : unit ~> unit ! {Transfer} within [1, 2]
+default Transfer () = delay 2
 
-     Typing error: Variable `k` is unboxed with grade
-       `{RemoveEthanol; idle 1; AddEthanol}` accumulated since it was bound,
-       which is not below its box grade ...
+operation Bind : beads ~> [[3, 5]] beads ! {AddBeads; [5, 10]; MagnetOn}
+
+operation Wash : beads ~> [[2, 3]] beads
+  ! {RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}
+
+operation EluteDNA : beads ~> beads
+  ! {MagnetOff; AddBuffer; [2, 5]; MagnetOn; [3, 5]; Transfer}
+
+(* Correctly rejected by the typechecker: the case performs the steps of
+   each ethanol wash in the reverse order:
+
+     Typing error: Variable `k` is unboxed with grade `{RemoveLiquid;
+       RemoveEthanol; idle 1; AddEthanol; RemoveEthanol; idle 1; AddEthanol}`
+       accumulated since it was bound, which is not below its box grade ...
 *)
 let reversed_wash =
   handler
   | x -> x
-  | EthanolWash () k ->
+  | Wash (Beads name) k ->
+      perform RemoveLiquid ();
       perform RemoveEthanol ();
       delay 1;
       perform AddEthanol ();
-      continue k with ()
+      perform RemoveEthanol ();
+      delay 1;
+      perform AddEthanol ();
+      continue k with (box [2, 3] (Beads name))
 
-let two_washes () =
-  perform EthanolWash ();
-  perform EthanolWash ()
+(* Correctly rejected by the typechecker: the elution buffer is added at once
+   to the beads by the name they had before the wash, and the type beads is
+   not eternal:
 
-run handle two_washes () with reversed_wash
+     Typing error: Variable `settled` is used with grade `{RemoveLiquid;
+       (AddEthanol; 1; RemoveEthanol)^2}` accumulated since it was bound, but
+       its type `beads` is not eternal
+       ...
+*)
+let cleanup_unwashed (beads : beads) =
+  let settling = perform Bind beads in
+  delay 4;
+  unbox settling as settled in
+  let drying = perform Wash settled in
+  perform EluteDNA settled
+
+run handle perform Wash (Beads "beads") with reversed_wash

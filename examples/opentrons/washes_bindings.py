@@ -6,11 +6,12 @@
 # (A12). The beads, the supernatant and the eluates are moved with a new tip
 # for each sample. An ethanol wash adds the ethanol to every sample from above
 # with the tip it finds on the pipette, or a new one, and removes it from each
-# sample with a tip of its own, keeping the last; ChangeTip replaces the tip,
-# and the elution buffer is added with the tip it leaves, then a new tip for
-# each further sample. The context records whether the pipette holds a tip.
-# The beads and the eluates are passed to the functions as the Tempore values
-# of types beads and eluates, which they ignore.
+# sample with a tip of its own, keeping the last; the final wash is an ethanol
+# wash. ChangeTip replaces the tip, and the elution buffer is added with the
+# tip it leaves, then a new tip for each further sample. The context records
+# whether the pipette holds a tip. The beads are passed as the Tempore value
+# Beads name, a tempore_Con whose argument is their name, and every function
+# but Transfer returns the value it is given.
 # Each function declares the nominal duration of its action in seconds by
 # tempore_elapse, the duration the virtual clock of a simulation advances by.
 
@@ -37,28 +38,28 @@ def setup(protocol):
     }
 
 
-def AddBeads(ctx, unit):
+def AddBeads(ctx, beads):
     ctx["pipette"].transfer(50, ctx["reservoir"]["A1"], ctx["samples"], mix_after=(5, 40), new_tip="always")
     tempore_elapse(90)
-    return ()
+    return beads
 
 
-def MagnetOn(ctx, unit):
+def MagnetOn(ctx, beads):
     ctx["protocol"].move_labware(ctx["plate"], ctx["magnet"], use_gripper=True)
     tempore_elapse(30)
-    return ()
+    return beads
 
 
-def MagnetOff(ctx, unit):
+def MagnetOff(ctx, beads):
     ctx["protocol"].move_labware(ctx["plate"], "D2", use_gripper=True)
     tempore_elapse(30)
-    return ()
+    return beads
 
 
 def RemoveLiquid(ctx, beads):
     ctx["pipette"].transfer(80, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(90)
-    return ()
+    return beads
 
 
 def Wash(ctx, beads):
@@ -73,7 +74,11 @@ def Wash(ctx, beads):
             pipette.pick_up_tip()
         pipette.transfer(150, sample, ctx["reservoir"]["A12"], new_tip="never")
     tempore_elapse(90)
-    return ()
+    return beads
+
+
+def FinalWash(ctx, beads):
+    return Wash(ctx, beads)
 
 
 def ChangeTip(ctx, unit):
@@ -94,10 +99,10 @@ def EluteDNA(ctx, beads):
         pipette.drop_tip()
         ctx["tip"] = False
     tempore_elapse(90)
-    return "eluates"
+    return beads
 
 
-def Transfer(ctx, eluates):
+def Transfer(ctx, beads):
     ctx["pipette"].transfer(20, ctx["samples"], ctx["eluates"], new_tip="always")
     tempore_elapse(90)
     return ()

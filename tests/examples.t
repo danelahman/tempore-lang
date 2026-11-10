@@ -1158,17 +1158,19 @@ tests show those runs in detail.
   return ()
   State: [
     [2, 2],
+    { resource_0 ↦ Beads "beads" ! [5, ∞) },
     [5, 5],
-    { resource_0 ↦ "beads" ! [3, ∞) },
+    { resource_1 ↦ Beads "beads" ! [3, ∞) },
     [4, 4],
     [1, 1],
     [2, 2],
     [1, 1],
-    { resource_1 ↦ "beads" ! [2, 3] },
+    { resource_2 ↦ Beads "beads" ! [2, 3] },
     [2, 2],
     [1, 1],
+    { resource_3 ↦ Beads "beads" ! [2, ∞) },
     [2, 2],
-    { resource_2 ↦ "beads" ! [3, ∞) },
+    { resource_4 ↦ Beads "beads" ! [3, ∞) },
     [3, 3],
     [2, 2]
   ]
@@ -1176,23 +1178,37 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/beads_reject.tpe
   ======================================================================
-  File "../examples/opentrons/beads_reject.tpe", lines 36-37, characters 2-24:
+  File "../examples/opentrons/beads_reject.tpe", lines 36-38, characters 2-27:
   36 |   unbox drying as dried in
          ^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `drying` is unboxed with grade `[4, 5]` accumulated since it was bound, which is not below its box grade `[2, 3]`
-    File "../examples/opentrons/beads_reject.tpe", line 33, characters 6-12:
-    33 |   let drying = perform FinalWash beads in
+  Typing error: Variable `drying` is unboxed with grade `[4, 4]` accumulated since it was bound, which is not below its box grade `[2, 3]`
+    File "../examples/opentrons/beads_reject.tpe", line 34, characters 6-12:
+    34 |   let drying = perform FinalWash washed in
                ^^^^^^
     `drying` is bound here
-    File "../examples/opentrons/beads_reject.tpe", line 34, characters 2-9:
-    34 |   delay 4;
+    File "../examples/opentrons/beads_reject.tpe", line 35, characters 2-9:
+    35 |   delay 4;
            ^^^^^^^
     grade `[4, 4]` accumulates here (delay)
-    File "../examples/opentrons/beads_reject.tpe", line 35, characters 2-25:
-    35 |   perform MagnetOff beads;
-           ^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[0, 1]` accumulates here (operation `MagnetOff`)
-    Note: the resource inequality `[4, 5] <= [2, 3]` does not hold
+    Note: the resource inequality `[4, 4] <= [2, 3]` does not hold
+  
+  File "../examples/opentrons/beads_reject.tpe", line 52, characters 35-41:
+  52 |   let released = perform MagnetOff washed in
+                                          ^^^^^^
+  Typing error: Variable `washed` is used with grade `[5, 6]` accumulated since it was bound, but its type `beads` is not eternal
+    File "../examples/opentrons/beads_reject.tpe", line 49, characters 23-29:
+    49 | let overdried_unboxed (washed : beads) =
+                                ^^^^^^
+    `washed` is bound here
+    File "../examples/opentrons/beads_reject.tpe", line 50, characters 15-39:
+    50 |   let drying = perform FinalWash washed in
+                        ^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[1, 2]` accumulates here (operation `FinalWash`)
+    File "../examples/opentrons/beads_reject.tpe", line 51, characters 2-9:
+    51 |   delay 4;
+           ^^^^^^^
+    grade `[4, 4]` accumulates here (delay)
+    Note: the resource inequality `[5, 6] <= [0, 0]` does not hold
   ======================================================================
   ../examples/opentrons/binding.tpe
   ======================================================================
@@ -1226,27 +1242,25 @@ tests show those runs in detail.
   ../examples/opentrons/cleanup.tpe
   ======================================================================
   === Run 1 ===
-  return "beads"
+  return (Beads "beads")
   State: [
     { resource_1 ↦ <fun> ! {AddBeads; [5, 10]; MagnetOn} },
     {idle 2},
     {idle 7},
     {idle 1},
-    { resource_2 ↦ "beads" ! {[3, 5]} },
+    { resource_2 ↦ Beads "beads" ! {[3, 5]} },
     {idle 4},
+    { resource_4 ↦ <fun> ! {RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2} },
     {idle 1},
-    { resource_3 ↦ "beads" ! {(AddEthanol; 1; RemoveEthanol)^2; [2, 3]},
-      resource_5 ↦ <fun> ! {AddEthanol; 1; RemoveEthanol}
-    },
     {idle 1},
     {idle 1},
     {idle 2},
-    { resource_7 ↦ <fun> ! {AddEthanol; 1; RemoveEthanol} },
     {idle 1},
     {idle 1},
     {idle 2},
+    { resource_5 ↦ Beads "beads" ! {[2, 3]} },
     {idle 3},
-    { resource_9 ↦
+    { resource_7 ↦
         <fun>
         ! {MagnetOff; AddBuffer; [2, 5]; MagnetOn; [3, 5]; Transfer}
     },
@@ -1261,27 +1275,57 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/cleanup_reject.tpe
   ======================================================================
-  File "../examples/opentrons/cleanup_reject.tpe", line 40, characters 6-24:
-  40 |       continue k with ()
-             ^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed with grade `{RemoveEthanol; idle 1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; 1; RemoveEthanol}`
-    File "../examples/opentrons/cleanup_reject.tpe", line 36, characters 19-20:
-    36 |   | EthanolWash () k ->
-                            ^
+  File "../examples/opentrons/cleanup_reject.tpe", line 71, characters 6-47:
+  71 |       continue k with (box [2, 3] (Beads name))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with grade `{RemoveLiquid; RemoveEthanol; idle 1; AddEthanol; RemoveEthanol; idle 1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}`
+    File "../examples/opentrons/cleanup_reject.tpe", line 63, characters 22-23:
+    63 |   | Wash (Beads name) k ->
+                               ^
     `k` is bound here
-    File "../examples/opentrons/cleanup_reject.tpe", line 37, characters 6-30:
-    37 |       perform RemoveEthanol ();
+    File "../examples/opentrons/cleanup_reject.tpe", line 64, characters 6-29:
+    64 |       perform RemoveLiquid ();
+               ^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{RemoveLiquid}` accumulates here (operation `RemoveLiquid`)
+    File "../examples/opentrons/cleanup_reject.tpe", line 65, characters 6-30:
+    65 |       perform RemoveEthanol ();
                ^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{RemoveEthanol}` accumulates here (operation `RemoveEthanol`)
-    File "../examples/opentrons/cleanup_reject.tpe", line 38, characters 6-13:
-    38 |       delay 1;
+    File "../examples/opentrons/cleanup_reject.tpe", line 66, characters 6-13:
+    66 |       delay 1;
                ^^^^^^^
     grade `{idle 1}` accumulates here (delay)
-    File "../examples/opentrons/cleanup_reject.tpe", line 39, characters 6-27:
-    39 |       perform AddEthanol ();
+    File "../examples/opentrons/cleanup_reject.tpe", line 67, characters 6-27:
+    67 |       perform AddEthanol ();
                ^^^^^^^^^^^^^^^^^^^^^
     grade `{AddEthanol}` accumulates here (operation `AddEthanol`)
-    Note: the resource inequality `{RemoveEthanol; idle 1; AddEthanol} <= {AddEthanol; 1; RemoveEthanol}` does not hold
+    File "../examples/opentrons/cleanup_reject.tpe", line 68, characters 6-30:
+    68 |       perform RemoveEthanol ();
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{RemoveEthanol}` accumulates here (operation `RemoveEthanol`)
+    File "../examples/opentrons/cleanup_reject.tpe", line 69, characters 6-13:
+    69 |       delay 1;
+               ^^^^^^^
+    grade `{idle 1}` accumulates here (delay)
+    File "../examples/opentrons/cleanup_reject.tpe", line 70, characters 6-27:
+    70 |       perform AddEthanol ();
+               ^^^^^^^^^^^^^^^^^^^^^
+    grade `{AddEthanol}` accumulates here (operation `AddEthanol`)
+    Note: the resource inequality `{RemoveLiquid; RemoveEthanol; idle 1; AddEthanol; RemoveEthanol; idle 1; AddEthanol} <= {RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}` does not hold
+  
+  File "../examples/opentrons/cleanup_reject.tpe", line 87, characters 19-26:
+  87 |   perform EluteDNA settled
+                          ^^^^^^^
+  Typing error: Variable `settled` is used with grade `{RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}` accumulated since it was bound, but its type `beads` is not eternal
+    File "../examples/opentrons/cleanup_reject.tpe", line 85, characters 20-27:
+    85 |   unbox settling as settled in
+                             ^^^^^^^
+    `settled` is bound here
+    File "../examples/opentrons/cleanup_reject.tpe", line 86, characters 15-35:
+    86 |   let drying = perform Wash settled in
+                        ^^^^^^^^^^^^^^^^^^^^
+    grade `{RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}` accumulates here (operation `Wash`)
+    Note: the resource inequality `{RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2} <= {skip}` does not hold
   ======================================================================
   ../examples/opentrons/contamination.tpe
   ======================================================================
@@ -1326,26 +1370,22 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/contamination_reject.tpe
   ======================================================================
-  File "../examples/opentrons/contamination_reject.tpe", lines 43-44, characters 2-25:
-  43 |   unbox article_tip as t in
+  File "../examples/opentrons/contamination_reject.tpe", lines 39-40, characters 2-25:
+  39 |   unbox article_tip as t in
          ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `article_tip` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(∞, Low)`
-    File "../examples/opentrons/contamination_reject.tpe", line 40, characters 6-17:
-    40 |   let article_tip = new_tip () in
+    File "../examples/opentrons/contamination_reject.tpe", line 36, characters 6-17:
+    36 |   let article_tip = perform ChangeTip () in
                ^^^^^^^^^^^
     `article_tip` is bound here
-    File "../examples/opentrons/contamination_reject.tpe", line 42, characters 2-27:
-    42 |   perform AddArticle (t, 1);
+    File "../examples/opentrons/contamination_reject.tpe", line 38, characters 2-27:
+    38 |   perform AddArticle (t, 1);
            ^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `(1, High)` accumulates here (operation `AddArticle`)
-    File "../examples/opentrons/contamination_reject.tpe", lines 41-44, characters 2-25:
-    41 |   unbox article_tip as t in
+    File "../examples/opentrons/contamination_reject.tpe", lines 37-40, characters 2-25:
+    37 |   unbox article_tip as t in
            ^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the unboxing of `article_tip` here
-    File "../examples/opentrons/contamination_reject.tpe", line 40, characters 20-27:
-    40 |   let article_tip = new_tip () in
-                             ^^^^^^^
-    the inequality goes through the type of `new_tip` here
     Note: the resource inequality `(1, High) <= (∞, Low)` does not hold
   ======================================================================
   ../examples/opentrons/elisa.tpe
@@ -1353,18 +1393,18 @@ tests show those runs in detail.
   === Run 1 ===
   return 0
   State: [
-    [2, 2],
     [1, 1],
     { resource_0 ↦ Reagent "detection antibody" ! [0, 20] },
+    [2, 2],
     [3, 3],
     [3, 3],
     [3, 3],
     [2, 2],
-    { resource_1 ↦ "plate" ! [60, ∞) },
+    { resource_1 ↦ Plate "plate" ! [60, ∞) },
     [65, 65],
     [3, 3],
     [1, 1],
-    { resource_2 ↦ Developed "plate" ! [15, 20] },
+    { resource_2 ↦ Developed (Plate "plate") ! [15, 20] },
     [17, 17],
     [2, 2]
   ]
@@ -1372,19 +1412,37 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/elisa_reject.tpe
   ======================================================================
-  File "../examples/opentrons/elisa_reject.tpe", lines 34-35, characters 2-24:
-  34 |   unbox incubating as incubated in
+  File "../examples/opentrons/elisa_reject.tpe", lines 35-36, characters 2-24:
+  35 |   unbox incubating as incubated in
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `incubating` is unboxed with grade `[30, 30]` accumulated since it was bound, which is not below its box grade `[60, ∞)`
-    File "../examples/opentrons/elisa_reject.tpe", line 32, characters 6-16:
-    32 |   let incubating = perform Detect (plate, antibody) in
+    File "../examples/opentrons/elisa_reject.tpe", line 33, characters 6-16:
+    33 |   let incubating = perform Detect (plate, antibody) in
                ^^^^^^^^^^
     `incubating` is bound here
-    File "../examples/opentrons/elisa_reject.tpe", line 33, characters 2-10:
-    33 |   delay 30;
+    File "../examples/opentrons/elisa_reject.tpe", line 34, characters 2-10:
+    34 |   delay 30;
            ^^^^^^^^
     grade `[30, 30]` accumulates here (delay)
     Note: the resource inequality `[30, 30] <= [60, ∞)` does not hold
+  
+  File "../examples/opentrons/elisa_reject.tpe", line 50, characters 15-20:
+  50 |   perform Wash plate
+                      ^^^^^
+  Typing error: Variable `plate` is used with grade `[31, 33]` accumulated since it was bound, but its type `plate` is not eternal
+    File "../examples/opentrons/elisa_reject.tpe", line 47, characters 24-29:
+    47 | let early_wash_unboxed (plate : plate) (antibody : reagent) =
+                                 ^^^^^
+    `plate` is bound here
+    File "../examples/opentrons/elisa_reject.tpe", line 48, characters 19-51:
+    48 |   let incubating = perform Detect (plate, antibody) in
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[1, 3]` accumulates here (operation `Detect`)
+    File "../examples/opentrons/elisa_reject.tpe", line 49, characters 2-10:
+    49 |   delay 30;
+           ^^^^^^^^
+    grade `[30, 30]` accumulates here (delay)
+    Note: the resource inequality `[31, 33] <= [0, 0]` does not hold
   ======================================================================
   ../examples/opentrons/enzyme.tpe
   ======================================================================
@@ -1572,18 +1630,18 @@ tests show those runs in detail.
   return ()
   State: [
     [1, 1],
-    { resource_0 ↦ 1 ! [12, 20] },
+    { resource_0 ↦ Column 1 ! [12, 20] },
     [14, 14],
     [1, 1],
-    { resource_1 ↦ 2 ! [12, 20] },
+    { resource_1 ↦ Column 2 ! [12, 20] },
     [2, 2],
     [13, 13],
     [1, 1],
-    { resource_2 ↦ 3 ! [12, 20] },
+    { resource_2 ↦ Column 3 ! [12, 20] },
     [2, 2],
     [13, 13],
     [1, 1],
-    { resource_3 ↦ 4 ! [12, 20] },
+    { resource_3 ↦ Column 4 ! [12, 20] },
     [2, 2],
     [14, 14],
     [2, 2]
@@ -1592,27 +1650,41 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/staggered_reject.tpe
   ======================================================================
-  File "../examples/opentrons/staggered_reject.tpe", lines 37-38, characters 6-38:
-  37 |       unbox fixing as previous in
+  File "../examples/opentrons/staggered_reject.tpe", lines 38-39, characters 6-38:
+  38 |       unbox fixing as previous in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `fixing` is unboxed with grade `[7, 9]` accumulated since it was bound, which is not below its box grade `[12, 20]`
-    File "../examples/opentrons/staggered_reject.tpe", line 30, characters 42-48:
-    30 | let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
-                                                   ^^^^^^
+    File "../examples/opentrons/staggered_reject.tpe", line 31, characters 39-45:
+    31 | let rec stagger (numbers : nat list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
+                                                ^^^^^^
     `fixing` is bound here
-    File "../examples/opentrons/staggered_reject.tpe", line 31, characters 2-21:
-    31 |   perform Rinse fixed;
+    File "../examples/opentrons/staggered_reject.tpe", line 32, characters 2-21:
+    32 |   perform Rinse fixed;
            ^^^^^^^^^^^^^^^^^^^
     grade `[1, 2]` accumulates here (operation `Rinse`)
-    File "../examples/opentrons/staggered_reject.tpe", line 35, characters 6-13:
-    35 |       delay 5;
+    File "../examples/opentrons/staggered_reject.tpe", line 36, characters 6-13:
+    36 |       delay 5;
                ^^^^^^^
     grade `[5, 5]` accumulates here (delay)
-    File "../examples/opentrons/staggered_reject.tpe", line 36, characters 20-38:
-    36 |       let started = perform Fix column in
+    File "../examples/opentrons/staggered_reject.tpe", line 37, characters 20-38:
+    37 |       let started = perform Fix number in
                              ^^^^^^^^^^^^^^^^^^
     grade `[1, 2]` accumulates here (operation `Fix`)
     Note: the resource inequality `[7, 9] <= [12, 20]` does not hold
+  
+  File "../examples/opentrons/staggered_reject.tpe", line 56, characters 20-25:
+  56 |       perform Rinse fixed;
+                           ^^^^^
+  Typing error: Variable `fixed` is used with grade `[13, 13]` accumulated since it was bound, but its type `column` is not eternal
+    File "../examples/opentrons/staggered_reject.tpe", line 51, characters 79-84:
+    51 | let rec stagger_late_rinse (numbers : nat list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
+                                                                                        ^^^^^
+    `fixed` is bound here
+    File "../examples/opentrons/staggered_reject.tpe", line 55, characters 6-14:
+    55 |       delay 13;
+               ^^^^^^^^
+    grade `[13, 13]` accumulates here (delay)
+    Note: the resource inequality `[13, 13] <= [0, 0]` does not hold
   ======================================================================
   ../examples/opentrons/stopread.tpe
   ======================================================================
@@ -1655,26 +1727,26 @@ tests show those runs in detail.
   === Run 1 ===
   return ()
   State: [
-    { resource_0 ↦ "beads" ! {AddBeads; idle [5, 10]; MagnetOn} },
     {idle 2},
+    { resource_0 ↦ Beads "beads" ! {idle [5, 10]} },
     {idle 7},
     {idle 1},
+    { resource_1 ↦ Beads "beads" ! {idle [2, 5]} },
     {idle 3},
     {idle 2},
-    { resource_1 ↦
-        "beads"
-        ! [{(Wash; ChangeTip)^[1, ∞); Wash; idle ≥2; ChangeTip}, {(Wash; ChangeTip)*; Wash; idle ≤3; ChangeTip}]
-    },
+    {idle 1},
+    { resource_2 ↦ Beads "beads" ! {ChangeTip} },
     {idle 1},
     {idle 1},
-    {idle 1},
+    { resource_3 ↦ Beads "beads" ! {idle [2, 3]; ChangeTip} },
     {idle 3},
     {idle 1},
     {idle 1},
     {idle 1},
+    { resource_4 ↦ Beads "beads" ! {idle [2, 5]} },
     {idle 2},
     {idle 1},
-    { resource_2 ↦ "eluates" ! {idle [2, 5]} },
+    { resource_5 ↦ Beads "beads" ! {idle [2, 5]} },
     {idle 3},
     {idle 2}
   ]
@@ -1682,12 +1754,29 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/washes_reject.tpe
   ======================================================================
-  File "../examples/opentrons/washes_reject.tpe", lines 33-38, characters 4-31:
-  33 |     : unit ! {(Wash; ChangeTip)*} =
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `{(Wash; (Wash; ChangeTip)*)?}`, which does not match its annotated grade `{(Wash; ChangeTip)*}`
-    Note: the effect inequality `{(Wash; (Wash; ChangeTip)*)?} <= {(Wash; ChangeTip)*}` does not hold
-    Note: the grade `[{Wash}, {(Wash; (Wash; ChangeTip)*)?}]` is below `{(Wash; (Wash; ChangeTip)*)?}` but not below `{(Wash; ChangeTip)*}`
+  File "../examples/opentrons/washes_reject.tpe", lines 53-56, characters 2-39:
+  53 |   unbox rinsing as rinsed in
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `rinsing` is unboxed with the unit grade `{skip}` accumulated since it was bound, which is not below its box grade `{ChangeTip}`
+    File "../examples/opentrons/washes_reject.tpe", line 52, characters 6-13:
+    52 |   let rinsing = perform Wash beads in
+               ^^^^^^^
+    `rinsing` is bound here
+    Note: the resource inequality `{skip} <= {ChangeTip}` does not hold
+  
+  File "../examples/opentrons/washes_reject.tpe", line 69, characters 37-43:
+  69 |   let cleared = perform RemoveLiquid washed in
+                                            ^^^^^^
+  Typing error: Variable `washed` is used with grade `{FinalWash}` accumulated since it was bound, but its type `beads` is not eternal
+    File "../examples/opentrons/washes_reject.tpe", line 67, characters 25-31:
+    67 | let cleanup_stale_beads (washed : beads) =
+                                  ^^^^^^
+    `washed` is bound here
+    File "../examples/opentrons/washes_reject.tpe", line 68, characters 15-39:
+    68 |   let drying = perform FinalWash washed in
+                        ^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{FinalWash}` accumulates here (operation `FinalWash`)
+    Note: the resource inequality `{FinalWash} <= {skip}` does not hold
   ======================================================================
   ../examples/regular_trace_languages/upper_bounds.tpe
   ======================================================================

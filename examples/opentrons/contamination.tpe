@@ -37,14 +37,14 @@
    The lattice component of an operation is High if its tip touches the test
    article, and Low otherwise. A tip is boxed at Low: it may enter a clean
    reagent only while nothing contaminated has been touched since it was
-   picked up. Its type is not eternal, so it cannot be kept unboxed past an
+   picked up. A new tip is put on only by ChangeTip, which returns it boxed
+   at Low. Its type is not eternal, so it cannot be kept unboxed past an
    operation: a tip used for several operations is the same boxed tip,
    unboxed again before each use, and each unboxing checks that this tip is
-   still clean. Only new_tip () puts on a new tip. The monitors of the
-   protocol check each binding function against the time bound of its
-   operation's grade. The master mix is named by a string, wrapped in the
-   type reagent, which is not eternal either: the boxed mix is unboxed again
-   before each dispensing. A column is named by its number, of the type
+   still clean. The monitors of the protocol check each binding function
+   against the time bound of its operation's grade. The master mix is a
+   string wrapped in the type reagent, which is not eternal either: the
+   boxed mix is unboxed again before each dispensing. A column is named by its number, of the type
    column.
 
    The protocol is given its master mix ready; its preparation, and the
@@ -56,9 +56,10 @@ noneternal type tip = Tip
 noneternal type reagent = Reagent of string
 type column = nat
 
-(* Changing the tip takes at most a minute. *)
-operation ChangeTip : unit ~> unit ! (1, Low)
-default ChangeTip () = delay 1
+(* Changing the tip takes at most a minute, and returns the new tip boxed at
+   Low. *)
+operation ChangeTip : unit ~> [(∞, Low)]tip ! (1, Low)
+default ChangeTip () = delay 1; box (∞, Low) Tip
 
 (* Buffer, master mix and water are clean reagents, and dispensing one into a
    column takes at most a minute. The buffer goes to the preparation plate,
@@ -90,10 +91,6 @@ default Dilute (t, columns) = delay 1
 operation AddDilution : tip * (column * column) ~> unit ! (1, High)
 default AddDilution (t, columns) = delay 1
 
-let new_tip () =
-  perform ChangeTip ();
-  box (∞, Low) Tip
-
 (* Correctly accepted by the typechecker: one clean tip dispenses the buffer
    into both columns, each step of the dilution series has a new tip, another
    clean tip dispenses the master mix into the four columns of the final
@@ -102,21 +99,21 @@ let new_tip () =
    new tip, and the water control, added last, has a new clean one. *)
 let ddpcr () =
   let mix = perform PrepareMix () in
-  let buffer_tip = new_tip () in
+  let buffer_tip = perform ChangeTip () in
   unbox buffer_tip as t in
   perform AddBuffer (t, 2);
   unbox buffer_tip as t in
   perform AddBuffer (t, 3);
-  let article_tip = new_tip () in
+  let article_tip = perform ChangeTip () in
   unbox article_tip as t in
   perform AddArticle (t, 1);
-  let dilution_tip = new_tip () in
+  let dilution_tip = perform ChangeTip () in
   unbox dilution_tip as t in
   perform Dilute (t, (1, 2));
-  let dilution_tip = new_tip () in
+  let dilution_tip = perform ChangeTip () in
   unbox dilution_tip as t in
   perform Dilute (t, (2, 3));
-  let mix_tip = new_tip () in
+  let mix_tip = perform ChangeTip () in
   unbox mix as m in
   unbox mix_tip as t in
   perform AddMix (t, (m, 1));
@@ -129,16 +126,16 @@ let ddpcr () =
   unbox mix as m in
   unbox mix_tip as t in
   perform AddMix (t, (m, 4));
-  let transfer_tip = new_tip () in
+  let transfer_tip = perform ChangeTip () in
   unbox transfer_tip as t in
   perform AddDilution (t, (1, 1));
-  let transfer_tip = new_tip () in
+  let transfer_tip = perform ChangeTip () in
   unbox transfer_tip as t in
   perform AddDilution (t, (2, 2));
-  let transfer_tip = new_tip () in
+  let transfer_tip = perform ChangeTip () in
   unbox transfer_tip as t in
   perform AddDilution (t, (3, 3));
-  let water_tip = new_tip () in
+  let water_tip = perform ChangeTip () in
   unbox water_tip as t in
   perform AddWater (t, 4)
 
@@ -152,7 +149,7 @@ let ddpcr () =
 *)
 (*
 let ddpcr_shared_tip () =
-  let article_tip = new_tip () in
+  let article_tip = perform ChangeTip () in
   unbox article_tip as t in
   perform AddArticle (t, 1);
   unbox article_tip as t in
@@ -169,7 +166,7 @@ let ddpcr_shared_tip () =
 (*
 let ddpcr_kept_mix () =
   let mix = perform PrepareMix () in
-  let mix_tip = new_tip () in
+  let mix_tip = perform ChangeTip () in
   unbox mix as m in
   unbox mix_tip as t in
   perform AddMix (t, (m, 1));

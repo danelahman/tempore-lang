@@ -188,29 +188,29 @@ The ELISA protocol, interpreted.
   === Run 1 ===
   return 0
   State: [
-    [2, 2],
     [1, 1],
     { resource_0 ↦ Reagent "detection antibody" ! [0, 20] },
+    [2, 2],
     [3, 3],
     [3, 3],
     [3, 3],
     [2, 2],
-    { resource_1 ↦ "plate" ! [60, ∞) },
+    { resource_1 ↦ Plate "plate" ! [60, ∞) },
     [65, 65],
     [3, 3],
     [1, 1],
-    { resource_2 ↦ Developed "plate" ! [15, 20] },
+    { resource_2 ↦ Developed (Plate "plate") ! [15, 20] },
     [17, 17],
     [2, 2]
   ]
   
   Timeline
   Run  Start      Event             Grade
-  1    [0, 0]     AddSample         [1, 3]
-  1               · delay           [2, 2]
-  1    [1, 3]     Dilute            [1, 2]
+  1    [0, 0]     Dilute            [1, 2]
   1               · delay           [1, 1]
   1               · box antibody    [0, 20]
+  1    [1, 2]     AddSample         [1, 3]
+  1               · delay           [2, 2]
   1    [2, 5]     Wash              [2, 4]
   1               · delay           [3, 3]
   1    [4, 9]     Wash              [2, 4]
@@ -278,79 +278,91 @@ grades are printed in full. Only the timelines are shown.
 
   $ ../tempore --grades timed-regex-interval-rational --timeline ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
-  Run  Start                                     Event           Grade
-  1    {skip}                                    box binding     {AddBeads; idle [5, 10]; MagnetOn}
-  1    {skip}                                    AddBeads        {AddBeads}
-  1                                              · delay         {idle 2}
-  1    {AddBeads}                                delay           {idle 7}
-  1    {AddBeads; idle 7}                        MagnetOn        {MagnetOn}
-  1                                              · delay         {idle 1}
-  1    {AddBeads; idle 7; MagnetOn}              unbox binding
-  1    {AddBeads; idle 7; MagnetOn}              delay           {idle 3}
-  1    {AddBeads; idle 7; MagnetOn; idle 3}      RemoveLiquid    {RemoveLiquid}
-  1                                              · delay         {idle 2}
-  1    {…; MagnetOn; idle 3; RemoveLiquid}       box washed      [{(Wash; ChangeTip)^[1, ∞); Wash; …}, {(Wash; ChangeTip)*; Wash; …}]
-  1    {…; MagnetOn; idle 3; RemoveLiquid}       Wash            {Wash}
-  1                                              · delay         {idle 1}
-  1    {…; idle 3; RemoveLiquid; Wash}           ChangeTip       {ChangeTip}
-  1                                              · delay         {idle 1}
-  1    {…; RemoveLiquid; Wash; ChangeTip}        Wash            {Wash}
-  1                                              · delay         {idle 1}
-  1    {…; RemoveLiquid; Wash; ChangeTip; Wash}  delay           {idle 3}
-  1    {…; Wash; ChangeTip; Wash; idle 3}        ChangeTip       {ChangeTip}
-  1                                              · delay         {idle 1}
-  1    {…; ChangeTip; Wash; idle 3; ChangeTip}   unbox washed
-  1    {…; ChangeTip; Wash; idle 3; ChangeTip}   MagnetOff       {MagnetOff}
-  1                                              · delay         {idle 1}
-  1    {…; Wash; idle 3; ChangeTip; MagnetOff}   EluteDNA        {EluteDNA}
-  1                                              · delay         {idle 1}
-  1    {…; ChangeTip; MagnetOff; EluteDNA}       delay           {idle 2}
-  1    {…; MagnetOff; EluteDNA; idle 2}          MagnetOn        {MagnetOn}
-  1                                              · delay         {idle 1}
-  1    {…; EluteDNA; idle 2; MagnetOn}           box settling    {idle [2, 5]}
-  1    {…; EluteDNA; idle 2; MagnetOn}           delay           {idle 3}
-  1    {…; EluteDNA; idle 2; MagnetOn; idle 3}   unbox settling
-  1    {…; EluteDNA; idle 2; MagnetOn; idle 3}   Transfer        {Transfer}
-  1                                              · delay         {idle 2}
+  Run  Start                                    Event             Grade
+  1    {skip}                                   AddBeads          {AddBeads}
+  1                                             · delay           {idle 2}
+  1                                             · box binding     {idle [5, 10]}
+  1    {AddBeads}                               delay             {idle 7}
+  1    {AddBeads; idle 7}                       unbox binding
+  1    {AddBeads; idle 7}                       MagnetOn          {MagnetOn}
+  1                                             · delay           {idle 1}
+  1                                             · box settling    {idle [2, 5]}
+  1    {AddBeads; idle 7; MagnetOn}             delay             {idle 3}
+  1    {AddBeads; idle 7; MagnetOn; idle 3}     unbox settling
+  1    {AddBeads; idle 7; MagnetOn; idle 3}     RemoveLiquid      {RemoveLiquid}
+  1                                             · delay           {idle 2}
+  1    {…; MagnetOn; idle 3; RemoveLiquid}      Wash              {Wash}
+  1                                             · delay           {idle 1}
+  1                                             · box rinsing     {ChangeTip}
+  1    {…; idle 3; RemoveLiquid; Wash}          ChangeTip         {ChangeTip}
+  1                                             · delay           {idle 1}
+  1    {…; RemoveLiquid; Wash; ChangeTip}       unbox rinsing
+  1    {…; RemoveLiquid; Wash; ChangeTip}       FinalWash         {FinalWash}
+  1                                             · delay           {idle 1}
+  1                                             · box drying      {idle [2, 3]; ChangeTip}
+  1    {…; Wash; ChangeTip; FinalWash}          delay             {idle 3}
+  1    {…; Wash; ChangeTip; FinalWash; idle 3}  ChangeTip         {ChangeTip}
+  1                                             · delay           {idle 1}
+  1    {…; FinalWash; idle 3; ChangeTip}        unbox drying
+  1    {…; FinalWash; idle 3; ChangeTip}        MagnetOff         {MagnetOff}
+  1                                             · delay           {idle 1}
+  1    {…; idle 3; ChangeTip; MagnetOff}        EluteDNA          {EluteDNA}
+  1                                             · delay           {idle 1}
+  1                                             · box eluting     {idle [2, 5]}
+  1    {…; ChangeTip; MagnetOff; EluteDNA}      delay             {idle 2}
+  1    {…; MagnetOff; EluteDNA; idle 2}         unbox eluting
+  1    {…; MagnetOff; EluteDNA; idle 2}         MagnetOn          {MagnetOn}
+  1                                             · delay           {idle 1}
+  1                                             · box resettling  {idle [2, 5]}
+  1    {…; EluteDNA; idle 2; MagnetOn}          delay             {idle 3}
+  1    {…; EluteDNA; idle 2; MagnetOn; idle 3}  unbox resettling
+  1    {…; EluteDNA; idle 2; MagnetOn; idle 3}  Transfer          {Transfer}
+  1                                             · delay           {idle 2}
   Run 1 returned () at {…; idle 2; MagnetOn; idle 3; Transfer}.
 
   $ ../tempore --grades timed-regex-interval-rational --timeline-full ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
-  Run  Start                                                                                                                                        Event           Grade
-  1    {skip}                                                                                                                                       box binding     {AddBeads; idle [5, 10]; MagnetOn}
-  1    {skip}                                                                                                                                       AddBeads        {AddBeads}
-  1                                                                                                                                                 · delay         {idle 2}
-  1    {AddBeads}                                                                                                                                   delay           {idle 7}
-  1    {AddBeads; idle 7}                                                                                                                           MagnetOn        {MagnetOn}
-  1                                                                                                                                                 · delay         {idle 1}
-  1    {AddBeads; idle 7; MagnetOn}                                                                                                                 unbox binding
-  1    {AddBeads; idle 7; MagnetOn}                                                                                                                 delay           {idle 3}
-  1    {AddBeads; idle 7; MagnetOn; idle 3}                                                                                                         RemoveLiquid    {RemoveLiquid}
-  1                                                                                                                                                 · delay         {idle 2}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid}                                                                                           box washed      [{(Wash; ChangeTip)^[1, ∞); Wash; idle ≥2; ChangeTip}, {(Wash; ChangeTip)*; Wash; idle ≤3; ChangeTip}]
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid}                                                                                           Wash            {Wash}
-  1                                                                                                                                                 · delay         {idle 1}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash}                                                                                     ChangeTip       {ChangeTip}
-  1                                                                                                                                                 · delay         {idle 1}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip}                                                                          Wash            {Wash}
-  1                                                                                                                                                 · delay         {idle 1}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash}                                                                    delay           {idle 3}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3}                                                            ChangeTip       {ChangeTip}
-  1                                                                                                                                                 · delay         {idle 1}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3; ChangeTip}                                                 unbox washed
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3; ChangeTip}                                                 MagnetOff       {MagnetOff}
-  1                                                                                                                                                 · delay         {idle 1}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3; ChangeTip; MagnetOff}                                      EluteDNA        {EluteDNA}
-  1                                                                                                                                                 · delay         {idle 1}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3; ChangeTip; MagnetOff; EluteDNA}                            delay           {idle 2}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2}                    MagnetOn        {MagnetOn}
-  1                                                                                                                                                 · delay         {idle 1}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2; MagnetOn}          box settling    {idle [2, 5]}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2; MagnetOn}          delay           {idle 3}
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2; MagnetOn; idle 3}  unbox settling
-  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2; MagnetOn; idle 3}  Transfer        {Transfer}
-  1                                                                                                                                                 · delay         {idle 2}
-  Run 1 returned () at {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; Wash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2; MagnetOn; idle 3; Transfer}.
+  Run  Start                                                                                                                                             Event             Grade
+  1    {skip}                                                                                                                                            AddBeads          {AddBeads}
+  1                                                                                                                                                      · delay           {idle 2}
+  1                                                                                                                                                      · box binding     {idle [5, 10]}
+  1    {AddBeads}                                                                                                                                        delay             {idle 7}
+  1    {AddBeads; idle 7}                                                                                                                                unbox binding
+  1    {AddBeads; idle 7}                                                                                                                                MagnetOn          {MagnetOn}
+  1                                                                                                                                                      · delay           {idle 1}
+  1                                                                                                                                                      · box settling    {idle [2, 5]}
+  1    {AddBeads; idle 7; MagnetOn}                                                                                                                      delay             {idle 3}
+  1    {AddBeads; idle 7; MagnetOn; idle 3}                                                                                                              unbox settling
+  1    {AddBeads; idle 7; MagnetOn; idle 3}                                                                                                              RemoveLiquid      {RemoveLiquid}
+  1                                                                                                                                                      · delay           {idle 2}
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid}                                                                                                Wash              {Wash}
+  1                                                                                                                                                      · delay           {idle 1}
+  1                                                                                                                                                      · box rinsing     {ChangeTip}
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash}                                                                                          ChangeTip         {ChangeTip}
+  1                                                                                                                                                      · delay           {idle 1}
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip}                                                                               unbox rinsing
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip}                                                                               FinalWash         {FinalWash}
+  1                                                                                                                                                      · delay           {idle 1}
+  1                                                                                                                                                      · box drying      {idle [2, 3]; ChangeTip}
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash}                                                                    delay             {idle 3}
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash; idle 3}                                                            ChangeTip         {ChangeTip}
+  1                                                                                                                                                      · delay           {idle 1}
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash; idle 3; ChangeTip}                                                 unbox drying
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash; idle 3; ChangeTip}                                                 MagnetOff         {MagnetOff}
+  1                                                                                                                                                      · delay           {idle 1}
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash; idle 3; ChangeTip; MagnetOff}                                      EluteDNA          {EluteDNA}
+  1                                                                                                                                                      · delay           {idle 1}
+  1                                                                                                                                                      · box eluting     {idle [2, 5]}
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash; idle 3; ChangeTip; MagnetOff; EluteDNA}                            delay             {idle 2}
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2}                    unbox eluting
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2}                    MagnetOn          {MagnetOn}
+  1                                                                                                                                                      · delay           {idle 1}
+  1                                                                                                                                                      · box resettling  {idle [2, 5]}
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2; MagnetOn}          delay             {idle 3}
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2; MagnetOn; idle 3}  unbox resettling
+  1    {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2; MagnetOn; idle 3}  Transfer          {Transfer}
+  1                                                                                                                                                      · delay           {idle 2}
+  Run 1 returned () at {AddBeads; idle 7; MagnetOn; idle 3; RemoveLiquid; Wash; ChangeTip; FinalWash; idle 3; ChangeTip; MagnetOff; EluteDNA; idle 2; MagnetOn; idle 3; Transfer}.
 
   $ ../tempore --grades banked-traces-interval --timeline ../examples/banked_traces/3d_printing.tpe | sed -n '/^Timeline$/,/^Run [0-9][0-9]* /p'
   Timeline

@@ -1,4 +1,5 @@
-(* As the staggered fixation example, with each column rinsed too early.
+(* As the staggered fixation example, with each column rinsed too early, and
+   with a column rinsed after the wait for the next.
 
    Run this example with the 'time-interval' grade algebra, e.g.
 
@@ -9,10 +10,10 @@
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
 
-type column = nat
+noneternal type column = Column of nat
 
-operation Fix : column ~> [[12, 20]]column ! [1, 2]
-default Fix column = delay 1; box [12, 20] column
+operation Fix : nat ~> [[12, 20]]column ! [1, 2]
+default Fix number = delay 1; box [12, 20] (Column number)
 
 operation Rinse : column ~> unit ! [1, 2]
 default Rinse column = delay 2
@@ -27,14 +28,34 @@ default Rinse column = delay 2
        ...
        Note: the resource inequality `[7, 9] <= [12, 20]` does not hold
 *)
-let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
+let rec stagger (numbers : nat list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
   perform Rinse fixed;
-  match columns with
+  match numbers with
   | [] -> delay 14; unbox fixing as last in perform Rinse last
-  | column :: rest ->
+  | number :: rest ->
       delay 5;
-      let started = perform Fix column in
+      let started = perform Fix number in
       unbox fixing as previous in
       stagger rest (started, previous)
 
-run stagger [2; 3] (box [12, 20] 1, 0)
+(* Correctly rejected by the typechecker: the column before is rinsed after
+   the wait for the next column, 13 minutes after it was unboxed and up to
+   29 minutes after its fixative was added, and the type column is not
+   eternal:
+
+     Typing error: Variable `fixed` is used with grade `[13, 13]` accumulated
+       since it was bound, but its type `column` is not eternal
+       ...
+       Note: the resource inequality `[13, 13] <= [0, 0]` does not hold
+*)
+let rec stagger_late_rinse (numbers : nat list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
+  match numbers with
+  | [] -> perform Rinse fixed; delay 14; unbox fixing as last in perform Rinse last
+  | number :: rest ->
+      delay 13;
+      perform Rinse fixed;
+      let started = perform Fix number in
+      unbox fixing as previous in
+      stagger_late_rinse rest (started, previous)
+
+run stagger [2; 3] (box [12, 20] (Column 1), Column 0)

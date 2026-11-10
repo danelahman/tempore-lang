@@ -33,15 +33,17 @@
    The columns of a plate of cells are fixed in turn, at staggered times:
    while one column fixes, the column before it is rinsed and the column
    after it starts fixing. The staggering of the columns and the upper bound
-   of 20 minutes are the example's own. A column is named by its number, of
-   the type column. *)
+   of 20 minutes are the example's own. A column of the plate is named by
+   its number. A column with fixative is a value of the type column, which
+   is not eternal: it is returned only by the addition of the fixative, in a
+   box, and crosses time only in that box. *)
 
-type column = nat
+noneternal type column = Column of nat
 
-(* Adding the fixative to a column takes one to two minutes; the column is
-   rinsed 12 to 20 minutes later. *)
-operation Fix : column ~> [[12, 20]]column ! [1, 2]
-default Fix column = delay 1; box [12, 20] column
+(* Adding the fixative to the column of a number takes one to two minutes;
+   the column is rinsed 12 to 20 minutes later. *)
+operation Fix : nat ~> [[12, 20]]column ! [1, 2]
+default Fix number = delay 1; box [12, 20] (Column number)
 
 (* Rinsing a column takes one to two minutes. *)
 operation Rinse : column ~> unit ! [1, 2]
@@ -51,20 +53,20 @@ default Rinse column = delay 2
    [fixing] fixes. The pair of the boxed column and the column to rinse is
    passed to the recursive call at the moment the box is created, and the
    box is opened when its column is rinsed. *)
-let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
+let rec stagger (numbers : nat list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
   perform Rinse fixed;
-  match columns with
+  match numbers with
   | [] -> delay 14; unbox fixing as last in perform Rinse last
-  | column :: rest ->
+  | number :: rest ->
       delay 13;
-      let started = perform Fix column in
+      let started = perform Fix number in
       unbox fixing as previous in
       stagger rest (started, previous)
 
 (* Correctly accepted by the typechecker: each column is rinsed 15 to 17
    minutes after its fixative was added. *)
-let fixation (columns : column list) =
-  match columns with
+let fixation (numbers : nat list) =
+  match numbers with
   | [] -> ()
   | first :: rest -> (
       let fixing = perform Fix first in
@@ -86,13 +88,13 @@ let fixation (columns : column list) =
        Note: the resource inequality `[7, 9] <= [12, 20]` does not hold
 *)
 (*
-let rec stagger_early (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
+let rec stagger_early (numbers : nat list) ((fixing : [[12, 20]]column), (fixed : column)) : unit ! [0, ∞) =
   perform Rinse fixed;
-  match columns with
+  match numbers with
   | [] -> delay 14; unbox fixing as last in perform Rinse last
-  | column :: rest ->
+  | number :: rest ->
       delay 5;
-      let started = perform Fix column in
+      let started = perform Fix number in
       unbox fixing as previous in
       stagger_early rest (started, previous)
 *)

@@ -175,14 +175,16 @@ each is a minute.
   declared running times of the operations:
   - the plate goes onto the magnet 5 to 10 minutes after the beads are mixed
     in, with only waiting in between;
+  - the supernatant is removed, and the eluates transferred, after 2 to 5
+    minutes of settling on the magnet, waiting only;
   - the elution buffer is added only after at least two washes, each but the
     last followed by a fresh tip and nothing else;
   - the last wash is followed by an air-dry of 2 to 3 minutes, waiting only,
     and a fresh tip;
+  - the beads release the DNA off the magnet for 2 to 5 minutes, waiting
+    only;
   - no supernatant is removed, no wash made and no eluate transferred while
-    the plate is off the magnet;
-  - the eluates are transferred after 2 to 5 minutes of settling, waiting
-    only.
+    the plate is off the magnet.
 - [`contamination.tpe`](../../../examples/opentrons/contamination.tpe): a
   ddPCR plate set-up under `time-upper-bound-lattice`, whose master mix is
   boxed `(30, High)` and unboxed for each dispensing. The typechecker
@@ -202,12 +204,17 @@ each is a minute.
   proves, under the declared running times of the operations:
   - each column, of any number, is rinsed 12 to 20 minutes after its
     fixative is added.
-- [`beads.tpe`](../../../examples/opentrons/beads.tpe): a bead clean-up with
-  beads boxed `[3, ∞)` and `[2, 3]`, under `time-interval`. The typechecker
-  proves, under the declared running times of the operations:
+- [`beads.tpe`](../../../examples/opentrons/beads.tpe): a bead clean-up
+  whose steps take the beads and return them, boxed `[5, ∞)` while they
+  bind, `[3, ∞)` while they settle, `[2, 3]` while they air-dry and
+  `[2, ∞)` while they release the DNA, under `time-interval`. The
+  typechecker proves, under the declared running times of the operations:
+  - the plate goes onto the magnet only after the beads have bound for at
+    least 5 minutes;
   - the supernatant is removed, and the eluate transferred, only after the
     beads have been on the magnet at least 3 minutes;
-  - the elution buffer is added 2 to 3 minutes after the last ethanol wash.
+  - the plate is moved off the magnet for the elution buffer 2 to 3 minutes
+    after the last ethanol wash.
 - [`binding.tpe`](../../../examples/opentrons/binding.tpe): a bead binding
   whose beads are mixed every 2 to 5 minutes, under `inter-arrival`. The
   typechecker proves, under the declared running times of the operations:

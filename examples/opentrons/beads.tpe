@@ -34,84 +34,93 @@
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
    The target opentrons-beads-simulate of 'make' runs this command.
 
-   The beads of the samples are named by a string, of the type beads. Beads
-   on the magnet are a box that opens once they have settled, and air-drying
-   beads a box that opens only within the drying window. *)
+   The beads of the samples are a value of the type beads, which is not
+   eternal: each step takes the beads and returns them, and the beads cross
+   time only in a box returned by a step. Beads binding the samples are a
+   box that opens once they have bound, beads on the magnet a box that opens
+   once they have settled, and air-drying beads a box that opens only within
+   the drying window. *)
 
-type beads = string
+noneternal type beads = Beads of string
 
 (* Mixing the beads into the samples and removing a liquid take one to two
-   minutes each. *)
-operation AddBeads : beads ~> unit ! [1, 2]
-default AddBeads beads = delay 2
+   minutes each. The beads then bind the samples in at least five minutes. *)
+operation AddBeads : beads ~> [[5, ∞)]beads ! [1, 2]
+default AddBeads (Beads name) = delay 2; box [5, ∞) (Beads name)
 
-operation RemoveLiquid : beads ~> unit ! [1, 2]
-default RemoveLiquid beads = delay 1
+operation RemoveLiquid : beads ~> beads ! [1, 2]
+default RemoveLiquid (Beads name) = delay 1; Beads name
 
 (* Moving the plate onto the magnetic block takes at most a minute; the beads
    then settle in at least three minutes. Moving it off takes at most a
    minute. *)
 operation MagnetOn : beads ~> [[3, ∞)]beads ! [0, 1]
-default MagnetOn beads = box [3, ∞) beads
+default MagnetOn (Beads name) = box [3, ∞) (Beads name)
 
-operation MagnetOff : beads ~> unit ! [0, 1]
-default MagnetOff beads = ()
+operation MagnetOff : beads ~> beads ! [0, 1]
+default MagnetOff (Beads name) = Beads name
 
 (* An ethanol wash adds and removes the ethanol in one to two minutes. The
-   last wash leaves the beads to air-dry: the elution buffer is added two to
-   three minutes after it, once the ethanol has evaporated. *)
-operation Wash : beads ~> unit ! [1, 2]
-default Wash beads = delay 2
+   last wash leaves the beads to air-dry on the magnet: the plate is moved
+   off the magnet two to three minutes after it, once the ethanol has
+   evaporated and before the beads overdry. *)
+operation Wash : beads ~> beads ! [1, 2]
+default Wash (Beads name) = delay 2; Beads name
 
 operation FinalWash : beads ~> [[2, 3]]beads ! [1, 2]
-default FinalWash beads = delay 1; box [2, 3] beads
+default FinalWash (Beads name) = delay 1; box [2, 3] (Beads name)
 
 (* Adding the elution buffer and transferring the eluate take one to two
-   minutes each. *)
-operation EluteDNA : beads ~> unit ! [1, 2]
-default EluteDNA beads = delay 1
+   minutes each. The beads release the DNA into the buffer in at least two
+   minutes. *)
+operation EluteDNA : beads ~> [[2, ∞)]beads ! [1, 2]
+default EluteDNA (Beads name) = delay 1; box [2, ∞) (Beads name)
 
 operation Transfer : beads ~> unit ! [1, 2]
 default Transfer beads = delay 2
 
-(* Correctly accepted by the typechecker: the supernatant is removed after
-   the beads have settled for four minutes and the eluate after three, at
-   least the three they demand, and the elution buffer is added two to three
-   minutes into the air-dry. *)
+(* Correctly accepted by the typechecker: the beads bind the samples for
+   five minutes, and the supernatant is removed after they have settled for
+   four minutes, at least the three they demand. The plate is moved off the
+   magnet two minutes into the air-dry, and the elution buffer is added two
+   to three minutes into it. The beads release the DNA for two minutes, and
+   the eluate is transferred after they have settled again for three. *)
 let cleanup (beads : beads) =
-  perform AddBeads beads;
+  let binding = perform AddBeads beads in
   delay 5;
-  let settling = perform MagnetOn beads in
+  unbox binding as bound in
+  let settling = perform MagnetOn bound in
   delay 4;
   unbox settling as settled in
-  perform RemoveLiquid settled;
-  perform Wash settled;
-  let drying = perform FinalWash settled in
+  let cleared = perform RemoveLiquid settled in
+  let washed = perform Wash cleared in
+  let drying = perform FinalWash washed in
   delay 2;
-  perform MagnetOff settled;
   unbox drying as dried in
-  perform EluteDNA dried;
+  let released = perform MagnetOff dried in
+  let eluting = perform EluteDNA released in
   delay 2;
-  let resettling = perform MagnetOn dried in
+  unbox eluting as eluted in
+  let resettling = perform MagnetOn eluted in
   delay 3;
   unbox resettling as resettled in
   perform Transfer resettled
 
-(* Correctly rejected by the typechecker: the elution buffer is added four to
-   five minutes after the last ethanol wash, when the beads are overdried:
+(* Correctly rejected by the typechecker: the plate is moved off the magnet
+   four minutes after the last ethanol wash, when the beads are overdried:
 
-     Typing error: Variable `drying` is unboxed with grade `[4, 5]`
+     Typing error: Variable `drying` is unboxed with grade `[4, 4]`
        accumulated since it was bound, which is not below its box grade
        `[2, 3]`
-       Note: the resource inequality `[4, 5] <= [2, 3]` does not hold
+       Note: the resource inequality `[4, 4] <= [2, 3]` does not hold
 *)
 (*
-let cleanup_overdried (beads : beads) =
-  let drying = perform FinalWash beads in
+let cleanup_overdried (washed : beads) =
+  let drying = perform FinalWash washed in
   delay 4;
-  perform MagnetOff beads;
   unbox drying as dried in
-  perform EluteDNA dried
+  let released = perform MagnetOff dried in
+  perform EluteDNA released
 *)
 
-run cleanup "beads"
+run cleanup (Beads "beads")

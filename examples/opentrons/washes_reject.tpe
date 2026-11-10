@@ -1,4 +1,6 @@
-(* As the bead clean-up example, with the further ethanol washes sharing a tip.
+(* As the bead clean-up example, with the further ethanol washes sharing a
+   tip, and the residual ethanol removed from the beads by their name from
+   before the last wash.
 
    Run this example with the 'timed-regex-interval-rational' grade algebra, e.g.
 
@@ -14,27 +16,60 @@
      - Top {≥0}: every trace
      - Product: concatenation of traces, componentwise *)
 
-type beads = string
+noneternal type beads = Beads of string
 
-operation Wash : beads ~> unit ! {Wash} within [1, 2]
-default Wash beads = delay 1
+operation MagnetOff : beads ~> beads ! {MagnetOff} within (0, 1]
+default MagnetOff (Beads name) = delay 1; Beads name
+
+operation RemoveLiquid : beads ~> beads ! {RemoveLiquid} within [1, 2]
+default RemoveLiquid (Beads name) = delay 2; Beads name
+
+operation Wash : beads ~> [{ChangeTip}]beads ! {Wash} within [1, 2]
+default Wash (Beads name) = delay 1; box {ChangeTip} (Beads name)
+
+operation FinalWash : beads ~> [{idle [2, 3]; ChangeTip}]beads ! {FinalWash}
+  within [1, 2]
+default FinalWash (Beads name) =
+  delay 1;
+  box {idle [2, 3]; ChangeTip} (Beads name)
 
 operation ChangeTip : unit ~> unit ! {ChangeTip} within (0, 1]
 default ChangeTip () = delay 1
 
-(* Correctly rejected by the typechecker: the further washes share a tip,
-   where the grade of the recursion demands a fresh tip after each:
+operation EluteDNA : beads ~> [{idle [2, 5]}]beads ! {EluteDNA} within [1, 2]
+default EluteDNA (Beads name) = delay 1; box {idle [2, 5]} (Beads name)
 
-     Typing error: This function's body has grade `{(Wash; …)?}`, which
-       does not match its annotated grade `{(Wash; ChangeTip)*}`
+(* Correctly rejected by the typechecker: the further washes share a tip,
+   where the box of each wash demands a fresh tip:
+
+     Typing error: Variable `rinsing` is unboxed with the unit grade `{skip}`
+       accumulated since it was bound, which is not below its box grade
+       `{ChangeTip}`
        ...
 *)
 let rec washes_shared_tip (beads : beads) (n : nat)
-    : unit ! {(Wash; ChangeTip)*} =
+    : beads ! {(Wash; ChangeTip)^[1, ∞)} =
+  let rinsing = perform Wash beads in
+  unbox rinsing as rinsed in
   match n with
-  | 0 -> ()
-  | m + 1 ->
-      perform Wash beads;
-      washes_shared_tip beads m
+  | 0 -> rinsed
+  | m + 1 -> washes_shared_tip rinsed m
 
-run washes_shared_tip "beads" 2
+(* Correctly rejected by the typechecker: the residual ethanol is removed
+   within the air-dry from the beads by the name they had before the last
+   wash, and the type beads is not eternal:
+
+     Typing error: Variable `washed` is used with grade `{FinalWash}`
+       accumulated since it was bound, but its type `beads` is not eternal
+       ...
+       Note: the resource inequality `{FinalWash} <= {skip}` does not hold
+*)
+let cleanup_stale_beads (washed : beads) =
+  let drying = perform FinalWash washed in
+  let cleared = perform RemoveLiquid washed in
+  delay 1;
+  perform ChangeTip ();
+  let released = perform MagnetOff cleared in
+  perform EluteDNA released
+
+run washes_shared_tip (Beads "beads") 2

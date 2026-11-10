@@ -31,10 +31,10 @@ it waits.
   load_trash_bin('A3')
   load_instrument('flex_1channel_1000', 'left', tip_racks=[opentrons_flex_96_tiprack_1000ul in B3])
   comment: Tempore run 1
-  pipette.transfer(50, [A1 of C1, B1 of C1, C1 of C1, D1 of C1, E1 of C1, F1 of C1, G1 of C1, H1 of C1], [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], new_tip='always')
-  comment: Tempore timeline: At 0 s: operation `AddSample` took 120 s, within its running-time bounds [60, 180] s
   pipette.transfer(50, A3 of D2, A4 of D2, mix_after=(3, 500))
-  comment: Tempore timeline: At 120 s: operation `Dilute` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 0 s: operation `Dilute` took 90 s, within its running-time bounds [60, 120] s
+  pipette.transfer(50, [A1 of C1, B1 of C1, C1 of C1, D1 of C1, E1 of C1, F1 of C1, G1 of C1, H1 of C1], [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], new_tip='always')
+  comment: Tempore timeline: At 90 s: operation `AddSample` took 120 s, within its running-time bounds [60, 180] s
   pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
   pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
   comment: Tempore timeline: At 210 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
@@ -114,7 +114,7 @@ timed-regex-interval-rational, a time unit given in seconds.
   pipette.drop_tip()
   pipette.pick_up_tip()
   pipette.transfer(150, D1 of D2, A12 of D1, new_tip='never')
-  comment: Tempore timeline: At 915 s: operation `Wash` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 915 s: operation `FinalWash` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore timeline: At 1005 s: delay of 180 s
   delay(seconds=180.0)
   pipette.drop_tip()
@@ -396,7 +396,7 @@ errors nor warnings.
   delay(seconds=240.0)
   pipette.transfer(20, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of D3, B1 of D3, C1 of D3, D1 of D3], new_tip='always')
   comment: Tempore timeline: At 2010 s: operation `Transfer` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore run 1 returns "beads"
+  comment: Tempore run 1 returns Beads "beads"
 
 The bead purification by steps that unbox and rebox the beads: boxes generate
 no actions, so the protocol performs only the operations and the delays of
@@ -472,10 +472,13 @@ The rejected variants of the examples.
 
   $ ../../tempore --grades time-interval --typecheck-only $examples/elisa_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `incubating` is unboxed with grade `[30, 30]` accumulated since it was bound, which is not below its box grade `[60, ∞)`
+  Typing error: Variable `plate` is used with grade `[31, 33]` accumulated since it was bound, but its type `plate` is not eternal
   $ ../../tempore --grades timed-regex-interval-rational --typecheck-only $examples/washes_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: This function's body has grade `{(Wash; (Wash; ChangeTip)*)?}`, which does not match its annotated grade `{(Wash; ChangeTip)*}`
+  Typing error: Variable `rinsing` is unboxed with the unit grade `{skip}` accumulated since it was bound, which is not below its box grade `{ChangeTip}`
+  Typing error: Variable `washed` is used with grade `{FinalWash}` accumulated since it was bound, but its type `beads` is not eternal
   $ ../../tempore --grades timed-regex-interval-rational --typecheck-only $examples/cleanup_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `k` is unboxed with grade `{RemoveEthanol; idle 1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{AddEthanol; 1; RemoveEthanol}`
+  Typing error: Variable `k` is unboxed with grade `{RemoveLiquid; RemoveEthanol; idle 1; AddEthanol; RemoveEthanol; idle 1; AddEthanol}` accumulated since it was bound, which is not below its box grade `{RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}`
+  Typing error: Variable `settled` is used with grade `{RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}` accumulated since it was bound, but its type `beads` is not eternal
   $ ../../tempore --grades timed-regex-interval-rational --typecheck-only $examples/purification_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `permit` is unboxed with grade `{AddBeads; idle 10; MagnetOn; idle 5; RemoveSupernatant; AddEthanol; idle 1; RemoveEthanol; AddEthanol; idle 0.75; RemoveEthanol; RemoveResidualEthanol; idle 5; MagnetOff; EluteDNA; idle 3; MagnetOn; idle 2.5}` accumulated since it was bound, which is not below its box grade `{[0, 40]}`
   Typing error: The resource inequality `{AddEthanol; idle [0.5, 1.5]; RemoveEthanol} <= {AddEthanol; idle [0.5, 1.5]}` does not hold
@@ -488,7 +491,9 @@ The rejected variants of the examples.
   > done
   Typing error: The resource inequality `[35, 37] <= [0, 30]` does not hold
   Typing error: Variable `fixing` is unboxed with grade `[7, 9]` accumulated since it was bound, which is not below its box grade `[12, 20]`
-  Typing error: Variable `drying` is unboxed with grade `[4, 5]` accumulated since it was bound, which is not below its box grade `[2, 3]`
+  Typing error: Variable `fixed` is used with grade `[13, 13]` accumulated since it was bound, but its type `column` is not eternal
+  Typing error: Variable `drying` is unboxed with grade `[4, 4]` accumulated since it was bound, which is not below its box grade `[2, 3]`
+  Typing error: Variable `washed` is used with grade `[5, 6]` accumulated since it was bound, but its type `beads` is not eternal
   Typing error: Variable `first` is unboxed with grade `[31, 32]` accumulated since it was bound, which is not below its box grade `[0, 30]`
 
 Run as a script, a protocol executes its program as the interpreter does,

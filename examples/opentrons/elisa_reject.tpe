@@ -1,5 +1,6 @@
 (* As the example of an enzyme-linked immunosorbent assay (ELISA), with the
-   plate washed after too short an incubation with the detection antibody.
+   plate washed after too short an incubation with the detection antibody,
+   once from its box and once by its name from before the incubation.
 
    Run this example with the 'time-interval' grade algebra, e.g.
 
@@ -10,14 +11,14 @@
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
 
-type plate = string
-type reagent = string
+noneternal type plate = Plate of string
+noneternal type reagent = Reagent of string
 
 operation Detect : plate * reagent ~> [[60, ∞)]plate ! [1, 3]
-default Detect (plate, antibody) = delay 2; box [60, ∞) plate
+default Detect (Plate name, antibody) = delay 2; box [60, ∞) (Plate name)
 
 operation Wash : plate ~> plate ! [2, 4]
-default Wash plate = delay 3; plate
+default Wash (Plate name) = delay 3; Plate name
 
 (* Correctly rejected by the typechecker: the plate incubates with the
    detection antibody for 30 minutes only, short of the 60 it demands:
@@ -34,4 +35,18 @@ let early_wash (plate : plate) (antibody : reagent) =
   unbox incubating as incubated in
   perform Wash incubated
 
-run early_wash "plate" "detection antibody"
+(* Correctly rejected by the typechecker: the plate is washed 30 minutes
+   into the incubation by the name it had before it, and the type plate is
+   not eternal:
+
+     Typing error: Variable `plate` is used with grade `[31, 33]` accumulated
+       since it was bound, but its type `plate` is not eternal
+       ...
+       Note: the resource inequality `[31, 33] <= [0, 0]` does not hold
+*)
+let early_wash_unboxed (plate : plate) (antibody : reagent) =
+  let incubating = perform Detect (plate, antibody) in
+  delay 30;
+  perform Wash plate
+
+run early_wash (Plate "plate") (Reagent "detection antibody")

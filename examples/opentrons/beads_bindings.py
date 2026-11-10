@@ -5,9 +5,11 @@
 # the ethanol (A2) and the elution buffer (A3), and receives the liquid waste
 # (A12); the eluates go to a second PCR plate. The ethanol is added to every
 # sample from above with one tip; every other liquid is moved with a new tip
-# for each sample. Each function declares the nominal duration of its action
-# in seconds by tempore_elapse, the duration the virtual clock of a simulation
-# advances by.
+# for each sample. The beads are passed as the Tempore value Beads name, a
+# tempore_Con whose argument is their name, and every function but Transfer
+# returns the value it is given. Each function declares the nominal duration
+# of its action in seconds by tempore_elapse, the duration the virtual clock
+# of a simulation advances by.
 
 SAMPLES = ["A1", "B1", "C1", "D1"]
 
@@ -34,13 +36,13 @@ def setup(protocol):
 def AddBeads(ctx, beads):
     ctx["pipette"].transfer(50, ctx["reservoir"]["A1"], ctx["samples"], mix_after=(5, 40), new_tip="always")
     tempore_elapse(90)
-    return ()
+    return beads
 
 
 def RemoveLiquid(ctx, beads):
     ctx["pipette"].transfer(80, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(90)
-    return ()
+    return beads
 
 
 def MagnetOn(ctx, beads):
@@ -52,7 +54,7 @@ def MagnetOn(ctx, beads):
 def MagnetOff(ctx, beads):
     ctx["protocol"].move_labware(ctx["plate"], "D2", use_gripper=True)
     tempore_elapse(30)
-    return ()
+    return beads
 
 
 def Wash(ctx, beads):
@@ -60,18 +62,17 @@ def Wash(ctx, beads):
     pipette.transfer(150, ctx["reservoir"]["A2"], [sample.top() for sample in ctx["samples"]])
     pipette.transfer(150, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(90)
-    return ()
+    return beads
 
 
 def FinalWash(ctx, beads):
-    Wash(ctx, beads)
-    return beads
+    return Wash(ctx, beads)
 
 
 def EluteDNA(ctx, beads):
     ctx["pipette"].transfer(25, ctx["reservoir"]["A3"], ctx["samples"], mix_after=(5, 20), new_tip="always")
     tempore_elapse(90)
-    return ()
+    return beads
 
 
 def Transfer(ctx, beads):

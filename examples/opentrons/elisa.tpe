@@ -35,25 +35,26 @@
 
    The grade of an operation is the interval of its running times, which the
    monitors of the protocol check against the durations of its binding
-   function. A plate is named by a string, of the type plate, and the
-   antibody by a string wrapped in the type reagent. A developing plate is
-   of the type developed_plate. The types reagent and developed_plate are
-   not eternal: a value unboxed from its window is used before any further
-   step. The plate is pre-coated. The dilution of the detection antibody
+   function. A plate is a string wrapped in the type plate, the antibody a
+   string wrapped in the type reagent, and a developing plate a plate
+   wrapped in the type developed_plate. The three types are not eternal:
+   each step takes the plate and returns it, a value crosses time only in a
+   box returned by a step, and a value unboxed from its window is used
+   before any further step. The plate is pre-coated. The dilution of the detection antibody
    and its 20-minute window, the 20-minute upper bound of the development and
    the reading of the plate are the example's own. *)
 
-type plate = string
+noneternal type plate = Plate of string
 noneternal type reagent = Reagent of string
 noneternal type developed_plate = Developed of plate
 
 (* Adding the samples to the plate takes one to three minutes. *)
 operation AddSample : plate ~> plate ! [1, 3]
-default AddSample plate = delay 2; plate
+default AddSample (Plate name) = delay 2; Plate name
 
 (* A wash of the plate takes two to four minutes. *)
 operation Wash : plate ~> plate ! [2, 4]
-default Wash plate = delay 3; plate
+default Wash (Plate name) = delay 3; Plate name
 
 (* Diluting the detection antibody takes one to two minutes; the dilution must
    be used within 20 minutes. *)
@@ -63,12 +64,12 @@ default Dilute () = delay 1; box [0, 20] (Reagent "detection antibody")
 (* Adding the detection antibody to the plate takes one to three minutes. The
    plate may be washed once it has incubated for at least 60 minutes. *)
 operation Detect : plate * reagent ~> [[60, ∞)]plate ! [1, 3]
-default Detect (plate, antibody) = delay 2; box [60, ∞) plate
+default Detect (Plate name, antibody) = delay 2; box [60, ∞) (Plate name)
 
 (* The substrate develops the plate, which must be stopped between 15 and 20
    minutes later. *)
 operation Develop : plate ~> [[15, 20]]developed_plate ! [1, 2]
-default Develop plate = delay 1; box [15, 20] (Developed plate)
+default Develop (Plate name) = delay 1; box [15, 20] (Developed (Plate name))
 
 (* Stopping takes at most a minute, and reading the absorbances one to two. *)
 operation Stop : developed_plate ~> plate ! [0, 1]
@@ -82,13 +83,14 @@ let wash3 (plate : plate) : plate ! [6, 12] =
   let plate = perform Wash plate in
   perform Wash plate
 
-(* Correctly accepted by the typechecker: the antibody is used three washes,
-   six to 12 minutes, after its dilution; the plate incubates with it for 65
-   minutes, beyond the 60 it demands, before it is washed; and the development
-   is stopped after the 17 minutes of the delay. *)
-let elisa (plate : plate) =
-  let plate = perform AddSample plate in
+(* Correctly accepted by the typechecker: the antibody is diluted first, and
+   used after the samples and three washes, seven to 15 minutes after its
+   dilution; the plate incubates with it for 65 minutes, beyond the 60 it
+   demands, before it is washed; and the development is stopped after the 17
+   minutes of the delay. *)
+let elisa () =
   let antibody = perform Dilute () in
+  let plate = perform AddSample (Plate "plate") in
   let plate = wash3 plate in
   unbox antibody as detection in
   let incubating = perform Detect (plate, detection) in
@@ -136,4 +138,4 @@ let elisa_overdeveloped (washed : plate) =
   perform Stop developed
 *)
 
-run elisa "plate"
+run elisa ()
