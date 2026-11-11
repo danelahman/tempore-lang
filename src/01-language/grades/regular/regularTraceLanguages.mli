@@ -66,6 +66,12 @@
     constants and their pairwise products ({!Grade.sampled}), which are not
     complete.
 
+    {2 Closure}
+
+    Every implementation declares the closure {!Grade.S.plus} [L⁺ = L; L*] of a
+    grade [L], the least language above [L] closed under concatenation, built by
+    the concatenation and the star of its representation.
+
     {2 Literals}
 
     A grade is written as a brace literal holding a regular expression: an

@@ -101,7 +101,11 @@ let decide2 decide rho rho' =
 let one = { names = []; regex = Regex.eps }
 let mul = lift2 Regex.concat
 let join = lift2 (fun r s -> Regex.union [ r; s ])
-let plus _ = None
+
+(* The closure [L⁺ = L; L*], over the names of [L]. *)
+let plus rho =
+  Some { rho with regex = Regex.concat rho.regex (Regex.star rho.regex) }
+
 let top = { names = []; regex = Regex.top }
 let leq _bounds = decide2 D.subset
 let equal _bounds = decide2 D.equal

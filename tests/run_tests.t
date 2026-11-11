@@ -4825,6 +4825,23 @@ it names none:
     grade `[1, ∞)` accumulates here (this computation)
     Note: the resource inequality `[1, ∞) <= [1, 5]` does not hold
   ======================================================================
+  recursion_closure_reject_regular.tpe
+  ======================================================================
+  File "recursion_closure_reject_regular.tpe", line 22, characters 4-26:
+  22 |   | Stop p k -> read_all 2
+           ^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: For every grade `ε_Stop` the continuation `k` may have, the case for `Stop` must have a grade matching `{Read*} · ε_Stop`, but its grade `{Read*}` does not
+    File "recursion_closure_reject_regular.tpe", line 12, characters 0-39:
+    12 | operation Stop : unit ~> unit ! {Read*}
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Stop` is declared here
+    File "recursion_closure_reject_regular.tpe", line 22, characters 11-12:
+    22 |   | Stop p k -> read_all 2
+                    ^
+    `k` may have any grade `ε_Stop`
+    Note: the effect inequality `∀ε_Stop. {Read*} <= {Read*} · ε_Stop` does not hold: for `ε_Stop = {1}` it becomes `{Read*} <= {Read*; 1}`
+    Note: the grade `{skip}` is below `{Read*}` but not below `{Read*; 1}`
+  ======================================================================
   recursion_closure_reject_upper.tpe
   ======================================================================
   File "recursion_closure_reject_upper.tpe", line 15, characters 22-26:
@@ -4929,7 +4946,8 @@ it names none:
   File "recursion_effect_reject_unannotated_regular.tpe", lines 16-21, characters 20-19:
   16 | let rec unannotated (n : nat) =
                            ^^^^^^^^^^^
-  Typing error: The effect inequality `{Read} <= {skip}` does not hold
+  Typing error: The effect inequality `{Read*} <= {skip}` does not hold
+    Note: the grade `{Read}` is below `{Read*}` but not below `{skip}`
   ======================================================================
   recursion_effect_upper.tpe
   ======================================================================

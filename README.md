@@ -564,6 +564,10 @@ Under both variants:
   `{~{_*; Revoke; _*}}` the traces that never revoke;
 - a grade is printed as it is written, and a grade the typechecker computes
   with its runs of equal factors folded (below);
+- the closure of a grade `L`, the least grade above `L` that absorbs its
+  square, is `L; L*`: a recursive function whose effect is annotated by a
+  grade variable `'e` (see [Annotations](#annotations)) and whose rounds read
+  before the recursive call has the grade `{Read*}`;
 - when an ordering fails, a note names the shortest trace of the lesser grade
   not in the greater one:
 

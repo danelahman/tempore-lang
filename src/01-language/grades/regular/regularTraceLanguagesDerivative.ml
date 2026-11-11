@@ -37,7 +37,6 @@ module Constants = struct
 
   let leq_symbol = "<="
   let unit_least = false
-  let plus _ = None
   let commutative = false
   let needs_op_bounds = false
   let duration_ends = Grade.Both_ends
@@ -140,6 +139,9 @@ struct
   let one = R.eps
   let mul = R.concat
   let join rho rho' = R.union [ rho; rho' ]
+
+  (* The closure [L⁺ = L; L*]. *)
+  let plus rho = Some (R.concat rho (R.star rho))
   let top = R.top
   let leq _bounds = D.subset
   let equal _bounds = D.equal

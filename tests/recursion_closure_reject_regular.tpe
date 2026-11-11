@@ -1,0 +1,22 @@
+(* Run this test with the 'regular-trace-languages-symbolic' grade algebra, e.g.
+
+     ./tempore --grades regular-trace-languages-symbolic \
+       tests/recursion_closure_reject_regular.tpe
+
+   A recursive function whose recursive case reads: its grade ε satisfies
+   {skip} ≾ ε and {Read} · ε ≾ ε, whose least solution is {Read*}, the join
+   of the unit with the closure {Read; Read*}. *)
+
+operation Read : unit ~> nat ! {Read}
+
+operation Stop : unit ~> unit ! {Read*}
+
+let rec read_all (n : nat) : unit ! 'e =
+  match n with 0 -> () | m + 1 -> (perform Read (); read_all m)
+
+(* Correctly rejected by the typechecker: the clause for Stop does not resume
+   the continuation, and its grade {Read*} is not below {Read*} · ε_Stop for
+   every grade ε_Stop of the continuation, e.g. not below {Read*; 1}. *)
+let h = handler
+  | x -> x
+  | Stop p k -> read_all 2

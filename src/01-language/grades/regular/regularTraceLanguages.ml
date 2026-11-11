@@ -83,7 +83,14 @@ let of_regex r =
 let one = of_regex Skip
 let mul = lift2 Dfa.concat Expression.mul
 let join = lift2 Dfa.union Expression.join
-let plus _ = None
+
+(* The closure [L⁺ = L; L*], over the names of [L]. *)
+let plus rho =
+  Some
+    (restrict rho.names
+       (Dfa.concat rho.dfa (Dfa.star rho.dfa))
+       (Expression.mul rho.expression (SymbolicRegex.star rho.expression)))
+
 let top = { names = []; dfa = Dfa.all (size []); expression = Expression.top }
 
 let leq _bounds rho rho' =

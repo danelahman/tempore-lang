@@ -57,6 +57,13 @@
     The witnesses of a closed condition are its constants and their pairwise
     products ({!Grade.sampled}), which are not complete.
 
+    {2 Closure}
+
+    The closure {!Grade.S.plus} [L⁺] of a grade [L], the least language above
+    [L] closed under concatenation, is [L; L*]: [L] itself for the unit and for
+    a grade written or built as a star, and [L*] for a language with the empty
+    word.
+
     {2 Running-time bounds}
 
     The order does not read the running-time bounds of operations, which

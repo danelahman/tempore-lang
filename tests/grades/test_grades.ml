@@ -3623,6 +3623,80 @@ let timed_regex_closures =
   @ laws (module G.Interval)
   @ laws (module G.Rational.Interval)
 
+(* The closures of the regular trace languages in every implementation: [L⁺]
+   is [L; L*], printed and equal to the expected grades: of an operation, an
+   alternation, a delay, a star, which is its own closure, the unit, the top,
+   and an optional operation, whose closure is its star, printed in normal
+   form but over rational delays. Besides, the
+   closure laws on samples with stars, with their products and joins; the
+   registered laws check them on the samples of the family. *)
+let regular_trace_closures =
+  let closes (type a) (module M : Grade.S with type t = a) cases =
+    let module P = Reader (M) in
+    let lit text =
+      match P.parse text with
+      | Ok rho -> rho
+      | Error e -> failwith (M.name ^ ": " ^ text ^ ": " ^ e)
+    in
+    let cases =
+      List.concat_map
+        (fun (x, shown, y) ->
+          let name = M.name ^ ": the closure of " ^ x in
+          match M.plus (lit x) with
+          | None -> [ check name false "none declared" ]
+          | Some p ->
+              [
+                expect (name ^ " printed") Fun.id ~expected:shown (M.show p);
+                check
+                  (name ^ " is " ^ y)
+                  (M.equal running_times p (lit y))
+                  (M.show p);
+              ])
+        cases
+    in
+    let base =
+      List.map lit
+        [
+          "{A}";
+          "{A*}";
+          "{A; B}";
+          "{(A | B)*; A}";
+          "{A | skip}";
+          "{skip}";
+          "⊤";
+          "{1}";
+          "{[1, 2]; A}";
+        ]
+    in
+    let samples =
+      base
+      @ List.concat_map
+          (fun x -> List.concat_map (fun y -> [ M.mul x y; M.join x y ]) base)
+          base
+    in
+    cases
+    @ closure_laws (module M) ~context:"given samples" running_times samples
+  in
+  let cases =
+    [
+      ("{A}", "{A; A*}", "{A; A*}");
+      ("{A | B}", "{(A | B); (A | B)*}", "{(A | B); (A | B)*}");
+      ("{2}", "{2; 2*}", "{2; 2*}");
+      ("{(A; 1)*}", "{(A; 1)*}", "{(A; 1)*}");
+      ("{skip}", "{skip}", "{skip}");
+      ("⊤", "⊤", "⊤");
+    ]
+  in
+  let optional shown = [ ("{A | skip}", shown, "{A*}") ] in
+  let symbolic = cases @ optional "{A*}" in
+  let rational = cases @ optional "{(A | skip)*}" in
+  closes (module Grades.RegularTraceLanguagesDerivative) symbolic
+  @ closes (module Grades.RegularTraceLanguagesDerivative.Concrete) symbolic
+  @ closes (module Grades.RegularTraceLanguages) symbolic
+  @ closes (module Grades.RegularTraceLanguagesPlain) symbolic
+  @ closes (module Grades.RegularTraceLanguagesRational) rational
+  @ closes (module Grades.RegularTraceLanguagesRational.Automata) rational
+
 (* The laws of the mode-switch costs on grades over the modes [Off], [On] and
    [Idle], the modes not named and [Stuck]: changes of mode, operations
    performed only in some modes, traces stuck at a cost, entries of the modes
@@ -4699,7 +4773,7 @@ let () =
     @ declared_lattice_laws @ declared_lattice_structure @ ranges @ flow_tops
     @ duration_bounds @ mode_time_laws @ timed_regex_laws @ timed_regex_overflow
     @ timed_regex_star @ timed_regex_star_reference @ timed_regex_closures
-    @ energy_products @ system_laws
+    @ regular_trace_closures @ energy_products @ system_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

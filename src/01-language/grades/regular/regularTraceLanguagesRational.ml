@@ -35,6 +35,7 @@ module type LANGUAGE = sig
   val of_regex : regex -> t
   val concat : t -> t -> t
   val union : t -> t -> t
+  val star : t -> t
   val is_empty : t -> bool
   val is_top : t -> bool
   val subset : t -> t -> bool
@@ -94,7 +95,19 @@ struct
 
   let of_delay d = of_regex (rational_tick d)
   let unit_least = false
-  let plus _ = None
+
+  (* The closure [L⁺ = L; L*]: [L] for the unit and for a star, and [L*] for
+     a language with the empty word. *)
+  let plus rho =
+    let star =
+      { language = L.star rho.language; expression = Star rho.expression }
+    in
+    match rho.expression with
+    | Star _ -> Some rho
+    | _ when L.equal rho.language one.language -> Some rho
+    | _ when L.subset one.language rho.language -> Some star
+    | _ -> Some (mul rho star)
+
   let commutative = false
   let needs_op_bounds = false
   let duration_ends = Grade.Both_ends
