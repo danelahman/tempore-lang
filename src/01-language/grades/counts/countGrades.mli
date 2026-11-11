@@ -37,7 +37,7 @@ end
     {!TimeGrades.LowerBound} ordered by [>=] name by name.
 
     - An entry [(A, n)] guarantees [n] calls of the operation [A], also written
-      [[n, ∞)], [(n, ∞)] being [n + 1], an entry [(_, n)] [n] calls of every
+      [\[n, ∞)], [(n, ∞)] being [n + 1], an entry [(_, n)] [n] calls of every
       operation not listed, and a plain number [n] [n] calls of every operation;
       an operation neither listed nor counted by an entry [(_, n)] is guaranteed
       no call, so that [((Approve, 2), (Test, 1))] guarantees two [Approve] and
