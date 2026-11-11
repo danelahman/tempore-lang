@@ -222,9 +222,9 @@ board and a list that fails are errors:
   $ found 'm5stack gray'
   Error: the board 'm5stack gray' is not a name
   exit 1
-  $ TEMPORE_DEVICE_LIST="cat $PWD/ports/none" found m5stack-gray | sed "s|$PWD|.|g"
-  cat: ./ports/none: No such file or directory
-  Error: the serial ports were not listed by cat ./ports/none
+  $ (TEMPORE_DEVICE_LIST="false" found m5stack-gray)
+  
+  Error: the serial ports were not listed by false
   exit 1
 
 A target runs the detection before its commands, which receive the port
