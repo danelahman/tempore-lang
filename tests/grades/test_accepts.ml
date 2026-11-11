@@ -168,18 +168,18 @@ let collected =
       (string_of_int (List.length literals) ^ " literals");
   ]
 
-(* The literals not read by [of_lit] in the grades over whole time steps. *)
-let skipped_notes =
-  List.filter_map
-    (fun lit ->
-      if lit_width lit > widest then
-        Some ("not read by of_lit over whole time steps: " ^ show_lit lit)
-      else None)
-    literals
+(* The number of literals not read by [of_lit] in the grades over whole time
+   steps. *)
+let skipped_count =
+  List.length (List.filter (fun lit -> lit_width lit > widest) literals)
 
 let () =
   let checks = collected @ agreement in
-  List.iter (Printf.printf "note: %s\n") skipped_notes;
+  if skipped_count > 0 then
+    Printf.printf
+      "note: %d literals with an interval of more than %d time steps are not \
+       read under the grades over whole time steps\n"
+      skipped_count widest;
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;
   Printf.printf "%d of %d checks passed\n"
