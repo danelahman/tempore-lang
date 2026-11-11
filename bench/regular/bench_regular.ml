@@ -911,21 +911,23 @@ let case_studies =
       ] );
     ( "examples/opentrons/washes.tpe",
       [
-        "{(Wash; ChangeTip)*}";
-        "{AddBeads; idle [5, 10]; MagnetOn}";
-        "[{(Wash; ChangeTip)^[1, ∞); Wash; idle 2; ChangeTip}, {(Wash; \
-         ChangeTip)*; Wash; idle [2, 3]; ChangeTip}]";
+        "{(Wash; ChangeTip)^[1, ∞)}";
+        "{idle [2, 3]; ChangeTip}";
+        "[{≥0}, {((≥0 & ~MagnetOff) | MagnetOff; (≥0 & ~(MagnetOn | \
+         RemoveLiquid | Wash | FinalWash | Transfer)); MagnetOn)*; (MagnetOff; \
+         (≥0 & ~(MagnetOn | RemoveLiquid | Wash | FinalWash | Transfer)))?}]";
       ] );
     ( "examples/opentrons/purification.tpe",
       [
-        "[5, 10]";
-        "{AddEthanol; idle [1/2, 3/2]; RemoveEthanol}";
-        "{[2, 5]; MagnetOn; [2, 5]}";
+        "[0, 40]";
+        "{AddEthanol; idle [1/2, 3/2]; RemoveEthanol; AddEthanol; idle [1/2, \
+         3/2]; RemoveEthanol}";
+        "{idle [2, 5]; MagnetOn; idle [2, 5]; Transfer; idle [2, 5]}";
       ] );
     ( "examples/opentrons/cleanup.tpe",
       [
         "{AddBeads; [5, 10]; MagnetOn}";
-        "{(AddEthanol; 1; RemoveEthanol)^2; [2, 3]}";
+        "{RemoveLiquid; (AddEthanol; 1; RemoveEthanol)^2}";
       ] );
     ( "examples/timed_regex/intervals_rational.tpe",
       [ "[{(≥0; ReadImu; ReadClock)^3; ≥0}, {(2.5; ReadImu; ReadClock)*}]" ] );
