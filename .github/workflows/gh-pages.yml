@@ -8,7 +8,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # The dune cache stores the results of every rule, the tests included,
       # so that a test whose dependencies are unchanged is restored.
