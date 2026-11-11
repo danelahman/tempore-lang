@@ -170,6 +170,8 @@ A reading order, one example per concept:
    operations demanded in order
 8. [`lattice/time_upper.tpe`](examples/lattice/time_upper.tpe): a product
    of time with a grade lattice
+9. [`grade_systems/session_key.tpe`](examples/grade_systems/session_key.tpe):
+   effects and resources graded by different grade algebras
 
 The web interface's gallery lists these and the other examples of each
 concept. The remaining files under `examples/` vary them over the further
@@ -180,46 +182,75 @@ grade algebras of the sections below, which link them.
 Open `web/index.html` after building, or use
 <https://tempore-lang.ee/>.
 
-You can load an existing example or write your own program, choose which grade
-algebra to use, typecheck the program, and step through its reductions while
-watching resource usage.
+The page has an editor for the program, a gallery of examples, and selectors
+for the backend and the grades. 
 
-The **Resource grade algebra** selector, under the grade algebra selector,
-chooses the grade system (see [Grade systems](#grade-systems)): **Same as
-effects** for the identity system, or one of the resource grade algebras the
-registered systems pair with the selected effect grade algebra, each with its
-morphism as a tooltip. It is disabled for an effect grade algebra without such
-a system, and falls back to **Same as effects** when the effect grade algebra
-changes to one that the selected resource grade algebra is not paired with.
-Loading an example selects both.
+A program is loaded from the gallery or written in the editor, typechecked, and,
+under the interpreter, run step by step, with its resource usage shown along the
+reductions.
 
-The documentation page shows this README and those of the Arduino and Opentrons
-backends, chosen by the tabs of its side panel, each with its own table of
-contents.
+The documentation page shows this README and those of the Arduino and
+Opentrons backends. The tabs of its side panel choose between them, and each
+has its own table of contents.
+
+#### Grade selection
+
+Two selectors choose the grades the program is typechecked under:
+
+- The grade algebra selector chooses the grade algebra of the effects (see
+  [Grade algebras](#grade-algebras)).
+- The resource grade algebra selector, under it, chooses the grade system
+  (see [Grade systems](#grade-systems)). "Same as effects" is the identity
+  system. The other choices are the resource grade algebras that a grade
+  system pairs with the selected effect grade algebra.
+
+The resource grade algebra selector is disabled when no grade system pairs the
+selected effect grade algebra with another one. When the effect grade algebra
+changes to one that the selected resource grade algebra is not paired with, the
+selector returns to "Same as effects".
+
+Loading an existing example selects the grades of both selectors correspondingly.
 
 #### Backend selection
 
-The backend selector chooses the backend, Interpreter, Arduino or Opentrons (see
-[Backends](#backends)), loads its default example, and makes the gallery list
-the examples of that backend. Under Arduino, the device manifest, the binding
-file and the monitor policy are inputs, the declarations of the packages of the
-manifest are shown read-only above the program, and the compiled code is the
-PlatformIO project; a name the program uses from these declarations shows its
-declaration and scheme as a tooltip, and ⌘-click (Ctrl-click) or F12 on it
-unfolds the declarations at it. Under Opentrons, the robot, the time unit and
-the monitor policy are inputs, and the mark in the top right corner of the
-editor switches between the program and the binding file and compiled protocol.
+The backend selector chooses between the interpreter, Arduino and Opentrons
+(see [Backends](#backends)). 
+
+Choosing a backend loads its default example and makes the gallery list the
+examples of that backend.
+
+Under Arduino:
+
+- The device manifest, the binding file and the monitor policy are inputs.
+- The declarations of the packages of the manifest are shown read-only above
+  the program. A name the program uses from them shows its declaration and
+  scheme as a tooltip, and ⌘-click (Ctrl-click) or F12 on it unfolds the
+  declarations at it.
+- The compiled code is the PlatformIO project.
+
+Under Opentrons:
+
+- The robot, the time unit, and the monitor policy are inputs.
+- The icon in the top right corner of the editor switches between the program
+  and the binding file with the compiled protocol.
 
 #### Addresses
 
-The address of the page names, in its query parameters, the example
-(`example`, its path relative to `examples`), the grade algebra (`grades`),
-the resource grade algebra (`resources`, the grade algebra itself for the
-identity system), the backend (`backend`: `interpreter`, `arduino` or
-`opentrons`) and a line of the example to highlight (`line`, from 1), as in
-<https://tempore-lang.ee/?example=arduino/bala2/balance.tpe&line=42>. With an
-example, `grades`, `resources` and `backend` are named only where they differ
-from the example's.
+The query parameters of the page's address name what the page shows:
+
+| Parameter   | Meaning                                                              |
+| ----------- | -------------------------------------------------------------------- |
+| `example`   | the example, by its path relative to `examples`                      |
+| `grades`    | the grade algebra                                                    |
+| `resources` | the resource grade algebra, the grade algebra itself for the identity system |
+| `backend`   | the backend: `interpreter`, `arduino` or `opentrons`                 |
+| `line`      | a line of the example to highlight, from 1                           |
+
+An example is
+<https://tempore-lang.ee/?example=arduino/bala2/balance.tpe&line=42>. 
+
+With `example`, the parameters `grades`, `resources`, and `backend` are needed
+only where they differ from those of the example.
 
 ## Temporal resources
 
@@ -267,7 +298,7 @@ tau'` the grade of `delay (tau + tau')`
 The grades whose names end in `-rational` or `-rational-symbolic`, `lattice`,
 `time-interval-lattice`, `flow-sensitive-levels`, `inter-arrival` and
 `mode-times` have the non-negative rationals as delays and accept any, such as
-`delay 1/3` or `delay 0.25`; the other grade algebras count whole time steps
+`delay 1/3` or `delay 0.25`. The other grade algebras count whole time steps
 and accept only integers. See
 [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
 
@@ -1023,7 +1054,7 @@ declared with running-time bounds, `{Heat}` is below `{Heat; Cool}` under
 [`tests/timed_regex_finite_upper_reject.tpe`](tests/timed_regex_finite_upper_reject.tpe)
 and [`tests/idle_waits_finite_reject.tpe`](tests/idle_waits_finite_reject.tpe).
 
-### Grade lattices
+### Lattice grades
 
 In this category, we have the following grade algebras:
 
@@ -1611,12 +1642,13 @@ accumulated since its binding is a sub-grade of the unit. Under
 other grade algebras such a variable must be used before any nontrivial delay or
 operation call.
 
-### Schemes and qualifiers
+### Type schemes and qualifiers
 
-When eternality depends on a type variable of a top-level definition, it
-becomes a qualifier of the definition's scheme, checked at each use.
+When eternality depends on a type variable of a top-level definition, it becomes
+a qualifier of the definition's type scheme, checked at each use.
 
-Under `time-upper-bound`, the program `let keep x = delay 1; x` gets the scheme
+Under `time-upper-bound`, the program `let keep x = delay 1; x` gets the type
+scheme
 
     ∀ α. Et(α) ⇒ α → α ! 1
 
@@ -1773,9 +1805,9 @@ and Wehr, TAPOS 1999). Types are compared by subtyping: functions are
 contravariant in the argument and covariant in the result and effect, and a box
 `[rho]a` is contravariant in `rho`.
 
-### Qualified schemes
+### Qualified type schemes
 
-Top-level `let` definitions are generalised to qualified schemes,
+Top-level `let` definitions are generalised to qualified type schemes,
 
     ∀ α ρ₀ ε₀. Q ∧ R ⇒ A
 
@@ -1786,17 +1818,17 @@ where
   of their continuations;
 - `∣ε∣` is the resource grade accumulated while `ε` runs.
 
-A condition is printed `∀ε_Op. …`, `ε_Op` being the effect of the
-continuation of a case for `Op`, primed (`ε_Op′`) for another case for `Op`.
-`--debug` prints the schemes.
+A condition is printed `∀ε_Op. …`, `ε_Op` being the effect of the continuation
+of a case for `Op`, primed (`ε_Op′`) for another case for `Op`. `--debug` prints
+the type schemes.
 
 Under `time-upper-bound`, the standard library's `compose f g x = f (g x)` has
 
     ∀ α β γ ε₀. (α → β ! ε₀) → (γ → α) → (γ → β ! ε₀)
 
 where `g` takes no time, since the non-eternal `f` is used after it: the
-qualifier `∣ε₁∣ ≾ 0` on the effect `ε₁` of `g` admits only the least value
-`0`, which the scheme substitutes. An effect of the unit is not printed on a
+qualifier `∣ε₁∣ ≾ 0` on the effect `ε₁` of `g` admits only the least value `0`,
+which the type scheme substitutes. An effect of the unit is not printed on a
 function arrow, but is printed on both sides of a handler type `A ! ε ⇛ B ! ε′`.
 
 Under `time-lower-bound`, with `operation Op : unit ~> unit ! 1`, the handler
@@ -1807,11 +1839,10 @@ has
 
     ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 1 ∧ (∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op) ⇒ (unit → α ! ε₀) → (β ! ε₁ ⇛ β ! 0)
 
-where `R`, `∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op`, states that for every effect `ε_Op`
-of `k` the case, `f` followed by `k`, takes at least the time of `Op` followed
-by `k`.
-See [`examples/handlers/qualified.tpe`](examples/handlers/qualified.tpe),
-where such a scheme is met at one use and refuted at another.
+where `R`, `∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op`, states that for every effect `ε_Op` of
+`k` the case, `f` followed by `k`, takes at least the time of `Op` followed by
+`k`. See [`examples/handlers/qualified.tpe`](examples/handlers/qualified.tpe),
+where such a type scheme is met at one use and refuted at another.
 
 A `run` must establish every such condition: one without unknowns that the
 typechecker can neither derive nor refute rejects it, and one with unknowns
