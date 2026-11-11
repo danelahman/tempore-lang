@@ -23,10 +23,10 @@ Run from the root of the repository:
 
 ## Measured
 
-- 2026-11-11, at 050a3898 on `main`
+- 2026-11-11, at 6c1bfb7a on `main`
 - macOS 15.8.2 (Darwin 24.6.0, arm64), Apple M3 Pro
 - OCaml 5.5.0, dune 3.24.2, `--profile release`
-- 385 files, total 1.1 s of typechecking, none over 2 s
+- 386 files, total 1.1 s of typechecking, none over 2 s
 
 The slowest 20 files:
 
@@ -44,10 +44,10 @@ The slowest 20 files:
 | examples/lattice/staged_release.tpe                    | time-lower-bound-lattice      |     0.02 |
 | examples/opentrons/contamination.tpe                   | time-upper-bound-lattice      |     0.01 |
 | examples/arduino/calibrated/calibrated.tpe             | time-interval-rational        |     0.01 |
-| examples/opentrons/purification_reject.tpe             | timed-regex-interval-rational |     0.01 |
-| examples/opentrons/purification.tpe                    | timed-regex-interval-rational |     0.01 |
 | examples/arduino/peak/peak.tpe                         | at-most-counts                |     0.01 |
-| examples/arduino/tilt/tilt.tpe                         | time-interval-rational        |     0.00 |
+| examples/opentrons/purification.tpe                    | timed-regex-interval-rational |     0.01 |
+| examples/opentrons/purification_reject.tpe             | timed-regex-interval-rational |     0.01 |
+| examples/arduino/tilt/tilt.tpe                         | time-interval-rational        |     0.01 |
 | examples/opentrons/washes.tpe                          | timed-regex-interval-rational |     0.00 |
 | examples/banked_traces/lower_bounds.tpe                | banked-traces-lower-bound     |     0.00 |
 | examples/banked_traces/intervals.tpe                   | banked-traces-interval        |     0.00 |
