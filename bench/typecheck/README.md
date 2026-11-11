@@ -13,6 +13,10 @@ process start-up and the loading of the standard library, and so it is much
 shorter than a run of `make test` (about a minute), which also runs the other
 test suites.
 
+A run of the benchmark itself takes about 25 s, much longer than the total it
+reports. It typechecks each file three times, and each of these processes
+first loads the standard library, which is not timed.
+
 Run from the root of the repository:
 
     dune exec --profile release bench/typecheck/bench_typecheck.exe
