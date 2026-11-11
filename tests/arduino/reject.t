@@ -57,6 +57,28 @@ function:
   Compilation error: The Arduino backend does not support the recursive call of `count` outside a tail position
   exit 1
 
+A recursive call whose result is computed with after the call, in a function
+whose result is annotated with a type:
+  $ cat > operand.tpe <<'TPE'
+  > let rec sum (n : nat) : nat = match n with | 0 -> 0 | m + 1 -> 1 + sum m
+  > TPE
+  $ reject operand.tpe
+  File "operand.tpe", line 1, characters 67-72:
+  1 | let rec sum (n : nat) : nat = match n with | 0 -> 0 | m + 1 -> 1 + sum m
+                                                                         ^^^^^
+  Compilation error: The Arduino backend does not support the recursive call of `sum` outside a tail position
+  exit 1
+  $ cat > bound.tpe <<'TPE'
+  > let rec sum (n : nat) : nat =
+  >   match n with | 0 -> 0 | m + 1 -> let (r : nat) = sum m in (r + 1 : nat)
+  > TPE
+  $ reject bound.tpe
+  File "bound.tpe", line 2, characters 51-56:
+  2 |   match n with | 0 -> 0 | m + 1 -> let (r : nat) = sum m in (r + 1 : nat)
+                                                         ^^^^^
+  Compilation error: The Arduino backend does not support the recursive call of `sum` outside a tail position
+  exit 1
+
 A partial application:
   $ cat > partial.tpe <<'TPE'
   > let add x y = x + y

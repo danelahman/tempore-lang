@@ -145,6 +145,9 @@ library.
   === Run 5 ===
   return 42
   
+  === Run 6 ===
+  return 2000
+  
 
   $ parity polymorphism.tpe
   === Run 1 ===

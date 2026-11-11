@@ -1,6 +1,7 @@
 (* Recursive calls in tail position, compiled to loops: a million iterations,
    curried functions of several parameters, a parameter that is a pattern and
-   one that is unused, and calls in the branches of conditionals. *)
+   one that is unused, calls in the branches of conditionals, and a call in a
+   function whose result is annotated with a type. *)
 
 let rec count acc n =
   match n with
@@ -27,8 +28,14 @@ let rec collatz fuel steps n =
 
 let rec unused_parameter x n = match n with 0 -> 42 | k + 1 -> unused_parameter x k
 
+let rec annotated (acc : nat) (n : nat) : nat =
+  match n with
+  | 0 -> acc
+  | k + 1 -> let a = acc + 2 in annotated a k
+
 run count 0 1000000
 run gcd 100 1071 462
 run fib_mod (0, 1) 1000
 run collatz 1000 0 27
 run unused_parameter (1, 2) 10
+run annotated 0 1000

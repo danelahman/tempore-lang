@@ -1369,7 +1369,17 @@ and computation env st ~tail (c : _ Ast.computation) =
         | Ast.PNonbinding -> computation env st ~tail c2
         | _ -> reject ()
       in
-      match computation env st ~tail:false c1 with
+      (* [do x <- c1 in return x], up to annotations, is [c1] in the position
+         of the whole computation. *)
+      let returns_bound =
+        match ((strip_pattern p).it, c2.it) with
+        | Ast.PVar x, Ast.Return e -> (
+            match (strip_expression e).it with
+            | Ast.Var y -> Ast.Variable.equal x y
+            | _ -> false)
+        | _ -> false
+      in
+      match computation env st ~tail:(tail && returns_bound) c1 with
       | st, Applied (partial, at) ->
           bound st (Partial partial) (fun () -> reject_function partial at)
       | st, Handler_value (h, at) ->
@@ -1433,8 +1443,8 @@ and computation env st ~tail (c : _ Ast.computation) =
       let st = unify_at body.at st h.input body'.result in
       (st, Computed { computation = Handle (h.use, body'); result = h.output })
 
-(* The binding of the result of [c1] to [p] in [c2]; [do x <- c1 in return x]
-   is [c1]. *)
+(* The binding of the result of [c1] to [p] in [c2]; [do x <- c1 in return x],
+   up to annotations, is [c1]. *)
 and bind env st ~tail p c1 c2 =
   let st, p, env = pattern env st p c1.result in
   let st, c2 = computation env st ~tail c2 in

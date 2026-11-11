@@ -150,6 +150,40 @@ error.
   Run-time error: Unhandled operation ReadAngle
   [3]
 
+A recursive call in tail position becomes a loop also when the result of the
+function, of the call, or of the variable it is bound to is annotated with a
+type, or the function with a type and a grade: all the variants compile to
+the same code.
+
+  $ variant () {
+  >   printf 'let rec sum (n : nat) (a : nat)%s =\n' "$1" > "$2.tpe"
+  >   printf '  match n with | 0 -> a | m + 1 -> let b = a + 1 in %s\n' "$3" >> "$2.tpe"
+  >   ../../tempore --grades time-interval-rational --emit-arduino "$2" "$2.tpe" > /dev/null &&
+  >   tail -n +2 "_arduino/projects/$2/tempore_program.cpp" > "$2.cpp"
+  > }
+  $ variant '' plain 'sum m b'
+  $ variant ' : nat ! [0.0,0.0]' graded 'sum m b'
+  $ variant ' : nat' annotated 'sum m b'
+  $ variant ' : nat' nested '((sum m b : nat) : nat)'
+  $ variant ' : nat' bound 'let (r : nat) = sum m b in (r : nat)'
+  $ for v in graded annotated nested bound; do diff plain.cpp "$v.cpp"; done
+  $ sed -n '/^uint32_t sum/,/^}/p' plain.cpp
+  uint32_t sum_1(uint32_t n_4, uint32_t a_5) {
+    for (;;) {
+      if (n_4 == 0u) {
+        return a_5;
+      } else {
+        const uint32_t m_6 = (n_4 - 1u);
+        const uint32_t b_7 = (a_5 + 1u);
+        const uint32_t tempore_next_n_4 = m_6;
+        const uint32_t tempore_next_a_5 = b_7;
+        n_4 = tempore_next_n_4;
+        a_5 = tempore_next_a_5;
+        continue;
+      }
+    }
+  }
+
 The options of the Arduino backend are checked.
 
   $ ../../tempore --host-runs controller.tpe
