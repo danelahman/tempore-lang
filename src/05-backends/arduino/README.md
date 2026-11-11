@@ -266,7 +266,7 @@ Such handlers are the runners of Ahman and Bauer (ESOP 2020) without state:
       | x -> x
       | Read () k ->
           let v = perform Read () in
-          continue k with v + d
+          continue k with (v + d)
 
 A case that resumes its continuation twice or not at all, computes after the
 resumption, or passes the continuation on is refused at the occurrence of
