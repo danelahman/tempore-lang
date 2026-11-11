@@ -6,7 +6,14 @@ solver tests check them (`tests/inference/test_solve.ml`; the corpus is
 `TestPrograms.corpus`). The standard library of each grade is loaded untimed.
 Each file is typechecked in 3 fresh child processes, so that the tables the
 grades keep start empty; a row shows the median of the first (cold) time.
-Files over 2 s are marked. Run from the root of the repository:
+Files over 2 s are marked.
+
+The total is the sum of these typechecking times. It excludes compilation,
+process start-up and the loading of the standard library, and so it is much
+shorter than a run of `make test` (about a minute), which also runs the other
+test suites.
+
+Run from the root of the repository:
 
     dune exec --profile release bench/typecheck/bench_typecheck.exe
 

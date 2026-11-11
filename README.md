@@ -71,7 +71,7 @@ Build the language:
 
     make
 
-Run the test suite:
+Run the test suite, which takes about a minute:
 
     make test
 
@@ -685,8 +685,9 @@ read a bounded repetition by unrolling it.
 They can be compared by running
 `dune exec --profile release bench/regular/bench_regular.exe`; see
 [`bench/regular/README.md`](bench/regular/README.md). The typechecking times of
-the examples and tests are in
-[`bench/typecheck/README.md`](bench/typecheck/README.md).
+the example and test programs are in
+[`bench/typecheck/README.md`](bench/typecheck/README.md). They cover
+typechecking only, and so their total is much shorter than a run of `make test`.
 
 ### Regex grades with banked delays
 
