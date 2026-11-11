@@ -43,14 +43,18 @@ Language](https://github.com/matijapretnar/millet) and follows the ideas of
 Requires OCaml 5.5 or later. The rational time grades use zarith, which
 additionally needs the GMP library (opam installs it through `conf-gmp`).
 
+#### General OCaml dependencies
+
 Install the OCaml dependencies with opam:
 
     make tempore-deps
 
+#### Arduino backend dependencies
+
 PlatformIO Core, used only to build and upload the projects of the Arduino
-backend, is optional; it needs Python 3.10 or later and the network,
-and is installed in the virtual environment `_arduino/venv`,
-with its platforms, toolchains and libraries in `_arduino/platformio`:
+backend, is optional. It needs Python 3.10 or later and the network, and is
+installed in the virtual environment `_arduino/venv`, with its platforms,
+toolchains and libraries in `_arduino/platformio`:
 
     make arduino-deps
 
@@ -59,13 +63,17 @@ downloads its platform and toolchain, and an upload needs the USB-serial driver
 of the board, whose port `pio device list` then lists. `make clean-arduino`
 removes `_arduino`, together with the projects written to `_arduino/projects`.
 
+#### Opentrons backend dependencies
+
 The Opentrons simulator, used only to simulate the protocols of the
-proof-of-concept [Opentrons](#opentrons) backend, is installed separately; it
+proof-of-concept [Opentrons](#opentrons) backend, is installed separately. It
 needs Python 3.10 or later and the network:
 
     make opentrons-deps
 
 Only the option `--simulate` needs it.
+
+#### Building
 
 Build the language:
 
@@ -76,7 +84,7 @@ Run the test suite, which takes about a minute:
     make test
 
 The tests of the Opentrons backend run the generated Python and need Python 3.10
-or later; they are skipped when `python3` is absent or older.
+or later. They are skipped when `python3` is absent or older.
 
 Remove the build (the Opentrons simulator and the protocols in `_opentrons` are
 kept):
@@ -87,20 +95,20 @@ kept):
 
 [`.devcontainer/`](.devcontainer/) holds a development container with OCaml
 5.5, the opam dependencies, ocamlformat, the OCaml language server, a C++
-compiler, Node.js and Python, so that every test runs. In VS Code, with the Dev
-Containers extension and Docker, run **Dev Containers: Reopen in Container**;
-the first start builds the image and the language. `_build`, `_arduino` and
-`_opentrons` are volumes of the container, separate from those of the host.
-`make arduino-deps` and `make opentrons-deps` work inside it; uploading to a
-board needs its USB port, which Docker Desktop does not pass to a container on
-macOS or Windows, so uploads are made from the host.
+compiler, Node.js and Python, so that every test runs. 
+
+In VS Code, with the Dev Containers extension and Docker, run **Dev Containers:
+Reopen in Container**. The first start builds the image and the language.
+`_build`, `_arduino` and `_opentrons` are volumes of the container, separate
+from those of the host. `make arduino-deps` and `make opentrons-deps` work
+inside it. Uploading to a board needs axxess to its USB port.
 
 ### Command line
 
     ./tempore file1.tpe file2.tpe ...
 
 loads the listed `.tpe` files, typechecks them, runs every `run` command in
-them, and prints each `run` result with the final resource state.
+them, and prints each `run` result with its final resource state.
 
 The exit code is 0 on success; 1 for a rejected program or another error; 2 for
 invalid options or an exhausted stack; and 3 when the program is accepted but a
@@ -111,60 +119,60 @@ runs are still executed after an unhandled operation call.
 Command-line options:
 
 - `--grades <grades>` selects the [grade algebra](#grade-algebras) (default
-  `time-lower-bound`);
+  `time-lower-bound`).
 - `--resource-grades <grades>` selects a resource grade algebra other than that
-  of `--grades`, which then grades the effects alone (see [Grade
-  systems](#grade-systems));
-- `--typecheck-only` typechecks the files without running them;
-- `--no-stdlib` skips importing the standard library;
+  of `--grades`, which then grades the effects alone, but only if the grade
+  algebras form a supported grade system (see [Grade systems](#grade-systems)).
+- `--typecheck-only` typechecks the files without running them.
+- `--no-stdlib` skips importing the standard library.
 - `--debug` also prints the inferred typing context, including the inferred type
-  schemes;
+  schemes for top-level definitions.
 - `--timeline` prints the [timeline](#interpreter) of each run after its result,
-  as a table, long grades shortened; `--timeline-full` prints it with the
-  grades in full; neither can be combined with `--emit-opentrons` or
-  `--emit-arduino`;
+  as a table, long grades shortened. `--timeline-full` prints it with the
+  grades in full. neither can be combined with `--emit-opentrons` or
+  `--emit-arduino`.
 - `--emit-opentrons <file.py>` typechecks the files and writes them, compiled to
-  Python, to the given file, without running them; a file name without a
-  directory names a file in `_opentrons/protocols`; with `--bind`, as an
-  Opentrons protocol (see [Opentrons](#opentrons));
+  Python, to the given file, without running them. A file name without a
+  directory names a file in `_opentrons/protocols`.
 - `--emit-arduino <directory>` typechecks the files and writes them, compiled to
-  C++, to the given directory, without running them; a name without a
-  directory component names a directory in `_arduino/projects`; the further
+  C++, to the given directory, without running them. A name without a
+  directory component names a directory in `_arduino/projects`. The further
   options of the Arduino backend, such as `--device`, `--host-simulate`,
   `--build` and `--upload`, are listed in its
-  [README](src/05-backends/arduino/README.md#command-line);
+  [README](src/05-backends/arduino/README.md#command-line).
 - `--package <name>`, repeatable, loads the declarations of a peripheral
   package of the Arduino backend before the files, so that a program run by
-  the interpreter performs its operations by their default implementations;
-  it cannot be combined with `--device`; with `--board <board>`, the
-  operations take the running-time bounds of the packages on that board;
+  the interpreter performs its operations by their default implementations.
+  It cannot be combined with `--device`. With `--board <board>`, the
+  operations take the running-time bounds of the packages on that board.
 - `--help` lists the options and the available grade algebras.
 
-The [`examples/`](examples/) directory holds example programs grouped by
-topic and backend, each opening with the command that runs it. A reading
-order, one example per concept:
+The [`examples/`](examples/) directory holds example programs grouped by topic
+and backend, each opening with the command that runs it on the command line. 
+
+A reading order, one example per concept:
 
 1. [`introduction/sensor_reading.tpe`](examples/introduction/sensor_reading.tpe):
-   boxes, time grades, operations and handlers;
+   boxes, time grades, operations and handlers
 2. [`introduction/stale_calibration.tpe`](examples/introduction/stale_calibration.tpe):
-   grades as regular languages of traces;
+   grades as regular languages of traces
 3. [`basics/eternal_types.tpe`](examples/basics/eternal_types.tpe): which
-   values survive a wait;
+   values survive a wait
 4. [`handlers/lower_bound.tpe`](examples/handlers/lower_bound.tpe) and
    [`handlers/upper_bound.tpe`](examples/handlers/upper_bound.tpe): the
-   continuation as a boxed resource;
+   continuation as a boxed resource
 5. [`banked_traces/3d_printing.tpe`](examples/banked_traces/3d_printing.tpe):
-   traces of operations with running times;
+   traces of operations with running times
 6. [`regular_trace_languages/upper_bounds.tpe`](examples/regular_trace_languages/upper_bounds.tpe) and
    [`banked_regex/intervals_rational.tpe`](examples/banked_regex/intervals_rational.tpe):
-   protocols and windows as regular expressions;
+   protocols and windows as regular expressions
 7. [`timed_regex/upper_bounds_rational.tpe`](examples/timed_regex/upper_bounds_rational.tpe):
-   operations demanded in order;
+   operations demanded in order
 8. [`lattice/time_upper.tpe`](examples/lattice/time_upper.tpe): a product
-   of time with a grade lattice.
+   of time with a grade lattice
 
 The web interface's gallery lists these and the other examples of each
-concept; the remaining files under `examples/` vary them over the further
+concept. The remaining files under `examples/` vary them over the further
 grade algebras of the sections below, which link them.
 
 ### Web interface
