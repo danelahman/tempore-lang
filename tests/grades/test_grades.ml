@@ -3763,6 +3763,93 @@ let finite_run_set_closures =
         ])
       [ "{1/2}"; "{1/2; A | skip}" ]
 
+(* The closures of the inter-arrival grades under the running times
+   [running_times], printed, with the printed summary they evaluate to and
+   equal to the expected grades: the unit, a delay, an occurrence, a round of
+   two occurrences with delays, a round of two operations, a specification
+   that is not closed under sequencing, whose closure is the top, a loop
+   invariant, its own closure, and the top. Besides, the closure laws on
+   samples with their products and joins; the registered laws check them on
+   the samples of the family. *)
+let inter_arrival_closures =
+  let module M = Grades.InterArrivalGrades in
+  let module P = Reader (M) in
+  let lit text =
+    match P.parse text with
+    | Ok rho -> rho
+    | Error e -> failwith (M.name ^ ": " ^ text ^ ": " ^ e)
+  in
+  let evaluated p = M.show (M.Terms.fixed (M.Terms.evaluate running_times p)) in
+  let cases =
+    List.concat_map
+      (fun (x, shown, summary, y) ->
+        let name = M.name ^ ": the closure of " ^ x in
+        match M.plus (lit x) with
+        | None -> [ check name false "none declared" ]
+        | Some p ->
+            [
+              expect (name ^ " printed") Fun.id ~expected:shown (M.show p);
+              expect (name ^ " evaluated") Fun.id ~expected:summary
+                (evaluated p);
+            ]
+            @ Option.fold ~none:[]
+                ~some:(fun y ->
+                  [
+                    check
+                      (name ^ " is " ^ y)
+                      (M.equal running_times p (lit y))
+                      (M.show p);
+                  ])
+                y)
+      [
+        ("{skip}", "0", "0", Some "{skip}");
+        ("{1}", "[1, ∞)", "[1, ∞)", Some "[1, ∞)");
+        ("{[1, 2]; 1/2}", "[1.5, ∞)", "[1.5, ∞)", Some "[3/2, ∞)");
+        ( "{A}",
+          "{A^[1, ∞)}",
+          "⟨A: active ([0, 0], [1, 3], [1, 3]); _: silent [1, ∞); total [1, ∞)⟩",
+          None );
+        ( "{A; 2; A; 1}",
+          "{(A; 2; A; 1)^[1, ∞)}",
+          "⟨A: active ([2, ∞), [0, 0], [2, 5], [2, 4]); _: silent [5, ∞); \
+           total [5, ∞)⟩",
+          None );
+        ( "{A; 1; B}",
+          "{(A; 1; B)^[1, ∞)}",
+          "⟨A: active ([0, 0], [4, 6], [4, 6]); B: active ([2, 4], [4, 6], [2, \
+           2]); _: silent [4, ∞); total [4, ∞)⟩",
+          None );
+        ("(A, [0, 5])", "⊤", "⊤", Some "⊤");
+        ( "(A, [0, 0], [0, 5], [0, 5])",
+          "(A, [0, 0], [0, 5], [0, 5])",
+          "(A, [0, 0], [0, 5], [0, 5])",
+          Some "(A, [0, 0], [0, 5], [0, 5])" );
+        ("⊤", "⊤", "⊤", Some "⊤");
+      ]
+  in
+  let base =
+    List.map lit
+      [
+        "{skip}";
+        "{1}";
+        "{A}";
+        "{A; 2; A; 1}";
+        "{A; 1; B | 2}";
+        "{A | skip}";
+        "(A, [0, 5])";
+        "(A, [0, 0], [0, 5], [0, 5])";
+        "((1, B, [0, 1], [1, 3]), [0, 10])";
+        "⊤";
+      ]
+  in
+  let samples =
+    base
+    @ List.concat_map
+        (fun x -> List.concat_map (fun y -> [ M.mul x y; M.join x y ]) base)
+        base
+  in
+  cases @ closure_laws (module M) ~context:"given samples" running_times samples
+
 (* The laws of the mode-switch costs on grades over the modes [Off], [On] and
    [Idle], the modes not named and [Stuck]: changes of mode, operations
    performed only in some modes, traces stuck at a cost, entries of the modes
@@ -4839,8 +4926,8 @@ let () =
     @ declared_lattice_laws @ declared_lattice_structure @ ranges @ flow_tops
     @ duration_bounds @ mode_time_laws @ timed_regex_laws @ timed_regex_overflow
     @ timed_regex_star @ timed_regex_star_reference @ timed_regex_closures
-    @ regular_trace_closures @ finite_run_set_closures @ energy_products
-    @ system_laws
+    @ regular_trace_closures @ finite_run_set_closures @ inter_arrival_closures
+    @ energy_products @ system_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

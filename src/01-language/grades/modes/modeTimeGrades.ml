@@ -229,6 +229,7 @@ module Summary = struct
   let vacuous _ _ = None
   let events _ = []
   let counterexample _ _ = None
+  let closure = None
 end
 
 (* ------------------------------------------------------------------ *)
@@ -654,6 +655,7 @@ let rec show c =
              | _ -> show c)
            cs)
   | Terms.Join cs -> String.concat " ⊔ " (List.map show cs)
+  | Terms.Plus c -> "(" ^ show c ^ ")^[1, ∞)"
 
 let evaluate = Terms.evaluate
 

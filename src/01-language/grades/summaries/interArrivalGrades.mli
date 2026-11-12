@@ -44,10 +44,35 @@
 
     The product does not receive the running-time bounds of the operations, so a
     grade is a term of {!SummaryTerms}: occurrences, delays, specifications,
-    products and joins, evaluated to its summary under the running-time bounds
-    by the order, the equality, [duration_bounds], [inhabited] and
-    [counterexample]. A name a term does not mention is silent in it, for its
-    whole duration; a name a specification does not mention is unconstrained.
+    products, joins and closures, evaluated to its summary under the
+    running-time bounds by the order, the equality, [duration_bounds],
+    [inhabited] and [counterexample]. A name a term does not mention is silent
+    in it, for its whole duration; a name a specification does not mention is
+    unconstrained.
+
+    {2 Closure}
+
+    The closure {!Grade.S.plus} of a grade, the least grade above it closed
+    under the product, is taken name by name, with the closure of the total
+    durations. The closure [i⁺] of an interval [i] has the lower end of [i], and
+    the upper end of [i] if [i] is [[0, 0]] and [∞] otherwise. For an entry with
+    silent durations [S] (or none), let [Z] be [[0, 0]] if there are none and
+    the hull of [[0, 0]] and [S⁺] otherwise, the durations of any number of
+    silent parts. The closure of the entry has the silent durations [S⁺] (or
+    none), and the closure of its active case [(K, A, G, B)] (or none) is
+    [(\[k, ∞), Z + A, G ∪ (B + Z + A), B + Z)], where [k] is the least count of
+    [K] and [∪] is the hull, [G] being empty where there are no gaps: any number
+    of active parts, the silent parts between and around them added to the lead
+    time and the tail, and the tail, a silent part and the lead time of the next
+    active part forming a gap.
+
+    The closure preserves the invariants of the summaries: an entry with some
+    case, counts of at least [1], and gaps absent exactly where the count is
+    [1]. A term containing a fixed summary that violates the first two, which
+    the literals do not produce, has no closure ([None]). The closure of a term
+    without occurrences is the fixed closure of its summary, that of a delay [i]
+    the delay [i⁺]; the closure of any other term is a closure term, evaluated
+    to the closure of its summary under the running times.
 
     {2 Literals}
 
@@ -112,14 +137,17 @@
     occurrences and delays as a brace literal, a delay as a number or an
     interval, and a specification as a tuple of entries, in the short form where
     it is one. A product with a specification is printed with [·] and a join
-    with [⊔]. A summary that is no specification, such as a counterexample, is
-    printed as [⟨X: silent S, active (L, G, T); _: ...; total D⟩], an entry by
-    name and one for the names not listed, [_], an absent case being omitted, no
-    gaps written [∅] and the total omitted where it is [\[0, ∞)]; the count [K]
-    of an active case is written first, [active (K, L, G, T)], where it is
-    neither [\[1, ∞)] nor [1], which [∅] shows. These forms do not read back. An
-    entry is printed in the first of the forms above that denotes it, those
-    without a count first, so that an entry without a count prints without one.
+    with [⊔]. The closure of a term [c] is printed as [{r^\[1, ∞)}] where [c] is
+    printed as the brace literal [{r}], and as [(c)^\[1, ∞)] otherwise; these
+    forms do not read back. A summary that is no specification, such as a
+    counterexample, is printed as
+    [⟨X: silent S, active (L, G, T); _: ...; total D⟩], an entry by name and one
+    for the names not listed, [_], an absent case being omitted, no gaps written
+    [∅] and the total omitted where it is [\[0, ∞)]; the count [K] of an active
+    case is written first, [active (K, L, G, T)], where it is neither [\[1, ∞)]
+    nor [1], which [∅] shows. These forms do not read back. An entry is printed
+    in the first of the forms above that denotes it, those without a count
+    first, so that an entry without a count prints without one.
 
     {2 Running times, durations and inhabitation}
 

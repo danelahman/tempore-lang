@@ -305,6 +305,47 @@ module Summary = struct
     Some
       (Option.value ~default:c
          (List.find_map failing (Indexed.names [ c.entries; d.entries ])))
+
+  (* The closure of an interval under the Minkowski sum: the same lower end,
+     and no upper end unless it is [[0, 0]]. *)
+  let plus_interval i = if I.is_zero i then i else (fst i, Unbounded)
+
+  (* The durations of the silent stretches [silent] that the closure inserts
+     between and around active parts: [0], or the closure of [silent]. *)
+  let star = function
+    | None -> I.zero
+    | Some s -> I.hull I.zero (plus_interval s)
+
+  (* The closure of the active part [a] under the silent durations [silent]:
+     the count unbounded above, the stretches added to the lead time and to
+     the tail, and the tail, a stretch and the lead time a further gap. *)
+  let plus_active silent a =
+    let star = star silent in
+    let tail = I.add a.tail star in
+    {
+      count = { least = a.count.least; most = None };
+      lead = I.add star a.lead;
+      gaps = hull_opt I.hull a.gaps (Some (I.add tail a.lead));
+      tail;
+    }
+
+  let plus_entry e =
+    {
+      silent = Option.map plus_interval e.silent;
+      active = Option.map (plus_active e.silent) e.active;
+    }
+
+  (* The closure, name by name, with the closure of the total durations. *)
+  let closure =
+    Some
+      (fun s ->
+        {
+          entries =
+            Indexed.map2 compare_entry
+              (fun e _ -> plus_entry e)
+              s.entries s.entries;
+          total = plus_interval s.total;
+        })
 end
 
 module Terms = SummaryTerms.Make (Summary)
@@ -314,7 +355,29 @@ module Delay = Delay.Rational
 let name = "inter-arrival"
 let leq_symbol = "<="
 let unit_least = false
-let plus _ = None
+
+(* The summaries whose entries have some case and counts of at least [1],
+   below their upper ends. *)
+let well_formed (s : Summary.t) =
+  let positive (a : Summary.active) =
+    a.count.least >= 1
+    && Option.fold ~none:true ~some:(fun m -> a.count.least <= m) a.count.most
+  in
+  Indexed.for_all
+    (fun (e : Summary.entry) ->
+      (Option.is_some e.silent || Option.is_some e.active)
+      && Option.fold ~none:true ~some:positive e.active)
+    s.entries
+
+let rec closable c =
+  match view c with
+  | Op _ | Delays _ -> true
+  | Fixed s -> well_formed s
+  | Mul cs | Join cs -> List.for_all closable cs
+  | Plus c -> closable c
+
+(* The closure of a term whose fixed summaries are well formed. *)
+let plus c = if closable c then Terms.plus c else None
 let commutative = false
 let needs_op_bounds = true
 let duration_ends = Grade.Both_ends
@@ -588,8 +651,13 @@ let show_entry (name, (e : Summary.entry)) =
                ^ ")")
              e.active))
 
-(* A summary as the literal of a specification where it is one, and otherwise
-   in the notation of summaries. *)
+(* The interval of a summary of the computations without occurrences, of a
+   duration in it. *)
+let delay_of (s : Summary.t) =
+  if Summary.compare s (Summary.delays s.total) = 0 then Some s.total else None
+
+(* A summary as a delay or the literal of a specification where it is one,
+   and otherwise in the notation of summaries. *)
 let show_summary (s : Summary.t) =
   let others = Indexed.others s.entries in
   let entries = Indexed.named s.entries in
@@ -598,6 +666,7 @@ let show_summary (s : Summary.t) =
     if I.compare s.total I.unbounded = 0 then [] else [ I.show s.total ]
   in
   if Summary.compare s Summary.top = 0 then "⊤"
+  else if Option.is_some (delay_of s) then I.show_point s.total
   else if
     Summary.compare_entry others Summary.top_entry = 0
     && List.length literals = List.length entries
@@ -630,9 +699,13 @@ let rec regex c =
   | Delays (Closed q, Closed q') when Rational.equal q q' ->
       Some (rational_tick q)
   | Delays (lo, hi) -> Some (Delays (lo, hi))
-  | Fixed _ -> None
+  | Fixed s -> Option.bind (delay_of s) (fun i -> regex (Terms.delays i))
   | Mul cs -> fold (fun r s -> Seq (r, s)) cs
   | Join cs -> fold (fun r s -> Union (r, s)) cs
+  | Plus c ->
+      Option.map
+        (fun r -> Repeat (r, { Count.least = 1; most = None }))
+        (regex c)
 
 (* The factors [cs] of a product, the adjacent ones of brace literals
    sequenced into one. *)
@@ -652,7 +725,8 @@ let rec show c =
   match (view c, regex c) with
   | Delays i, _ -> I.show_point i
   | Fixed s, _ -> show_summary s
-  | (Op _ | Mul _ | Join _), Some r -> braces r
+  | (Op _ | Mul _ | Join _ | Plus _), Some r -> braces r
+  | Plus c, None -> "(" ^ show c ^ ")^[1, ∞)"
   | Mul cs, None ->
       String.concat " · "
         (List.map

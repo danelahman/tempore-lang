@@ -19,6 +19,7 @@ module type SUMMARY = sig
   val vacuous : Grade.bounds -> t -> string option
   val events : t -> string list
   val counterexample : t -> t -> t option
+  val closure : (t -> t) option
 end
 
 module Make (S : SUMMARY) = struct
@@ -30,6 +31,7 @@ module Make (S : SUMMARY) = struct
     | Fixed of S.t
     | Mul of t list
     | Join of t list
+    | Plus of t
 
   let view c = c.node
 
@@ -39,6 +41,7 @@ module Make (S : SUMMARY) = struct
     | Fixed s -> Hashing.combine 2 (S.hash s)
     | Mul cs -> Hashing.combine 3 (Hashing.list (fun c -> c.hash) cs)
     | Join cs -> Hashing.combine 4 (Hashing.list (fun c -> c.hash) cs)
+    | Plus c -> Hashing.combine 5 c.hash
 
   let make node = { node; hash = hash_node node }
 
@@ -48,6 +51,7 @@ module Make (S : SUMMARY) = struct
     | Fixed _ -> 2
     | Mul _ -> 3
     | Join _ -> 4
+    | Plus _ -> 5
 
   let rec compare c d =
     if c == d then 0
@@ -60,6 +64,7 @@ module Make (S : SUMMARY) = struct
       | Delays i, Delays i' -> I.compare i i'
       | Fixed s, Fixed s' -> S.compare s s'
       | Mul cs, Mul cs' | Join cs, Join cs' -> List.compare compare cs cs'
+      | Plus c, Plus c' -> compare c c'
       | n, n' -> Int.compare (rank n) (rank n')
 
   let hash c = c.hash
@@ -118,20 +123,56 @@ module Make (S : SUMMARY) = struct
         latest := Some (bounds, table);
         table
 
+  (* The summary of the node [n], its subterms evaluated by [go] and its
+     occurrences by [occurrence]. *)
+  let evaluate_node ~go ~occurrence n =
+    match n with
+    | Op (name, op) -> occurrence name op
+    | Delays i -> S.delays i
+    | Fixed s -> s
+    | Mul cs -> List.fold_left (fun s c -> S.mul s (go c)) S.one cs
+    | Join [] -> invalid_arg "SummaryTerms.evaluate: an empty join"
+    | Join (c :: cs) -> List.fold_left (fun s c -> S.join s (go c)) (go c) cs
+    | Plus c -> (
+        match S.closure with
+        | Some closure -> closure (go c)
+        | None -> invalid_arg "SummaryTerms.evaluate: no closure declared")
+
   let evaluate (bounds : Grade.bounds) c =
     let table = table bounds in
+    let occurrence name op = S.occurrence name op (bounds.running_time name) in
     let rec go c =
-      Table.find_or_add table c (fun () ->
-          match c.node with
-          | Op (name, op) -> S.occurrence name op (bounds.running_time name)
-          | Delays i -> S.delays i
-          | Fixed s -> s
-          | Mul cs -> List.fold_left (fun s c -> S.mul s (go c)) S.one cs
-          | Join [] -> invalid_arg "SummaryTerms.evaluate: an empty join"
-          | Join (c :: cs) ->
-              List.fold_left (fun s c -> S.join s (go c)) (go c) cs)
+      Table.find_or_add table c (fun () -> evaluate_node ~go ~occurrence c.node)
     in
     go c
+
+  let rec free_of_ops c =
+    match c.node with
+    | Op _ -> false
+    | Delays _ | Fixed _ -> true
+    | Mul cs | Join cs -> List.for_all free_of_ops cs
+    | Plus c -> free_of_ops c
+
+  (* The summary of a term without occurrences, under any running times. *)
+  let rec value c =
+    evaluate_node ~go:value
+      ~occurrence:(fun name _ ->
+        invalid_arg ("SummaryTerms.value: the occurrence of " ^ name))
+      c.node
+
+  (* The closure: the unit, the top and a closure are their own closures; a
+     term without occurrences closes to the closure of its summary; any other
+     term is kept as a closure node, evaluated to the closure of its
+     summary. *)
+  let plus c =
+    Option.map
+      (fun closure ->
+        match c.node with
+        | Plus _ -> c
+        | _ when is_unit c || is_fixed_top c -> c
+        | _ when free_of_ops c -> fixed (closure (value c))
+        | _ -> make (Plus c))
+      S.closure
 
   let leq bounds c d =
     compare c d = 0
@@ -158,6 +199,7 @@ module Make (S : SUMMARY) = struct
       | Delays _ -> acc
       | Fixed s -> S.events s @ acc
       | Mul cs | Join cs -> List.fold_left go acc cs
+      | Plus c -> go acc c
     in
     List.sort_uniq String.compare (go [] c)
 

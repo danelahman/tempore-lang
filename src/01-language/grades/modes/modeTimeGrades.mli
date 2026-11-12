@@ -163,6 +163,9 @@ module Summary : sig
 
   val counterexample : t -> t -> t option
   (** No counterexample is offered. *)
+
+  val closure : (t -> t) option
+  (** No closures are declared. *)
 end
 
 module ModeTimes : Grade.S with type Delay.t = Delay.Rational.t

@@ -90,9 +90,13 @@ let rec random_specification st =
   | c -> c
   | exception Grade.Invalid_literal _ -> random_specification st
 
-(* A random term of depth at most [depth], with specifications if [specs]. *)
-let rec random_term ~specs st depth =
-  match Random.State.int st (if depth = 0 then 3 else 6) with
+(* A random term of depth at most [depth], with specifications if [specs]
+   and closures if [closures]. *)
+let rec random_term ?(closures = true) ~specs st depth =
+  let random_term = random_term ~closures in
+  match
+    Random.State.int st (if depth = 0 then 3 else if closures then 7 else 6)
+  with
   | 0 ->
       E.of_lit
         (Grade.Braces (Grade.Letter (List.nth names (Random.State.int st 3))))
@@ -107,10 +111,11 @@ let rec random_term ~specs st depth =
       E.mul
         (random_term ~specs st (depth - 1))
         (random_term ~specs st (depth - 1))
-  | _ ->
+  | 5 ->
       E.join
         (random_term ~specs st (depth - 1))
         (random_term ~specs st (depth - 1))
+  | _ -> Option.get (E.plus (random_term ~specs st (depth - 1)))
 
 (* {1 Laws} *)
 
@@ -174,16 +179,22 @@ let random_point st ((lo, hi) as i) =
   List.nth candidates (Random.State.int st (List.length candidates))
 
 (* [concrete bounds st c] is a random computation of the term [c] without
-   specifications under the running times [bounds]. *)
+   specifications under the running times [bounds], a fixed summary of delays
+   a delay and a closure repeated one to three times. *)
 let rec concrete (bounds : Grade.bounds) st c =
   match E.Terms.view c with
   | E.Terms.Op (name, ()) ->
       [ Occurrence (name, random_point st (bounds.running_time name)) ]
   | E.Terms.Delays i -> [ Wait (random_point st i) ]
+  | E.Terms.Fixed s when E.Summary.compare s (E.Summary.delays s.total) = 0 ->
+      [ Wait (random_point st s.total) ]
   | E.Terms.Fixed _ -> invalid_arg "concrete: a specification"
   | E.Terms.Mul cs -> List.concat_map (concrete bounds st) cs
   | E.Terms.Join cs ->
       concrete bounds st (List.nth cs (Random.State.int st (List.length cs)))
+  | E.Terms.Plus c ->
+      List.concat
+        (List.init (1 + Random.State.int st 3) (fun _ -> concrete bounds st c))
 
 let duration = function Occurrence (_, d) | Wait d -> d
 
@@ -321,7 +332,7 @@ end
    specification. *)
 let random_literal_grade st =
   match Random.State.int st 3 with
-  | 0 -> random_term ~specs:false st 3
+  | 0 -> random_term ~closures:false ~specs:false st 3
   | 1 ->
       let lo, hi = random_interval ~unbounded:true st in
       E.of_lit

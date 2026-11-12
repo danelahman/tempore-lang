@@ -3,23 +3,26 @@
     The grades whose meaning depends on the running times of the operations, but
     whose product does not receive them, keep a grade as a term: the occurrences
     of operations, delays, fixed summaries (the specifications of the literals),
-    products, joins and the top. A term is evaluated, under the running-time
-    bounds that the order receives ({!Grade.bounds}), into an algebra of
-    summaries ({!SUMMARY}): an occurrence by the summary of the operation at its
-    running times, and products and joins by those of the summaries. The order,
-    the equality, the top, the durations, the inhabitation and the
-    counterexamples are those of the evaluations.
+    products, joins, closures and the top. A term is evaluated, under the
+    running-time bounds that the order receives ({!Grade.bounds}), into an
+    algebra of summaries ({!SUMMARY}): an occurrence by the summary of the
+    operation at its running times, and products, joins and closures by those of
+    the summaries. The order, the equality, the top, the durations, the
+    inhabitation and the counterexamples are those of the evaluations.
 
     Evaluation is a monoid morphism into the summaries that preserves joins and
-    the top, so that the laws of {!Grade} hold of the terms up to {!Make.equal}
-    whenever they hold of the summaries.
+    the top, and maps a closure to the closure of the summary, so that the laws
+    of {!Grade}, those of the closures included, hold of the terms up to
+    {!Make.equal} under all running times whenever they hold of the summaries.
 
     {2 Representation}
 
     A term is kept in a canonical form: products and joins are flattened, the
     unit [[0, 0]] is dropped from products, adjacent delays are summed, and the
     operands of a join are sorted and duplicate-free, a join with the top being
-    the top. {!Make.compare} and {!Make.hash} are those of the canonical forms.
+    the top. The closure of the unit, of the top and of a closure is the term
+    itself, and that of a term without occurrences the fixed closure of its
+    summary. {!Make.compare} and {!Make.hash} are those of the canonical forms.
 
     {2 Evaluation}
 
@@ -99,6 +102,11 @@ module type SUMMARY = sig
   (** [counterexample s s'], for [s] not below [s'], is a summary below [s] and
       not below [s'] that witnesses the failure, if one is offered; [s] itself
       is one. *)
+
+  val closure : (t -> t) option
+  (** The closure of every summary, where the algebra declares closures: the
+      least summary [w] with [s ≾ w] and [w · w ≾ w], satisfying the induction
+      laws of {!Grade.S.plus}; [None] where it declares none. *)
 end
 
 (** The terms over the summaries [S]. *)
@@ -116,6 +124,9 @@ module Make (S : SUMMARY) : sig
         (** A summary independent of the running times, e.g. a specification *)
     | Mul of t list  (** A product of at least two factors *)
     | Join of t list  (** A join of at least two operands *)
+    | Plus of t
+        (** The closure of a term with an occurrence, evaluated to the closure
+            of its summary *)
 
   val view : t -> node
   (** [view c] is the outermost constructor of [c]. *)
@@ -140,6 +151,10 @@ module Make (S : SUMMARY) : sig
 
   val join : t -> t -> t
   (** The join, in canonical form. *)
+
+  val plus : t -> t option
+  (** [plus c] is the closure of [c] where the summaries declare closures
+      ({!SUMMARY.closure}), in canonical form, and [None] otherwise. *)
 
   val of_delay : Rational.t -> t
   (** [of_delay q] is [delays (DurationIntervals.point q)]. *)
