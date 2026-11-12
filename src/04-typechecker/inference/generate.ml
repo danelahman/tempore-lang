@@ -586,6 +586,12 @@ module Make (C : Constraint.S) = struct
               "Unknown event `%s` in the grade of operation `%s`" event op_name
         | None -> ());
         match finite_durations (running_times env) c with
+        | Some (_, hi)
+          when Grades.Rational.sign (Grades.Grade.end_value hi) <= 0 ->
+            Error.typing ~loc
+              "The running time of compound operation `%s` must be positive: \
+               its grade `%s` takes no time"
+              op_name (GS.E.show c)
         | Some bounds -> StringMap.add op_name bounds env.op_bounds
         | None -> env.op_bounds)
 

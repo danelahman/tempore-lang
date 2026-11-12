@@ -1721,6 +1721,8 @@ implementation of `A` takes less than `2`.
 
 A *compound* operation names other operations in its grade, and its bounds are
 computed from theirs: `Send : string ~> unit ! {Tx | Tx; Tx}` gets `[2, 6]`.
+The upper bound must be positive as well: `Nop : unit ~> unit ! {skip}`, which
+takes no time, is rejected.
 
 ### Handlers and continuations
 

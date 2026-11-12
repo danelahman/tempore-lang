@@ -241,6 +241,7 @@ let expected_rejections =
     ("tests/banked_traces_reject_bounds.tpe", [ 8 ]);
     ("tests/banked_traces_reject_bounds_declared.tpe", [ 11 ]);
     ("tests/banked_traces_reject_bounds_zero.tpe", [ 9 ]);
+    ("tests/banked_traces_reject_bounds_zero_compound.tpe", [ 12 ]);
     ("tests/banked_traces_reject_bounds_zero_lower.tpe", [ 10 ]);
     ("tests/banked_traces_reject_default_bounds.tpe", [ 13 ]);
     ("tests/banked_traces_reject_default_nonatomic.tpe", [ 19 ]);

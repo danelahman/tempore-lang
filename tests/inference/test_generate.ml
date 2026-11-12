@@ -35,6 +35,7 @@ let malformed =
     "banked_traces_reject_bounds.tpe";
     "banked_traces_reject_bounds_declared.tpe";
     "banked_traces_reject_bounds_zero.tpe";
+    "banked_traces_reject_bounds_zero_compound.tpe";
     "banked_traces_reject_bounds_zero_lower.tpe";
     "banked_traces_reject_fractional_bound.tpe";
     "banked_traces_reject_default_nonatomic.tpe";

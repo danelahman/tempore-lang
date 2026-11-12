@@ -1175,6 +1175,13 @@ it names none:
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The upper running-time bound of operation `Heat` must be positive
   ======================================================================
+  banked_traces_reject_bounds_zero_compound.tpe
+  ======================================================================
+  File "banked_traces_reject_bounds_zero_compound.tpe", line 12, characters 0-40:
+  12 | operation Settle : unit ~> unit ! {skip}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The running time of compound operation `Settle` must be positive: its grade `{skip}` takes no time
+  ======================================================================
   banked_traces_reject_bounds_zero_lower.tpe
   ======================================================================
   File "banked_traces_reject_bounds_zero_lower.tpe", line 10, characters 0-52:

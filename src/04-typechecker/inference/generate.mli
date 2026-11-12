@@ -137,9 +137,10 @@ module Make (C : Constraint.S) : sig
       the signature of [op] and its running-time bounds, declared or implied by
       its grade.
       @raise Utils.Error.Error
-        if the bounds are missing, superfluous or malformed for the grade, or
-        the parameter or result type contains a function or handler type, the
-        definitions of types being unfolded. *)
+        if the bounds are missing, superfluous or malformed for the grade, the
+        upper bound implied by the grade of a compound operation is not
+        positive, or the parameter or result type contains a function or handler
+        type, the definitions of types being unfolded. *)
 
   val add_global :
     env ->
