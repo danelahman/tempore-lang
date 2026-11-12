@@ -101,7 +101,7 @@ In VS Code, with the Dev Containers extension and Docker, run **Dev Containers:
 Reopen in Container**. The first start builds the image and the language.
 `_build`, `_arduino` and `_opentrons` are volumes of the container, separate
 from those of the host. `make arduino-deps` and `make opentrons-deps` work
-inside it. Uploading to a board needs axxess to its USB port.
+inside it. Uploading to a board needs access to its USB port.
 
 ### Command line
 
@@ -129,7 +129,7 @@ Command-line options:
   schemes for top-level definitions.
 - `--timeline` prints the [timeline](#interpreter) of each run after its result,
   as a table, long grades shortened. `--timeline-full` prints it with the
-  grades in full. neither can be combined with `--emit-opentrons` or
+  grades in full. Neither can be combined with `--emit-opentrons` or
   `--emit-arduino`.
 - `--emit-opentrons <file.py>` typechecks the files and writes them, compiled to
   Python, to the given file, without running them. A file name without a
@@ -1757,7 +1757,7 @@ See [`examples/handlers/lower_bound.tpe`](examples/handlers/lower_bound.tpe),
 [`examples/handlers/upper_bound.tpe`](examples/handlers/upper_bound.tpe)
 and [`examples/handlers/3d_printing.tpe`](examples/handlers/3d_printing.tpe);
 a condition on a variable of the definition becomes a hypothesis of its
-scheme ([Qualified schemes](#qualified-schemes),
+scheme ([Qualified type schemes](#qualified-type-schemes),
 [`examples/handlers/qualified.tpe`](examples/handlers/qualified.tpe)).
 
 ### Contexts of operation cases

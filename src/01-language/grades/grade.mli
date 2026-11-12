@@ -1,5 +1,4 @@
-(** Grade algebras: partially ordered monoids with a greatest element and binary
-    joins.
+(** Grade algebras: preordered monoids with a greatest element and binary joins.
 
     The instances Tempore offers are defined in {!TimeGrades},
     {!RationalTimeGrades}, {!FiniteRunSetGrades}, {!BankedTraceGrades},
@@ -168,7 +167,7 @@ module type S = sig
   (** The monoid product [_·_]. *)
 
   val leq : bounds -> t -> t -> bool
-  (** [leq bounds c d] decides the partial order [c ≾ d] under the running times
+  (** [leq bounds c d] decides the preorder [c ≾ d] under the running times
       [bounds]. *)
 
   val leq_symbol : string
