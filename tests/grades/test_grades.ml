@@ -3697,6 +3697,72 @@ let regular_trace_closures =
   @ closes (module Grades.RegularTraceLanguagesRational) rational
   @ closes (module Grades.RegularTraceLanguagesRational.Automata) rational
 
+(* The closures of the finite run sets: a set of empty runs and [⊤] are their
+   own closures, and every other set has the closure [⊤], printed and equal to
+   the expected grades: of the unit, written also as a zero delay or a
+   sequence of zero delays, of an operation, a delay, a set with the empty run
+   and another run, and the top. Besides, the closure laws on samples with
+   their products and joins; the registered laws check them on the samples of
+   the family. *)
+let finite_run_set_closures =
+  let closes (type a) (module M : Grade.S with type t = a) cases extra =
+    let module P = Reader (M) in
+    let lit text =
+      match P.parse text with
+      | Ok rho -> rho
+      | Error e -> failwith (M.name ^ ": " ^ text ^ ": " ^ e)
+    in
+    let cases =
+      List.concat_map
+        (fun (x, shown, y) ->
+          let name = M.name ^ ": the closure of " ^ x in
+          match M.plus (lit x) with
+          | None -> [ check name false "none declared" ]
+          | Some p ->
+              [
+                expect (name ^ " printed") Fun.id ~expected:shown (M.show p);
+                check
+                  (name ^ " is " ^ y)
+                  (M.equal running_times p (lit y))
+                  (M.show p);
+              ])
+        cases
+    in
+    let base =
+      List.map lit
+        ([ "{skip}"; "{A}"; "{A | skip}"; "{A; B | 2}"; "{1}"; "⊤" ] @ extra)
+    in
+    let samples =
+      base
+      @ List.concat_map
+          (fun x -> List.concat_map (fun y -> [ M.mul x y; M.join x y ]) base)
+          base
+    in
+    cases
+    @ closure_laws (module M) ~context:"given samples" running_times samples
+  in
+  let cases =
+    [
+      ("{skip}", "{skip}", "{skip}");
+      ("{0}", "{skip}", "{skip}");
+      ("{0; 0 | skip}", "{skip}", "{skip}");
+      ("{A}", "⊤", "⊤");
+      ("{2}", "⊤", "⊤");
+      ("{skip | A; 1}", "⊤", "⊤");
+      ("⊤", "⊤", "⊤");
+    ]
+  in
+  closes (module FiniteRunSetGrades.UpperBound) cases []
+  @ closes
+      (module FiniteRunSetGrades.Rational.UpperBound)
+      (cases
+      @ [
+          ("{0/2; 0.0}", "{skip}", "{skip}");
+          ("{1/2}", "⊤", "⊤");
+          ("{skip | 1/3; A}", "⊤", "⊤");
+        ])
+      [ "{1/2}"; "{1/2; A | skip}" ]
+
 (* The laws of the mode-switch costs on grades over the modes [Off], [On] and
    [Idle], the modes not named and [Stuck]: changes of mode, operations
    performed only in some modes, traces stuck at a cost, entries of the modes
@@ -4773,7 +4839,8 @@ let () =
     @ declared_lattice_laws @ declared_lattice_structure @ ranges @ flow_tops
     @ duration_bounds @ mode_time_laws @ timed_regex_laws @ timed_regex_overflow
     @ timed_regex_star @ timed_regex_star_reference @ timed_regex_closures
-    @ regular_trace_closures @ energy_products @ system_laws
+    @ regular_trace_closures @ finite_run_set_closures @ energy_products
+    @ system_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

@@ -29,7 +29,15 @@ module Make (D : Delay.S) (N : BankedTraceGrades.NAMES) = struct
           Option.map (fun s -> Within [ s ]) (Trace.missing p q)
 
     let unit_least = false
-    let plus _ = None
+
+    (* A set of empty traces is its own closure, and so is [⊤]. Every other
+       set has the closure [⊤]: a trace that is not empty after normalisation,
+       followed by a trace of a finite set with the most operations and of
+       these the greatest total delay, is not in that set. *)
+    let plus = function
+      | Within p when List.for_all List.is_empty p -> Some (Within p)
+      | Within _ | Unbounded -> Some Unbounded
+
     let commutative = false
     let needs_op_bounds = false
     let duration_ends = Grade.Both_ends

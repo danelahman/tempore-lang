@@ -1,0 +1,22 @@
+(* Run this test with the 'finite-run-sets' grade algebra, e.g.
+
+     ./tempore --grades finite-run-sets \
+       tests/recursion_closure_reject_finite_run_sets.tpe
+
+   A recursive function whose recursive case reads: its grade ε satisfies
+   {skip} ≾ ε and {Read} · ε ≾ ε, whose least solution is ⊤, as no finite
+   set of runs listing Read is closed under sequencing. *)
+
+operation Read : unit ~> nat ! {Read}
+
+operation Stop : unit ~> unit ! {Read | Read; Read}
+
+let rec read_all (n : nat) : unit ! 'e =
+  match n with 0 -> () | m + 1 -> (perform Read (); read_all m)
+
+(* Correctly rejected by the typechecker: the grade of read_all is ⊤, which
+   is not below {Read | Read; Read} · ε_Stop for every grade ε_Stop of the
+   continuation, e.g. not below {Read | Read; Read}. *)
+let h = handler
+  | x -> x
+  | Stop p k -> read_all 2

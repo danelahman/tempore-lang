@@ -438,6 +438,13 @@ any trace, is the top.
 Traces are compared by equality, so only upper bounds are provided. The rational
 variant `finite-run-sets-rational` has non-negative rational delays.
 
+The closure of a grade, the least grade above it that absorbs its square, is
+the grade itself for `{skip}` and `⊤`, and `⊤` for every other grade, since no
+finite set with a non-empty trace absorbs its square. A recursive function
+whose effect is annotated by a grade variable `'e` (see
+[Annotations](#annotations)) and whose rounds read before the recursive call
+has the grade `⊤`.
+
 Literals are those of the trace grades with banked delays, below.
 
 For example, under `finite-run-sets`, a door that opens for three ticks for a

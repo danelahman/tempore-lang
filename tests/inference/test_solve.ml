@@ -182,6 +182,7 @@ let expected_rejections =
     ("tests/positivity_reject_nested.tpe", [ 3 ]);
     ("tests/positivity_reject_omega.tpe", [ 7 ]);
     ("tests/positivity_reject_parameter.tpe", [ 5 ]);
+    ("tests/recursion_closure_reject_finite_run_sets.tpe", [ 20 ]);
     ("tests/recursion_closure_reject_interval.tpe", [ 13 ]);
     ("tests/recursion_closure_reject_regular.tpe", [ 20 ]);
     ("tests/recursion_closure_reject_upper.tpe", [ 15; 19 ]);

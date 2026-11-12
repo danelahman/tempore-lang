@@ -32,6 +32,14 @@
     constants and their pairwise products ({!Grade.sampled}), which are not
     complete.
 
+    {2 Closure}
+
+    The closure {!Grade.S.plus} of a grade, the least grade above it closed
+    under the product, is the grade itself for a set of empty traces and for
+    [⊤], and [⊤] for every other set: a non-empty trace of a set, followed by a
+    trace of the set with the most operations and of these the greatest total
+    delay, is not in the set.
+
     {2 Delays}
 
     The grades are defined over any monoid of delays ({!Delay.S}), a delay [d]

@@ -4809,6 +4809,22 @@ it names none:
   ]
   
   ======================================================================
+  recursion_closure_reject_finite_run_sets.tpe
+  ======================================================================
+  File "recursion_closure_reject_finite_run_sets.tpe", line 22, characters 4-26:
+  22 |   | Stop p k -> read_all 2
+           ^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: For every grade `ε_Stop` the continuation `k` may have, the case for `Stop` must have a grade matching `{Read | Read; Read} · ε_Stop`, but its grade `⊤` does not
+    File "recursion_closure_reject_finite_run_sets.tpe", line 12, characters 0-51:
+    12 | operation Stop : unit ~> unit ! {Read | Read; Read}
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Stop` is declared here
+    File "recursion_closure_reject_finite_run_sets.tpe", line 22, characters 11-12:
+    22 |   | Stop p k -> read_all 2
+                    ^
+    `k` may have any grade `ε_Stop`
+    Note: the effect inequality `∀ε_Stop. ⊤ <= {Read | Read; Read} · ε_Stop` does not hold: for `ε_Stop = {skip}` it becomes `⊤ <= {Read | Read; Read}`
+  ======================================================================
   recursion_closure_reject_interval.tpe
   ======================================================================
   File "recursion_closure_reject_interval.tpe", line 18, characters 11-29:
