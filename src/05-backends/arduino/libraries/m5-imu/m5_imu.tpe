@@ -19,7 +19,8 @@
    of each.
 
    ConfigureImu rate sets the output data rate of the accelerometer to the
-   greatest rate supported not above rate hertz, without changing its range:
+   greatest rate supported not above rate hertz, or the least rate supported if
+   rate is below it, without changing its range:
    on the BMI270, 25 to 1600 Hz in powers of two, and on a unit of the MPU6886
    family the sample rate of 1 kHz divided by an integer; on another unit it
    does nothing. CheckAtRest () reads the unit four times, the readings

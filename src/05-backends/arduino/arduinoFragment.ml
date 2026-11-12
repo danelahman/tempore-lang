@@ -899,7 +899,8 @@ let first_not_tail_resumptive cases =
 
 (* The warnings of the handlers that are not tail-resumptive among those
    written in the top-level definitions of [sources] that are not [reached],
-   in order, each at the offending occurrence of its continuation. *)
+   in order, each at the offending occurrence of its continuation or at the end
+   of a branch that does not resume it. *)
 let unreached_handler_warnings ~reached sources =
   List.concat_map
     (fun (cmd : _ Ast.command) ->

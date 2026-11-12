@@ -208,7 +208,7 @@ tempore_result_ConfigureImu binding_ConfigureImu(
                              m5_imu_frequency);
   } else if (M5.Imu.getType() == m5::imu_bmi270) {
     // The output data rate 25 * 2^(n - 6) Hz of the code n, from 6 (25 Hz)
-    // to 12 (1600 Hz): the greatest not above rate.
+    // to 12 (1600 Hz): the greatest not above rate, or 25 Hz below it.
     uint8_t code = 6;
     while (code < 12 && (25u << (code - 5)) <= rate) ++code;
     const tempore_i2c_guard guard;

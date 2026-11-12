@@ -98,12 +98,14 @@
    previous bubble being erased; a call that does neither draws nothing.
 
    The bounds of DrawButton, DrawBar and DrawLevel are PROVISIONAL, not yet
-   measured. DrawButton and DrawBar fill at most a rectangle of the display,
-   320 by 240 pixels of 16 bits at 40 MHz, 30.7 ms, and DrawButton writes a
-   label of a line: at most 33 ms, as ShowTextAt. DrawLevel fills two discs
-   of at most a sixth of the radius and outlines two circles, of at most
-   1000 pixels each if the vial lies within the display: at most 10 ms. Their
-   lower bound is 0, the time of a call of DrawLevel that draws nothing. *)
+   measured. DrawBar fills at most a rectangle of the display, 320 by 240
+   pixels of 16 bits at 40 MHz, 30.7 ms: at most 33 ms. DrawButton fills a
+   rectangle and writes a label of a line. Its bound of 33 ms, that of
+   ShowTextAt, does not cover a button of the whole display with a full line,
+   about 39 ms. DrawLevel fills two discs of at most a sixth of the radius
+   and outlines two circles, of at most 1000 pixels each if the vial lies
+   within the display: at most 10 ms. Their lower bound is 0, the time of a
+   call of DrawLevel that draws nothing. *)
 
 operation ShowText : string ~> unit ! [0.05, 12.5]
 default ShowText _ = delay 1

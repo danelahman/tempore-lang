@@ -231,13 +231,13 @@ let parameter ctx st p =
       let a, st = fresh "a" st in
       (st, a, pattern_bindings ctx a p)
 
-(* The greatest nesting of parentheses of the Python expression of a tuple or a
+(* The greatest nesting of parentheses of a component of a tuple or a
    constructor value; the components of a value nested deeper are bound to
    temporaries. CPython accepts at most 200 nested parentheses. *)
 let max_nesting = 40
 
-(* The greatest number of blocks of cases around a statement of the body of a
-   definition; the cases of a match nested deeper are lifted. CPython accepts
+(* The greatest number of blocks of cases around a statement that is not lifted;
+   the cases of a match nested deeper are lifted. CPython accepts
    at most 100 levels of indentation. *)
 let max_depth = 40
 
@@ -386,7 +386,7 @@ and computation ctx st (c : _ Ast.computation) =
         @ [ Line (Printf.sprintf "return tempore_Handle(%s, %s)" node h) ] )
 
 (* The binding of the value of [e] to the pattern [p]. A function bound to a
-   variable is defined under the variable's name. *)
+   variable is defined under the variable's name, a recursive one under its own name. *)
 and let_binding ctx st p e =
   match ((strip_pattern p).it, (strip_expression e).it) with
   | Ast.PVar x, (Ast.Lambda abs | Ast.PureLambda abs) ->

@@ -70,8 +70,8 @@
     and the rest by [delayMicroseconds]. The bounds of the running time of an
     operation are converted to microseconds outwards: a lower end that is not a
     whole number of microseconds is rounded down and closed, an upper end
-    rounded up and closed, so that the monitor never rejects a running time
-    within the declared bounds.
+    rounded up and closed, so that the monitor never rejects a measured running
+    time, in whole microseconds, within the declared bounds.
 
     {2 Monitors}
 
@@ -115,7 +115,8 @@
     section after the clock is read, and the table is printed by a task of its
     own, outside the calls and steps it times; unlike the trace of
     [TEMPORE_TRACE], which logs each event, the profile does not lengthen the
-    times it measures. *)
+    running times of the operations; a step is lengthened by the updates of the
+    operations it performs. *)
 
 (** The effect of a top-level function, as the typechecker infers it. *)
 type function_effect =

@@ -267,7 +267,8 @@ let mentions text id =
 
 (* The end [b] of the bounds of an operation, times [unit_us], in whole
    microseconds, rounded outwards: the value, whether it is open, and whether
-   it is finite. Values beyond 2^62 microseconds are taken as infinite. *)
+   it is finite. An upper end beyond 2^62 microseconds is taken as infinite, and a
+   lower end beyond it as 2^62. *)
 let end_us ~lower ~unit_us b =
   let limit = Z.shift_left Z.one 62 in
   match b with

@@ -8,8 +8,8 @@ Opentrons App and by the simulator `opentrons_simulate`.
 - The program is executed by an abstract machine included in the file, so
   that handlers, continuations and recursion behave as in the small-step
   interpreter.
-- The calls of the operations are monitored against their running-time
-  bounds while the protocol runs.
+- The calls of the binding functions are monitored against the running-time
+  bounds of their operations while the protocol runs.
 
 ## Protocols and binding files
 

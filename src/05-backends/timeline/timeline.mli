@@ -4,9 +4,10 @@
     operations that reach the top level, unhandled, and are performed by their
     default implementations, and the resources boxed and unboxed. Each entry
     carries its depth, the number of calls whose default implementations are
-    still running, and the resource grade accumulated at the top level of its
-    run before it ({!Backend.observation}). Grades are printed resource grades:
-    the timeline does no arithmetic on them. *)
+    still running, and the resource grade accumulated before it, or, inside a
+    default implementation, before the outermost call still running
+    ({!Backend.observation}). Grades are printed resource grades: the timeline
+    does no arithmetic on them. *)
 
 (** What an entry records. *)
 type event =
@@ -24,7 +25,9 @@ type event =
 type entry = {
   run : int;  (** the run, from 1 *)
   depth : int;  (** the number of calls still running *)
-  start : string;  (** the resource grade accumulated before the entry *)
+  start : string;
+      (** the resource grade accumulated before the entry, or, inside a default
+          implementation, before the outermost call still running *)
   event : event;
 }
 (** An entry of a timeline. *)

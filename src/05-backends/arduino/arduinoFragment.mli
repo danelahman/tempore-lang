@@ -7,8 +7,8 @@
     standard library they use. The roots are the top-level definitions of the
     sources named by a device manifest, its task functions and initial
     functions, or, without a manifest, all the top-level definitions of the
-    sources; a definition that is not reached from them is neither checked nor
-    compiled. The fragment consists of:
+    sources; a definition that is not reached from them is not compiled, and is
+    checked only as below. The fragment consists of:
 
     - top-level functions, possibly curried, applied to all their arguments; the
       arguments of a curried application may be supplied through intermediate
@@ -20,9 +20,9 @@
       body of such a function is not in tail position of the definition;
     - [let] and [do], [if] and [match], with patterns over tuples, constructors,
       constants and successors [n + k];
-    - natural numbers, floats, booleans, the unit and tuples, and the
-      constructors of datatypes without type parameters whose definitions are
-      not recursive;
+    - natural numbers, integers of 32 bits, floats, booleans, the unit and
+      tuples, and the constructors of datatypes without type parameters whose
+      definitions are not recursive;
     - the primitives of arithmetic and comparison, comparisons at every type of
       the fragment;
     - recursive calls of a function to itself in tail position;
@@ -48,17 +48,18 @@
     top-level handler, possibly of parameters, a handler bound by [let] in a
     definition, or a handler written at a [handle] or elsewhere in it. One that
     is not tail-resumptive is reported by a warning at the offending occurrence
-    of its continuation, not by a rejection, since it is not compiled. The
-    handlers of the standard library and of the [run] commands are not checked.
+    of its continuation, or at the end of a branch that does not resume it, not
+    by a rejection, since it is not compiled. The handlers of the standard
+    library and of the [run] commands are not checked.
 
     Rejected are, among others, local recursive functions, top-level functions
     and handlers used as values, partial applications, datatypes whose
     constructors take functions, comparisons of functions, handlers that are not
     tail-resumptive, lists, strings elsewhere (also as results of operations and
     arguments of constructors), recursive calls outside tail position (also
-    inside a [handle] and its handler), and natural number literals of more than
-    32 bits. A rejection is a compilation {!Utils.Diagnostic.t} at the
-    construct.
+    inside a [handle] and its handler), and natural number and integer literals
+    of more than 32 bits. A rejection is a compilation {!Utils.Diagnostic.t} at
+    the construct.
 
     Types are reconstructed by unification, with the top-level definitions
     generalised over the type variables of their types. A polymorphic definition

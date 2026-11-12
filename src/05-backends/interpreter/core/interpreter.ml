@@ -212,9 +212,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.PConst _ -> subst
     | Ast.PNonbinding -> subst
 
-  (* [refresh_pattern renaming pat] is [pat] with fresh variables, and
-     [renaming] extended by the renaming of its variables to them. Every node
-     keeps the span it was written at: the variables change, the source they
+  (* [refresh_pattern renaming pat] is [pat] with fresh variables and its
+     annotations dropped, and [renaming] extended by the renaming of its
+     variables to them. Every remaining node keeps the span it was written at: the variables change, the source they
      came from does not. *)
   let rec refresh_pattern renaming (pat : _ Ast.pattern) =
     match pat.it with

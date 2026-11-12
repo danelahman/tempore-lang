@@ -162,7 +162,8 @@ void tempore_wait_release(TickType_t *release, TickType_t period);
 // returns at the k-th tick from now, after at least k - 1 milliseconds, so
 // that the active wait is under early_ticks + 1 milliseconds and one more
 // per wait; early_ticks ends the yielding waits before target_us, so that a
-// late wake-up of the task does not delay it beyond target_us.
+// wake-up at most early_ticks milliseconds late does not delay it beyond
+// target_us.
 void tempore_wait_until(int64_t start_us, int64_t target_us,
                         uint32_t early_ticks);
 

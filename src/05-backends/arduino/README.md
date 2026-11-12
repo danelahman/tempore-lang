@@ -100,8 +100,9 @@ regex grades with banked delays over rational delays
     bias of the gyroscope passes; the spread of the angular rate about each
     axis is to lie below the build flag `TEMPORE_IMU_REST_SPREAD`, in degrees
     per second (default 5);
-  - under the timed regex grades, `read_imu_boxed`, one reading
-    in one box, `latest_imu`, of grade `{≤2 & ~ReadImu}`, usable within 2 ms
+  - under the timed regex upper-bound and interval grades, `read_imu_boxed`,
+    one reading in one box, `latest_imu`, of grade `{≤2 & ~ReadImu}` or
+    `{[0, 2] & ~ReadImu}`, usable within 2 ms
     and before the next `ReadImu`;
   - `m5_imu_observe(accel, gyro)`, defined weakly to do nothing, receives
     each reading, for an application to record it.
@@ -131,9 +132,10 @@ regex grades with banked delays over rational delays
   boards over ESP-NOW:
   - a device build requires the peer, the build flag `ESP_NOW_PEER`, six
     bytes separated by commas, and the key, the build flag `ESP_NOW_KEY`,
-    32 hexadecimal digits; a missing or malformed peer or key, and the
-    broadcast address, which ESP-NOW does not encrypt, are compilation
-    errors;
+    32 hexadecimal digits; a missing peer, a peer of more than six bytes,
+    a missing or malformed key, and the broadcast address, which ESP-NOW does
+    not encrypt, are compilation errors, and a shorter peer is padded with
+    zeros;
   - `LinkStart` starts the radio and ESP-NOW on a channel, on core 0, and
     returns whether the link is encrypted, true for every link;
   - `Send` queues a packet and returns without waiting;
@@ -148,18 +150,19 @@ regex grades with banked delays over rational delays
     message, so that grades tell the messages apart;
   - `remote_receive`, the latest message received at most 50 ms ago, or
     `Nothing`, boxed with `[0, 150)`, so that a move is applied at most
-    200 ms after it was sent, and under the timed regex grades with
-    `{<150 & ~ReceiveMessage}`, its setpoints of the non-eternal type `setpoints`;
+    200 ms after it was sent, and under the timed regex upper-bound and
+    interval grades with `{<150 & ~ReceiveMessage}` or
+    `{[0, 150) & ~ReceiveMessage}`, its setpoints of the non-eternal type `setpoints`;
   - `SendStatus` and `remote_status`, the status of the robot, its phase and
     tilt, the latest received at most 50 ms ago, boxed with `[0, 200)`, and
-    under the timed regex grades with `{<200 & ~ReceiveMessage}`.
+    under the timed regex upper-bound and interval grades with
+    `{<200 & ~ReceiveMessage}` or `{[0, 200) & ~ReceiveMessage}`.
 
 ### Bounds per board
 
-The bounds a package declares hold on every board it supports. Where an
-operation is measured to run within narrower bounds on a particular board,
-the member `bounds` of the descriptor gives them, by board and operation, as
-closed intervals in the time unit of the declarations:
+Where an operation is measured on a particular board, the member `bounds` of
+the descriptor gives its bounds there, narrower or wider than those of the
+declarations, by board and operation, as closed intervals in the time unit of the declarations:
 
     "bounds": {
       "m5stack-gray": { "ReadImu": [0.55, 1.25] },
@@ -191,8 +194,8 @@ The bounds of the packages and of the examples are measured on the devices
 by their profile ([Measuring running times](#measuring-running-times)): the
 lower bound is the least time measured, rounded down, and the upper bound 1.5
 times the greatest, rounded up. On a profile with the radio, the bounds are
-measured with the radio running and are never narrower than those of the
-board without it, which an operation not measured with the radio keeps.
+measured with the radio running. An operation not measured with the radio
+keeps those of the board without it.
 Bounds not measured are provisional; each declaration states its
 measurements and how the bounds not measured directly, such as those of
 `i2c`, are derived.
@@ -215,8 +218,8 @@ top-level definition is checked, and the `run` commands are compiled under
 `--host-runs`.
 
 The entry points are the task functions and the `initial` functions, or,
-without a manifest, the functions that the `run` commands call outside every
-handler, or every top-level function if there is no `run` command. Only the
+without a manifest, the functions that the `run` commands mention outside the
+handled computation of every `handle`, or every top-level function if there is no `run` command. Only the
 code reached from them is compiled, so that a function used only under a
 handler has no instance outside it, and the operations the program declares
 are those it performs outside every handler.
@@ -259,7 +262,7 @@ A handler is compiled if it is
   case, through `let`, `match`, `delay`, `box`, `unbox` and operation calls,
   and in neither the bound computations nor `v`.
 
-Such handlers are the runners of Ahman and Bauer (ESOP 2020) without state:
+Such handlers resemble stateless runners (Ahman and Bauer, ESOP 2020):
 
     let offset (d : nat) =
       handler
@@ -336,7 +339,7 @@ the functions and the periods of the tasks, and each boxed value is unboxed
 only within its box grade
 ([Temporal resources](../../../README.md#temporal-resources)). These
 guarantees hold of the device provided each operation behaves as its
-declared grade states.
+declared grade states and each delay takes its stated time.
 
 ### What the monitors check
 
@@ -349,8 +352,8 @@ states:
   its operation on the board;
 - the duration of each step of a periodic task against its period.
 
-A run either satisfies the assumptions of the typing, or the monitors report
-it.
+Under `abort` and `warn`, a binding call outside its bounds and a step not
+below its period are reported. Delays are not monitored.
 
 The order and the number of the operations need no monitor, since the
 compiled code performs exactly the operations the typed program performs.
@@ -534,9 +537,11 @@ A task of the lowest priority logs them as a table every 5 seconds
 (`TEMPORE_PROFILE_INTERVAL_MS`); under `--host-simulate` the table is logged
 in place of the trace, every 5 simulated seconds and at the end.
 
-The measurement does not lengthen what it measures. The trace of the build flag `TEMPORE_TRACE` (for example in
-`PLATFORMIO_BUILD_FLAGS`), which logs each event, lengthens the steps by the
-time of its serial output and is not suited to measurement.
+The measurement does not lengthen the running times of the operations. A step
+is lengthened by the updates of the operations it performs. The trace of the
+build flag `TEMPORE_TRACE` (for example in `PLATFORMIO_BUILD_FLAGS`), which
+logs each event, lengthens the steps by the time of its serial output and is
+not suited to measurement.
 
     ./tempore --grades time-interval-rational \
       --emit-arduino balance-profile \

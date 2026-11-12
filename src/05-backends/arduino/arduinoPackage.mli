@@ -52,15 +52,15 @@
     grade algebras an operation has no running-time bounds, and its calls are
     not checked by a monitor.
 
-    The bounds the declarations give hold on every board the package supports.
-    For a board named by ["bounds"], the bounds given there replace, under each
-    grade algebra that bounds durations, those the declarations give to the
-    operations it names ({!file.running_times}): the bounds of the interval
-    grade of an operation, or those of its [within]. A program for a device is
-    typed and monitored under the bounds of the board of its manifest; one run
-    by the interpreter under those of the board it names, if any, and else under
-    those of the declarations. The default implementations take a time within
-    the bounds of every board.
+    The declarations give the bounds for the boards without an entry in
+    ["bounds"]. For a board named by ["bounds"], the bounds given there replace,
+    under each grade algebra that bounds durations, those the declarations give
+    to the operations it names ({!file.running_times}): the bounds of the
+    interval grade of an operation, or those of its [within]. A program for a
+    device is typed and monitored under the bounds of the board of its manifest;
+    one run by the interpreter under those of the board it names, if any, and
+    else under those of the declarations. The default implementations take a
+    time within the bounds of every board.
 
     A program under the grade algebra [g] is preceded by the definitions and the
     declarations under [g] of each of its packages ({!files_for}). *)

@@ -36,7 +36,8 @@
    run and 100.176 ms in a run at a period of 5 ms, and ReceiveMessage at
    0.002 to 0.078 ms, and at 0.003 to 0.387 ms in the run at 5 ms. Their bounds
    there are the least time measured, rounded down, and 1.5 times the greatest,
-   rounded up: LinkStart [85.5, 144] and ReceiveMessage [0, 0.6].
+   rounded up, for LinkStart over the runs other than that at 5 ms: LinkStart
+   [85.5, 144] and ReceiveMessage [0, 0.6].
 
    On the profile m5stack-cores3-radio, an M5Stack CoreS3 with the radio on core
    0, the tasks of the application on core 1 and the link encrypted, the profile

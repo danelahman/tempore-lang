@@ -1,8 +1,8 @@
 (* The package m5-imu under the at-most counts: the inertial measurement
    unit of an M5Stack core, read through M5Unified. Grades: at-most-counts;
    a call counts once, and its running time is not bounded. ReadImu,
-   ConfigureImu, CheckAtRest and their default implementations are those of
-   m5_imu.tpe, and the types and the attitude filter are defined in
+   ConfigureImu and CheckAtRest are those of m5_imu.tpe, their default
+   implementations return the same values without a delay, and the types and the attitude filter are defined in
    m5_imu_filter.tpe. *)
 
 operation ReadImu : unit ~> imu ! (ReadImu, 1)

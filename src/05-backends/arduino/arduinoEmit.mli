@@ -7,8 +7,9 @@
 
     A natural number is a [uint32_t]: subtraction is truncated at zero, and
     division and the remainder by zero call [tempore_fault] with the message of
-    the interpreter; addition and multiplication are taken modulo 2{^ 32}. A
-    float is a single-precision [float], a boolean a [bool], a string constant a
+    the interpreter; addition and multiplication are taken modulo 2{^ 32}. An
+    integer is an [int32_t], its arithmetic taken modulo 2{^ 32}. A float is a
+    single-precision [float], a boolean a [bool], a string constant a
     [const char *] and the unit value [tempore_unit{}]. A tuple is a struct with
     the members [c0], [c1], ...; a value of a datatype is a struct with a tag,
     the enumeration of the constructors in the order of their labels, and the
@@ -71,9 +72,10 @@
 
     {2 Names}
 
-    Variables, datatypes and constructors are named by
-    {!ArduinoNames.identifier}; the tuple types, the temporaries and the other
-    names the compiler introduces start with [tempore_]. *)
+    Variables, datatypes, constructors and the functions of cases, return cases
+    and applications of closures are named by {!ArduinoNames.identifier}; the
+    tuple and closure types, the temporaries and the parameters the compiler
+    introduces start with [tempore_]. *)
 
 type compiled = {
   files : (string * string) list;  (** the files, each with its name *)

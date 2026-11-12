@@ -1,7 +1,7 @@
 # Runtime of the Python programs compiled from Tempore.
 #
-# Every global name of the runtime and of the compiled program's own
-# definitions begins with `tempore_` or `_tempore_`, so that a binding file
+# Every global name of the runtime and of the definitions the compiler
+# introduces begins with `tempore_` or `_tempore_`, so that a binding file
 # included in the same module keeps the other names.
 #
 # Values are represented as follows:
@@ -581,7 +581,8 @@ def tempore_match_failure():
 
 
 # Comparison: the structural order of values, constants compared as OCaml
-# compares them (floats by Float.compare, strings by bytes).
+# compares them (floats by Float.compare, strings by code point, which is
+# their byte order in well-formed UTF-8).
 
 
 def _tempore_float_compare(x, y):

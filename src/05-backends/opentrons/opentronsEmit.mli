@@ -6,6 +6,8 @@
 
     {2 Values}
 
+    Runtime names are given below without their prefix [tempore_].
+
     A natural number is an [int], a float a [float], a string a [str], a boolean
     a [bool] and a tuple a [tuple], the unit value [()]. A value of a
     constructor is [Con(tag, arg)], where [tag] numbers the label in the order
@@ -40,9 +42,10 @@
     {2 Names}
 
     Each variable is named by {!OpentronsNames.identifier}; a primitive by the
-    runtime function implementing it with the interpreter's semantics. Only the
-    top-level definitions the [run] commands use are compiled
-    ({!OpentronsReach.reachable}).
+    runtime function implementing it with the interpreter's semantics, except
+    that [to_string] prints functions and handlers as [<fun>] and [<handler>].
+    Only the top-level definitions that the [run] commands and the default
+    implementations use are compiled ({!OpentronsReach.reachable}).
 
     {2 Operations}
 
@@ -108,7 +111,9 @@ val plain_program :
     final state of its resources: a header [=== Run n ===], the line [return v]
     and an empty line, or for a run that ends at an unhandled operation call the
     header [=== Run n (unhandled operation) ===], the call with its continuation
-    printed as [<continuation>] and an empty line. A run-time error is reported
-    on the standard error as the interpreter reports it, and ends the program.
-    As for the command-line interpreter, the exit code is 3 if a run has failed
-    and 0 otherwise. Imported as a module, it executes nothing. *)
+    printed as [<continuation>] and an empty line. Functions and handlers print
+    as [<fun>] and [<handler>], and a stuck run ends the program without output.
+    A run-time error is reported on the standard error as the interpreter
+    reports it, and ends the program. As for the command-line interpreter, the
+    exit code is 3 if a run has failed and 0 otherwise. Imported as a module, it
+    executes nothing. *)

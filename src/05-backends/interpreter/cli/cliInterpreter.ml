@@ -4,7 +4,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
   module PrettyPrint = Language.PrettyPrint
 
   (* A run is reported once its computation, decomposed with an empty
-     context, is a [return] or an operation call, or once it has no step. *)
+     context, is a [return] or an operation call without a default implementation, or once
+     it has no step. *)
   let view_run_state (run_state : run_state) ~steps ~run_num : CliBackend.ending
       =
     match run_state with

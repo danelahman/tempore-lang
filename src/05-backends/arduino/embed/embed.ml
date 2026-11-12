@@ -2,7 +2,7 @@
 
    [embed value NAME FILE] prints the definition of [NAME] as the text of
    [FILE]; [embed files NAME PREFIX FILE...] prints the definition of [NAME]
-   as the list of the paths of the files [FILE...], in order, each without the
+   as the list of the paths of the files [FILE...], sorted, each without the
    prefix [PREFIX] and with its text. *)
 
 let read file = In_channel.with_open_bin file In_channel.input_all
