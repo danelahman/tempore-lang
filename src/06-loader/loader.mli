@@ -32,9 +32,10 @@ val with_running_times :
     at-most counts, keeps its declaration.
 
     @raise Utils.Error.Error
-      if [commands] declare no operation of [running_times], if the grade of an
-      operation bounds durations but is not that of its bounds, or if the delays
-      of [E] do not read a bound. *)
+      if an operation of [running_times] is not declared in [commands], if the
+      grade of an operation names an event, if the grade of an operation bounds
+      durations but is not that of its bounds, or if the delays of [E] do not
+      read a bound. *)
 
 val grades_of_sources :
   grades:string ->
@@ -50,9 +51,10 @@ val grades_of_sources :
 
     @raise Utils.Error.Error
       if the first declaration is not a lattice
-      ({!Grades.GradeLattice.of_chains}) or if the grade is not built on a grade
-      lattice.
-    @raise Invalid_argument if the grade is unknown. *)
+      ({!Grades.GradeLattice.of_chains}) or if the grade is unknown or not built
+      on a grade lattice.
+    @raise Invalid_argument
+      if the grade is unknown and no source declares a grade lattice. *)
 
 val stdlib_filename : string
 (** The file name the standard library's locations are reported under, since it

@@ -76,7 +76,9 @@ val unify : unfold -> 'info equation list -> (subst, 'info failure) result
     application is unfolded by [unfold] when it meets a skeleton of another
     former or head, and also when it meets an application of its own head, since
     an alias may ignore its arguments. An unknown is bound to a skeleton without
-    unfolding. *)
+    unfolding. The occurs check reads the arguments of an alias application
+    without unfolding it, so an equation solvable only by unfolding an alias
+    that ignores an argument may fail. *)
 
 (** {1 Bindings} *)
 

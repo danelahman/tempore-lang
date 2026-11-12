@@ -4,8 +4,6 @@
     [v] on neither side. A value is given where an occurrence oracle allows it:
     whether [v] may decrease, or increase, without changing the meaning of the
     atoms other than the orderings of its sort that the value discharges.
-    Lowering and raising follow the elimination of variables by polarity
-    (Pottier, ICFP 1996; Trifonov and Smith, SAS 1996).
 
     - Lowering: every ordering has [v] on no right side, is [x ≾ v] with [x]
       free of [v], a lower bound, is a cycle [p ≾ v] with [v] in [p] where the
@@ -27,8 +25,8 @@
       when written canonically, has [y] decided below the unit. The value is the
       unit, at every solution of the ordering, whatever the occurrences of [v].
     - Equating: an ordering sets [v] against an expression [b], an earlier
-      unknown or free of [v], that the hypotheses entail equal to [v]. The value
-      is [b].
+      unknown, or an expression other than a single unknown that is free of [v],
+      that the hypotheses entail equal to [v]. The value is [b].
 
     {2:cycles Cycles}
 

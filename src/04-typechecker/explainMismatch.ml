@@ -141,7 +141,7 @@ struct
 
   (* Whether the sides of an atom at [path] are the other way round from the
      subject's and the expected type's: under an odd number of function
-     domains. *)
+     domains; handler inputs are not counted. *)
   let flipped reason path =
     List.length
       (List.filter

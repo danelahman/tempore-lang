@@ -1,11 +1,12 @@
 (** Constraint generation in checking mode.
 
     [generate_expression env e expected] is a constraint over the unknowns of
-    [expected] and of [env] that holds exactly when [e] has, in [env], a subtype
-    of the expected type. The expected type is an upper bound: it is the
-    right-hand side of a subtyping or ordering atom wherever a rule meets it,
-    and is passed on to the subterms otherwise. Every type or grade a rule
-    leaves undetermined is a fresh unknown of an [Exists] scope around the
+    [expected], of [env] and of the annotations of [e] that holds exactly when
+    [e] has, in [env], a subtype of the expected type. The expected type is an
+    upper bound: wherever a rule meets it, it is the right-hand side of a
+    subtyping or ordering atom, or a side of a type equation for a constant or a
+    tuple, and it is passed on to the subterms otherwise. Every type or grade a
+    rule leaves undetermined is a fresh unknown of an [Exists] scope around the
     rule's constraint; each handled operation's clause is generated under a
     [Forall_eps] of the clause's continuation effect.
 
@@ -84,18 +85,18 @@ module Make (C : Constraint.S) : sig
       implementations of operations. *)
 
   val initial_env : env
-  (** The environment of the built-in types [bool], [nat], [unit], [string],
-      [float], [empty] and [list], and nothing else, in a program that declares
-      no operations. *)
+  (** The environment of the built-in types [bool], [nat], [int], [unit],
+      [string], [float], [empty] and [list], and nothing else, in a program that
+      declares no operations. *)
 
   val declare_operations :
     (string * Grades.Grade.running_time option) list -> env -> env
   (** [declare_operations declarations env] is [env] in a program whose
       operation declarations are [declarations], each an operation name with its
       running-time bounds if it declares them, the first declaration of a name
-      counting. The operations it declares with running-time bounds, its atomic
-      operations under the grades that read them, are the closed world of
-      {!running_times}, whichever command is checked. *)
+      with bounds counting. The operations it declares with running-time bounds,
+      its atomic operations under the grades that read them, are the closed
+      world of {!running_times}, whichever command is checked. *)
 
   val running_times : env -> Grades.Grade.bounds
   (** [running_times env] are the running times of the program of [env]: its
@@ -119,10 +120,11 @@ module Make (C : Constraint.S) : sig
       fixpoint.
       @raise Utils.Error.Error
         if an alias is declared [noneternal], a type is applied to the wrong
-        number of arguments, or a type of [defs] occurs in one of them other
-        than strictly positively: in the domain of a function type, in the input
-        type of a handler type, in an argument of a type of [defs], or in an
-        argument of another type at a parameter not strictly positive. *)
+        number of arguments, an alias is cyclic, or a type of [defs] occurs in
+        one of them other than strictly positively: in the domain of a function
+        type, in the input type of a handler type, in an argument of a type of
+        [defs], or in an argument of another type at a parameter not strictly
+        positive. *)
 
   val add_operation_signature :
     loc:Location.t ->
@@ -138,9 +140,10 @@ module Make (C : Constraint.S) : sig
       its grade.
       @raise Utils.Error.Error
         if the bounds are missing, superfluous or malformed for the grade, the
-        upper bound implied by the grade of a compound operation is not
-        positive, or the parameter or result type contains a function or handler
-        type, the definitions of types being unfolded. *)
+        grade is not a literal, a compound operation names itself or an unknown
+        event in its grade, the upper bound implied by the grade of a compound
+        operation is not positive, or the parameter or result type contains a
+        function or handler type, the definitions of types being unfolded. *)
 
   val add_global :
     env ->
@@ -199,15 +202,17 @@ module Make (C : Constraint.S) : sig
   (** {2 Generation} *)
 
   type 'a expected = { bound : 'a; because : reason }
-  (** An expected type or effect, an upper bound, with the reason of the
-      construct that set it. *)
+  (** An expected type or effect, with the reason of the construct that set it:
+      an upper bound for a term, a lower bound for a pattern. *)
 
   val generate_expression : env -> expression -> ty expected -> C.t
   (** [generate_expression env e expected] is the constraint that [e] has a
       subtype of [expected.bound] in [env].
       @raise Utils.Error.Error
-        on a constructor applied to the wrong number of arguments, an unbox of
-        other than a variable, or a case for an unknown operation. *)
+        on a constructor applied to the wrong number of arguments, an unknown
+        variable, constructor or operation (in a perform or a case), an unbox of
+        other than a variable or of a top-level definition, or an undeclared
+        event or a vacuous grade in an annotation. *)
 
   val generate_computation :
     env -> computation -> ty expected -> eps expected -> C.t
@@ -250,9 +255,10 @@ module Make (C : Constraint.S) : sig
     env -> loc:Location.t -> Ast.operation -> C.X.GS.E.t -> unit
   (** [check_default_duration env ~loc op grade] checks that the running-time
       bounds implied by the effect [grade] of the default implementation of [op]
-      at [loc] lie within the running-time bounds [op] declares, each end
-      compared with its strictness. It holds where [op] declares no running-time
-      bounds or [grade] implies none bounded above
-      ({!Grades.Grade.S.duration_bounds}).
+      at [loc] lie within the running-time bounds [op] declares, on the ends the
+      grade bounds ({!Grades.Grade.S.duration_ends}), each compared with its
+      strictness. It holds where [op] declares no running-time bounds or [grade]
+      determines no durations, and, for a grade bounding both ends, where they
+      are not bounded above.
       @raise Utils.Error.Error if it does not hold. *)
 end

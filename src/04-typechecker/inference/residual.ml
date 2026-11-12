@@ -375,8 +375,7 @@ module Make (C : Constraint.S) = struct
         Result.bind (push (ordering lhs rhs) r) (push (ordering rhs lhs))
 
   (* The structural decomposition of a subtyping demand between types of one
-     shape into atomic demands and grade orderings along {!Former.decompose}
-     (Mitchell, JFP 1991; Fuh and Mishra, ESOP 1988). *)
+     shape into atomic demands and grade orderings along {!Former.decompose}. *)
   let rec push_sub context (s : sub) r =
     match unfold_alias context s.lhs with
     | Some lhs -> push_sub context { s with lhs } r

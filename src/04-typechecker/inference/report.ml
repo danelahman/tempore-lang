@@ -344,7 +344,7 @@ module Make (C : Constraint.S) = struct
       orderings
 
   (* Each atom entailed by the others dropped in turn; on the subtyping atoms
-     a greedy minimal equivalent graph, the transitive reduction where they
+     an inclusion-minimal equivalent subgraph, the transitive reduction where they
      are acyclic (Aho, Garey and Ullman, SIAM J. Comput. 1972). *)
   let trim context hyps =
     let bounds = context.Residual.bounds in
@@ -1044,8 +1044,7 @@ module Make (C : Constraint.S) = struct
 
   (* Each type unknown on a cycle of subtyping atoms, in order, sent to the
      representative of its component: a fixed member where there is one, else
-     the earliest. This is cycle elimination (Fähndrich, Foster, Su and Aiken,
-     PLDI 1998; {!Reach.collapse}). *)
+     the earliest. This is cycle elimination ({!Reach.collapse}). *)
   let collapse (fixed : C.free) st =
     let edges =
       List.filter_map
@@ -1277,9 +1276,7 @@ module Make (C : Constraint.S) = struct
       }
       (Seq.map (fun (_, e) -> e.atom) (Int_map.to_rev_seq st.atoms))
 
-  (* The elimination of unknowns, the lowering and raising steps by polarity
-     in the manner of Pottier (Simplifying subtyping constraints, ICFP 1996)
-     and of Trifonov and Smith (Subtyping constrained types, SAS 1996). The
+  (* The elimination of unknowns, the lowering and raising steps by polarity. The
      steps are tried at the unknowns of the initial state, which include those
      of every later state: a step replaces an unknown by a part of the
      hypotheses and drops hypotheses, and no step applies at an unknown that

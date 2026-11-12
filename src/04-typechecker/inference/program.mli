@@ -13,9 +13,9 @@
     Satisfiability of a definition's qualifier is decided provisionally: the
     definition is accepted unless the search for a closed instance refutes its
     qualifier, and each use of the definition checks the qualifier instantiated
-    at the use. A run is a closed program, used nowhere, so its qualifier must
-    be established: an obligation the search neither discharges nor refutes
-    rejects it.
+    at the use. A run or a default is used nowhere as a definition is, so its
+    qualifier must be established: an obligation the search neither discharges
+    nor refutes rejects it.
 
     Once solved, the recursive functions of a command must pass the structural
     termination check ({!Termination}), and a default must not perform its own
@@ -56,8 +56,8 @@ module Make (C : Constraint.S) : sig
   (** The outcome of the command at [at]. *)
 
   val context : env -> Solver.Make(C).context
-  (** [context env] is the pair of the running times
-      ({!Generate.Make.running_times}) and the type definitions of [env]. *)
+  (** [context env] is the running times ({!Generate.Make.running_times}), the
+      type definitions and the noneternal types of [env]. *)
 
   val check :
     command ->

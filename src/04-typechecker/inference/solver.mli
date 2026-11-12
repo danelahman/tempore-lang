@@ -12,16 +12,17 @@
       residual is decomposed again under the instantiation. The atom is then
       decomposed.
     - A grade ordering, an eternality demand and a var-rule disjunction are
-      added to the residual ({!Residual}): the variable-free orderings and the
-      disjunctions decided are dropped.
+      added to the residual ({!Residual}): the variable-free orderings are
+      dropped when true and refute when false, and the disjunctions decided are
+      dropped.
     - An existential scope brings its unknowns into play.
     - A rigid scope is solved with a residual of its own and closed
       ({!RigidScope}): its local unknowns receive values, its atoms are kept
       outside it or deferred as conditions on its rigid variable; the rigid may
       not occur in the value of an unknown outside the scope, the escape check
-      of skolem constants (Peyton Jones, Vytiniotis, Weirich and Shields, JFP
-      2007). When the scope instantiated type unknowns, the pending demands are
-      decomposed again. Every deferred condition is retried after the close.
+      of skolem constants. When the scope instantiated type unknowns, the
+      pending demands are decomposed again. Every deferred condition is retried
+      after the close.
 
     After the whole constraint the deferred conditions are retried and the
     residual read as hypotheses; the orderings between variable-free sides,
@@ -122,10 +123,10 @@ module Make (C : Constraint.S) : sig
       otherwise the search for grades of the unknowns left at which the
       remaining orderings and conditions hold ({!RigidScope.Make.instance}):
       [Error (Unestablished _)] when none of the grades tried meets them. Where
-      it finds no closed instance, the qualifier reported against a type free of
-      unknowns is checked as by {!generalise}, a failure of that check taking
-      precedence. It is the check of a run, whose program is closed: there no
-      later use may refute an obligation. *)
+      the search succeeds but finds no closed instance, the qualifier reported
+      against a type free of unknowns is checked as by {!generalise}, a failure
+      of that check taking precedence. It is the check of a run, whose program
+      is closed: there no later use may refute an obligation. *)
 
   val qualifier : solution -> C.t
   (** [qualifier solution] is [Q ∧ R] as a constraint, each obligation under the
@@ -150,10 +151,9 @@ module Make (C : Constraint.S) : sig
   val unsimplified : ?fixed:C.free -> C.ty -> solution -> C.scheme
   (** [unsimplified ~fixed ty solution] is the scheme of [ty] under [solution]
       as solved: the solved type, the qualifier {!qualifier}, and the scheme
-      quantified over their unknowns other than those of [fixed]. It is
-      equivalent to {!generalise}, and keeps the atoms the simplification
-      eliminates, through which the explanation of a failure at a use of the
-      definition is traced. *)
+      quantified over their unknowns other than those of [fixed]. It keeps the
+      atoms the simplification of {!generalise} eliminates, through which the
+      explanation of a failure at a use of the definition is traced. *)
 
   val print_outcome : outcome -> Format.formatter -> unit
   (** [print_outcome outcome ppf] prints [outcome], for debugging. *)

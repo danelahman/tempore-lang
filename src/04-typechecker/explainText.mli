@@ -43,7 +43,7 @@ module Make (C : Inference.Constraint.S) : sig
   val instance_values : S.context -> S.solution -> C.X.subst
   (** [instance_values context solution] is the values of the grade unknowns of
       [solution] in the search for a closed instance of its qualifier, except
-      those sent to the top for want of any bound, which stay unknown. *)
+      those whose value is the top, which stay unknown. *)
 
   val rigid_origins :
     C.t -> (C.X.Eps_var.t * Inference.Reason.rigid_origin) list

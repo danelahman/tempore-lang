@@ -335,7 +335,7 @@ command_list:
      { cmd :: cmds }
 
 (* The declaration of the grade lattice, [grade lattice] followed by chains of
-   covering edges separated by commas, before every other command of a file:
+   edges separated by commas, before every other command of a file:
    [grade lattice] is a keyword only there. *)
 lattice_declaration:
   | first = mark_position(LNAME) second = mark_position(LNAME)
@@ -929,8 +929,8 @@ minus_infinity:
           "`-%s` is no grade literal" name }
 
 (* The regular expressions of brace literals, by increasing precedence: union
-   [|], intersection [&], concatenation [;], complement [~] and repetition
-   [*], bounded repetition [r^n], [r^[m, n]] or [r^[m, ∞)] and the optional
+   [|], intersection [&], concatenation [;], complement [~] below the postfix
+   repetition [*], bounded repetition [r^n], [r^[m, n]] or [r^[m, ∞)] and the optional
    [r?], which is [(r | skip)], the idle wait [idle] binding as the
    complement but applying to the operand of a repetition [*]; [idle r^c] is
    the idle wait of the delays of [r^c], and [(idle r)^c] a repetition of

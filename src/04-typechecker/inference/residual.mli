@@ -20,7 +20,7 @@
     A type reduces to the type unknowns its eternality depends on, or is never
     eternal: an arrow, a box, a handler and a type declared [noneternal] never
     are; a type application is unfolded through its definition, a recursive
-    occurrence being eternal.
+    occurrence being eternal when its arguments are.
 
     {2 Eager decisions}
 

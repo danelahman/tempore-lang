@@ -146,7 +146,7 @@ let closes_cycle (type v) ~(compare : v -> v -> int) edges fresh =
   in
   List.exists (fun (a, b) -> reaches a [ b ]) fresh
 
-(* Cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998). *)
+(* Cycle elimination. *)
 let collapse ~compare ~preferred ~movable edges =
   let vertices = on_both_ends ~compare edges in
   let order =

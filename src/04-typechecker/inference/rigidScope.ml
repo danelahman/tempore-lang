@@ -369,8 +369,7 @@ module Make (C : Constraint.S) = struct
     closes X.Eps_var.compare eps_edges (eps_edges fresh)
     || closes X.Rho_var.compare rho_edges (rho_edges fresh)
 
-  (* Cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998;
-     {!Reach.collapse}): the local members occurring in no
+  (* Cycle elimination ({!Reach.collapse}): the local members occurring in no
      type of each strongly connected component of the orderings between whole
      unknowns sent to its representative, the first member in the order outer,
      then fixed, then movable, each by creation. *)
@@ -706,7 +705,7 @@ module Make (C : Constraint.S) = struct
           (fun (b, drops) -> (R.assign_rho k b, drops))
           (rho_value context k r)
 
-  (* Chaotic iteration with a worklist (Cousot and Cousot, POPL 1977): an
+  (* A worklist algorithm: an
      unknown taken from the worklist is given the value of the first rule of
      {!value} that applies to it, which reads only the atoms mentioning it.
      Where the worklist is empty, the disjunctions, which depend on every
@@ -1300,8 +1299,7 @@ module Make (C : Constraint.S) = struct
 
   (* The levels of a component: its unknowns, those occurring in more items
      first, each with its candidates and the items whose last unknown it is;
-     and the items without unknowns. The order by degree follows the
-     fail-first principle (Haralick and Elliott, AIJ 1980). *)
+     and the items without unknowns. *)
   let levels context ((rhos, eps) as unknowns) items =
     let tagged = List.map (fun item -> (item_unknowns item, item)) items in
     let count u =

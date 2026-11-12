@@ -7,8 +7,9 @@
     dropped, products distributed over joins and repeated alternatives merged; a
     sum with the top among its alternatives is the top. Where the grade's
     product is commutative, each product is its constant followed by its
-    variables in creation order. A sum is nonempty; a product may be empty, and
-    is then the unit.
+    variables in creation order, on the resource side the resource variables
+    before the images. A sum is nonempty; a product may be empty, and is then
+    the unit.
 
     {2 Decisions}
 

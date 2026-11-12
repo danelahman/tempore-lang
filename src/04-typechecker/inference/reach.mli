@@ -16,7 +16,8 @@ val graph : int -> (int * int * 'e) list -> 'e graph
 val reached : 'e graph -> int list -> int -> bool
 (** [reached g starts] is whether a vertex is reached from [starts] along the
     edges, the starts included. Applied to [g] and [starts] alone, the vertices
-    reached are computed once, in time linear in the edges. *)
+    reached are computed once, in time linear in the edges up to the cost of the
+    set operations. *)
 
 val chain : 'e graph -> int -> int -> 'e list option
 (** [chain g i j] is a shortest chain from [i] to [j], found by breadth-first
@@ -24,7 +25,8 @@ val chain : 'e graph -> int -> int -> 'e list option
     itself is empty. Ties are broken by the order of the edges: the chain to [j]
     is the chain to the first vertex found with an edge to [j], followed by the
     first such edge. Applied to [g] and [i] alone, the search runs once, in time
-    linear in the edges, and serves every [j]. *)
+    linear in the edges up to the cost of the map operations, and serves every
+    [j]. *)
 
 (** {2 Strongly connected components} *)
 
@@ -50,10 +52,10 @@ val collapse :
   movable:('v -> bool) ->
   ('v * 'v) list ->
   ('v * 'v) list
-(** [collapse ~compare ~preferred ~movable edges] is cycle elimination
-    (Fähndrich, Foster, Su and Aiken, PLDI 1998): each [movable] vertex of a
-    cycle of [edges], in increasing order, paired with the representative of its
-    strongly connected component where that is another vertex. The
-    representative is the first member of the component ({!representatives}) in
-    the order: the [preferred] vertices, then those neither preferred nor
-    movable, then the movable ones, each in increasing order. *)
+(** [collapse ~compare ~preferred ~movable edges] is cycle elimination: each
+    [movable] vertex of a cycle of [edges], in increasing order, paired with the
+    representative of its strongly connected component where that is another
+    vertex. The representative is the first member of the component
+    ({!representatives}) in the order: the [preferred] vertices, then those
+    neither preferred nor movable, then the movable ones, each in increasing
+    order. *)

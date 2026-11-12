@@ -1,4 +1,4 @@
-(* Maranget's usefulness algorithm (L. Maranget, "Warnings for pattern
+(* Maranget's usefulness algorithm ("Warnings for pattern
    matching", JFP 17(3), 2007): the rows of a clause matrix are exhaustive
    exactly when a row of wildcards is not useful with respect to them, and the
    search for a use builds a value that no row matches. *)

@@ -108,11 +108,9 @@ type 'info trace = { bindings : 'info bindings; related : 'info link list }
    whose unification bound it. *)
 type 'info bound = { shape : t; binding : 'info binding; binder : Ast.ty_param }
 
-(* A union-find forest on type unknowns with union by rank (Tarjan, JACM
-   1975), persistent as finite maps: the parent of each unknown other than a
+(* A union-find forest on type unknowns with union by rank, persistent as finite maps: the parent of each unknown other than a
    root, the rank of each root above 0, and the members of each class of more
-   than one unknown, at its root. A class is a multi-equation (Pottier and
-   Rémy, "The Essence of ML Type Inference", 2005): the root of a class whose
+   than one unknown, at its root. A class is a multi-equation: the root of a class whose
    unknowns are bound to a skeleton other than an unknown maps to its binding.
    Beside it, an explanation forest with the same trees as the classes, each
    edge labelled with the payload and the position of the equation whose
@@ -492,8 +490,7 @@ module Make (X : GradeExp.S) = struct
 
   (* The skeletons of the demands unified under [u], and the unknowns of the
      classes they bind instantiated: the shape matching and expansion that
-     reduce subtyping to atomic constraints (Fuh and Mishra, ESOP 1988;
-     Mitchell, JFP 1991). *)
+     reduce subtyping to atomic constraints. *)
   let expand_traced unfold u demands =
     let equation ({ lhs; rhs; info } : (ty, _) GradeNormal.ordering) =
       { lhs = of_ty lhs; rhs = of_ty rhs; info }

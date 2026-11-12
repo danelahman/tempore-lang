@@ -361,8 +361,8 @@ module Core (S : BASE) = struct
   let skeleton_equal = List.equal equal_var
   let skeleton_less vs ws = List.compare S.compare_var vs ws < 0
 
-  (* An alternative joins its group, unless already there ([add]), or starts
-     a group in skeleton order ([insert]). *)
+  (* An alternative joins its group, unless already there, or starts a group
+     in skeleton order. *)
   let rec insert bounds s groups =
     let vs = skeleton s in
     match groups with
@@ -470,7 +470,7 @@ module Core (S : BASE) = struct
      first round that passes it with its source reached, so a round passes, in
      the same order, only the edges out of atoms newly reached: in the round
      an atom is reached, those before the edge that reached it, the others in
-     the next round. This is single-source reachability by semi-naive
+     the next round. This is single-source reachability by a variant of semi-naive
      iteration (Bancilhon, "Naive evaluation of recursively defined
      relations", On Knowledge Base Management Systems, 1986). *)
   let saturate bounds edges source =

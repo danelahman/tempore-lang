@@ -3,7 +3,7 @@
     rigid conditions and [X] the reported type.
 
     Unknowns of a given set, the fixed ones, are never eliminated nor
-    quantified; the unknowns of the deferred conditions are fixed too.
+    quantified; the unknowns of the deferred conditions are never eliminated.
 
     {2 Simplification}
 
@@ -33,8 +33,8 @@
     {2 Polarity}
 
     An unknown occurs in the reported type with the variance of each position: a
-    function's domain and a box's grade reverse it, the input of a handler type
-    and the arguments of a type application are invariant. In an ordering it is
+    function's domain, the input of a handler type and a box's grade reverse it;
+    the arguments of a type application are invariant. In an ordering it is
     bounded above on the left side and below on the right side; in a subtyping
     atom likewise; the grade of a disjunction bounds it above; an eternality
     atom and the type of a disjunction bound nothing. An atom that holds at
@@ -49,9 +49,10 @@
     + merging: lowering, as below, where the join of the lower bounds is a
       single unknown; the unknown is replaced by it;
     + equality of grades: an ordering sets the unknown against an expression
-      that is an earlier unknown or free of it, and the hypotheses entail both
-      directions; the unknown is replaced by the expression, and the orderings
-      made reflexive are dropped (effect unknowns first, then resource ones);
+      that is an earlier unknown, or other than a single unknown and free of it,
+      and the hypotheses entail both directions; the unknown is replaced by the
+      expression, and the orderings made reflexive are dropped (effect unknowns
+      first, then resource ones);
     + lowering: the unknown has lower bounds ({!Values.lower}), is bounded below
       by no other hypothesis, and occurs in the type at no contravariant
       position; it is replaced by the join of its lower bounds, and the
@@ -60,6 +61,10 @@
       ({!Values.raise}), is bounded above by no other hypothesis, and occurs in
       the type at no covariant position; it is replaced by the bound, and the
       orderings bounding it above are dropped;
+    + unit: the unit is least, and an ordering [v ≾ y] with [y] decided below
+      the unit, or [∣v∣ ≾ y] where the map reflects the unit, forces the unknown
+      to the unit ({!Values.forces_unit}); it is replaced by the unit, the
+      forcing orderings dropped and the atoms it occurs in written canonically;
     + cycle elimination: a type unknown on a cycle of subtyping atoms is
       replaced by the representative of its strongly connected component, a
       fixed member if there is one and otherwise the earliest, and the atoms

@@ -15,8 +15,8 @@ module Make (C : Inference.Constraint.S) : sig
         (** the constraint of the command, whose unknowns the failure mentions,
             when known *)
     solution : Inference.Solver.Make(C).solution option;
-        (** its solution, when the failure is found by the search for a closed
-            instance of its qualifier, whose values the grades of the locks are
+        (** its solution, when the failure is found by the check of the
+            qualifier after solving, whose values the grades of the locks are
             shown at *)
     mismatch : Inference.Solver.Make(C).mismatch option;
         (** the provenance of the failure, when it is a failed expansion *)

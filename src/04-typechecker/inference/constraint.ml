@@ -1,5 +1,4 @@
-(* Constraints and qualified schemes, after the constraints and constrained
-   type schemes of HM(X) (Odersky, Sulzmann and Wehr, TAPOS 1999). *)
+(* Constraints and qualified schemes. *)
 
 module Ast = Language.Ast
 module PrettyPrint = Language.PrettyPrint

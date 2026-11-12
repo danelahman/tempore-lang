@@ -5,29 +5,31 @@
 
     A clause is solved for every value of its rigid effect variable [j]. The
     unknowns outer to its scope are those free in the values of the unknowns the
-    scope was entered with; [j] is one of them, and never receives a value. The
-    other unknowns are local to the scope.
+    scope was entered with; [j] is treated as outer to the scope, though not
+    local, and never receives a value. The other unknowns are local to the
+    scope.
 
     {2 Localisation}
 
-    Before the scope closes, its local grade unknowns receive values by chaotic
-    iteration with a worklist (Cousot and Cousot, POPL 1977). The atoms are kept
-    in canonical form: both sides of every ordering and every disjunction's
-    grade written canonically, one ordering per alternative of a left side, the
-    orderings decided at no hypotheses dropped; an atom is rewritten when a
-    value changes it. Each local member of a cycle of orderings between whole
-    unknowns is sent to a representative of the cycle: an outer member where
-    there is one, else one that may not move, else the least, each by creation;
-    this is done at the start and whenever a rewritten ordering closes a cycle.
-    The worklist starts with every local unknown, the effect unknowns first,
-    each sort latest created first. A local unknown taken from it that occurs in
-    no type receives the value of the first of these rules that applies:
+    Before the scope closes, its local grade unknowns receive values one at a
+    time, from a worklist. The atoms are kept in canonical form: both sides of
+    every ordering and every disjunction's grade written canonically, one
+    ordering per alternative of a left side, the orderings decided at no
+    hypotheses dropped; an atom is rewritten when a value changes it. Each local
+    member of a cycle of orderings between whole unknowns that occurs in no type
+    is sent to a representative of the cycle: an outer member where there is
+    one, else one that may not move, else the least, each by creation; this is
+    done at the start and whenever a rewritten ordering closes a cycle. The
+    worklist starts with every local unknown, the effect unknowns first, each
+    sort latest created first. A local unknown taken from it that occurs in no
+    type receives the value of the first of these rules that applies:
     - lowering: the join of its lower bounds, where it occurs on a right side
       only as the whole side; the orderings with it on the right are dropped;
     - raising: an upper bound decided at no hypotheses below its other upper
       bounds, where it occurs on a left side only as the whole side and in no
       disjunction's grade;
-    - the unit, where it has no lower bound, occurs, and the unit is least;
+    - the unit, where it has no lower bound, occurs on a left side, in a
+      disjunction's grade or in a deferred condition, and the unit is least;
     - the top, where it occurs on no left side and in no disjunction's grade.
 
     A value keeps the deferred conditions of inner scopes: lowering, and the
@@ -42,7 +44,8 @@
     expression decided to be the top once [j] and the members before it are;
     each ordering with a member on its left has on its right an expression
     decided to be the top once the members are, or one of outer unknowns other
-    than [j] alone; no member occurs in a type or a disjunction's grade.
+    than [j] alone; no member occurs in a type, a disjunction's grade or on a
+    smaller side of a deferred condition.
 
     {2 Split}
 

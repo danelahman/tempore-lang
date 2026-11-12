@@ -1,6 +1,4 @@
-(* Constraint generation in checking mode, against an expected type, in the
-   manner of Pottier and Rémy (The Essence of ML Type Inference, ATTAPL,
-   2005). *)
+(* Constraint generation in checking mode, against an expected type. *)
 
 module Ast = Language.Ast
 module Const = Language.Const
@@ -210,8 +208,7 @@ module Make (C : Constraint.S) = struct
           (Ast.TyName.print name)
 
   (* Every type of the definitions [group], defined together, occurs only
-     strictly positively in each of them: the positivity condition of
-     inductive types (Coquand and Paulin, COLOG-88, 1990). *)
+     strictly positively in each of them, a strict positivity condition. *)
   let check_strictly_positive ~loc env group =
     let grouped name =
       List.exists (fun (name', _) -> Ast.TyName.equal name name') group

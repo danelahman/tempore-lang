@@ -1,7 +1,5 @@
 (* Type inference over whole programs. Top-level definitions are generalised
-   to constrained schemes as in HM(X) (Odersky, Sulzmann and Wehr, TAPOS
-   1999); local definitions are not (Vytiniotis, Peyton Jones and Schrijvers,
-   TLDI 2010). *)
+   to constrained schemes; local definitions are not. *)
 
 module Ast = Language.Ast
 module Location = Utils.Location
