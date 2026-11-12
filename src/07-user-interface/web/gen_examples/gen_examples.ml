@@ -12,9 +12,9 @@
    unless the default lines name listed examples, at most one of each backend
    and one of the default backend. *)
 
-(* A delimiter [tag] for a quoted string literal [{tag|...|tag}] that does not
-   occur as the closing sequence "|tag}" inside [content]; tried in increasing
-   length until one is safe, so that an example may itself contain [{|...|}]. *)
+(* A delimiter [tag] of lowercase letters for a quoted string literal
+   [{tag|...|tag}] whose closing sequence "|tag}" does not occur in [content],
+   tried in increasing length. *)
 let quoting_tag content =
   let closes_with tag =
     let closing = "|" ^ tag ^ "}" in
@@ -27,7 +27,7 @@ let quoting_tag content =
     at 0
   in
   let rec search n =
-    let tag = if n = 0 then "" else Printf.sprintf "q%d" n in
+    let tag = String.make n 'q' in
     if closes_with tag then search (n + 1) else tag
   in
   search 0
