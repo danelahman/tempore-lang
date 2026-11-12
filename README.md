@@ -110,8 +110,8 @@ inside it. Uploading to a board needs access to its USB port.
 loads the listed `.tpe` files, typechecks them, runs every `run` command in
 them, and prints each `run` result with its final resource state.
 
-The exit code is 0 on success; 1 for a rejected program or another error; 2 for
-invalid options or an exhausted stack; and 3 when the program is accepted but a
+The exit code is 0 on success; 1 for a rejected program or another error, such
+as an unknown grade algebra; 2 for malformed options or an exhausted stack; and 3 when the program is accepted but a
 run fails: it stops at an operation call without a handler or a default
 implementation, or at a run-time error such as a division by zero. The other
 runs are still executed after an unhandled operation call.
@@ -295,7 +295,8 @@ tau'` the grade of `delay (tau + tau')`
 ([`delay.mli`](src/01-language/grades/delay.mli)).
 
 `tau` is a non-negative integer or rational fraction, depending on the grade.
-The grades whose names end in `-rational` or `-rational-symbolic`, `lattice`,
+The grades whose names end in `-rational`, `-rational-symbolic` or
+`-rational-automata`, `lattice`,
 `time-interval-lattice`, `flow-sensitive-levels`, `inter-arrival` and
 `mode-times` have the non-negative rationals as delays and accept any, such as
 `delay 1/3` or `delay 0.25`. The other grade algebras count whole time steps
@@ -689,7 +690,7 @@ in [`bench/regular/README.md`](bench/regular/README.md).
 A repetition with a count is written `r^n`, `r^[m, n]` or `r^[m, ∞)` (ASCII
 `inf`); an open endpoint abbreviates the closed one next to it, so that `r^(1,
 4)` is `r^[2, 3]`. `^` is postfix like `*`. `r^[m, n]` denotes the
-concatenations of `k` words of `r` for `k` from `m` to `n`; `r^0` is `0`, `r^1`
+concatenations of `k` words of `r` for `k` from `m` to `n`; `r^0` is `skip`, `r^1`
 is `r` and `r^[0, ∞)` is `r*`. It is notation: a repetition and its unrolling
 are the same grade. It is read by every grade of regular expressions, also those
 with banked delays and the timed regex grades, with idle waits inside, as in
@@ -1080,7 +1081,7 @@ In this category, we have the following grade algebras:
 - `lattice`: the grades are the elements of a finite grade lattice, the simple
   security lattice `Low < High` unless the program declares its own (see
   [Declaring the grade lattice](#declaring-the-grade-lattice)); a computation's
-  grade is the highest element it touches, and delays touch none. A box at
+  grade is the join of the elements it touches, and delays touch none. A box at
   `Low` is out of reach once an operation of grade `High` has run.
 
   For example, the program
@@ -1134,13 +1135,13 @@ In this category, we have the following grade algebras:
       bound, which is not below its box grade `(5, Low)`
 
 - `time-interval-lattice`: pairs `(i, l)`, a time within the rational interval
-  `i` and nothing above the element `l` of the grade lattice, as in
+  `i` and only elements at most the element `l` of the grade lattice, as in
   `((0, 0.1], Low)`; the direct product of `time-interval-rational` and the
   grade lattice, adding the intervals by the Minkowski sum.
 
-- `flow-sensitive-levels`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above
-  `l` touched and each output `Sᵢ` written at most at the element `lᵢ` touched
-  before it; `l` alone writes no output, and an entry `(_, l')` bounds every
+- `flow-sensitive-levels`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, only elements
+  at most `l` touched and each output `Sᵢ` written at most at the element `lᵢ`
+  touched before it; `l` alone writes no output, and an entry `(_, l')` bounds every
   output not listed. An output is a capitalised name, and an operation writing
   it has a grade such as `(Low, (Board, Low))`; after one of grade `High`, it is
   written at `High`. This grade algebra is an example of the semidirect product
@@ -1189,7 +1190,7 @@ grade lattice Public < Team < Confidential,
               Public < Partner < Confidential
 ```
 
-Each chain `L1 < L2 < ...` gives covering edges, and the order is their
+Each chain `L1 < L2 < ...` gives edges, and the order is their
 reflexive-transitive closure. The elements must form a lattice: no element
 repeated in a chain, no cycle, a least element, and a least upper bound for
 every two elements. The files of one run share one declaration, which a file
@@ -1667,9 +1668,9 @@ result of computations. Base types, tuples, and algebraic types built from
 eternal types are eternal; function, handler, and box types are not.
 
 A local variable of a non-eternal type may be used only while the grade
-accumulated since its binding is a sub-grade of the unit. Under
-`time-lower-bound` and `banked-traces-lower-bound` this always holds; under the
-other grade algebras such a variable must be used before any nontrivial delay or
+accumulated since its binding is a sub-grade of the unit. Where the unit is the
+top, as under the lower bounds and `at-least-counts`, this always holds. Under
+the other grade algebras such a variable must be used before any nontrivial delay or
 operation call.
 
 ### Type schemes and qualifiers
@@ -1766,8 +1767,8 @@ An operation case is typed with the top grade `⊤` accumulated for the variable
 bound outside it, because operation cases need to be executable anywhere in
 the computation tree when handling.
 
-- Under `time-lower-bound` and `banked-traces-lower-bound` the top is the unit,
-  which restricts nothing.
+- Where the top is the unit, as under the lower bounds and `at-least-counts`,
+  this restricts nothing.
 - Under the other grade algebras an outer variable of non-eternal type,
   including an outer continuation, cannot be used in the case, and an outer box
   can be unboxed only if `⊤` is below its grade.
@@ -1881,10 +1882,10 @@ typechecker can neither derive nor refute rejects it, and one with unknowns
 must hold together with `Q` at a closed instance of the unknowns.
 
 Under the time grades, the grade lattices and their products, a condition in
-the effect of a single continuation is always decided; under the trace grades
+the effect of a single continuation is decided; under the trace grades
 it may not be. It is decided at finitely many witnesses of the effect, whose
-number is proportional to the sum of its constants, times their common
-denominator over rational delays: conditions with large constants or fine
+number grows with its constants, their common denominator over rational delays
+and the number of its occurrences, and multiplies over products: conditions with large constants or fine
 fractions are slow to decide.
 
 ### Annotations
