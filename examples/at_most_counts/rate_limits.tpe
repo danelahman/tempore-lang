@@ -49,7 +49,7 @@ let login_with_retries user : bool ! (Login, 3) =
       unbox t as Token c in
       c = user
 
-(* Correctly accepted by the typechecker: the token is in reach after two
+(* Correctly accepted by the typechecker: the token is still in reach after two
    requests and a wait. *)
 let two_requests () =
   let t = perform Login "bob" in
