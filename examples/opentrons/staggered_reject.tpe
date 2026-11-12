@@ -40,7 +40,7 @@ let rec stagger (numbers : nat list) ((fixing : [[12, 20]]column), (fixed : colu
 
 (* Correctly rejected by the typechecker: the column before is rinsed after
    the wait for the next column, 13 minutes after it was unboxed and up to
-   29 minutes after its fixative was added, and the type column is not
+   30 minutes after its fixative was added, and the type column is not
    eternal:
 
      Typing error: Variable `fixed` is used with grade `[13, 13]` accumulated

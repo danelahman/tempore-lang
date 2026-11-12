@@ -75,7 +75,8 @@ let h_abandon =
        it was bound, which is not below its box grade `71`
        Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 71` does not hold:
          for `ε₀ = ∞` it becomes `∞ <= 71`
-   (Contrast: accepted under a lower bound.)
+   (Contrast: under a lower bound it is accepted once the case first delays at
+   least 71 ticks, as 'h_twice' in 'lower_bound.tpe' does.)
 *)
 (*
 let h_twice =

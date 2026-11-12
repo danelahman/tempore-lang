@@ -13,8 +13,8 @@
 noneternal type token = Token of string
 
 (* Each operation counts itself once. A login issues a token boxed at
-   '(Request, 2)', in reach after two requests, and after no other
-   operation. *)
+   '(Request, 2)', usable while at most two requests and no other operation
+   have followed. *)
 operation Login : string ~> [(Request, 2)]token ! (Login, 1)
 default Login user = box (Request, 2) (Token user)
 

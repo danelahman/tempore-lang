@@ -89,7 +89,7 @@ let foo6 () =
   y + 1
 *)
 
-(* Correctly rejected by the typechecker: 'r'' is a boxed value, whose type is
+(* Correctly rejected by the typechecker: 'r' is a boxed value, whose type is
    not eternal, so it cannot be used after the three ticks that follow its
    binding:
 

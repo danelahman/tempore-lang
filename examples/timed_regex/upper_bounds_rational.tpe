@@ -34,7 +34,8 @@ default Redraw () = delay 21.5
    polls is boxed, and the time from it to the last poll is measured after
    three polls, each a reading of the inertial unit and a time stamp, each
    after a delay of at most 2.5 milliseconds. The loop demands its polls: a
-   pause or another operation between them is not a poll. *)
+   longer pause, or an operation that does not fit in that span, between them
+   is not admitted. *)
 let polls () =
   let start = perform ReadClock () in
   box {(2.5; ReadImu; ReadClock)*} start as p in

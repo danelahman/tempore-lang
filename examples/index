@@ -3,9 +3,9 @@
 # module Examples_tpe (see src/07-user-interface/web/dune).
 #
 # The gallery is a selection: one example per concept, from the simplest to
-# the most advanced. The examples under examples/ not listed here vary the
-# listed ones over further grade algebras, and are run by tests/examples.t
-# with the others.
+# the most advanced. The examples under examples/ not listed here, further
+# programs and variants over further grade algebras, are run by
+# tests/examples.t with the others.
 #
 # One example per non-blank, non-comment line, five fields separated by ' | ',
 # optionally followed by a sixth and a seventh:

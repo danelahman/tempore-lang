@@ -10,8 +10,8 @@
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
 
-(* Modelled on the Opentrons Protocol Library protocols 0fd3dd (an ELISA on a
-   pre-coated plate, with three washes after the samples, a 60-minute
+(* Modelled on the Opentrons Protocol Library protocols 0fd3dd (an ELISA
+   with three washes after the samples, a 60-minute
    incubation of the detection antibody, one wash after it and a 15-minute
    development) and 00a214-protocol-5 (a stated minimum incubation).
 

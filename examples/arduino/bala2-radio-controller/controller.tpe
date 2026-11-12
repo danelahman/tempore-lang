@@ -353,7 +353,7 @@ let rec balancing (n : nat)
    once, acknowledges each accepted tap: 1760 Hz on Start and 880 Hz on
    Stop. Its grade is the protocol of the controller, and its idle
    waits and operations bound the time from the end of one message to the
-   start of the next by 47 ms, below the 50 ms within which the robot
+   start of the next by 47.15 ms, below the 50 ms within which the robot
    expects one: after the last Stop, the wait of 12.5 ms, the redraw of
    the state, up to 33 ms, and the reading of the touch screen, before the
    first Beat; the bubble, dimmed, is redrawn after that Beat. Between two
@@ -412,7 +412,7 @@ let remote () =
 
 (* Correctly rejected by the typechecker: a balancing iteration that redraws the
    bubble of the last iteration after the readings, and then drives on the
-   reading of the unit, which is then up to 10 ms old:
+   reading of the unit, which is then up to 11.5 ms old:
 
      Typing error: Variable `latest_reading` is unboxed with grade
        `{ReadTouch; DrawLevel}` accumulated since it was bound, which is not

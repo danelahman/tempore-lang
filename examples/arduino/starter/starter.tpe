@@ -333,9 +333,10 @@ let fire_shown (gun : at_gun) (m : float) (w : float) : outcome
    the spread of the magnitude is below 0.1 g and give its mean and standard
    deviation. Set: a tone, the time read, eighty slow polls, 1576 to
    1796 ms, and as many optional polls, up to fifty, as the time in
-   microseconds modulo 51; the gun is thus fired 1576 to 2919 ms after the
-   Set command. The polls are checked every ten, and a tap on Stand up or a
-   movement in Set ends the start before the gun.
+   microseconds modulo 51; the gun is thus fired 1576 to 2952 ms after the
+   Set command, 1576 to 2918.5 ms after the time read. The polls are checked
+   every ten, and a tap on Stand up or a movement in Set ends the start before
+   the gun.
 
    The box of the marks is unboxed after the sixty polls, its thunk applied
    to create the box of the Set, which is unboxed after the hold, its thunk
@@ -443,8 +444,8 @@ let frame () =
   perform ShowTextAt (188, 230, 1, "Typechecked by Tempore")
 
 (* The tally and the athlete on the screen, in four rows from the row 100,
-   22 pixels apart, and the buttons, a label first and at most 495 ms in
-   all. Each band of text extends to the right edge, so each row is written
+   22 pixels apart, and the buttons, a label first and at most 495 ms after
+   it. Each band of text extends to the right edge, so each row is written
    from left to right. *)
 let board ((legal, warned, out, none, best) : tally)
     ((lane, warnings) : athlete) : unit ! {ShowTextAt; [0, 495]} =

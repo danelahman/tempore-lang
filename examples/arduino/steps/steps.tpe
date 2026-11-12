@@ -218,11 +218,11 @@ let bar (a : float) = nat_of_float (a *. 160.0)
    the second reading.
 
    The box of the filter after the first reading, unboxed after the second,
-   checks the schedule of the body: exactly one reading, started 10 to 43 ms
-   after the box, and the decision at its end. The unit samples at 100 Hz,
-   and a reading within 10 ms of another may return the same sample; the
-   decision of the round, the rise and the test of the line, is thus taken
-   after a new sample.
+   checks the schedule of the body: exactly one reading, started 10 to 45 ms
+   after the box (10 to 43 ms here), and the decision at its end. The unit
+   samples at 100 Hz, and a reading within 10 ms of another may return the
+   same sample; the decision of the round, the rise and the test of the line,
+   is thus taken after a new sample.
 
    The box of the decision checks that it is used within its window: exactly
    one ReadClock before it is paired with the time of the second reading,
@@ -640,7 +640,7 @@ let resume (g : vector) ((_, _, steps, _, turn, _, _, now) : counter) :
    its running time at most 0.15 ms; the box is returned, and unboxed where
    the counting starts. The counter, whose loop starts with a reading, thus
    sees the first steps after the beep. A beep before the screen, whose
-   drawing takes 31.55 to 477 ms, and thus 31.6 to 477.15 ms from the start
+   drawing takes 31.55 to 477 ms, and thus 31.55 to 477.15 ms from the start
    of the beep to the counting, is rejected. *)
 type sampling = [(50, ReadImu, [0, 50], [10, 45], [0, 50])]float
 type readiness = [(1, Beep, [0, 0], [0, 0.2])](float * vector)
@@ -670,7 +670,7 @@ let calibrate (samples : sampling) (steps : nat) : readiness =
 
    The grade is the invariant of the loop: the starts of consecutive counts
    at least 250 ms apart, within a session by the grade of 'listen' and
-   across sessions by the calibration that starts each, at least 541.7 ms
+   across sessions by the calibration that starts each, at least 541.65 ms
    before its first count. The rate limit (CountStep, [250, ∞)), whose
    lead may be 0, is not closed under this sequencing and is rejected. *)
 let rec sessions (n : nat) (c : counter)
@@ -721,7 +721,7 @@ let walk (t : nat) =
 
 (* Each round sees the walk at its start, the time advancing by 25 ms a
    round, about the duration of a round under the default implementations,
-   23.21 to 25.31 ms. *)
+   23.22 to 25.32 ms. *)
 let period = 25
 
 (* A round, and the steps it counted. *)

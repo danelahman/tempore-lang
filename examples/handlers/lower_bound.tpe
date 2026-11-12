@@ -195,9 +195,9 @@ run
     return x + 3
   with h_offset 10
 
-(* The run handles a 'Get' with 'h', whose return case then performs a 'Set';
-   the 'Set' clause forwards it and nothing outside catches it, so the run
-   stops at that unhandled operation. *)
+(* The run handles a 'Get' with 'h', whose return case then performs a 'Set'
+   outside the handler; nothing catches it, so the run stops at that unhandled
+   operation. *)
 run
   handle
     let x = perform Get () in
