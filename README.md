@@ -513,6 +513,14 @@ The grade algebras are:
   endpoint abbreviates a closed one, `(n, m)` being `[{n + 1}, {m - 1}]`. The
   top is `[{skip}, ∞)`.
 
+Every grade is its own closure under `banked-traces-lower-bound`. Under
+`banked-traces-upper-bound` the closure of a set of empty traces is the set
+itself, and that of every other grade is `⊤`, as every operation, atomic or
+compound, takes positive time. An interval keeps its lower end and takes the
+closure of its upper end. A recursive function whose effect is annotated by a
+grade variable `'e` and whose rounds perform `Read` has the grade `⊤` under
+`banked-traces-upper-bound`.
+
 See
 [`examples/banked_traces/lower_bounds.tpe`](examples/banked_traces/lower_bounds.tpe),
 [`examples/banked_traces/upper_bounds.tpe`](examples/banked_traces/upper_bounds.tpe)

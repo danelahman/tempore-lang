@@ -194,23 +194,15 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let counterexample _bounds _ _ = None
     let unit_least = true
 
-    (* A set of empty traces is its own closure. A set listing a trace with a
-       delay, positive after normalisation, has the closure [⊤]: that trace
-       has positive duration under all running times, and its powers exceed
-       the greatest duration of any set of traces. A set of traces of
-       operations alone has a duration that depends on the upper running
-       times, possibly [0], and no closure under all of them. *)
+    (* A set of empty traces is its own closure. Every other set has the
+       closure [⊤]: it lists a non-empty trace, of positive duration under all
+       running times, as delays are positive after normalisation and the upper
+       running times of operations, atomic and compound, are positive; the
+       powers of that trace exceed the greatest duration of any set of
+       traces. *)
     let plus = function
       | Within p when List.for_all List.is_empty p -> Some (Within p)
-      | Within p
-        when List.exists
-               (List.exists (function
-                 | Trace.Wait _ -> true
-                 | Trace.Ev _ -> false))
-               p ->
-          Some Unbounded
-      | Within _ -> None
-      | Unbounded -> Some Unbounded
+      | Within _ | Unbounded -> Some Unbounded
 
     let commutative = false
     let needs_op_bounds = true
@@ -264,8 +256,8 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let counterexample _bounds _ _ = None
     let unit_least = false
 
-    (* The lower end is its own closure; [None] where the upper end has no
-       closure. *)
+    (* The lower end is its own closure, the upper end has that of
+       {!UpperBound}. *)
     let plus (lo, hi) = Option.map (fun hi -> (lo, hi)) (UpperBound.plus hi)
     let commutative = false
     let needs_op_bounds = true
