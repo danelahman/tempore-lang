@@ -27,8 +27,8 @@ module type DURATIONS = sig
       both, an open end kept open over dense delays and replaced by the closed
       one next to it over whole time steps.
 
-      Raises [Invalid_argument] if [lo] is infinite or a finite end is not a
-      delay. *)
+      Raises [Invalid_argument] if an end the grade reads is infinite where it
+      must be finite, or is not a delay. *)
 end
 
 (** The presentation of the time grades over a kind of delays. *)
@@ -73,7 +73,7 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) : sig
       upper bound; the non-empty intervals, ordered by containment, with unit
       [[0, 0]] and top [\[0, ∞)]. The product is the Minkowski sum, an endpoint
       of a sum being open iff one of the endpoints summed is. A grade is printed
-      with its endpoints as they are: closed only if [N.step] is a delay. *)
+      with its endpoints as they are, all closed if [N.step] is a delay. *)
 end
 
 (** {1 Time in whole steps}

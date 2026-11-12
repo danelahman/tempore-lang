@@ -306,8 +306,8 @@ module Summary = struct
       (Option.value ~default:c
          (List.find_map failing (Indexed.names [ c.entries; d.entries ])))
 
-  (* The closure of an interval under the Minkowski sum: the same lower end,
-     and no upper end unless it is [[0, 0]]. *)
+  (* The least interval containing [i] and closed under sums: the same lower
+     end, and no upper end unless it is [[0, 0]]. *)
   let plus_interval i = if I.is_zero i then i else (fst i, Unbounded)
 
   (* The durations of the silent stretches [silent] that the closure inserts

@@ -456,7 +456,7 @@ struct
      the lesser grade, each with the items it is read as and its target: an
      operation transition read as each class of its set at its running time,
      a stretch at the end of its interval, and on the lower side a stretch
-     that may have length [0] also as no item. *)
+     that may have length [0] as no item and as a positive length instead. *)
   let readings world (l : graph) n =
     List.concat_map
       (fun (s, j) ->
@@ -520,9 +520,9 @@ struct
   let half = Rational.make 1 2
 
   (* [concretise world r steps] is the word of the path [steps], each length
-     chosen within [eps] of its end, or above [big] for an unbounded one, for
-     the first [eps] of [1, 1/2, …] and [big] of [b, 2b, …] at which [r]
-     rejects the word; [b] exceeds the sum of the finite ends of [r]. *)
+     chosen within [eps] of its end, or [big] for an unbounded one, for the
+     first [eps] of [1, 1/2, …] and [big] of [b, 2b, …] at which [r] rejects the
+     word, and at most 64 of them; [b] exceeds the sum of the finite ends of [r]. *)
   let concretise world r steps =
     let b =
       Array.fold_left

@@ -143,7 +143,7 @@ let reset z x =
           else z.(i).(j)))
 
 (* [extrapolate k z] is [z] with every bound beyond the greatest constant
-   [k.(i)] of its clocks dropped or lowered to it (Extra_M; Bengtsson and Yi
+   [k.(i)] of its clocks dropped or lowered to it (k-normalisation; Bengtsson and Yi
    2004). *)
 let extrapolate k z =
   close

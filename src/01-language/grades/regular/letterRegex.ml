@@ -45,8 +45,8 @@ let rec nullable = function
 
 (** {1 Constructions}
 
-    The smart constructors rewrite by identities of Kleene algebra (Kozen, Inf.
-    Comput. 1994), oriented as the interface lists them. *)
+    The smart constructors rewrite by identities of regular languages, oriented
+    as the interface lists them. *)
 
 let empty = Empty
 let eps = Eps
@@ -70,9 +70,9 @@ let is_tick = function Letters p -> Letters.equal p Letters.tick | _ -> false
 let power = function Repeat (x, c) -> (x, c) | r -> (r, Count.point 1)
 
 (** [join rs] rewrites [x^c; x^c'] to [x^(c + c')] in the factors [rs], a factor
-    [x] counting as [x^1], and [x*; x*] to [x*], but for the ticks, whose runs
-    are printed as numbers. The counts of a nullable [x] in normal form are
-    single numbers, as is their sum. *)
+    [x] counting as [x^1], and [x*; x*] to [x*], but for a tick followed by a
+    repetition, the runs of ticks being printed as numbers. The counts of a
+    nullable [x] in normal form are single numbers, as is their sum. *)
 let rec join = function
   | x :: y :: rest
     when (not (is_tick x)) && equal (fst (power x)) (fst (power y)) ->

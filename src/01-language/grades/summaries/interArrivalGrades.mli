@@ -1,11 +1,8 @@
 (** The inter-arrival grade, ["inter-arrival"]: how often each operation recurs,
     bounding the time between the occurrences of an operation, at most and at
-    least. It generalises the minimum and maximum inter-arrival times of
-    real-time systems, as the minimum and maximum distance functions of event
-    streams (K. Richter, "Compositional Scheduling Analysis Using Standard Event
-    Models", PhD thesis, TU Braunschweig, 2005) and the bounded recurrence of
-    real-time specification patterns (S. Konrad and B. H. C. Cheng, "Real-time
-    specification patterns", ICSE 2005) do.
+    least. It generalises the minimum inter-arrival times of sporadic tasks
+    (Mok, PhD thesis, MIT, 1983) and the minimum and maximum event distances of
+    event models (Henia et al., IEE Proc. Comput. Digit. Tech. 152, 2005).
 
     {2 Summaries}
 
@@ -179,9 +176,10 @@
     {2 Counterexamples and witnesses}
 
     A failure of the order is witnessed by the summary of the lesser grade with,
-    at the first name where it fails, the failing case alone. The witnesses of a
-    condition are its constants and their pairwise products ({!Grade.sampled}),
-    and are partial. *)
+    at the first failing name having both cases, the failing case alone, and
+    otherwise by that summary itself. The witnesses of a condition are its
+    constants and their pairwise products ({!Grade.sampled}), and are partial.
+*)
 
 module Summary : sig
   type count = { least : int; most : int option }

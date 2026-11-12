@@ -57,7 +57,8 @@ val word : int -> int list -> t
 val ticks : int -> int -> int option -> t
 (** [ticks n lo hi] is the language of the words [0ᵏ], [lo ≤ k ≤ hi], over [n]
     letters, [hi] being [None] if unbounded, built directly as its minimal
-    automaton, a chain of [hi + 2] states, or [lo + 2] if [hi] is [None]. *)
+    automaton, a chain of at most [hi + 2] states, or [lo + 2] if [hi] is
+    [None]. *)
 
 val letter_set : int -> int list -> t
 (** [letter_set n s] is the language of the one-letter words [a] with [a] in
@@ -132,8 +133,8 @@ end
     of ticks its states begin with, so that a search takes a run of ticks at
     once: from a state [q] of lead [k ≥ 1], every word accepted begins with
     [0ᵏ], so that the words of length at most [k] other than [0ʲ] lead to states
-    that accept no word, and [q] and its successors by [0ʲ], [j < k], accept no
-    word. *)
+    that accept no word, and [q] and its successors by [0ʲ], [j < k], are not
+    final. *)
 
 type 'state automaton = {
   start : 'state;  (** The start state. *)

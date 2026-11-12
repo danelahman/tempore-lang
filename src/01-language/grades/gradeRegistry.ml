@@ -542,8 +542,8 @@ let entries =
       (module LatticeGrades.Lattice)
       lattices "Grade lattice"
       "A finite lattice of grades, Low < High unless the program declares its \
-       own; a computation's grade is the highest element reached, and a box is \
-       out of reach once a higher element has been reached.";
+       own; a computation's grade is the join of the elements reached, and a \
+       box is out of reach once an element not below it has been reached.";
     entry
       ~over_lattice:(fun lattice ->
         let module V = LatticeGrades.Over (struct
@@ -553,7 +553,7 @@ let entries =
       (module LatticeGrades.TimeLowerBoundLattice)
       lattices "Lower bounds × lattice (embargoes)"
       "A time lower bound paired with an element of the grade lattice: at \
-       least n time steps, touching nothing above the element.";
+       least n time steps, touching only elements at most the element.";
     entry
       ~over_lattice:(fun lattice ->
         let module V = LatticeGrades.Over (struct
@@ -563,7 +563,7 @@ let entries =
       (module LatticeGrades.TimeUpperBoundLattice)
       lattices "Upper bounds × lattice (expiring capabilities)"
       "A time upper bound paired with an element of the grade lattice: at most \
-       n time steps, touching nothing above the element.";
+       n time steps, touching only elements at most the element.";
     entry
       ~over_lattice:(fun lattice ->
         let module V = LatticeGrades.Over (struct
@@ -573,7 +573,7 @@ let entries =
       (module LatticeGrades.TimeIntervalLattice)
       lattices "Intervals × lattice"
       "A rational time interval paired with an element of the grade lattice: a \
-       time within the interval, touching nothing above the element.";
+       time within the interval, touching only elements at most the element.";
     entry
       (module EnergyGrades.TimeUpperBoundEnergy)
       energy "Upper bounds × energy"

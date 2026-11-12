@@ -21,9 +21,8 @@ module type ELAPSED = sig
 end
 
 (** A context is a stack of variable bindings interleaved with the grades
-    accumulated between them, which are grade expressions of [Elapsed.Grade].
-    [Elapsed] is a payload the context stores as it is and only ever reads a
-    grade out of. *)
+    accumulated between them, payloads of which the context only tests whether
+    they are the unit. *)
 module Make
     (Variable : Symbol.S)
     (VariableMap : Map.S with type key = Variable.t)

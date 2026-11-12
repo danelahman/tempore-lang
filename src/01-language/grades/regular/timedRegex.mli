@@ -173,7 +173,7 @@ module type S = sig
   val show : t -> string
   (** [show r] prints [r] as the contents of a brace literal: [idle ≤2] or
       [idle <2] and [≤5] on the upper side, [idle ≥2] or [idle >2] and [≥5] on
-      the lower, the stretch of every length [≥0], [r | 0] as [r?], and the
+      the lower, the stretch of every length [≥0], [r | skip] as [r?], and the
       empty language as [_ & ~_]. *)
 end
 

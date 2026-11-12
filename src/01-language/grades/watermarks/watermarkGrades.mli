@@ -95,7 +95,8 @@ module Lower :
       must satisfy [t ≤ min(0, d1)], [d1 ≤ d2] and [h ≥ max(0, d2)].
     - [show] prints the top as [(∞, ∞)] and any other grade in the shortest of
       these forms, omitting the trough when it is [min(0, d1)].
-    - No counterexample is offered.
+    - A failure of the order in the trough or the peak is witnessed by the
+      lesser grade; no other counterexample is offered.
     - The witnesses of the constants [cs] are partial: with [s] the sum of the
       absolute values of the finite components of [cs], for each [d] with
       [-s-1 ≤ d ≤ s+1], the grades with the net change [d], the trough

@@ -1,14 +1,14 @@
 (** Traces and non-empty finite sets of them, the carrier of the trace grade
     algebras.
 
-    A trace is one run of a computation as it is observed from outside: an
-    alternation of operation events and positive delays. A grade is a set of
-    such traces, read disjunctively, multiplied by the language product. The
-    sets over a monoid of delays ({!Delay.S}) are ordered by inclusion
-    ({!Base}). The two orders of timed operations ({!Make}) are allowance (an
-    upper bound: "every trace fits inside the bound") and coverage (a lower
-    bound: "the trace covers the guarantee"), each defined on single traces and
-    then lifted to sets.
+    A trace is one run of a computation as it is observed from outside: a
+    sequence of operation events and positive delays, no two delays adjacent. A
+    grade is a set of such traces, read disjunctively, multiplied by the
+    language product. The sets over a monoid of delays ({!Delay.S}) are ordered
+    by inclusion ({!Base}). The two orders of timed operations ({!Make}) are
+    allowance (an upper bound: "every trace fits inside the bound") and coverage
+    (a lower bound: "the trace covers the guarantee"), each defined on single
+    traces and then lifted to sets.
 
     The delays of the orders of timed operations are those of an ordered monoid
     with monus ({!Delay.MONUS}): the orders bank delays in a budget with [add]
@@ -140,10 +140,8 @@ module Make (D : Delay.MONUS) : sig
       the sub-grade order of the upper trace bounds. *)
 
   val lower_bound_le : (string -> D.t) -> traces -> traces -> bool
-  (** [lower_bound_le running_time p q] is the Smyth lift of the coverage order,
-      the order of the upper powerdomain (Smyth, JCSS 1978): every guarantee
-      listed by [p] has an easier one listed by [q]. Note the direction: the
-      universal quantifier ranges over [p], but each witness [t] is compared
-      against [s] the other way round, as an argument to {!coverage} with [t]
-      and [s] swapped. This is the sub-grade order of the lower trace bounds. *)
+  (** [lower_bound_le running_time p q] is the converse of the Smyth lift of the
+      coverage order, the order of the upper powerdomain (Smyth, JCSS 1978):
+      every guarantee listed by [p] has an easier one listed by [q]. This is the
+      sub-grade order of the lower trace bounds. *)
 end

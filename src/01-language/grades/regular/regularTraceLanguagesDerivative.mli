@@ -27,9 +27,7 @@
     delay and a name, symbolic in both, by the products of sets of delays and
     blocks of names, a delay of any length and any set of delays thus costing
     one step; equality is decided by a bisimulation of the gap derivatives of
-    both grades. Deciding extended regular expressions by derivatives follows
-    Keil and Thiemann (FSTTCS 2014) and Varatalu, Veanes, Zhuchko and Ernits
-    (CAV 2025). {!Grade.S.counterexample} [bounds rho rho'] is the grade of the
+    both grades. {!Grade.S.counterexample} [bounds rho rho'] is the grade of the
     least of the shortest words of [rho & ~rho'] in the order of the minterms of
     its letter sets, found by Dijkstra's algorithm over the gap derivatives, in
     which a letter is the least letter of its minterm: [tick], else its least

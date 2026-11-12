@@ -355,9 +355,9 @@ val whole_braces : names:bool -> regex -> bool
     no expression of the ticks of an interval atom. *)
 
 val positive : regex -> bool
-(** [positive r] is whether [r] holds no intersection and no complement. Such an
-    expression whose atoms are read ({!whole_braces}) denotes a non-empty
-    language. *)
+(** [positive r] is whether [r] holds no intersection, complement or idle wait.
+    Such an expression whose atoms are read ({!whole_braces}) denotes a
+    non-empty language. *)
 
 val sampled : ('a -> 'a -> 'a) -> 'a list -> 'a list * completeness
 (** [sampled mul cs] is the [Partial] list of the constants [cs] and their

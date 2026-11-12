@@ -430,8 +430,8 @@ let behaviour lit pairs =
             else (pair lit (p, q), ()))
           pairs))
 
-(* [realisable lit context modes (p, q) b] checks that some trace from [p] to
-    [q] meets the bounds [b] of an entry of the literal [lit], the modes of the
+(* [realisable lit context modes (p, q) b] checks necessary conditions for some
+    trace from [p] to [q] to meet the bounds [b] of an entry of the literal [lit], the modes of the
     specification being [modes]: the time in [unnamed] has the lower end [0],
     as it bounds every mode not named, visited or not; a change of mode spends
     a positive time in its start mode; and the sum of the times in the modes

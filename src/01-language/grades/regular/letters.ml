@@ -100,7 +100,7 @@ let order p q =
 let mentioned p = match p.names with Only a | Except a -> a
 
 (* The minterms of [sets], the atoms of the Boolean algebra they generate, as
-   in symbolic automata (D'Antoni and Veanes, POPL 2014), by splitting every
+   in symbolic automata, by splitting every
    block by each set in turn. *)
 let partition sets =
   let split block p =

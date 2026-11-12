@@ -22,8 +22,8 @@ val merge : t -> t -> t
     be spans of the same file. *)
 
 val compare : t -> t -> int
-(** Spans are ordered by file name, then by start, then by end, so that a span
-    sorts before the spans it contains. *)
+(** Spans are ordered by file name, then by start, then by end in decreasing
+    order, so that a span sorts before the spans it contains. *)
 
 val equal : t -> t -> bool
 

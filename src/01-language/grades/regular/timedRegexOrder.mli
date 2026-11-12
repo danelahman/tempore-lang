@@ -57,16 +57,17 @@ module Make
       (** Whether the lengths are whole time steps. *)
     end) : sig
   val graph : E.t -> graph
-  (** [graph e] is the automaton of the partial derivatives of [e], its counts
-      symbolic, memoised by expression. *)
+  (** [graph e] is the automaton of the partial derivatives of [e], a bounded
+      repetition giving one node per count, memoised by expression. *)
 
   val leq : world -> E.t -> E.t -> bool
   (** [leq world x y] decides [x ≾ y] over [world]. *)
 
   val counterexample : world -> E.t -> E.t -> concrete list option
   (** [counterexample world x y] is [None] if [x ≾ y], and otherwise a word of
-      [x], its lengths exact, that fits no word of [y]: a shortest path of the
-      search, each length chosen close enough to its end. *)
+      [x] on a shortest path of the search, its lengths exact, each chosen close
+      enough to its end: it fits no word of [y] unless 64 refinements of the
+      lengths do not suffice. *)
 
   val max_weight : world -> E.t -> cut option
   (** [max_weight world e] is the supremum of the durations of the words of [e],

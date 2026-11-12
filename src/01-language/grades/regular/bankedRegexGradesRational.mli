@@ -52,8 +52,8 @@
     and its unit least; the lower order has the unit as its top. The
     running-time bounds implied by a grade are the infimum of the weights of its
     lower-bound traces, at [lo], and the supremum of those of its upper-bound
-    traces, at [hi], each attained or not, [None] if the latter is unbounded; an
-    operation's time shadow [of_bounds (lo, hi)] is [{lo}], or [{(lo, ∞)}] if
+    traces, at [hi], each attained or not, infinite if the latter is unbounded;
+    an operation's time shadow [of_bounds (lo, hi)] is [{lo}], or [{(lo, ∞)}] if
     [lo] is open, under the lower order, and [{hi}], or [{\[0, hi)}] if [hi] is
     open, under the upper. A counterexample to [ρ ≾ ρ'] is the grade of a trace
     of [ρ] outside the closure of [ρ'] with the fewest operations, each delay

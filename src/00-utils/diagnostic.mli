@@ -31,8 +31,8 @@ val kind_to_string : kind -> string
 
 val place : string
 (** The marker a label's text carries where it refers to its own span. A
-    terminal follows the label with an excerpt of that span, so there it reads
-    ["here"]; a renderer that shows no excerpt names the line instead. *)
+    terminal shows an excerpt of that span before the label's text, which there
+    reads ["here"]; a renderer that shows no excerpt names the line instead. *)
 
 val render_label_text : place:string -> string -> string
 (** [render_label_text ~place text] puts [place] where [text] has the marker. *)

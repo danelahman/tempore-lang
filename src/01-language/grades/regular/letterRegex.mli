@@ -1,6 +1,6 @@
 (** Regular expressions over letter sets, as the regular trace languages print
-    them: normalised by a terminating rewrite system of Kleene-algebra
-    identities, measured by their size, and printed in the literal syntax.
+    them: normalised by a terminating rewrite system of language identities,
+    measured by their size, and printed in the literal syntax.
 
     {2 Rewrite system}
 
@@ -16,8 +16,8 @@
     - letter sets: [p | q] is the union and [p & q] the intersection of [p] and
       [q] in the Boolean algebra of letter sets;
     - bounded repetition: [x^c; x^c' = x^(c + c')], a factor [x] counting as
-      [x^1] but for the ticks, the laws of {!SymbolicRegex.S.repeat}, and
-      [(x^c)* = x*] where [1 ∈ c];
+      [x^1], but for a tick followed by a repetition, the laws of
+      {!SymbolicRegex.S.repeat}, and [(x^c)* = x*] where [1 ∈ c];
     - repetition: [x*; x* = x*], [{x*}* = x*], [(ε | x)* = x*],
       [{x | y*}* = (x | y)*], [{x; x*}* = x*], and [(x; y)* = (x | y)*] for
       nullable [x] and [y], braces grouping as in the literal syntax;
@@ -28,11 +28,13 @@
       union being factored out before the common last factors; a run of ticks
       counts as one factor, as it is printed as one integer.
 
-    Each identity other than the reordering of operands strictly decreases the
-    number of occurrences of letter sets, the {!size} and the number of
-    concatenations, ordered lexicographically, so that rewriting terminates. The
-    smart constructors apply the identities to operands already in normal form,
-    so that the normal form of an expression is determined by its operands. *)
+    Each identity other than the reordering of operands and the laws of bounded
+    repetition strictly decreases the number of occurrences of letter sets, the
+    {!size} and the number of concatenations, ordered lexicographically. The
+    laws of bounded repetition apply once per construction, so that rewriting
+    terminates. The smart constructors apply the identities to operands already
+    in normal form, so that the normal form of an expression is determined by
+    its operands. *)
 
 module Letters = SymbolicRegex.Letters
 

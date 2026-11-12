@@ -453,8 +453,8 @@ struct
   let derivatives : t Memo.Pairs.t = Memo.Pairs.create 4096
 
   (* The derivative (Brzozowski, JACM 1964) of an extended regular expression
-     by a block of letters rather than a letter, as in RE# (Varatalu, Veanes
-     and Ernits, POPL 2025), memoised by block and expression. *)
+     by a block of letters rather than a letter, memoised by block and
+     expression. *)
   let rec derive m r =
     Memo.Pairs.find_or_add derivatives (m.key, r.id) (fun () -> derive_view m r)
 
@@ -884,9 +884,10 @@ struct
         algorithm (Numer. Math. 1, 1959), a word [tickᵈ a] costing [d + 1]
         letters and a final delay [d] costing [d], until the least distance left
         is the length [L] of the shortest words of [r]. It returns [L]
-        ([unbounded] if [r] is empty), the expressions reached within [L], by
-        their numbers, and the gap derivatives of those within less than [L],
-        which are all the expressions on the shortest words but their last. *)
+        ([unbounded] if [r] is empty), the expressions reached, among them all
+        those within [L], by their numbers, and the gap derivatives of the
+        expressions expanded, among them all those within less than [L], which
+        include all the expressions on the shortest words but their last. *)
     let forward ms r =
       let reached = Hashtbl.create 64 and expanded = Hashtbl.create 64 in
       let rec go frontier best =

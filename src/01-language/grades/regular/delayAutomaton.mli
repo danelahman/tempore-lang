@@ -21,18 +21,17 @@
     operation states.
 
     An automaton with delay and operation transitions in any order, the raw
-    automaton of Thompson's construction, is brought to normal form by its
-    {e gap closure}: the set of the sums of the delays along the paths of delay
-    transitions between each two states, computed by Kleene's algorithm over the
-    semiring of the sets of delays under union and sum, with the repetition of
-    {!DelaySet.star} (Lehmann, "Algebraic structures for transitive closure",
-    TCS 4, 1977). Concatenation and repetition link raw automata by transitions
-    on the delay [0], and the gap closure adds the delays that meet.
+    automaton, is brought to normal form by its {e gap closure}: the set of the
+    sums of the delays along the paths of delay transitions between each two
+    states, computed by Kleene's algorithm over the semiring of the sets of
+    delays under union and sum, with the repetition of {!DelaySet.star}
+    (Lehmann, "Algebraic structures for transitive closure", TCS 4, 1977).
+    Concatenation and repetition link raw automata by transitions on the delay
+    [0], and the gap closure adds the delays that meet.
 
     Determinisation is the subset construction over the minterms of the labels
     leaving each subset, of the sets of delays and of the classes of names, as
-    for symbolic automata (D'Antoni and Veanes, "Minimization of symbolic
-    automata", POPL 2014): every delay of a minterm, and every name of a
+    for symbolic automata: every delay of a minterm, and every name of a
     minterm, takes the same transitions.
 
     {2 Canonical form}

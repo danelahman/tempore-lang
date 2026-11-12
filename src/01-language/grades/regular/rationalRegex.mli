@@ -29,9 +29,9 @@
     repetition [⟨S⟩^c] of an atom is the atom of [⋃ {k·S : k ∈ c}]; and the
     rules of bounded repetition and of the joining of adjacent factors of the
     same base are those of {!SymbolicRegex}. Each rule is a semantic identity,
-    an atom's words being delays, so that every expression whose words are all
-    delays is an atom, equal in form to another iff their sets of delays are
-    equal.
+    an atom's words being delays, so that every expression built from atoms by
+    concatenation, union, intersection and repetition is an atom, equal in form
+    to another iff their sets of delays are equal.
 
     {2 Gap derivatives}
 
@@ -44,8 +44,7 @@
     [ℚ≥0] ({!GapMap}). Then [d₀ a₁ ⋯ aₖ dₖ ∈ r] iff [dₖ] is in the delays of the
     derivative of [r] by [d₀ a₁], …, [dₖ₋₁ aₖ] in turn (Brzozowski, JACM 1964,
     on the alphabet [ℚ≥0 × Names]), a symbolic derivative over the finite unions
-    of products of sets of delays and blocks of names (D'Antoni and Veanes, POPL
-    2014).
+    of products of sets of delays and blocks of names.
 
     {2 Interning}
 

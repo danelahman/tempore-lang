@@ -42,4 +42,5 @@ module Interval : TimeGrades.DURATIONS with type Delay.t = Delay.Rational.t
     and [\[q, ∞)] and [(q, ∞)] impose no upper bound; the non-empty intervals,
     ordered by containment, with unit [[0, 0]] and top [\[0, ∞)]. The product is
     the Minkowski sum: an endpoint of a sum is open iff one of the endpoints
-    summed is. A grade is printed as written, e.g. [(1/2, 3\]]. *)
+    summed is. A grade is printed with its endpoints open or closed as written,
+    e.g. [(0.5, 3\]]. *)

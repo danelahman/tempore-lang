@@ -25,9 +25,9 @@
     endpoint abbreviating a closed one, [(n, m)] being [[n + 1, m - 1]], and
     brace literals over ticks, [{3 | 5}] being [{3, 5}], in which an interval of
     delays is the numbers in it; a set is printed in the first of these forms
-    that denotes it. [plus] is the closure [T⁺ = T · T*], the sums of one or
-    more durations of [T]. The witnesses are the constants and their pairwise
-    products, and partial. *)
+    that denotes it, an interval [[n, m]] only for [m] at most 64. [plus] is the
+    closure [T⁺ = T · T*], the sums of one or more durations of [T]. The
+    witnesses are the constants and their pairwise products, and partial. *)
 module Durations :
   Grade.S with type t = SymbolicRegex.t and type Delay.t = Delay.Nat.t
 
@@ -63,7 +63,8 @@ module ShiftByName :
       [E_A], an entry [(_, {E})] giving the other operations the times [E]; the
       brace literals name no operation, [_] being a single tick. [show] prints
       alike, and the top as [⊤].
-    - No counterexample is offered, and the witnesses are partial. *)
+    - A failure of the order in the times is witnessed by the lesser grade; no
+      other counterexample is offered. The witnesses are partial. *)
 module CallTimeSets :
   Grade.S
     with type t = Durations.t * TimesByName.t

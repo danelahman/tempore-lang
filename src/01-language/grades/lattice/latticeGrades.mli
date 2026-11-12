@@ -2,9 +2,9 @@
     flow-sensitive levels, over the grade lattice that a program declares, or
     else [Low < High].
 
-    The grade of a computation is the highest element it touches; a box with
-    element [ℓ] may be unboxed only while nothing above [ℓ] has been touched
-    since it was boxed. Delays touch no element. *)
+    The grade of a computation is the join of the elements it touches; a box
+    with element [ℓ] may be unboxed only while every element touched since it
+    was boxed is at most [ℓ]. Delays touch no element. *)
 
 type element = int
 (** An element of a {!GradeLattice.t}, by its number. *)
@@ -22,7 +22,7 @@ module type S = sig
   module Outputs :
     GradeConstructions.SEMILATTICE
       with type t = element option GradeConstructions.Indexed.t
-  (** The outputs a computation writes, each output at the highest element
+  (** The outputs a computation writes, each output at the join of the elements
       touched before writing it, the other outputs unwritten:
       {!GradeConstructions.Indexed.OfSemilattice} [(WrittenAt)]. Its top writes
       every output at the greatest element. *)
@@ -51,7 +51,7 @@ module type S = sig
 
   (** The product of [time-lower-bound] and [lattice],
       ["time-lower-bound-lattice"]: [(n, ℓ)] is "at least [n] time steps,
-      touching nothing above [ℓ]", an embargo with a taint check. *)
+      touching only elements at most [ℓ]", an embargo with a taint check. *)
   module TimeLowerBoundLattice :
     Grade.S
       with type t = TimeGrades.LowerBound.t * element
@@ -59,7 +59,7 @@ module type S = sig
 
   (** The product of [time-upper-bound] and [lattice],
       ["time-upper-bound-lattice"]: [(n, ℓ)] is "at most [n] time steps,
-      touching nothing above [ℓ]", an expiring untainted capability. *)
+      touching only elements at most [ℓ]", an expiring untainted capability. *)
   module TimeUpperBoundLattice :
     Grade.S
       with type t = TimeGrades.UpperBound.t * element
@@ -67,9 +67,9 @@ module type S = sig
 
   (** The product of [time-interval-rational] and [lattice],
       ["time-interval-lattice"]: [(i, ℓ)] is "taking a time in the rational
-      interval [i], touching nothing above [ℓ]". The product adds the intervals
-      (the Minkowski sum) and joins the elements; a delay [d] is [([d, d], ⊥)].
-  *)
+      interval [i], touching only elements at most [ℓ]". The product adds the
+      intervals (the Minkowski sum) and joins the elements; a delay [d] is
+      [([d, d], ⊥)]. *)
   module TimeIntervalLattice :
     Grade.S
       with type t = RationalTimeGrades.Interval.t * element
@@ -77,8 +77,8 @@ module type S = sig
 
   (** The flow-sensitive levels, ["flow-sensitive-levels"]: the semidirect
       product {!GradeConstructions.SemiDirect} [(Lattice) (Outputs) (Raise)].
-      [(l, W)] is "touches nothing above [l], and writes each output at most at
-      the element [W] gives it", and
+      [(l, W)] is "touches only elements at most [l], and writes each output at
+      most at the element [W] gives it", and
       [(l, W) · (l', W') = (l ⊔ l', W ⊔ raise_l W')]: the later outputs are
       written after [l] has been touched.
 
@@ -91,7 +91,8 @@ module type S = sig
         [(l, (S₁, l₁), …, (Sₖ, lₖ))] as [l] with the outputs [Sᵢ] written at
         [lᵢ], each output listed once, an entry [(_, l')] writing every other
         output at [l']; [show] prints alike, the outputs in increasing order.
-      - No counterexample is offered.
+      - A failure of the order in the outputs is witnessed by the lesser grade;
+        no other counterexample is offered.
       - The witnesses of the constants [cs] are complete: the pairs of an
         element with no output or with one output written at an element, the
         outputs being those of [cs] and an output ["_"] standing for the others.

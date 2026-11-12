@@ -3,9 +3,10 @@
 
     The expressions are those of RE# (Varatalu, Veanes and Ernits, "RE#: High
     Performance Derivative-Based Regex Matching with Intersection, Complement,
-    and Restricted Lookarounds", POPL 2025): letter sets, the empty word, the
-    empty language, concatenation, union, intersection, complement and
-    repetition, the complement being taken over all words.
+    and Restricted Lookarounds", POPL 2025) without anchors and lookarounds:
+    letter sets, the empty word, the empty language, concatenation, union,
+    intersection, complement and repetition, the complement being taken over all
+    words.
 
     {2 Alphabet}
 
@@ -27,25 +28,23 @@
     empty word or the empty language; [~~r] is [r], [r | ~r] is [Σ*] and
     [r & ~r] the empty language, also where [r] is a union, respectively an
     intersection, whose operands are flattened among those of the other; [0 | r]
-    is [r] for a nullable [r] and [r | r*] is [r*]; [r**], [(0 | r)*] and
-    [r*; r*] are [r*], and the repetition of the empty word or language is the
-    empty word. A bounded repetition [r^c] has an interval of counts ({!Count});
-    the laws of repetition over intervals apply ({!S.repeat}), and adjacent
-    factors of the same base are joined, [x^c; x^c'] being [x^(c + c')], so that
-    a word of [n] equal factors is one repetition. A union joins the repetitions
-    of a base whose counts overlap or touch. Brzozowski's similarity is thus
-    decided syntactically, and every expression has finitely many derivatives up
-    to it, as symbolic derivatives over an effective Boolean algebra do
-    (Zhuchko, Maarand, Veanes and Ebner, ITP 2025).
+    is [r] for a nullable [r] that is not a repetition [s*] and [r | r*] is
+    [r*]; [r**], [(0 | r)*] and [r*; r*] are [r*], and the repetition of the
+    empty word or language is the empty word. A bounded repetition [r^c] has an
+    interval of counts ({!Count}); the laws of repetition over intervals apply
+    ({!S.repeat}), and adjacent factors of the same base are joined, [x^c; x^c']
+    being [x^(c + c')], so that a word of [n] equal factors is one repetition. A
+    union joins the repetitions of a base whose counts overlap or touch. Similar
+    expressions (Brzozowski) thus have one normal form. Without bounded
+    repetitions, every expression has finitely many derivatives up to it, as
+    symbolic derivatives over an effective Boolean algebra do (Zhuchko, Maarand,
+    Veanes and Ebner, ITP 2025).
 
     A word of [n ≥ 2] ticks is one expression, a {e run} [tickⁿ], and
     concatenation joins adjacent runs: [tickᵐ; tickⁿ] is [tickᵐ⁺ⁿ] and
     [tickᵐ; (tickⁿ; s)] is [tickᵐ⁺ⁿ; s], [tick¹] being the letter set [{tick}]
-    and [tick⁰] the empty word. A run stands for the concatenation of its
-    letters, associated to the right: the normal forms are those of the
-    expressions with letters for runs, one to one, with the same derivatives, so
-    that the finiteness above holds, the derivative of [tickⁿ] by a block
-    containing [tick] being [tickⁿ⁻¹].
+    and [tick⁰] the empty word. A run denotes the word [tickⁿ], and its
+    derivative by a block containing [tick] is [tickⁿ⁻¹].
 
     {2 Runs of ticks}
 
@@ -66,9 +65,8 @@
 
     {2 Letters and alphabets}
 
-    The expressions and decisions above are those of RE#. Two parameters, each a
-    single design choice, replace their letters by those of Brzozowski, sharing
-    everything else:
+    Two parameters, each a single design choice, replace their letters by those
+    of Brzozowski, sharing everything else:
     - the {e alphabet} of the decisions ({!S.Decide}): the minterms of the
       letter sets ({!S.Minterms}), or the concrete letters [tick], each name
       mentioned and one catch-all letter for the names not mentioned
@@ -202,10 +200,10 @@ module type S = sig
       its form: [n] for a run of [n] ticks, [n] plus the lead of [s] for
       [tickⁿ; s], the lead of [r] for another concatenation [r; s], the least
       lead of the operands of a union and the greatest of those of an
-      intersection, [Int.max_int] for the empty language and [0] otherwise. The
-      derivatives of [r] by the words of length at most [k] other than the runs
-      of ticks are thus empty, and those by [tickʲ] for [j < k] are not
-      nullable. *)
+      intersection, the lead of [r] for [r^c] with [0 ∉ c], [Int.max_int] for
+      the empty language and [0] otherwise. The derivatives of [r] by the words
+      of length at most [k] other than the runs of ticks are thus empty, and
+      those by [tickʲ] for [j < k] are not nullable. *)
 
   val leap : int -> t -> t
   (** [leap k r] is the derivative [(tickᵏ)⁻¹r] of [r] by [tickᵏ], denoting the
@@ -213,15 +211,16 @@ module type S = sig
       the form of [r] tells it: [tickⁿ⁻ᵏ] for a run of [n ≥ k] ticks,
       [tickⁿ⁻ᵏ; s] or [leap (k - n) s] for [tickⁿ; s], [leap k r; s] for another
       concatenation [r; s] if [k] is at most the lead of [r],
-      [tickᶜ⁻ʲ; (tickᶜ)*] for the repetition [(tickᶜ)*] of a run,
-      [j = k mod c ≠ 0], and the complement, union or intersection of the leaps
-      of the operands; and otherwise off the orbit of [r], the sequence of its
-      derivatives by [tickʲ], [j ≥ 0], explored up to [k], an expression of lead
-      [l ≥ 1] by its leap by [l] and any other by its derivative, and eventually
-      periodic, [k] being reduced modulo its period once its cycle is found. It
-      is the normal form of [k] derivatives on runs, concatenations led by runs,
-      repetitions of runs and complements of these, and denotes the same
-      language elsewhere. *)
+      [leap k r; r^(c ⊖ 1)] for a bounded repetition [r^c], [0 ∉ c], if [k] is
+      at most the lead of [r], [tickᶜ⁻ʲ; (tickᶜ)*] for the repetition [(tickᶜ)*]
+      of a run, [j = k mod c], [r] itself if [j = 0], and the complement, union
+      or intersection of the leaps of the operands; and otherwise off the orbit
+      of [r], the sequence of its derivatives by [tickʲ], [j ≥ 0], explored up
+      to [k], an expression of lead [l ≥ 1] by its leap by [l] and any other by
+      its derivative, and eventually periodic, [k] being reduced modulo its
+      period once its cycle is found. It is the normal form of [k] derivatives
+      on runs, concatenations led by runs, repetitions of runs and complements
+      of these, and denotes the same language elsewhere. *)
 
   (** {1 Gap derivatives}
 
@@ -230,12 +229,11 @@ module type S = sig
       [tickⁿ a], [n ∈ ℕ] and [a] a name, followed by a final delay [dₖ]. The gap
       derivatives are the derivatives by these letters, symbolic in [n] and [a]:
       by the products of a set of delays and a block of names, as symbolic
-      derivatives over the Boolean algebra of the finite unions of such products
-      (D'Antoni and Veanes, POPL 2014). The sets of delays are ultimately
-      periodic (Chrobak, "Finite automata and unary languages", TCS 47, 1986),
-      {!DelaySet} values of integers. Then [tickᵈ⁰ a₁ ⋯ aₖ tickᵈᵏ ∈ r] iff [dₖ]
-      is in the {!delays} of the derivative of [r] by [tickᵈ⁰ a₁], …,
-      [tickᵈᵏ⁻¹ aₖ] in turn. *)
+      derivatives over the Boolean algebra of the finite unions of such
+      products. The sets of delays are ultimately periodic, being unary regular
+      languages, {!DelaySet} values of integers. Then
+      [tickᵈ⁰ a₁ ⋯ aₖ tickᵈᵏ ∈ r] iff [dₖ] is in the {!delays} of the derivative
+      of [r] by [tickᵈ⁰ a₁], …, [tickᵈᵏ⁻¹ aₖ] in turn. *)
 
   val delays : t -> DelaySet.t
   (** [delays r] is the set [N(r)] of the [n ∈ ℕ] such that [tickⁿ ∈ r], by
@@ -268,8 +266,8 @@ module type S = sig
       Raises [Invalid_argument] if [m] contains [tick]. *)
 
   val gaps : t -> (Letters.t * gaps) list
-  (** [gaps r] is the list of the blocks of names of [minterms r], the blocks
-      without [tick], each with the gap derivative of [r] by it, listed by
+  (** [gaps r] is the list of the blocks of [minterms r] with [tick] removed,
+      those left non-empty, each with the gap derivative of [r] by it, listed by
       [Letters.order]. *)
 
   (** {1 Alphabets} *)
@@ -284,8 +282,8 @@ module type S = sig
   end
 
   module Minterms : ALPHABET
-  (** The minterms of the letter sets of the roots, the coarsest such partition,
-      as in RE#. *)
+  (** The minterms of the letter sets of the roots, the coarsest such partition.
+  *)
 
   module Concrete : ALPHABET
   (** The concrete letters of the roots: [tick], each name they mention, and one
@@ -295,15 +293,12 @@ module type S = sig
   (** {1 Decisions}
 
       The decisions explore the graph of derivatives, the states being normal
-      forms and the edges labelled by the blocks of an alphabet of the start,
-      the derivatives by minterms being those of RE#. Deciding the inclusion and
-      equivalence of extended regular expressions by derivatives follows Keil
-      and Thiemann (FSTTCS 2014) and Varatalu, Veanes, Zhuchko and Ernits (CAV
-      2025). From an expression of lead [k ≥ 1] the only edges to expressions
-      that are not empty are those of the word [tickᵏ], none of whose proper
-      prefixes leads to a nullable expression: the explorations follow the word
-      at once, by the {!leap} by [k], and label it by [k] times the block
-      containing [tick]. *)
+      forms and the edges labelled by the blocks of an alphabet of the start.
+      From an expression of lead [k ≥ 1] the only edges to expressions that are
+      not empty are those of the word [tickᵏ], none of whose proper prefixes
+      leads to a nullable expression: the explorations follow the word at once,
+      by the {!leap} by [k], and label it by [k] times the block containing
+      [tick]. *)
 
   module type DECISIONS = sig
     val is_empty : t -> bool
@@ -323,11 +318,12 @@ module type S = sig
 
     val equal : t -> t -> bool
     (** [equal r s] is whether [r] and [s] denote the same language, decided by
-        a bisimulation up to the normal form (Hopcroft and Karp): the pairs of
-        derivatives of [r] and [s] by the same words are explored breadth-first,
-        the classes of the expressions found equal being merged as they go; a
-        pair of expressions of leads at least [k ≥ 1] is followed by their leaps
-        by [k] only, which denote the same language iff the pair does. *)
+        Hopcroft and Karp's algorithm, a bisimulation up to equivalence: the
+        pairs of derivatives of [r] and [s] by the same words are explored
+        breadth-first, the classes of the expressions found equal being merged
+        as they go; a pair of expressions of leads at least [k ≥ 1] is followed
+        by their leaps by [k] only, which denote the same language iff the pair
+        does. *)
   end
 
   (** The decisions by the alphabet [A], with their own tables of the emptiness
@@ -338,11 +334,11 @@ module type S = sig
 
       The decisions in gap form explore the graph of gap derivatives, the states
       being normal forms, the edges those of {!gap_derivative} by the blocks of
-      names of an alphabet of the start (its blocks without [tick]), labelled by
-      sets of delays, and the final delays of a state its {!delays}. The graph
-      has one state for every derivative by a word ending in a name, whatever
-      the delays of the expression, and is finite by the finiteness of the
-      derivatives. *)
+      names of an alphabet of the start (its blocks with [tick] removed),
+      labelled by sets of delays, and the final delays of a state its {!delays}.
+      The graph has one state for every derivative by a word ending in a name,
+      whatever the delays of the expression, and is finite by the finiteness of
+      the derivatives. *)
 
   type gap_word = (int * Letters.t) list * int
   (** A word in gap form [tickᵈ⁰ a₁ ⋯ tickᵈᵏ⁻¹ aₖ tickᵈᵏ]: the pairs
@@ -373,10 +369,10 @@ module type S = sig
 
     val equal : t -> t -> bool
     (** [equal r s] is whether [r] and [s] denote the same language, decided by
-        a bisimulation up to the normal form (Hopcroft and Karp) of the gap
-        derivatives: two expressions are related only if they have the same
-        delays, and their gap derivatives by each block of names are paired on
-        the common refinement of their sets of delays. *)
+        Hopcroft and Karp's algorithm on the gap derivatives: two expressions
+        are related only if they have the same delays, and their gap derivatives
+        by each block of names are paired on the common refinement of their sets
+        of delays. *)
   end
 
   (** The decisions in gap form by the blocks of names of the alphabet [A], with

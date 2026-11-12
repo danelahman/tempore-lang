@@ -371,7 +371,7 @@ let local_successors ~all ~inter ~diff ~is_empty ~union labels =
    to [q]; the start is the gap state of the starts of [raw], and the final
    states the operation states of its accepting states. It is the subset
    construction over the minterms of the labels leaving each subset, as for
-   symbolic automata (D'Antoni and Veanes, POPL 2014), the empty subsets being
+   symbolic automata, the empty subsets being
    the sinks. *)
 let determinise raw =
   let closure = gap_closure raw in
@@ -477,7 +477,7 @@ let empty = delays DelaySet.empty
 let epsilon = delays DelaySet.zero
 
 (* [link a b] is the raw automaton of the concatenation of [a] and of [b],
-   whose states follow those of [a], by Thompson's construction: the accepting
+   whose states follow those of [a]: the accepting
    states of [a] move to the starts of [b] on the delay [0], and the gap closure
    adds the delays that meet. *)
 let link a b =
@@ -502,7 +502,7 @@ let concat_list = function
   | l :: ls ->
       determinise (List.fold_left (fun a m -> link a (to_raw m)) (to_raw l) ls)
 
-(* Thompson's construction: a new start, also accepting, moves to the start of
+(* A new start, also accepting, moves to the start of
    [l], and the accepting states of [l] back to it, on the delay [0]. *)
 let star l =
   let a = to_raw l in

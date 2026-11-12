@@ -75,7 +75,8 @@ module Boolean (E : FORM) : sig
   val unsubsumed : E.t list -> E.t list
   (** [unsubsumed rs] is the operands [r] of the union of [rs] that are not
       contained in another operand [s] of [rs] by one of the laws [0 ⊆ s] for a
-      nullable [s] and [r ⊆ r*], in their order. *)
+      nullable [s] other than a repetition [s'*], and [r ⊆ r*], in their order.
+  *)
 
   val repetitions :
     (E.t -> (E.t * Count.t) option) ->
@@ -198,11 +199,11 @@ end) : sig
   (** [gap m r] is the derivative of [r] by the words [d a], [d] a delay and [a]
       a name of [m], symbolic in [d]: a symbolic derivative over the Boolean
       algebra of the finite unions of products of sets of delays and blocks of
-      names (D'Antoni and Veanes, POPL 2014), with the derivatives of
-      concatenation and repetition of Brzozowski (JACM 1964), the delays before
-      the name read by [E.delays]. A bounded repetition [r^c] is derived as
-      [r; r^(c ⊖ 1)], its residuals a residual of [r] followed by [r] with a
-      shifted count, as for counted repetitions (Moseley et al., PLDI 2023):
+      names, with the derivatives of concatenation and repetition of Brzozowski
+      (JACM 1964), the delays before the name read by [E.delays]. A bounded
+      repetition [r^c] is derived as [r; r^(c ⊖ 1)], its residuals a residual of
+      [r] followed by [r] with a shifted count, as for counted repetitions
+      (Moseley et al., PLDI 2023):
       [D(r^c)(d) = D(r)(d); r^(c ⊖ 1) | ⋃ {D(r^(c ⊖ 1))(d - i) : i ∈ N(r)}], the
       second part left out where [N(r) ⊆ {0}]. Memoised by block and expression.
   *)

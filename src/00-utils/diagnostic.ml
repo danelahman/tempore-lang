@@ -122,7 +122,7 @@ let print ?(source = fun _ -> None) d ppf =
   Format.fprintf ppf "%s: %s@\n" (kind_to_string d.kind) d.message;
   List.iter
     (fun { span; text } ->
-      (* The excerpt of the span follows the label, so it can say "here". *)
+      (* The excerpt of the span precedes the text, which can say "here". *)
       print_located ~source ~indent:"  " span
         (render_label_text ~place:"here" text)
         ppf)

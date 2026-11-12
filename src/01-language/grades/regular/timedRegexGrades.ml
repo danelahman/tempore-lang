@@ -451,7 +451,8 @@ module Make (D : DELAYS) (N : NAMES) = struct
 
     let single = function Int _ | Rat _ | Braces _ -> true | _ -> false
 
-    (* A numeric endpoint is the span from it or up to it, [0] being [≥0]. *)
+    (* A numeric endpoint is the span from it or up to it, a lower [0] being [≥0] and an
+       upper [0] the empty word. *)
     let lower_end lit =
       match numeric lit with
       | Some q -> LowerBound.of_lit (Braces (Above (Closed q)))

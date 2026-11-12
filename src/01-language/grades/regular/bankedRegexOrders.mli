@@ -70,8 +70,7 @@ module type WORLD = sig
       names of equal pairs of running times. *)
 
   val literal_of_word : word -> lit
-  (** [literal_of_word w] is the literal of the single trace [w], its idle waits
-      written [idle d]. *)
+  (** [literal_of_word w] is the literal of the single trace [w]. *)
 
   val single : lit -> bool
   (** [single lit] is whether the literal [lit] of an interval abbreviates the

@@ -107,13 +107,14 @@ val star : t -> t
     It is computed by cases on [s⁺ = s ∖ {0}]: [{0}] if [s⁺] is empty; [ℚ≥0] if
     [inf s⁺ = 0]; if [s⁺] contains an interval [⟨a, b⟩] with [0 < a < b], the
     multiples [n⟨a, b⟩] cover [(c, ∞)] from [c = n₀a], [n₀] the least [n] with
-    [n(b - a) > a], and [s* ∩ [0, c]] is the least fixpoint of
-    [R ↦ {0} ∪ (R + s⁺) ∩ [0, c]], computed by semi-naive iteration; and if [s⁺]
-    is discrete, scaled to the integers by a common denominator [D], [s*] is
-    read off the Apéry set of the numerical semigroup generated, with respect to
-    its least element [μ], computed as shortest paths over the residues modulo
-    [μ] by Dijkstra's algorithm (Nijenhuis, "A minimal-path algorithm for the
-    money changing problem", Amer. Math. Monthly 86, 1979). *)
+    [n(b - a) > a] ([≥ a] if both ends are closed), and [s* ∩ [0, c]] is the
+    least fixpoint of [R ↦ {0} ∪ (R + s⁺) ∩ [0, c]], computed by semi-naive
+    iteration; and if [s⁺] is discrete, scaled to the integers by a common
+    denominator [D], [s*] is read off the Apéry set of the monoid generated,
+    divided by its greatest common divisor, with respect to its least positive
+    element [μ], computed as shortest paths over the residues modulo [μ] by
+    Dijkstra's algorithm (Nijenhuis, "A minimal-path algorithm for the money
+    changing problem", Amer. Math. Monthly 86, 1979). *)
 
 val repeat : t -> Count.t -> t
 (** [repeat s c] is [⋃ {k·s : k ∈ c}], [k·s] the [k]-fold sum of [s] and
@@ -181,9 +182,9 @@ val sup : t -> extremum option
 (** [sup s] is the supremum of [s], [None] if [s] is empty. *)
 
 val choose : t -> Rational.t option
-(** [choose s] is a simplest element of [s], [None] if [s] is empty: among the
-    simplest rationals of the intervals of [s] below its threshold and of the
-    first period above it, found by the Stern–Brocot search, the one of least
+(** [choose s] is an element of [s], [None] if [s] is empty: among the simplest
+    rationals of the intervals of [s] below its threshold and of its first
+    period above it, found by the Stern–Brocot search, the one of least
     denominator, and of these the least. *)
 
 val minterms : t list -> t list

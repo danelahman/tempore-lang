@@ -438,7 +438,7 @@ let timing =
         && mem (Rational.add p p) s
         && (not (mem (qi 1) s))
         && not (subset (point (qi 1)) s));
-    quickly "{2·10^11, 3·10^11}* has the Frobenius number 10^11" (fun () ->
+    quickly "{2·10^11, 3·10^11}* is 10^11·{2, 3}*" (fun () ->
         let u = 100000000000 in
         let s = star (union (point (qi (2 * u))) (point (qi (3 * u)))) in
         (not (mem (qi u) s))

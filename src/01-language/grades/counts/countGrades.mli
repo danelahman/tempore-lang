@@ -28,8 +28,8 @@ module AtMost : sig
 
   val of_counts : (string * int) list -> t
   (** [of_counts counts] bounds each operation of [counts] by its number of
-      calls there, the first listed for an operation listed twice, and every
-      other operation by [0]. *)
+      calls there, one of the elements listed for an operation listed twice, and
+      every other operation by [0]. *)
 end
 
 (** The at-least counts, ["at-least-counts"], over {!Delay.Nat}: each operation
@@ -56,8 +56,8 @@ module AtLeast : sig
 
   val of_counts : (string * int) list -> t
   (** [of_counts counts] guarantees each operation of [counts] its number of
-      calls there, the first listed for an operation listed twice, and every
-      other operation no call. *)
+      calls there, one of the elements listed for an operation listed twice, and
+      every other operation no call. *)
 end
 
 (** The at-least counts with a separate greatest point,

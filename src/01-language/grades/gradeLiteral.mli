@@ -45,8 +45,9 @@ type regex =
           delays only ({!delays_only}): [idle 3], [idle [2, 3]], [idle _] *)
 
 val delays_only : regex -> bool
-(** [delays_only r] is whether [r] is built from [skip], delays and intervals of
-    delays by [;], [|], [&] and [*] alone, so that its words are delays. *)
+(** [delays_only r] is whether [r] is built from [skip], delays, intervals of
+    delays and one-sided lengths by [;], [|], [&], [*] and [^] alone, so that
+    its words are delays. *)
 
 val show_below : Rational.t bound -> string
 (** [show_below b] prints the letter [Below b], e.g. [≤3] or [<1/2]. *)
@@ -183,7 +184,9 @@ val integer_ends : lit -> lit bound -> lit bound -> lit bound * lit bound
     interval literal [lit] over the integers, closed at its finite endpoints by
     {!close_integer}.
 
-    @raise Invalid_literal if the interval is empty, or contains no integer. *)
+    @raise Invalid_literal
+      if the interval is empty, or its endpoints are integers and it contains
+      none. *)
 
 val bounds_of_lit :
   lit ->

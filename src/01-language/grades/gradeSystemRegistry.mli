@@ -8,11 +8,11 @@
     grade of [R] admitting the durations of the runs of [e]: [R.of_durations] of
     [E.duration_bounds bounds e], each open end of the running times [bounds]
     first replaced by the closed one it abbreviates over the delays
-    ({!Grade.close_running_time}), and the top where [e] admits no run, which
-    the typechecker rejects wherever it is written. It declares no grade
-    lattice, its morphism reflects the order at the unit as [P.unit_reflecting]
-    states, and the witnesses of a condition are those of [E] for its effect
-    constants, [Partial]. *)
+    ({!Grade.close_running_time}), and the top where [e] determines no interval
+    of durations, which the typechecker rejects wherever it is written. It
+    declares no grade lattice, its morphism reflects the order at the unit as
+    [P.unit_reflecting] states, and the witnesses of a condition are those of
+    [E] for its effect constants, [Partial]. *)
 module Durations
     (E : Grade.S)
     (R : TimeGrades.DURATIONS with type Delay.t = E.Delay.t)

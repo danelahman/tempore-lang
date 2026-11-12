@@ -61,15 +61,15 @@
     [↑M] is recognised dually: the configuration maps each gap state of [M] to
     the greatest weight read since the last matched operation, every operation
     of the guarantee being matched, so that a segment of the guarantee is a
-    single delay of [M]; a weight is set to infinity once it covers every delay
-    that [M] reads from its state.
+    single delay of [M]; a weight is set to infinity once it covers some delay
+    of every transition of its state.
 
     Inclusion is decided by breadth-first search of the pairs of a state of the
     automaton of [L] and a configuration of the reader, the delays of [L] read
     as their extremal values, for a final state of [L] with a rejecting
-    configuration; the path found is concretised by choosing each delay close
-    enough to its extremal value, which the reader then rejects in exact
-    arithmetic.
+    configuration; the path found is concretised by choosing each delay within
+    [2⁻ᵏ] of its extremal value, for the first [k ≤ 256] at which the reader
+    rejects the word in exact arithmetic.
 
     {2 Closed world}
 
@@ -91,8 +91,10 @@ val allowance :
   DelayAutomaton.symbol list option
 (** [allowance world l m] is [None] if every word of [l] over [world] is in
     [↓m], and otherwise such a word outside it, in gap form, its operations
-    single names of [world], shortest in its number of symbols. The results are
-    tabulated by the arguments in a module-level table that only ever grows. *)
+    single names of [world], shortest in its number of symbols. Raises
+    [Invalid_argument] if no such word is found within 256 halvings of the
+    distances. The results are tabulated by the arguments in a module-level
+    table that only ever grows. *)
 
 val coverage :
   world ->
