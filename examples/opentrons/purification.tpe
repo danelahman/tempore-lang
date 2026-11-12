@@ -42,11 +42,11 @@ noneternal type token = Token
 
 (* The samples are taken out of the cold block in at most a minute, and
    returned with a token for at most 40 minutes at room temperature. *)
-operation TakeSamples : unit ~> sample * [[0, 40]]token ! {TakeSamples}
+operation TakeSamples : unit ~> sample * [{[0, 40]}]token ! {TakeSamples}
   within (0, 1]
 default TakeSamples () =
   delay 1/2;
-  box [0, 40] Token as tok in
+  box {[0, 40]} Token as tok in
   ("samples", tok)
 
 (* The operations inside a phase. The plate is moved onto and off the
