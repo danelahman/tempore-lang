@@ -130,7 +130,10 @@ let tokens s =
       if !i < n then incr i;
       emit start !i (Some "syn-resource")
     end
-    else if c = '|' && !brace_depth = 0 && (!i + 1 >= n || s.[!i + 1] <> '|')
+    else if
+      c = '|' && !brace_depth = 0
+      && (!i + 1 >= n || s.[!i + 1] <> '|')
+      && (!i = 0 || s.[!i - 1] <> '|')
     then begin
       (* A lone [|] starts a pattern clause. [||] is logical-or and does
          not. *)
