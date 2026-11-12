@@ -9044,12 +9044,13 @@ single-dash form of the help option is not accepted.
           time-upper-bound-lattice                   Upper bounds × lattice
                                                      (expiring capabilities)
           time-interval-lattice                      Intervals × lattice
-          flow-sensitive-levels                      Flow-sensitive levels
         Time with an energy budget:
           time-upper-bound-energy                    Upper bounds × energy
         Semidirect products:
+          flow-sensitive-levels                      Flow-sensitive levels
           watermarks                                 Watermark grades
           call-time-sets                             Call-time sets
+        Mode grades:
           mode-switch-costs                          Mode-switch costs
           mode-times                                 Mode times
         Counts:

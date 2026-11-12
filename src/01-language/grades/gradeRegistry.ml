@@ -39,6 +39,7 @@ let timed_regex_finite = ("Finite timed regex grades", "Timed regex (finite)")
 let timed_regex = ("Timed regex grades", "Timed regex")
 let lattices = ("Grade lattices", "Lattices")
 let semidirect = ("Semidirect products", "Semidirect")
+let modes = ("Mode grades", "Modes")
 let energy = ("Time with an energy budget", "Energy")
 let counts = ("Counts", "Counts")
 let inter_arrival = ("Inter-arrival grades", "Inter-arrival")
@@ -574,21 +575,21 @@ let entries =
       "A rational time interval paired with an element of the grade lattice: a \
        time within the interval, touching nothing above the element.";
     entry
+      (module EnergyGrades.TimeUpperBoundEnergy)
+      energy "Upper bounds × energy"
+      "A time upper bound paired with an energy budget: at most n time steps, \
+       drawing at most e units of energy, such as (5, 12); delays draw none.";
+    entry
       ~over_lattice:(fun lattice ->
         let module V = LatticeGrades.Over (struct
           let lattice = lattice
         end) in
         (module V.FlowSensitiveLevels : Grade.S))
       (module LatticeGrades.FlowSensitiveLevels)
-      lattices "Flow-sensitive levels"
+      semidirect "Flow-sensitive levels"
       "An element of the grade lattice paired with the element at which each \
        output is written; later outputs are raised to the element reached \
        before them.";
-    entry
-      (module EnergyGrades.TimeUpperBoundEnergy)
-      energy "Upper bounds × energy"
-      "A time upper bound paired with an energy budget: at most n time steps, \
-       drawing at most e units of energy, such as (5, 12); delays draw none.";
     entry
       (module WatermarkGrades.Watermarks)
       semidirect "Watermark grades"
@@ -602,13 +603,13 @@ let entries =
        operation is called; later times are shifted by the earlier durations.";
     entry
       (module ModeSwitchCostGrades.ModeSwitchCosts)
-      semidirect "Mode-switch costs"
+      modes "Mode-switch costs"
       "Max-plus matrices of the costs between named modes, such as (Off, On, \
        2); an operation gets stuck from the modes its grade does not start \
        from, and a change of mode costs at least 1.";
     entry
       (module ModeTimeGrades.ModeTimes)
-      semidirect "Mode times"
+      modes "Mode times"
       "The time spent in each mode of a device or a material, over traces that \
        change modes, such as (Cold, Cold, (Out, [0, 30])); an operation runs \
        in the mode it starts from, and its change of mode takes effect at its \
