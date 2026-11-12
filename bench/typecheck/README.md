@@ -4,17 +4,19 @@ Times the typechecking of every file of the examples and the tests under the
 grades its header names, with the packages and board of the examples, as the
 solver tests check them (`tests/inference/test_solve.ml`; the corpus is
 `TestPrograms.corpus`). The standard library of each grade is loaded untimed.
-Each file is typechecked in 3 fresh child processes, so that the tables the
-grades keep start empty; a row shows the median of the first (cold) time.
+Each file is typechecked in 3 fresh child processes, so that no measurement
+inherits the tables the grades filled in another; a row shows the median of the
+first (cold) time.
 Files over 2 s are marked.
 
 A file that fails before typechecking, in parsing or desugaring, is left out,
 and the programs in the subdirectories of `tests/` are not part of the corpus.
 
-The total is the sum of these typechecking times. It excludes compilation,
-process start-up and the loading of the standard library, and so it is much
-shorter than a run of `make test` (about a minute), which also runs the other
-test suites.
+The total is the sum of these times, each covering the parsing, desugaring and
+typechecking of a file after its packages' declarations. It excludes
+compilation, process start-up and the loading of the standard library, and so it
+is much shorter than a run of `make test` (about a minute), which also runs the
+other test suites.
 
 A run of the benchmark itself takes about 25 s, much longer than the total it
 reports. It typechecks each file three times, and each of these processes

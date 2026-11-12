@@ -219,7 +219,7 @@ let classes = function
 let severity_classes (error : Model.load_error) =
   if Model.is_warning error then [ "is-warning" ] else []
 
-(* The same, cut down for the side panel's list: no characters, no file. *)
+(* The same, cut down for the side panel's list: the line only, without characters. *)
 let load_error_summary (error : Model.load_error) =
   let kind = Diagnostic.kind_to_string error.diagnostic.kind in
   match error.diagnostic.primary with

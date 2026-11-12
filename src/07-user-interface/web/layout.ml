@@ -1,5 +1,5 @@
-(* Documents laid out within a width: Wadler's prettier printer (P. Wadler, "A
-   prettier printer", 2003), in its strict form, with the alignment of Leijen's
+(* Documents laid out within a width: a strict variant of Wadler's prettier
+   printer (P. Wadler, "A prettier printer", 2003), with the alignment of Leijen's
    wl-pprint. Text is measured in characters, that is UTF-8 code points, each
    taken to fill one cell of a monospace font. *)
 

@@ -324,12 +324,12 @@ let parse_args_to_config () =
                (fun s -> capture := Some (duration_of_string "--capture" s)),
              " After --upload, or without an upload with --device, read the \
               serial port of --port at the baud rate of the board for the \
-              given number of seconds, printing its lines, and then the last \
-              complete profile among them, if any" );
+              given number of seconds, printing its lines, and then, under \
+              --profile, the last complete profile among them, if any" );
            ( "--debug",
              Arg.Set debug,
-             " Print the inferred type schemes of the top-level definitions \
-              before running" );
+             " Print the inferred type schemes of the definitions of the \
+              standard library and of the files" );
            ( "--device",
              Arg.String (fun filename -> device := Some filename),
              " With --emit-arduino, write a PlatformIO project of the device \
@@ -1236,7 +1236,7 @@ let run_with (module GS : Grades.GradeSystem.S) config =
          large to decide under this grade algebra";
       exit 2
 
-(* The grade system of [config], its effects graded by the grade algebra [G] of
+(* The grade system of [config], its effects graded by the grade algebra [grade] of
    --grades over the grade lattice [lattice] the program declares, if any, and
    its resources by that of --resource-grades
    ({!Grades.GradeSystemRegistry.select}). *)

@@ -22,10 +22,9 @@ val path : page -> string
 val normalise : base:string -> string -> string
 (** [normalise ~base dest] is the relative path [dest], written in the file at
     path [base], as a path relative to the project root: [dest] is appended to
-    the directory of [base], or taken from the root when it starts with [/], and
-    its segments [.] and [..] are removed as in
-    {{:https://www.rfc-editor.org/rfc/rfc3986#section-5.2.4}RFC 3986, 5.2.4}, a
-    [..] at the root being dropped. A trailing [/] is kept. *)
+    the directory of [base], or taken from the root when it starts with [/],
+    with its empty and [.] segments dropped and each [..] removing the segment
+    before it, if any. A trailing [/] of [dest] is kept. *)
 
 (** Where a link of a page leads. *)
 type target =

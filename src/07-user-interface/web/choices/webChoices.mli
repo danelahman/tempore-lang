@@ -33,8 +33,8 @@ val encode : t -> string
     field, written only when selected. *)
 
 val decode : string -> t option
-(** [decode s] is the choices [s] encodes, or [None] if [s] is not the encoding
-    of any. [decode (encode c) = Some c]. *)
+(** [decode s] is the choices [s] encodes, or [None] if [s] is malformed.
+    [decode (encode c) = Some c]. *)
 
 val valid_resources : grade:string -> string option -> string option
 (** [valid_resources ~grade resources] is [resources] if a grade system of

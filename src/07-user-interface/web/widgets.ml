@@ -13,8 +13,7 @@ let panel ?(a = []) ?action heading blocks =
 
 (* Whether [sub] occurs in [s], by the Knuth-Morris-Pratt algorithm (D. E.
    Knuth, J. H. Morris and V. R. Pratt, "Fast pattern matching in strings",
-   1977), in time linear in the lengths of both. Str is not available under
-   js_of_ocaml. *)
+   1977), in time linear in the lengths of both. The web interface does not link Str. *)
 let contains ~sub s =
   let m = String.length sub and n = String.length s in
   (* [border.(i)] is the length of the longest proper border of the first

@@ -8,7 +8,7 @@ the root of the repository:
     dune exec --profile release bench/regular/bench_regular.exe
 
 A full run takes about 14 minutes. With `--quick` each family is timed at its
-least size only, in about 3 minutes.
+first size only, in about 3 minutes.
 
 ## Grades and implementations
 
@@ -123,14 +123,14 @@ Arduino backend, is timed by `bench/typecheck`.
 
 ## Method
 
-Each measurement runs in a fresh child process, so that the tables the grades
-keep start empty. It prepares its inputs untimed and times the operation once
-(cold); a typechecking is then repeated for 0.1 s (warm, the mean). The tables
-show the medians over 5 processes, fewer once 10 s have been spent; a process
-is stopped after 10 s, and the cell then reads `> 10 s`. The ratios are of the
-cold times; a ratio is left empty when its denominator is below the
-resolution of the clock. The running times of the corpora are read from their
-files in a separate child process.
+Each measurement runs in a fresh child process, so that no measurement inherits
+the tables the grades filled in another. It prepares its inputs untimed and
+times the operation once (cold); a typechecking is then repeated for 0.1 s
+(warm, the mean). The tables show the medians over 5 processes, fewer once the
+cold times exceed 10 s; a process is stopped after 10 s, and the cell then reads
+`> 10 s`. The ratios are of the cold times; a ratio is left empty when its
+denominator is below the resolution of the clock. The running times of the
+corpora are read from their files in a separate child process.
 
 ## Measured
 

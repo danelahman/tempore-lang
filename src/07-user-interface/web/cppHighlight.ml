@@ -1,7 +1,7 @@
 open Vdom
 
-(* The keywords of C++17 that the generated code and the scaffold use, with
-   the fundamental types. *)
+(* Keywords of C++17 found in the code shown, with the fundamental
+   types. *)
 let keywords =
   [
     "auto";

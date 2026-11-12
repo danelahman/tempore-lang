@@ -23,7 +23,7 @@ let directory base =
   | _ :: dir -> List.rev dir
   | [] -> []
 
-(* Removal of dot segments (RFC 3986, 5.2.4) over a stack of segments, the
+(* Removal of [.], [..] and empty segments over a stack of segments, the
    innermost on top. *)
 let step stack = function
   | "" | "." -> stack

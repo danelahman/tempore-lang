@@ -410,8 +410,9 @@ let counted reported =
   let warnings = List.length (List.filter is_warning reported) in
   (List.length reported - warnings, warnings)
 
-(* The first error whose primary span covers [offset], a byte of the editor's
-   text. A point span is widened as the editor widens it when marking it. *)
+(* The first error whose primary span covers [offset], a byte or a caret
+   position of the editor's text, its end included. A point span is widened to
+   one byte. *)
 let error_at errors offset =
   let covers (error : load_error) =
     match error.diagnostic.primary with

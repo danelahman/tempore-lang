@@ -1,9 +1,10 @@
 (* A benchmark of the typechecking of the files of the examples and tests
    under the grades their headers name, with the packages of the examples, as
    checked by the solver tests. The standard library is loaded untimed. Each
-   file is typechecked in fresh child processes, so that the tables the grades
-   keep start empty; the table shows the median time of the first (cold) run,
-   slowest file first, with the total, which sums the typechecking times only.
+   file is typechecked in fresh child processes, so that no measurement
+   inherits the tables the grades filled in another; the table shows the median
+   time of the first (cold) run, slowest file first, with the total, which sums
+   these times only.
    Run from the root of the repository:
 
      dune exec --profile release bench/typecheck/bench_typecheck.exe

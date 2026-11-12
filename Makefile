@@ -51,8 +51,9 @@ clean-opentrons:
 # PlatformIO Core 6.2.0, the build tool of --build and --upload, in the
 # virtual environment _arduino/venv, created with the first of the interpreters
 # below of version 3.10 or later; an error if there is none. PlatformIO keeps
-# its platforms, toolchains and libraries in _arduino/platformio, set by the
-# executable as PLATFORMIO_CORE_DIR. Optional: only --build and --upload need
+# its platforms, toolchains and libraries in _arduino/platformio, which the
+# executable sets as PLATFORMIO_CORE_DIR when it runs this installation and the
+# environment does not set it. Optional: only --build and --upload need
 # it. clean-arduino removes _arduino, together with the projects written by
 # --emit-arduino to _arduino/projects.
 ARDUINO_DIR = _arduino

@@ -31,15 +31,15 @@
    The typechecking of the timed regex grades, whose programs need the
    packages of the Arduino backend, is timed by bench/typecheck.
 
-   Each measurement runs in a fresh child process, so that the tables of the
-   grades start empty: it prepares its inputs untimed and times the operation
-   once (cold); a typechecking is then timed repeatedly (warm, the mean of the
+   Each measurement runs in a fresh child process, so that no measurement
+   inherits the tables the grades filled in another: it prepares its inputs
+   untimed and times the operation once (cold); a typechecking is then timed repeatedly (warm, the mean of the
    repeated runs). The tables show the medians over several processes. Run from
    the root of the repository:
 
      dune exec --profile release bench/regular/bench_regular.exe
 
-   With [--quick], each family is timed at its least size only. See
+   With [--quick], each family is timed at its first size only. See
    bench/regular/README.md for the results and the total run time. *)
 
 module Grade = Grades.Grade
@@ -116,8 +116,8 @@ let median xs =
   List.nth xs (List.length xs / 2)
 
 (* The medians of the samples of [prepare] over [processes] processes, each
-   stopped after [time_limit] seconds, or fewer once [patience] seconds have
-   been spent in them; the first timeout or failure ends the measurement. *)
+   stopped after [time_limit] seconds, or fewer once their cold times exceed
+   [patience] seconds in total; the first timeout or failure ends the measurement. *)
 let measure ~warm prepare =
   let result samples =
     let warms = List.filter_map (fun s -> s.warm) samples in
@@ -673,7 +673,7 @@ struct
     ]
 
   (* [W] any word over [k] declared names of three running times, [X] a word
-     of them between two [Op1], and [Y] any two operations. *)
+     of them between two [Op1], and [Y] any two letters. *)
   let declared k =
     let bounds = model C.ends (names k) in
     let family = Printf.sprintf "k = %d declared names" k in

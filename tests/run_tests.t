@@ -8925,10 +8925,11 @@ single-dash form of the help option is not accepted.
                        passing its output through and exiting with its exit code
     --capture          After --upload, or without an upload with --device, read
                        the serial port of --port at the baud rate of the board for
-                       the given number of seconds, printing its lines, and then
-                       the last complete profile among them, if any
-    --debug            Print the inferred type schemes of the top-level
-                       definitions before running
+                       the given number of seconds, printing its lines, and then,
+                       under --profile, the last complete profile among them, if
+                       any
+    --debug            Print the inferred type schemes of the definitions of the
+                       standard library and of the files
     --device           With --emit-arduino, write a PlatformIO project of the
                        device described by the given manifest, of the definitions
                        reached from its tasks
