@@ -19,8 +19,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       bubblewrap build-essential ca-certificates curl g++ git less libgmp-dev \
-      m4 make nodejs npm patch pkg-config python3 python3-pip python3-venv \
-      rsync sudo unzip zip \
+      m4 make nodejs npm patch pkg-config python3 python3-dev python3-pip \
+      python3-venv rsync sudo unzip zip \
  && rm -rf /var/lib/apt/lists/*
 
 # opam from its release binaries, the distribution's being older than the

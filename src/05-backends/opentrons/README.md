@@ -80,7 +80,9 @@ A unit of duration of the program is a second unless `--time-unit` sets it.
 ## The simulator
 
 The simulator is `opentrons_simulate` of the `opentrons` Python package
-(tested with version 10.0.0), which needs Python 3.10 or later.
+(tested with version 10.0.0), which needs Python 3.10 or later. Under Python
+3.13 its installation builds NumPy from source, which needs a C compiler and
+the Python development headers.
 `make opentrons-deps` installs it in the virtual environment `_opentrons`,
 and `make clean-opentrons` removes it, with the protocols in
 `_opentrons/protocols`. A simulator installed otherwise is named by
