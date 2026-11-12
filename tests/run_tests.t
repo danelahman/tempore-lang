@@ -4825,6 +4825,23 @@ it names none:
     `k` may have any grade `ε_Stop`
     Note: the effect inequality `∀ε_Stop. ⊤ <= {Read | Read; Read} · ε_Stop` does not hold: for `ε_Stop = {skip}` it becomes `⊤ <= {Read | Read; Read}`
   ======================================================================
+  recursion_closure_reject_inter_arrival.tpe
+  ======================================================================
+  File "recursion_closure_reject_inter_arrival.tpe", lines 31-32, characters 2-3:
+  31 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `{skip | (Beat; 2)^[1, ∞)}` accumulated since it was bound, which is not below its box grade `(Beat, [0, 0], [2.2, 2.5], [0, 2.5])`
+    File "recursion_closure_reject_inter_arrival.tpe", line 29, characters 48-49:
+    29 |   box (Beat, [0, 0], [2.2, 2.5], [0, 2.5]) 7 as x in
+                                                         ^
+    `x` is bound here
+    File "recursion_closure_reject_inter_arrival.tpe", line 30, characters 2-9:
+    30 |   beats 3;
+           ^^^^^^^
+    grade `{skip | (Beat; 2)^[1, ∞)}` accumulates here (this computation)
+    Note: the resource inequality `{skip | (Beat; 2)^[1, ∞)} <= (Beat, [0, 0], [2.2, 2.5], [0, 2.5])` does not hold
+    Note: the grade `⟨Beat: active ([0, 0], [2.1, 2.5], [2.1, 2.5]); _: silent [0, ∞)⟩` is below `{skip | (Beat; 2)^[1, ∞)}` but not below `(Beat, [0, 0], [2.2, 2.5], [0, 2.5])`
+  ======================================================================
   recursion_closure_reject_interval.tpe
   ======================================================================
   File "recursion_closure_reject_interval.tpe", line 18, characters 11-29:

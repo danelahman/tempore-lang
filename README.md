@@ -1546,6 +1546,17 @@ let rec heartbeat n : unit ! (Beat, [0, 0], [0, 5], [0, 5]) =
 is accepted, as a round takes at most 3.5, while a second `perform Work ()`
 would be rejected, as a gap may then be 6.5.
 
+The closure of a grade, the least grade above it that absorbs its square, is
+taken operation by operation. Its counts keep their lower ends and lose their
+upper ends. The silent durations lose their upper ends unless they are 0, and
+any number of them is added to the lead time and to the tail. The tail, silent
+durations and the lead time together form a further gap. The total duration
+loses its upper end unless it is 0. A recursive function whose effect is
+annotated by a grade variable `'e` (see [Annotations](#annotations)) and whose
+rounds perform `Beat` and then `delay 2` has the grade
+`{skip | (Beat; 2)^[1, ∞)}`, its gaps in `[2.1, 2.5]`. A closure is printed as
+`{r^[1, ∞)}`, which does not read back.
+
 Counts add under sequencing, so they suit bounded durations, such as a box held
 over exactly one new reading, and not loop invariants, which carry no count.
 Unlike `at-most-counts`, which bounds the numbers of calls from above,

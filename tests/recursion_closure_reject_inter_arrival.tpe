@@ -1,0 +1,32 @@
+(* Run this test with the 'inter-arrival' grade algebra, e.g.
+
+     ./tempore --grades inter-arrival \
+       tests/recursion_closure_reject_inter_arrival.tpe
+
+   A recursive function each of whose rounds performs Beat and waits 2: the
+   grade accumulated by a call of it is {skip | (Beat; 2)^[1, ∞)}, the unit
+   joined with the closure of {Beat; 2}. Its Beats start at once, and its gaps
+   and its tail are a running time of Beat and the delay, in [2.1, 2.5]. *)
+
+operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]
+default Beat () = delay 0.2
+
+let rec beats (n : nat) : unit ! 'e =
+  match n with 0 -> () | m + 1 -> (perform Beat (); delay 2; beats m)
+
+(* Accepted: the box admits gaps in [2.1, 2.5], no time before the first Beat
+   and a tail of at most 2.5. *)
+let paced () =
+  box (Beat, [0, 0], [2.1, 2.5], [0, 2.5]) 7 as x in
+  beats 3;
+  unbox x as n in
+  n
+
+(* Correctly rejected by the typechecker: the box admits no gap shorter than
+   2.2, while a Beat of running time 0.1 and the delay of 2 make a gap of
+   2.1. *)
+let too_tight () =
+  box (Beat, [0, 0], [2.2, 2.5], [0, 2.5]) 7 as x in
+  beats 3;
+  unbox x as n in
+  n
