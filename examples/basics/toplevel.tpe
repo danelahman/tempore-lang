@@ -23,7 +23,7 @@ let swap = function
 
 (* Correctly accepted by the typechecker: a recursive left fold. The empty case
    takes no time and the recursive case at least the time of one call of 'f'.
-   The effect of 'foldl' is the unit, the top under lower bounds, so 'foldl'
+   The effect of 'foldl' is the unit, the top under these grades, so 'foldl'
    also accepts a delaying function. *)
 let rec foldl f acc = function
   | []      -> acc

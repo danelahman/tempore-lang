@@ -1670,9 +1670,10 @@ eternal types are eternal; function, handler, and box types are not.
 
 A local variable of a non-eternal type may be used only while the grade
 accumulated since its binding is a sub-grade of the unit. Where the unit is the
-top, as under the lower bounds and `at-least-counts`, this always holds. Under
-the other grade algebras such a variable must be used before any nontrivial delay or
-operation call.
+top, as under the lower bounds on time, the lower bounds on traces and regular
+expressions with banked delays, and `at-least-counts`, this always holds. Under
+the other grade algebras such a variable must be used before any nontrivial
+delay or operation call.
 
 ### Type schemes and qualifiers
 
@@ -1768,8 +1769,9 @@ An operation case is typed with the top grade `⊤` accumulated for the variable
 bound outside it, because operation cases need to be executable anywhere in
 the computation tree when handling.
 
-- Where the top is the unit, as under the lower bounds and `at-least-counts`,
-  this restricts nothing.
+- Where the top is the unit, as under the lower bounds on time, the lower
+  bounds on traces and regular expressions with banked delays, and
+  `at-least-counts`, this restricts nothing.
 - Under the other grade algebras an outer variable of non-eternal type,
   including an outer continuation, cannot be used in the case, and an outer box
   can be unboxed only if `⊤` is below its grade.

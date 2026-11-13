@@ -1,4 +1,4 @@
-(* A medication schedule in hours, with doses due within fractional windows.
+(* A medication schedule in hours, with doses due after fractional delays.
 
    Run this example with the 'time-interval-rational' grade algebra, e.g.
 
