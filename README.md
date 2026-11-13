@@ -1422,8 +1422,7 @@ An operation names itself: `{Log}` in every mode, `({Take}, Cold, Out)` from
 specification `(From, To, (M, [lo, hi]), …, [lo, hi])` bounds the time in each
 listed mode and, by a bare interval, the total; the modes not named are
 written `_` as in `mode-switch-costs`, and `(_, [lo, hi])` bounds the time in
-each of them. A number `d` or an interval is a delay. Unlike those of
-`mode-switch-costs`, these grades declare no closures.
+each of them. A number `d` or an interval is a delay.
 
 For example, where taking an enzyme out of the cold block takes 1 to 2
 minutes and a pipetting 3 to 5, the program
@@ -1444,6 +1443,15 @@ is accepted, as the enzyme is out of the cold block at most 10 minutes, the
 taking counted in the cold block, while a second pipetting would be rejected,
 as the enzyme may then be out for 15. See
 [`examples/opentrons/enzyme.tpe`](examples/opentrons/enzyme.tpe).
+
+As in `mode-switch-costs`, every grade has a closure, the least grade above it
+that absorbs its square. A call of a recursive function whose effect is
+annotated by a grade variable `'e` (see [Annotations](#annotations)) and whose
+rounds perform the body of `round` has a grade below
+`((Cold, Cold, (_, 0)), (Out, Out, 0), (Out, Stuck, 0), (_, _, 0), (_, Stuck, 0))`:
+from the cold block it ends there, spending no time in a third mode, and from
+any other mode it keeps the mode or gets stuck, at no time. A closure is
+printed `(x)^[1, ∞)`, which does not read back.
 
 See
 [`examples/modes/mode_switch_costs.tpe`](examples/modes/mode_switch_costs.tpe).
