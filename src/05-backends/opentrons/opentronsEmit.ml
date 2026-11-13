@@ -411,8 +411,8 @@ and subject ctx st e =
       let s, st = fresh "s" st in
       (st, defs @ [ Line (s ^ " = " ^ e') ], s)
 
-(* The cases of a match, each in a block; in a match nested in more than
-   [max_depth] cases, the computation of each case is lifted. *)
+(* The cases of a match, each in a block; in a match nested in [max_depth]
+   cases or more, the computation of each case is lifted. *)
 and match_cases ctx st e cases =
   let st, defs, path = subject ctx st e in
   let case_ctx = { ctx with depth = ctx.depth + 1 } in

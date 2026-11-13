@@ -337,7 +337,7 @@ let error_number_attrs ~hovered ~described i (error : Model.load_error) =
     ]
 
 (* What the [i]th error marks in the editor: its primary span, whose lines the
-   gutter numbers in red, and, under [with_labels], each of its labels, the
+   gutter numbers in red, or in amber for a warning, and, under [with_labels], each of its labels, the
    hovered one brightened. Standard-library spans mark nothing. [popover] is
    the target of the open popover. *)
 let marks_of_error ~hovered ~with_labels ~popover i (error : Model.load_error) =

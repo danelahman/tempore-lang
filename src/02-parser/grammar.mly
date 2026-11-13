@@ -894,9 +894,9 @@ grade_lit:
 
 (* An interval of grade literals, each finite endpoint closed or open and each
    infinite one open: [[n, m]], [[n, m)], [(n, m]], [[n, ∞)], [(-∞, m]],
-   [(-∞, m)] or [(-∞, ∞)]. An open interval [(n, m)] of finite endpoints is
-   the tuple [(n, m)], which the grades that read intervals of numbers read as
-   such. Any other bracketing of two endpoints is a syntax error. *)
+   [(-∞, m)] or [(-∞, ∞)]. An open interval [(n, m)] or [(n, ∞)] is the tuple
+   of its endpoints, which the grades that read intervals of numbers read as
+   such. *)
 interval_lit:
   | LBRACK ends = separated_nonempty_list(COMMA, endpoint) RBRACK
     { interval ~loc:(location $loc)
