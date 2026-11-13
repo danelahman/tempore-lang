@@ -125,8 +125,8 @@ let help_width = 80
 (* The accepted grades, one per line and grouped as the web selector groups
    them, each with its title in a column after the longest name and, for a
    regular grade, its representation and inclusion test on an indented line
-   below; indented to align under the "--grades" entry of [Arg]'s aligned
-   option list. *)
+   below; indented beneath the "--grades" entry of [Arg]'s aligned option
+   list. *)
 let accepted_grades_help =
   let listed = Grades.GradeRegistry.listed in
   let width =

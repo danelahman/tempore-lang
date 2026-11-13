@@ -1293,11 +1293,11 @@ module Make (C : Constraint.S) = struct
      ({!Entail.Make.SORT.follows_atomic}), decisions being monotone in them.
      At an unknown [v], lowering turns [x ≾ v ≾ y] into [x ≾ y] or drops it,
      raising turns [x ≾ v ≾ U] into [x ≾ U], equating with [b] turns [x ≾ v]
-     into [x ≾ b] and [v ≾ y] into [b ≾ y], and steps drop orderings: no step
-     adds a chain but an equating one to a single atom [b] without [v ≾ b],
-     or [b ≾ v], assumed, and a step to the unit, which writes the orderings
-     it changes canonically. An equating test that failed thus fails after
-     any other step, unless the atoms of its unknown changed. *)
+     into [x ≾ b] and [v ≾ y] into [b ≾ y], and steps drop orderings. A step
+     adds a chain only when it equates with a single atom [b] without
+     [v ≾ b], or [b ≾ v], assumed, or when it goes to the unit, which writes
+     the orderings it changes canonically. A failed equating test is taken
+     again only at an unknown whose atoms a step changes, adds or drops. *)
   let eliminate context ~fixed ty hyps =
     let candidates = unknowns fixed ty hyps in
     let env = { context; fixed; candidates; tested = tested candidates } in

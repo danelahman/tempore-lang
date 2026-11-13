@@ -902,8 +902,7 @@ let onescape_popover (model : Model.model) =
         (field "key" String))
 
 (* The gutter of a text of [lines] lines: a small inset, the line numbers
-   (0.558rem a digit at the editor's 0.9rem) and a gap; in rem so the marker's
-   smaller font can use it. *)
+   (0.558rem a digit at the editor's 0.9rem) and a gap, in rem. *)
 let gutter lines =
   Printf.sprintf "calc(0.36rem + %d * 0.558rem + 0.63rem)"
     (String.length (string_of_int lines))

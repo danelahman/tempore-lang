@@ -192,7 +192,7 @@ module Make (C : Constraint.S) : sig
     eternal : Ast.ty_param -> bool;
         (** whether a type unknown is entailed eternal at this stage *)
     refute : bool;
-        (** whether a grade refuted below the unit by the zero-product law
+        (** whether a grade refuted below the unit by the unit-product law
             ({!Entail.Make.SORT.refute_leq_unit}) settles the disjunction by
             eternality *)
   }

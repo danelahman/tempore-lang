@@ -90,7 +90,7 @@ module Make (X : GradeExp.S) : sig
     val refute_leq_unit : Grades.Grade.bounds -> exp -> bool
     (** [refute_leq_unit bounds e] is whether some alternative of the normal
         form of [e] has a constant factor not below the unit, so that by the
-        zero-product law no instance of [e] is below the unit
+        unit-product law no instance of [e] is below the unit
         ({!GradeNormal.Make.SORT.refute_leq_unit}). *)
   end
 

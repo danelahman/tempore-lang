@@ -143,5 +143,5 @@ val files_for :
 (** [files_for ~grades ?board package] is the files of [package] that precede a
     program under the grade algebra named [grades]: its definitions, if any, and
     its declarations under [grades], with the running-time bounds of the board
-    named [board] ({!running_times}); an error message if it has none under
+    named [board] ({!val-running_times}); an error message if it has none under
     [grades]. *)

@@ -999,8 +999,9 @@ module Make (C : Constraint.S) = struct
     | None -> invalid_arg ("Generate.delay: " ^ Grades.Rational.show q)
 
   (* The kind of the lock a [Do] puts in the context and the grade its bound
-     computation declares: the desugarer turns [delay q; c] and
-     [perform Op e; c] into [Do]s bound to exactly these. *)
+     computation declares: the desugarer turns [delay q; c], and
+     [perform Op e; c] whose argument [e] is a value, into [Do]s bound to
+     exactly these. *)
   let sequenced_kind env (comp : computation) =
     match comp.Ast.it with
     | Ast.Delay (q, { it = Ast.Return _; _ }) ->

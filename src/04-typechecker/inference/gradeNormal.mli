@@ -146,13 +146,13 @@ module Make (X : GradeExp.S) : sig
 
     val decide_leq_atomic_indexed :
       Grades.Grade.bounds -> 'a index -> exp -> exp -> 'a list option
-    (** [decide_leq_atomic_indexed bounds index e e'] succeeds exactly where
-        {!decide_leq_atomic} at the hypotheses of [index] does, possibly with
-        another derivation. The chains are found by breadth-first search along
-        the hypotheses of the variables met, forward from a variable and
-        backward to the target from a constant; all hypotheses are read only
-        where a search meets a constant. Applied to [bounds] and [index] alone,
-        each search runs once and is shared by the orderings decided. *)
+    (** [decide_leq_atomic_indexed bounds index e e'] is the embedding of
+        {!decide_leq_atomic} at the hypotheses of [index], its chains between
+        atoms found by breadth-first search along the hypotheses of the
+        variables met, forward from a variable and backward to the target from a
+        constant; all hypotheses are read only where a search meets a constant.
+        Applied to [bounds] and [index] alone, each search runs once and is
+        shared by the orderings decided. *)
 
     val split :
       Grades.Grade.bounds -> (exp, 'a) ordering -> (exp, 'a) ordering list
@@ -209,7 +209,7 @@ module Make (X : GradeExp.S) : sig
     val refute_leq_unit : Grades.Grade.bounds -> exp -> const option
     (** [refute_leq_unit bounds e] is [Some c] when some alternative of the
         normal form of [e] has a constant factor [c] not below the unit, so that
-        by the zero-product law no instance of [e] is below the unit, and [None]
+        by the unit-product law no instance of [e] is below the unit, and [None]
         otherwise. *)
   end
 

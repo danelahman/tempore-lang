@@ -64,4 +64,4 @@ val defaults : entry list -> string list -> (string * string) list
 
     Raises [Failure] unless every path names one of [entries], no two name
     examples of one backend and one names an example of
-    {!BackendRegistry.default}. *)
+    {!BackendRegistry.val-default}. *)

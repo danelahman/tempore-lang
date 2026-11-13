@@ -75,7 +75,7 @@ val protocol :
 
     The errors are the names the binding file must not define, a missing
     [setup], and each operation that the code of a [run] command may perform
-    ({!OpentronsReach.run_operations}) that has no binding function and no
+    ({!OpentronsReach.val-run_operations}) that has no binding function and no
     default implementation declared above the run and that no handler in the
     run's code has a case for. Such an operation that a handler in the run's
     code does have a case for is a warning instead if it is atomic, since the
