@@ -21,7 +21,7 @@ Colours: time blue `#3298dc`, ink `#24292e`, ring track `#cfe6f8` (dark
 variant: paper `#fbfaf7`, track `#4b5563`). The blue is the `is-info` blue of
 the Bulma stylesheet the web interface uses, e.g. for its run button.
 
-All SVGs use a `0 0 200 200` view box and scale freely.
+These SVGs use a `0 0 200 200` view box and scale freely.
 
 The mark with the name *Tempore*, set in Inter SemiBold (SIL Open Font
 License) and converted to outlines, for use outside the web interface:
