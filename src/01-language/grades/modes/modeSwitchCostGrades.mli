@@ -52,5 +52,12 @@ module ModeSwitchCosts : Grade.S with type Delay.t = Delay.Nat.t
       mode from which it is the only trace, where another entry names the mode;
       the grade stuck at cost [0] from every mode is printed
       [(Stuck, Stuck, 0)]. Every printed grade reads back as itself.
+    - [plus] is the closure of every grade [a], the least grade above [a] that
+      absorbs its square: [(1 ⊔ b) · s · b] by {!ModeMatrices.Make.plus}, [b]
+      joining the powers [a], [a · a], …, [a^(k+1)] with [k] four more than the
+      number of modes [a] names, and [s] keeping each mode [p] at the star of
+      the cost of [b] from [p] to [p], [0] for none and [0], and [∞] otherwise.
+      The closure costs [∞] between two modes wherever a trace between them
+      passes a loop of positive cost.
     - No counterexample is offered, and the witnesses are the constants and
       their pairwise products, and partial. *)

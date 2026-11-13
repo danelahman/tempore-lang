@@ -4147,8 +4147,12 @@ let inter_arrival_closures =
    not named, the unit and the top, and the products and joins of the partial
    operations and changes of mode. Besides, the product of two partial
    operations; the totality of the products, a grade [x] having a trace from
-   every mode iff [(Stuck, Stuck, 0) ≾ x · (Stuck, Stuck, 0)]; and the reading
-   back of the printed grades. *)
+   every mode iff [(Stuck, Stuck, 0) ≾ x · (Stuck, Stuck, 0)]; the reading
+   back of the printed grades; the closures of grades naming no mode, one
+   mode, two modes and five modes in a chain, of loops of positive cost and of
+   cost [0], and of changes into [Stuck], each printed and equal to the
+   closure computed by hand; and the closure laws on the samples and their
+   closures. *)
 let mode_laws =
   let module M = Grades.ModeSwitchCostGrades.ModeSwitchCosts in
   let open Grade in
@@ -4204,6 +4208,49 @@ let mode_laws =
     | Error _ -> false
   in
   let context = "mode-switch costs" in
+  let read text =
+    let module R = Reader (M) in
+    match R.parse text with
+    | Ok x -> x
+    | Error e -> failwith ("mode-switch-costs: " ^ text ^ ": " ^ e)
+  in
+  let closure_cases =
+    List.concat_map
+      (fun (x, expected) ->
+        let name = "mode-switch-costs: the closure of " ^ x in
+        match M.plus (read x) with
+        | None -> [ check name false "none declared" ]
+        | Some p ->
+            [
+              expect name Fun.id ~expected (M.show p);
+              check
+                (name ^ " computed by hand")
+                (M.equal bounds p (read expected))
+                (M.show p);
+            ])
+      [
+        ("0", "0");
+        ("1", "∞");
+        ("(Stuck, Stuck, 0)", "(Stuck, Stuck, 0)");
+        ("(On, On, 0)", "(On, On, 0)");
+        ("(On, On, 4)", "(On, On, ∞)");
+        ("(Off, On, 2)", "((Off, On, 2), (Off, Stuck, 2))");
+        ("((On, On, 2), (On, Stuck, 0))", "((On, On, ∞), (On, Stuck, ∞))");
+        ( "((Off, Off, 0), (Off, On, 2))",
+          "((Off, Off, 0), (Off, On, 2), (Off, Stuck, 2))" );
+        ( "((On, Off, 1), (Off, On, 1))",
+          "((Off, Off, ∞), (Off, On, ∞), (On, Off, ∞), (On, On, ∞))" );
+        ( "((On, On, 2), (_, _, 1), (_, Stuck, 0))",
+          "((On, On, ∞), (_, _, ∞), (_, Stuck, ∞))" );
+        ("((On, _, 1), (_, On, 2), (_, ≠, ∞))", "((_, _, ∞), (_, ≠, ∞))");
+        ( "((A, B, 1), (B, C, 2), (C, D, 3), (D, E, 4))",
+          "((A, B, 1), (A, C, 3), (A, D, 6), (A, E, 10), (A, Stuck, 10), (B, \
+           C, 2), (B, D, 5), (B, E, 9), (B, Stuck, 9), (C, D, 3), (C, E, 7), \
+           (C, Stuck, 7), (D, E, 4), (D, Stuck, 4))" );
+        ("⊤", "⊤");
+      ]
+  in
+  let closed = samples @ List.filter_map M.plus samples in
   [
     expect "mode-switch-costs: a partial operation, then another" Fun.id
       ~expected:"(On, Stuck, 4)"
@@ -4218,6 +4265,8 @@ let mode_laws =
     all "mode-switch-costs: printed grades read back" M.show reads_back
       (samples @ List.concat_map (fun x -> List.map (M.mul x) samples) samples);
   ]
+  @ closure_cases
+  @ closure_laws (module M) ~context bounds closed
   @ order_laws (module M) ~context bounds samples
   @ algebra_laws (module M) ~context bounds samples
   @ of_delay_laws (module M) bounds ()

@@ -153,6 +153,28 @@ module Make (E : ENTRY) = struct
       (cases (modes_of m m'))
 
   let equal m m' = leq m m' && leq m' m
+  let unit = make [] (fun p q -> if String.equal p q then E.one else E.zero)
+
+  (* The diagonal matrix giving each mode other than [stuck] the [star] of the
+     entry of [m] from that mode to itself. *)
+  let stars star m =
+    make m.modes (fun p q ->
+        if String.equal p q then star (entry m p p) else E.zero)
+
+  (* [powers a k] is [a ⊔ a² ⊔ … ⊔ a^(k+1)], iterating [b ↦ a ⊔ a · b] from
+     [a] [k] times or until a fixed point. *)
+  let powers a k =
+    let rec iterate b k =
+      if k = 0 then b
+      else
+        let b' = join a (mul a b) in
+        if equal b' b then b else iterate b' (k - 1)
+    in
+    iterate a k
+
+  let plus ~star a =
+    let b = powers a (4 + List.length a.modes) in
+    mul (mul (join unit b) (stars star b)) b
 
   let compare m m' =
     let entries compare_key =

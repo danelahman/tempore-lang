@@ -226,6 +226,12 @@ let show m =
 
 let is_top m = equal top m
 
+(** [star c] is the least cost above [Cost 0] and [c] closed under addition:
+    [Cost 0] for [No_trace] and [Cost 0], and [Unbounded] otherwise. *)
+let star = function
+  | No_trace | Cost 0 -> Cost 0
+  | Cost _ | Unbounded -> Unbounded
+
 module Make (D : Delay.S) = struct
   type nonrec t = t
 
@@ -245,7 +251,7 @@ module Make (D : Delay.S) = struct
   let hash = hash
   let counterexample _bounds _ _ = None
   let unit_least = false
-  let plus _ = None
+  let plus c = Some (Matrices.plus ~star c)
   let commutative = false
   let needs_op_bounds = false
   let duration_ends = Grade.Both_ends
