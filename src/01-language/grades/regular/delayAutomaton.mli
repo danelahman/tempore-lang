@@ -40,8 +40,8 @@
     partition refinement), the labels of the transitions from a state to the
     same state merged, the transitions of a state ordered by their labels and
     the states numbered in the breadth-first order of their discovery from the
-    start. Two automata denote the same language iff they are equal, which
-    {!equal}, {!compare} and {!hash} read.
+    start. Two automata, their labels in normal form, denote the same language
+    iff they are equal, which {!equal}, {!compare} and {!hash} read.
 
     The results of the binary constructions and of {!counterexample} are
     recorded in module-level tables by their arguments, which only ever grow;

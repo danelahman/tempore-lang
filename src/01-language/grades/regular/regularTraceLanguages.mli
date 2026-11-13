@@ -84,11 +84,11 @@
     [{n}], and [⊤] (ASCII [top]) is [Σ*]. A literal denoting the empty language
     is rejected, since grades are non-empty.
 
-    Every implementation of the grade, and those of {!BankedRegexGrades}, reads
-    an interval atom [[n, m]] in time quadratic in [m - n]: under
-    ["regular-trace-languages-symbolic"], [{Read; [10000, 30000]}] takes about a
-    minute. {!Grade.S.accepts} decides a literal free of intersections and
-    complements without reading it.
+    The implementations ["regular-trace-languages-symbolic"] and
+    ["regular-trace-languages-letter-automata"] of the grade, and the symbolic
+    and letter-automata ones of {!BankedRegexGrades}, read an interval atom
+    [[n, m]] in time quadratic in [m - n]. {!Grade.S.accepts} decides a literal
+    free of intersections and complements without reading it.
 
     {2 Running-time bounds}
 

@@ -69,8 +69,8 @@ type view =
   | Compl of t
   | Star of t
   | Repeat of t * Count.t
-      (** Bounded repetition [r^c], as in {!SymbolicRegex.S.view}, [r] no atom
-      *)
+      (** Bounded repetition [r^c], as in {!SymbolicRegex.S.type-view}, [r] no
+          atom *)
 
 val view : t -> view
 

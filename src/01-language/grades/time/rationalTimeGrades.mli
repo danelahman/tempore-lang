@@ -16,10 +16,9 @@
     The witnesses of the finite constants of a condition are those of
     {!Delay.Rational}, with [∞] for the upper bounds; for the intervals the
     lower-bound witnesses are paired with [∞] and [0] with the upper-bound ones,
-    all closed. They are complete for a condition in one rigid, the rigid and
-    the constants ranging over the bounds and intervals open or closed at their
-    finite ends: an ordering that fails at an open end [q] fails at [q] closed
-    or at a closed witness next to it. *)
+    all closed: for a finite constant [q], [q] itself and the closed ends of the
+    cells of the delay witnesses next to it. They are reported complete for a
+    condition in one rigid when those of {!Delay.Rational} are. *)
 
 module LowerBound : TimeGrades.DURATIONS with type Delay.t = Delay.Rational.t
 (** Lower bounds, ["time-lower-bound-rational"]: [q] and [\[q, ∞)] are "at least

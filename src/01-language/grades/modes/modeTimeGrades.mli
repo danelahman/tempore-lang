@@ -34,7 +34,7 @@
     other than [Stuck] has a positive upper end of its total time, where every
     running-time bound has a positive upper end, as the typechecker requires.
     These properties are closed under the product and the join, and they give
-    the zero-product law: if [x · y ≾ 1], then [x] changes no mode, gets stuck
+    the unit-product law: if [x · y ≾ 1], then [x] changes no mode, gets stuck
     from none and spends no time, hence [x ≾ 1] and [y ≾ 1]. The laws hold up to
     equality under the running times, the product and the join being formal
     ({!section-representation}).

@@ -85,7 +85,7 @@ module Letters = Letters
 type letters =
   | Sets
       (** Letter sets, the letter sets among the operands of a union being
-          merged into their union: the predicates of RE#. *)
+          merged into their union. *)
   | Atoms
       (** Single letters: [tick], a name, or a catch-all letter given as a set
           {!Letters.others}; a union of letters is a union of expressions, and
@@ -218,9 +218,7 @@ module type S = sig
       of [r], the sequence of its derivatives by [tickʲ], [j ≥ 0], explored up
       to [k], an expression of lead [l ≥ 1] by its leap by [l] and any other by
       its derivative, and eventually periodic, [k] being reduced modulo its
-      period once its cycle is found. It is the normal form of [k] derivatives
-      on runs, concatenations led by runs, repetitions of runs and complements
-      of these, and denotes the same language elsewhere. *)
+      period once its cycle is found. *)
 
   (** {1 Gap derivatives}
 

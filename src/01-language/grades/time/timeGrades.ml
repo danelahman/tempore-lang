@@ -182,11 +182,11 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let is_atomic _name _ = true
     let show c = if c.lo_closed then D.show c.lo else "(" ^ D.show c.lo ^ ", ∞)"
 
-    (* The ends are compared, multiplied and joined as cuts, so the closed
-       witnesses of the delays suffice: an open end [(q] acts as the limit of
-       the closed ones [\[x] as [x] decreases to [q], so an ordering that fails
-       at an open end fails at [q] itself or at the closed ends of the cell of
-       the delay witnesses next to [q], where both sides are affine. *)
+    (* The ends are compared, multiplied and joined as cuts. The witnesses are
+       the closed ends [\[x], [x] a witness of the delays: for a finite
+       constant [q], [\[q] itself and the closed ends of the cells of the
+       delay witnesses next to [q]. The completeness reported is that of the
+       delays. *)
     let witnesses ~degree _bounds cs =
       let ds, completeness =
         D.witnesses ~degree (List.map (fun c -> c.lo) cs)
@@ -287,11 +287,10 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
 
     (* A piece of an expression with an infinite constant is constantly [∞],
        so the witnesses of the finite constants decide the finite rigids, and
-       [∞] the infinite one. The closed witnesses suffice: an open end [q)]
-       acts as the limit of the closed ones [x\]] as [x] increases to [q], so
-       an ordering that fails at an open end fails at [q] itself or at the
-       closed ends of the cell of the delay witnesses next to [q], where both
-       sides are affine. *)
+       [∞] the infinite one. The finite witnesses are the closed ends [x\]],
+       [x] a witness of the delays: for a finite constant [q], [q\]] itself
+       and the closed ends of the cells of the delay witnesses next to [q].
+       The completeness reported is that of the delays. *)
     let witnesses ~degree _bounds cs =
       let finite, completeness =
         D.witnesses ~degree (List.filter_map (fun c -> Ext.to_fin c.hi) cs)

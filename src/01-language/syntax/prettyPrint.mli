@@ -98,7 +98,8 @@ val print_pattern :
   ?max_level:int -> ('a Ast.rho, 'eps) Ast.pattern -> Format.formatter -> unit
 (** Prints a pattern, with the parentheses the precedences of the patterns
     require: by decreasing precedence, application of a constructor (level 1),
-    successor patterns (2), cons (3), tuples (4) and [as] (5). *)
+    successor patterns (2), cons (3) and [as] (5). Tuples are always
+    parenthesised. *)
 
 val print_expression :
   ?abbreviated:bool ->

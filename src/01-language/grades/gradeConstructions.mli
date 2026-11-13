@@ -158,7 +158,7 @@ end
     - (A5) [act] is monotone in both arguments;
     - (A6) [m ≾ M.one] and [act m n ≾ ⊥] imply [n ≾ ⊥].
 
-    A1–A5 give every law but the right half of the zero-product law, which A6
+    A1–A5 give every law but the right half of the unit-product law, which A6
     gives; A6 holds if [M.one] is least in [M] or if no [act m] sends an element
     other than [⊥] to [⊥].
 

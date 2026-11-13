@@ -17,8 +17,8 @@
     - [mul] is associative, with unit [one];
     - [leq] is a preorder, whose equivalence is [equal];
     - [mul] is monotone in both arguments;
-    - the unit has the zero-product property: [c · d ≾ one] implies [c ≾ one]
-      and [d ≾ one];
+    - for the instances of {!GradeRegistry}, the unit has the unit-product
+      property: [c · d ≾ one] implies [c ≾ one] and [d ≾ one];
     - [join] is a least upper bound and [top] a greatest element;
     - [mul] distributes over [join] on both sides: [c · (d ⊔ e) = c · d ⊔ c · e]
       and [(d ⊔ e) · c = d · c ⊔ e · c];
@@ -161,7 +161,7 @@ module type S = sig
   (** The name of the grade, e.g. ["time-interval"]. *)
 
   val one : t
-  (** The unit [u] of {!mul}. *)
+  (** The unit [u] of {!val-mul}. *)
 
   val mul : t -> t -> t
   (** The monoid product [_·_]. *)
@@ -171,7 +171,7 @@ module type S = sig
       [bounds]. *)
 
   val leq_symbol : string
-  (** The notation for {!leq} in printed inequalities. *)
+  (** The notation for {!val-leq} in printed inequalities. *)
 
   val top : t
   (** The greatest grade [⊤]. *)
@@ -216,10 +216,10 @@ module type S = sig
       witness. *)
 
   val unit_least : bool
-  (** Whether {!one} is the least grade. *)
+  (** Whether {!val-one} is the least grade. *)
 
   val commutative : bool
-  (** Whether {!mul} is commutative. *)
+  (** Whether {!val-mul} is commutative. *)
 
   val needs_op_bounds : bool
   (** Whether operation signatures must carry their running-time bounds
@@ -246,14 +246,14 @@ module type S = sig
       end is infinite where the durations of the upper-bound component are
       unbounded, and the interval is [None] where either component denotes no
       trace. For a product it is the intersection of those of its components
-      ({!intersect_durations}). It is [None] for the grades that do not bound
+      ([intersect_durations]). It is [None] for the grades that do not bound
       durations. *)
 
   val vacuous : bounds -> t -> string option
   (** [vacuous bounds rho] is the reason the grade [rho] admits no run of the
       operations of [bounds], completing the sentence "the grade [rho] ...":
-      {!no_trace} if it, or one end of an interval, denotes no trace, and
-      {!no_common_run} if no run meets both ends of an interval. It is [None] if
+      [no_trace] if it, or one end of an interval, denotes no trace, and
+      [no_common_run] if no run meets both ends of an interval. It is [None] if
       [rho] admits a run; the typechecker rejects the grades of a program for
       which it gives a reason. It is [None] for every grade whose meaning does
       not depend on the declared operations. *)
@@ -300,9 +300,9 @@ module type S = sig
       ranging over the list, and its completeness: [Complete] when [O] holding
       at every witness implies [∀j. O]. A condition is an ordering between
       expressions built from the constants, [j], products and joins, [j]
-      occurring at most [degree] times on either side. The solver adds {!one},
-      {!val-top} and, where the delays read the literal [1], its grade to the
-      list. *)
+      occurring at most [degree] times on either side. The solver adds
+      {!val-one}, {!val-top} and, where the delays read the literal [1], its
+      grade to the list. *)
 end
 
 val read_bound : (lit -> 'a option) -> Rational.t -> 'a

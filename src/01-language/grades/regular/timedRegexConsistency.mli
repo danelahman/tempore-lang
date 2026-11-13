@@ -6,9 +6,9 @@
     word occur in it at the same time spans, in order, and every other operation
     of the run lies in stretches of the word whose sets contain it, the idle
     waits of the word holding waiting only (the order of {!TimedRegexOrder}).
-    The sets of exact words of both bounds are closed downwards, so an interval
-    [[L, U]] is consistent iff the two sets meet, iff some run fits a word of
-    each.
+    The order reads each bound by the downward closure of its exact words, so
+    [[L, U]] is consistent iff the two closures meet, iff some run fits a word
+    of each.
 
     Consistency concerns words, not programs: with [A] within [[1, 3]], the
     interval [[{(≥2 & A)}, {A}]] is consistent, by the run performing [A] for

@@ -48,7 +48,7 @@ end
     nothing. Its literals are integers and [∞]. The action is compatible with
     closures, and [plus] is the closure: [(d2, h)] is its own closure if
     [d2 ≤ 0], and has the closure [(∞, ∞)] otherwise, or [(∞, -∞)] if [h = -∞].
-    It is a component of {!OneResource}, and its unit lacks the zero-product
+    It is a component of {!OneResource}, and its unit lacks the unit-product
     property. *)
 module Upper :
   Grade.S with type t = bound * bound and type Delay.t = Delay.Nat.t
@@ -60,7 +60,7 @@ module Upper :
     literals are integers and [⊤], standing for [-∞]. [(d1, t)] is its own
     closure if [d1 ≥ 0], and has the closure [(-∞, -∞)] otherwise, or [(-∞, ∞)]
     if [t = ∞]. It is a component of {!OneResource}, and its unit lacks the
-    zero-product property. *)
+    unit-product property. *)
 module Lower :
   Grade.S with type t = bound * bound and type Delay.t = Delay.Nat.t
 

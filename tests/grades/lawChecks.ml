@@ -30,12 +30,12 @@ let first width xs = List.filteri (fun i _ -> i < width) xs
 
 (* [order_laws (module G) ~context bounds samples] checks the laws of a
    preorder with a monotone product, a join and a top, and, unless
-   [zero_product] is false, the zero-product law of the unit, on [samples]
+   [unit_product] is false, the unit-product law of the unit, on [samples]
    under [bounds], described by [context] in the reports; the leastness of the
    join on the pairs of the first [width] samples, and transitivity and
    monotonicity on the ordered pairs with a third among the first [thirds]
    samples, all by default. *)
-let order_laws (type a) ?(width = 8) ?thirds ?(zero_product = true)
+let order_laws (type a) ?(width = 8) ?thirds ?(unit_product = true)
     (module G : Grade.S with type t = a) ~context bounds (samples : a list) =
   let name law = G.name ^ ": " ^ law in
   let leq = G.leq bounds in
@@ -76,9 +76,9 @@ let order_laws (type a) ?(width = 8) ?thirds ?(zero_product = true)
       (fun (x, y) -> equal x y = (leq x y && leq y x))
       (pairs samples);
   ]
-  @ (if zero_product then
+  @ (if unit_product then
        [
-         all (name "zero product") show2
+         all (name "unit product") show2
            (fun (x, y) ->
              implies (leq (G.mul x y) G.one) (leq x G.one && leq y G.one))
            (pairs samples);

@@ -81,7 +81,7 @@ module Make (E : ENTRY) : sig
   (** A matrix. The entries that are {!E.zero} are omitted from the lists, and
       the entries name the modes named and the representatives of their
       positions. A mode whose entries are those of a mode not named is not
-      named, so that equal matrices have equal representations. *)
+      named. *)
 
   val entry : t -> string -> string -> E.t
   (** [entry m p q] is the entry of [m] from the mode [p] to the mode [q], the

@@ -11,9 +11,9 @@
     The witnesses of a closed condition are those the delays supply for its
     finite constants, with [∞] for the upper bounds, and for the intervals the
     lower-bound witnesses paired with [∞] and [0] paired with the upper-bound
-    ones, all closed. They are complete for a condition in one rigid when those
-    of the delays are, the rigid and the constants ranging over grades with open
-    or closed ends. *)
+    ones, all closed: for a finite constant [q], [q] itself and the closed ends
+    of the cells of the delay witnesses next to it. They are reported complete
+    when those of the delays are. *)
 
 (** A time grade read off an interval of durations. *)
 module type DURATIONS = sig

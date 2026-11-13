@@ -4366,7 +4366,7 @@ let peak_bounds =
 
 (* [half_laws (module H) changes] checks, on all the pairs of the net changes
    [changes] and the extremes [peak_bounds], the laws of the half [H] of the
-   watermark grades but the zero-product law, which it lacks; the laws of its
+   watermark grades but the unit-product law, which it lacks; the laws of its
    semilattice of extremes; and the laws A1-A6 of its action. *)
 let half_laws
     (module H : Grade.S with type t = Resources.bound * Resources.bound) changes
@@ -4376,7 +4376,7 @@ let half_laws
   in
   let width = List.length elements in
   let context = "all pairs of bounds from -2 to 2" in
-  order_laws ~width ~zero_product:false (module H) ~context bounds elements
+  order_laws ~width ~unit_product:false (module H) ~context bounds elements
   @ algebra_laws ~width (module H) ~context bounds elements
   @ declared_laws (module H) ~context bounds elements
   @ semilattice_laws ~width:(List.length peak_bounds)
