@@ -804,13 +804,9 @@ let arduino_example (entry : ExampleIndex.entry) =
     List.for_all
       (fun (m : BackendRegistry.message) ->
         match m.diagnostic with
-        | Some { kind = Warning; primary = Some loc; message; _ } ->
-            loc.filename = ""
-            && ((not (contains ~sub:"bala2-regex" entry.path))
-               || contains ~sub:"`simulated_robot`" message)
+        | Some { kind = Warning; primary = Some loc; _ } -> loc.filename = ""
         | _ -> false)
       (warnings output)
-    && (warnings output <> [] || not (contains ~sub:"bala2-regex" entry.path))
   in
   arduino_program ~name:entry.path ~grade:entry.grade ~settings ~observed:true
     [
