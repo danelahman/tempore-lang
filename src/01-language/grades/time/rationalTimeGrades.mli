@@ -17,8 +17,11 @@
     {!Delay.Rational}, with [∞] for the upper bounds; for the intervals the
     lower-bound witnesses are paired with [∞] and [0] with the upper-bound ones,
     all closed: for a finite constant [q], [q] itself and the closed ends of the
-    cells of the delay witnesses next to it. They are reported complete for a
-    condition in one rigid when those of {!Delay.Rational} are. *)
+    cells of the delay witnesses next to it. They are complete for a condition
+    in one rigid when those of {!Delay.Rational} are. At closed ends a condition
+    has one truth value between consecutive points of the grid of the delay
+    witnesses and beyond the greatest, and a condition that holds at the closed
+    ends next to an open end holds at that end. *)
 
 module LowerBound : TimeGrades.DURATIONS with type Delay.t = Delay.Rational.t
 (** Lower bounds, ["time-lower-bound-rational"]: [q] and [\[q, ∞)] are "at least

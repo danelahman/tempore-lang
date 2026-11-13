@@ -182,11 +182,29 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let is_atomic _name _ = true
     let show c = if c.lo_closed then D.show c.lo else "(" ^ D.show c.lo ^ ", ∞)"
 
-    (* The ends are compared, multiplied and joined as cuts. The witnesses are
-       the closed ends [\[x], [x] a witness of the delays: for a finite
-       constant [q], [\[q] itself and the closed ends of the cells of the
-       delay witnesses next to [q]. The completeness reported is that of the
-       delays. *)
+    (* The witnesses are the closed ends [\[x], [x] a witness of the delays:
+       for a finite constant [q], [\[q] itself and the closed ends of the cells
+       of the delay witnesses next to [q]. They are complete for a condition in
+       one rigid [j] when those of the delays are. An end is a delay with a
+       flag, closed or open, ordered as a cut, by the delay and, at equal
+       delays, with the closed end below the open one. The product adds the
+       delays, is open iff a factor is, and is monotone, and the join is the
+       lesser end. Each side of a condition is thus a minimum of ends
+       [c + a·j], [c] a product of constants. For a closed [j] the flags of
+       these ends do not depend on [j], two ends of equal slopes have equal
+       delays everywhere or nowhere, and two of different slopes only at a
+       point of the grid of the delay witnesses, none beyond its greatest point
+       ({!Delay.Rational}). The condition thus has one truth value on each open
+       cell of the grid and on the tail beyond it, and the witnesses include
+       the grid points, a point of each cell, and a point of the tail. An open
+       end [(t] is the infimum of the closed ends [\[t'], [t' > t]. The product
+       and the join are continuous along this limit and the order is closed
+       under it, so the condition holds at an open [j] if it holds on the cell
+       or the tail above [t]. For the intervals, the order, the product, and
+       the join are componentwise, and the witnesses pair every lower-bound
+       witness with [∞] and [0] with every upper-bound witness. Over whole
+       time steps every finite end is closed, and the witnesses are those of
+       the delays. *)
     let witnesses ~degree _bounds cs =
       let ds, completeness =
         D.witnesses ~degree (List.map (fun c -> c.lo) cs)
@@ -290,7 +308,12 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
        [∞] the infinite one. The finite witnesses are the closed ends [x\]],
        [x] a witness of the delays: for a finite constant [q], [q\]] itself
        and the closed ends of the cells of the delay witnesses next to [q].
-       The completeness reported is that of the delays. *)
+       They are complete when those of the delays are, by the argument for the
+       lower bounds with the flags ordered the other way. A closed end [m\]]
+       is above the open one, the join is the greater end, a side is a maximum
+       of ends, and an open end [t)], [t > 0], is the supremum of the closed
+       ends [t'\]], [t' < t], so the condition holds at an open [j] if it holds
+       on the cell below [t]. *)
     let witnesses ~degree _bounds cs =
       let finite, completeness =
         D.witnesses ~degree (List.filter_map (fun c -> Ext.to_fin c.hi) cs)

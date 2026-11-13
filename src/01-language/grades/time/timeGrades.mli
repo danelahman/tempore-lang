@@ -12,8 +12,11 @@
     finite constants, with [∞] for the upper bounds, and for the intervals the
     lower-bound witnesses paired with [∞] and [0] paired with the upper-bound
     ones, all closed: for a finite constant [q], [q] itself and the closed ends
-    of the cells of the delay witnesses next to it. They are reported complete
-    when those of the delays are. *)
+    of the cells of the delay witnesses next to it. They are complete for a
+    condition in one rigid when those of the delays are. At closed ends the
+    flags are fixed, so a condition changes its truth value only where the
+    delays of two ends meet, as over the delays alone, and a condition that
+    holds at the closed ends next to an open end holds at that end. *)
 
 (** A time grade read off an interval of durations. *)
 module type DURATIONS = sig
