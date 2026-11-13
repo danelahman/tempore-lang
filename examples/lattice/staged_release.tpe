@@ -347,8 +347,8 @@ let rec probe_with_retries_and_hotfixes (retries : nat) (attempt : nat)
 *)
 
 (* Correctly rejected by the typechecker: the hotfix is fetched after the
-   approval, and the approval is used afterwards. Under 'time-lower-bound'
-   the same function is accepted:
+   approval, and the approval is used afterwards. Under 'time-lower-bound',
+   with the elements dropped from the grades, the function is accepted:
 
      Typing error: Variable `approval` is used with grade `(2, High)`
        accumulated since it was bound, but its type `[(10, Low)]release` is not
@@ -368,8 +368,8 @@ let release_with_stale_approval (source : string) (version : nat)
 *)
 
 (* Correctly rejected by the typechecker: a handler that fetches a hotfix
-   for each host touches High before it resumes 'k'. Under
-   'time-lower-bound' the same handler is accepted:
+   for each host touches High before it resumes 'k'. Under 'time-lower-bound',
+   with the elements dropped from the grades, the handler is accepted:
 
      Typing error: Variable `k` is unboxed with grade `(6, High)` accumulated
        since it was bound, which is not below its box grade `(4, Low)`
