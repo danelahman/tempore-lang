@@ -578,8 +578,10 @@ Under both variants:
   braces group: `{Open; (Read | Write)*; Close}` is a file session,
   `{Open; (Read | skip); Close}` one that reads at most once, and
   `{~{_*; Revoke; _*}}` the traces that never revoke;
-- a grade is printed as it is written, and a grade the typechecker computes
-  with its runs of equal factors folded (below);
+- a grade is printed as it is written, up to the form of its numbers (`1/2`
+  as `0.5`, an open count or interval of whole ticks by its closed ends), and
+  a grade the typechecker computes with its runs of equal factors folded
+  (below);
 - the closure of a grade `L`, the least grade above `L` that absorbs its
   square, is `L; L*`: a recursive function whose effect is annotated by a
   grade variable `'e` (see [Annotations](#annotations)) and whose rounds read
@@ -1672,8 +1674,8 @@ A local variable of a non-eternal type may be used only while the grade
 accumulated since its binding is a sub-grade of the unit. Where the unit is the
 top, as under the lower bounds on time, the lower bounds on traces and regular
 expressions with banked delays, and `at-least-counts`, this always holds. Under
-the other grade algebras such a variable must be used before any nontrivial
-delay or operation call.
+the other grade algebras such a variable must be used before any delay or
+operation call whose grade is not a sub-grade of the unit.
 
 ### Type schemes and qualifiers
 
@@ -1797,9 +1799,10 @@ Where operations declare running-time bounds:
 - a default's grade must be a sub-grade of `{lo}` under lower bounds, `{hi}`
   under upper bounds, and `[{lo}, {hi}]` under intervals;
 - the running-time bounds its grade implies must moreover lie within the
-  declared ones, an open end excluded, so that with `A` declared
-  `within [1, 2)` the default `default A () = delay 2` is rejected under every
-  grade algebra whose operations declare running-time bounds.
+  declared ones, an open end excluded, the one-sided timed regex grades
+  checking only the end they bound. With `A` declared `within [1, 2)` the
+  default `default A () = delay 2` is thus rejected under every such grade
+  algebra but the timed regex lower bounds.
 
 Elsewhere a default's grade must be a sub-grade of the operation's grade. See
 [`examples/banked_traces/3d_printing.tpe`](examples/banked_traces/3d_printing.tpe).
@@ -1975,8 +1978,9 @@ arithmetic operators, the standard library provides
 #### Integers
 
 Integers, of type `int`, are unbounded and written with the suffix `i`: `3i`,
-`0x1fi`, and, as the negation of a literal, `-3i`; as in OCaml, `x -3i` is the
-subtraction `x - 3i`.
+`0x1fi`, and, as the negation of a literal, `-3i`. As in OCaml, `x -3i` is read
+as a subtraction, not as `x` applied to `-3i`, and the subtraction of integers
+is written `x -! 3i`.
 
 - Their operators are `+!`, `-!`, `*!`, `/!` and `mod!`, of the precedences
   of `+`, `-`, `*`, `/` and `mod`, and the negation `~-!`.
