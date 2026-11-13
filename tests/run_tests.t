@@ -4819,6 +4819,9 @@ it names none:
   recursion_closure_mode_switch_costs.tpe
   ======================================================================
   ======================================================================
+  recursion_closure_mode_times.tpe
+  ======================================================================
+  ======================================================================
   recursion_closure_reject_finite_run_sets.tpe
   ======================================================================
   File "recursion_closure_reject_finite_run_sets.tpe", line 22, characters 4-26:
@@ -4887,6 +4890,26 @@ it names none:
            ^^^^^^^^^^^^^^^^^^^
     grade `(On, Off, 1)` accumulates here (operation `RadioOff`)
     Note: the resource inequality `((Off, Off, 7), (Off, Stuck, 6), (On, Off, 1), (On, Stuck, 0)) <= ((Off, Off, ∞), (_, _, 0), (_, Stuck, 0))` does not hold
+  ======================================================================
+  recursion_closure_reject_mode_times.tpe
+  ======================================================================
+  File "recursion_closure_reject_mode_times.tpe", lines 35-36, characters 2-3:
+  35 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `(0 ⊔ (({Take}, Cold, Out) · ({Pipette}, Out, Out))^[1, ∞)) · ({Return}, Out, Cold)` accumulated since it was bound, which is not below its box grade `((Cold, Cold, (_, 0)), (Out, Out, 0), (Out, Stuck, 0), (_, _, 0), (_, Stuck, 0))`
+    File "recursion_closure_reject_mode_times.tpe", line 32, characters 5-6:
+    32 |   as x in
+              ^
+    `x` is bound here
+    File "recursion_closure_reject_mode_times.tpe", line 33, characters 2-11:
+    33 |   pipette 3;
+           ^^^^^^^^^
+    grade `0 ⊔ (({Take}, Cold, Out) · ({Pipette}, Out, Out))^[1, ∞)` accumulates here (this computation)
+    File "recursion_closure_reject_mode_times.tpe", line 34, characters 2-19:
+    34 |   perform Return ();
+           ^^^^^^^^^^^^^^^^^
+    grade `({Return}, Out, Cold)` accumulates here (operation `Return`)
+    Note: the resource inequality `(0 ⊔ (({Take}, Cold, Out) · ({Pipette}, Out, Out))^[1, ∞)) · ({Return}, Out, Cold) <= ((Cold, Cold, (_, 0)), (Out, Out, 0), (Out, Stuck, 0), (_, _, 0), (_, Stuck, 0))` does not hold
   ======================================================================
   recursion_closure_reject_regular.tpe
   ======================================================================

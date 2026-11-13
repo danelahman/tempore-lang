@@ -4279,7 +4279,11 @@ let mode_laws =
    time in each mode and the total time of each trace, computed directly, lie
    within the entry of the evaluated grade for the start and the end mode of
    the trace, and a random specification is above the grade iff every trace
-   satisfies it. *)
+   satisfies it. Besides, the closures of delays, of loops at no time and at
+   positive times, of changes into a mode from which no entry starts, of a
+   cycle of two modes, of modes not named and of operations, each printed and
+   equal to the closure computed by hand; and the closure laws on the samples
+   and their closures. *)
 let mode_time_laws =
   let module M = Grades.ModeTimeGrades.ModeTimes in
   let module S = Grades.ModeTimeGrades.Summary in
@@ -4506,6 +4510,86 @@ let mode_time_laws =
     | Closed q, Closed q' when Rational.equal q q' -> Rational.show q
     | _ -> "an interval"
   in
+  let read text =
+    match R.parse text with
+    | Ok x -> x
+    | Error e -> failwith ("mode-times: " ^ text ^ ": " ^ e)
+  in
+  (* The closure of [x], printed [shown] and equal under [bounds], every
+     operation taking [[1, 2]], to the grade [by_hand]. *)
+  let closure_case (x, shown, by_hand) =
+    let name = "mode-times: the closure of " ^ x in
+    match M.plus (read x) with
+    | None -> [ check name false "none declared" ]
+    | Some p ->
+        [
+          expect name Fun.id ~expected:shown (M.show p);
+          check
+            (name ^ " computed by hand")
+            (M.equal bounds p (read by_hand))
+            (M.show p);
+        ]
+  in
+  let closures =
+    List.map
+      (fun (x, expected) -> (x, expected, expected))
+      [
+        (* The unit, the grade stuck at no time from every mode and the top
+           are their own closures. *)
+        ("0", "0");
+        ("(Stuck, Stuck)", "(Stuck, Stuck)");
+        ("⊤", "⊤");
+        (* One or more delays of 1 take 1, 2, 3, …: the hull [[1, ∞)]. *)
+        ("1", "[1, ∞)");
+        (* One or more delays within [[0, 2]] take any time. *)
+        ("[0, 2]", "[0, ∞)");
+        (* A loop at no time stays at no time. *)
+        ("(Cold, Cold, 0)", "(Cold, Cold, 0)");
+        (* Each repetition may spend up to 30 out of the cold block, so the
+           time out of it has no bound. *)
+        ("(Cold, Cold, (Out, [0, 30]))", "(Cold, Cold)");
+        (* A second repetition starts from [Out], from which no entry starts:
+           it gets stuck at no time. *)
+        ("(Cold, Out, [1, 2])", "((Cold, Out, [1, 2]), (Cold, Stuck, [1, 2]))");
+        (* The round trip from [Cold] takes 3 and spends 1 in [Cold] and 2 in
+           [Out], each leg leaving the other modes at most its total; [n]
+           round trips spend at least [n] in [Cold] and [2n] in [Out]. *)
+        ( "((Cold, Out, (Cold, 1), 1), (Out, Cold, (Out, 2), 2))",
+          "((Cold, Cold, (Cold, [1, ∞)), (Out, [2, ∞)), [3, ∞)), (Cold, Out, \
+           (Cold, [1, ∞)), [1, ∞)), (Out, Cold, (Out, [2, ∞)), [2, ∞)), (Out, \
+           Out, (Cold, [1, ∞)), (Out, [2, ∞)), [3, ∞)))" );
+        (* From a mode not named, the repetitions keep it, at 2 each, or get
+           stuck after any number of them. *)
+        ("((_, _, 2), (_, Stuck, 0))", "((_, _, [2, ∞)), (_, Stuck))");
+        (* One change between modes not named takes 1; two or more may return
+           to the start mode. *)
+        ("(_, ≠, 1)", "((_, _, [2, ∞)), (_, ≠, [1, ∞)))");
+      ]
+    @ [
+        (* An operation in [Cold] taking [[1, 2]] in it, repeated: the time
+           in [Cold] and the total time have no bound, no time is spent in
+           another mode, and every other mode gets stuck at no time. *)
+        ( "({Mix}, Cold, Cold)",
+          "(({Mix}, Cold, Cold))^[1, ∞)",
+          "(Cold, Cold, (Cold, [1, ∞)), (_, 0), [1, ∞))" );
+        (* The second repetition starts from [Out] and gets stuck there. *)
+        ( "({Take}, Cold, Out)",
+          "(({Take}, Cold, Out))^[1, ∞)",
+          "((Cold, Out, (Cold, [1, 2]), (Out, 0), (_, 0), [1, 2]), (Cold, \
+           Stuck, (Cold, [1, 2]), (Out, 0), (_, 0), [1, 2]))" );
+      ]
+  in
+  let grades =
+    List.concat_map (fun (x, _, by_hand) -> [ read x; read by_hand ]) closures
+  in
+  let samples =
+    distinct M.compare
+      ((M.one :: M.top :: leaves) @ grades
+      @ List.concat_map
+          (fun x -> List.map (M.mul x) [ take; M.of_delay two ])
+          grades)
+  in
+  let with_closures = samples @ List.filter_map M.plus samples in
   [
     all "mode-times: printed leaves read back" M.show reads_back
       (M.one :: M.top :: leaves);
@@ -4555,6 +4639,10 @@ let mode_time_laws =
       && List.exists (fun (_, e, _) -> not e) acceptances)
       (string_of_int (List.length acceptances));
   ]
+  @ List.concat_map closure_case closures
+  @ closure_laws
+      (module M)
+      ~context:"every operation [1, 2]" bounds with_closures
 
 (* The laws of the watermark grades on grades acquiring and releasing the
    resources [Files] and [Sockets], with ranges of net changes, explicit and

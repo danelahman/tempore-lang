@@ -1,0 +1,36 @@
+(* Run this test with the 'mode-times' grade algebra, e.g.
+
+     ./tempore --grades mode-times \
+       tests/recursion_closure_reject_mode_times.tpe
+
+   A recursive function each of whose rounds takes an enzyme out of the cold
+   block and pipettes it, leaving it out: a round from Cold ends in Out, from
+   which the next round gets stuck at taking the enzyme. The grade accumulated
+   by a call of it is the unit joined with the closure of the round. *)
+
+operation Take : unit ~> unit ! ({Take}, Cold, Out) within [1, 2]
+operation Pipette : unit ~> unit ! ({Pipette}, Out, Out) within [3, 5]
+operation Return : unit ~> unit ! ({Return}, Out, Cold) within [1, 1]
+
+let rec pipette (n : nat) : unit ! 'e =
+  match n with
+  | 0 -> ()
+  | m + 1 -> (perform Take (); perform Pipette (); pipette m)
+
+(* Correctly rejected by the typechecker: the enzyme is returned once after
+   the rounds, yet from Cold the second round gets stuck, and so does the
+   return after no round; from Out, a call of no rounds ends in Cold. The box
+   permits none of these. *)
+let pipetting () =
+  box
+    ( (Cold, Cold, (_, 0)),
+      (Out, Out, 0),
+      (Out, Stuck, 0),
+      (_, _, 0),
+      (_, Stuck, 0) )
+    7
+  as x in
+  pipette 3;
+  perform Return ();
+  unbox x as n in
+  n
