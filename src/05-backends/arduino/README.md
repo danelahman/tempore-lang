@@ -152,7 +152,8 @@ regex grades with banked delays over rational delays
     `Nothing`, boxed with `[0, 150)`, so that a move is applied at most
     200 ms after it was sent, and under the timed regex upper-bound and
     interval grades with `{<150 & ~ReceiveMessage}` or
-    `{[0, 150) & ~ReceiveMessage}`, its setpoints of the non-eternal type `setpoints`;
+    `{[0, 150) & ~ReceiveMessage}`, its setpoints of the non-eternal type
+    `setpoints`;
   - `SendStatus` and `remote_status`, the status of the robot, its phase and
     tilt, the latest received at most 50 ms ago, boxed with `[0, 200)`, and
     under the timed regex upper-bound and interval grades with
@@ -162,7 +163,8 @@ regex grades with banked delays over rational delays
 
 Where an operation is measured on a particular board, the member `bounds` of
 the descriptor gives its bounds there, narrower or wider than those of the
-declarations, by board and operation, as closed intervals in the time unit of the declarations:
+declarations, by board and operation, as closed intervals in the time unit of
+the declarations:
 
     "bounds": {
       "m5stack-gray": { "ReadImu": [0.55, 1.25] },
@@ -219,10 +221,10 @@ top-level definition is checked, and the `run` commands are compiled under
 
 The entry points are the task functions and the `initial` functions, or,
 without a manifest, the functions that the `run` commands mention outside the
-handled computation of every `handle`, or every top-level function if there is no `run` command. Only the
-code reached from them is compiled, so that a function used only under a
-handler has no instance outside it, and the operations the program declares
-are those it performs outside every handler.
+handled computation of every `handle`, or every top-level function if there is
+no `run` command. Only the code reached from them is compiled, so that a
+function used only under a handler has no instance outside it, and the
+operations the program declares are those it performs outside every handler.
 
 ### The fragment
 
@@ -249,6 +251,10 @@ closure whose environment contains a closure of its own type, handlers that
 are not tail-resumptive, lists, strings other than constant arguments of
 operations, and recursion other than self calls in tail position, also
 inside a closure.
+
+A definition whose type mentions a list and that nothing compiled uses
+contains no such construct. It is left out of the generated code without a
+message.
 
 ### Tail-resumptive handlers
 
