@@ -1397,6 +1397,14 @@ and so would a transmission before `TurnOn`, as the radio is then off:
     This function's body has grade `(Off, On, 10)`, which does not match its
     annotated grade `(Off, On, 6)`
 
+Every grade has a closure, the least grade above it that absorbs its square.
+It gives each pair of modes the greatest cost of the traces of one or more
+repetitions of the grade, and `∞` where these costs have no bound, as when a
+trace passes a loop of positive cost. A call of a recursive function whose
+effect is annotated by a grade variable `'e` (see [Annotations](#annotations))
+and whose rounds switch the radio on, transmit, and switch it off accumulates
+the grade `((Off, Off, ∞), (_, _, 0), (_, Stuck, 0))`.
+
 In `mode-times`, the matrices of `mode-switch-costs` have the costs replaced by
 the time spent in each mode and the total time, each bounded by an interval.
 A specification is rejected when it admits no run: when a change of mode
@@ -1414,7 +1422,8 @@ An operation names itself: `{Log}` in every mode, `({Take}, Cold, Out)` from
 specification `(From, To, (M, [lo, hi]), …, [lo, hi])` bounds the time in each
 listed mode and, by a bare interval, the total; the modes not named are
 written `_` as in `mode-switch-costs`, and `(_, [lo, hi])` bounds the time in
-each of them. A number `d` or an interval is a delay.
+each of them. A number `d` or an interval is a delay. Unlike those of
+`mode-switch-costs`, these grades declare no closures.
 
 For example, where taking an enzyme out of the cold block takes 1 to 2
 minutes and a pipetting 3 to 5, the program
