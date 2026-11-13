@@ -1826,6 +1826,298 @@ let power_condition k =
   let rec power k = if k = 1 then Rigid else Mul (Rigid, power (k - 1)) in
   (Mul (one, Rigid), Join (one, power k))
 
+(* Conditions [lhs ≾ rhs] in one rigid [j] over a rational time grade [G],
+   built from constants with open and closed ends whose denominators divide
+   [2]. They are every condition with at most two leaves on either side over
+   [A.constants], and every one with three leaves on one side and at most two
+   on the other over [A.small]. A condition is settled if it holds at every
+   candidate and the witnesses are complete. A settled condition is checked at
+   [A.fine ~top ~den], the grades with ends at the multiples of [1/den] up to
+   [top], [top] the sum of the finite ends of its constants plus [2] and [den]
+   four times the least common multiple of [1], ..., its degree, so that every
+   cell between the crossings of its sides contains such an end. *)
+module Settled_conditions
+    (G : Grade.S)
+    (A : sig
+      val constants : G.t list
+      val small : G.t list
+      val fine : top:int -> den:int -> G.t list
+    end) =
+struct
+  include
+    Conditions
+      (G)
+      (struct
+        let pool = Array.of_list A.constants
+        let constant st = pool.(Random.State.int st (Array.length pool))
+        let values = []
+      end)
+
+  (* The candidates of [RigidScope.candidates] for a rigid, the unit, the
+     top, and the grade of the delay [1], without repetition, then the
+     witnesses of the constants, with their completeness. *)
+  let candidates ~degree cs =
+    let base =
+      List.fold_left
+        (fun kept c ->
+          if List.exists (G.equal bounds c) kept then kept else kept @ [ c ])
+        []
+        (G.one :: G.top
+        :: Option.to_list (Option.map G.of_delay (G.Delay.read (Grade.Int 1))))
+    in
+    let supplied, completeness = G.witnesses ~degree bounds cs in
+    (base, supplied, completeness)
+
+  let finite = function
+    | Grade.Closed q | Grade.Open q -> Some q
+    | Grade.Unbounded -> None
+
+  (* The finite ends of the durations of a grade, the lower end of a grade
+     unbounded above, and the finite upper end. *)
+  let ends c =
+    match G.duration_bounds bounds c with
+    | Some (lo, hi) -> List.filter_map finite [ lo; hi ]
+    | None -> []
+
+  let lower_end c =
+    match G.duration_bounds bounds c with
+    | Some (lo, Grade.Unbounded) -> finite lo
+    | _ -> None
+
+  let upper_end c =
+    Option.bind (G.duration_bounds bounds c) (fun (_, hi) -> finite hi)
+
+  (* [without_tail ws] is [ws] without the witnesses at the greatest positive
+     lower end and at the greatest positive upper end, the tail witnesses. *)
+  let without_tail ws =
+    let greatest key =
+      List.fold_left
+        (fun g w ->
+          match (key w, g) with
+          | Some q, None when Rational.sign q > 0 -> Some q
+          | Some q, Some q' when Rational.compare q q' > 0 -> Some q
+          | _ -> g)
+        None ws
+    in
+    let at key g w =
+      match (key w, g) with
+      | Some q, Some q' -> Rational.equal q q'
+      | _ -> false
+    in
+    let lo = greatest lower_end and hi = greatest upper_end in
+    List.filter (fun w -> not (at lower_end lo w || at upper_end hi w)) ws
+
+  let atoms pool = Rigid :: List.map (fun c -> Const c) pool
+
+  let binary xs ys =
+    List.concat_map
+      (fun x -> List.concat_map (fun y -> [ Mul (x, y); Join (x, y) ]) ys)
+      xs
+
+  (* The sides with at most two leaves, and those with exactly three. *)
+  let small_sides pool = atoms pool @ binary (atoms pool) (atoms pool)
+
+  let three_sides pool =
+    let a = atoms pool in
+    binary a (binary a a) @ binary (binary a a) a
+
+  let conditions =
+    let sides = small_sides A.constants
+    and small = small_sides A.small
+    and three = three_sides A.small in
+    List.filter
+      (fun (l, r) -> occurrences l + occurrences r > 0)
+      (List.concat_map (fun l -> List.map (fun r -> (l, r)) sides) sides
+      @ List.concat_map
+          (fun l -> List.concat_map (fun r -> [ (l, r); (r, l) ]) three)
+          small)
+
+  let rec gcd a b = if b = 0 then a else gcd b (a mod b)
+
+  let finer (lhs, rhs) =
+    let s =
+      List.fold_left Rational.add Rational.zero
+        (List.concat_map ends (constants lhs @ constants rhs))
+    in
+    let top = Z.to_int (Z.cdiv (Rational.num s) (Rational.den s)) + 2 in
+    let degree = Int.max (occurrences lhs) (occurrences rhs) in
+    let lcm =
+      List.fold_left (fun m k -> m * k / gcd m k) 1 (List.init degree (( + ) 1))
+    in
+    A.fine ~top ~den:(4 * lcm)
+
+  (* The first settled condition that fails at a grade of [finer], with that
+     grade, and the number of conditions settled by the candidates without the
+     tail witnesses that fail at such a grade. *)
+  let run () =
+    List.fold_left
+      (fun (failure, control) ((lhs, rhs) as cond) ->
+        let degree = Int.max (occurrences lhs) (occurrences rhs) in
+        let base, supplied, completeness =
+          candidates ~degree (constants lhs @ constants rhs)
+        in
+        let holds_at = List.for_all (holds cond) in
+        let complete = completeness = Grade.Complete && holds_at base in
+        let settled = complete && holds_at supplied in
+        let fails () =
+          List.find_opt (fun j -> not (holds cond j)) (finer cond)
+        in
+        let failure =
+          match failure with
+          | None when settled -> Option.map (fun j -> (cond, j)) (fails ())
+          | _ -> failure
+        in
+        let settled_without_tail =
+          settled || (complete && holds_at (without_tail supplied))
+        in
+        ( failure,
+          if settled_without_tail && Option.is_some (fails ()) then control + 1
+          else control ))
+      (None, 0) conditions
+
+  let checks () =
+    let failure, control = run () in
+    [
+      (let name =
+         G.name ^ ": settled conditions hold at open and closed ends"
+       in
+       match failure with
+       | None -> check name true ""
+       | Some ((lhs, rhs), j) ->
+           check name false
+             (show lhs ^ " ≾ " ^ show rhs ^ " fails at j = " ^ G.show j));
+      check
+        (G.name ^ ": without the tail witnesses a settled condition fails")
+        (control > 0) "every condition holds";
+    ]
+end
+
+let rational (n, d) = Rational.make n d
+
+(* The ends [0], [1/2], [1] and [2] of the constants, and [0] and [1/2] of
+   those of the conditions with three leaves on a side. *)
+let constant_ends = List.map rational [ (0, 1); (1, 2); (1, 1); (2, 1) ]
+let small_ends = List.map rational [ (0, 1); (1, 2) ]
+
+(* The multiples of [1/den] in [[0, top]]. *)
+let multiples ~top ~den =
+  List.init ((top * den) + 1) (fun k -> Rational.make k den)
+
+(* The lower bounds at [qs], closed and open, and the upper bounds at [qs],
+   closed and open where positive, and [∞]. *)
+let lower_ends qs =
+  List.concat_map (fun q -> [ lower_of q; lower_of ~lo_open:true q ]) qs
+
+let upper_ends qs =
+  RationalTimeGrades.UpperBound.top
+  :: List.concat_map
+       (fun q ->
+         upper_of q
+         :: (if Rational.sign q > 0 then [ upper_of ~hi_open:true q ] else []))
+       qs
+
+module Settled_lower =
+  Settled_conditions
+    (RationalTimeGrades.LowerBound)
+    (struct
+      let constants = lower_ends constant_ends
+      let small = lower_ends small_ends
+      let fine ~top ~den = lower_ends (multiples ~top ~den)
+    end)
+
+module Settled_upper =
+  Settled_conditions
+    (RationalTimeGrades.UpperBound)
+    (struct
+      let constants = upper_ends constant_ends
+      let small = upper_ends small_ends
+      let fine ~top ~den = upper_ends (multiples ~top ~den)
+    end)
+
+(* The intervals [(lo_open, q, hi_open, r)] from [q] to [r], or to [∞] if [r]
+   is [None], open at the ends so marked. *)
+let intervals_at =
+  List.map (fun (lo_open, q, hi_open, r) ->
+      interval_of ~lo_open ~hi_open (rational q)
+        (match r with
+        | Some r -> Grade.rational_lit (rational r)
+        | None -> Grade.Inf))
+
+(* The intervals between two of [qs] and from one of [qs] to [∞], each
+   finite end closed or open. *)
+let interval_ends qs =
+  List.concat_map
+    (fun q ->
+      List.concat_map
+        (fun lo_open ->
+          interval_of ~lo_open q Grade.Inf
+          :: List.concat_map
+               (fun r ->
+                 match Rational.compare q r with
+                 | 0 when not lo_open ->
+                     [ interval_of q (Grade.rational_lit r) ]
+                 | c when c < 0 ->
+                     List.map
+                       (fun hi_open ->
+                         interval_of ~lo_open ~hi_open q (Grade.rational_lit r))
+                       [ false; true ]
+                 | _ -> [])
+               qs)
+        [ false; true ])
+    qs
+
+module Settled_interval =
+  Settled_conditions
+    (RationalTimeGrades.Interval)
+    (struct
+      (* Intervals with ends at [0], [1/2], [1], [2] and [∞], with every
+         combination of closed and open ends. *)
+      let constants =
+        intervals_at
+          [
+            (false, (0, 1), false, Some (0, 1));
+            (false, (0, 1), true, Some (1, 2));
+            (true, (0, 1), false, Some (1, 1));
+            (false, (1, 2), false, Some (1, 2));
+            (true, (1, 2), true, Some (1, 1));
+            (false, (1, 2), false, Some (2, 1));
+            (true, (1, 1), false, Some (2, 1));
+            (false, (1, 1), false, Some (1, 1));
+            (false, (0, 1), false, None);
+            (true, (0, 1), false, None);
+            (true, (1, 2), false, None);
+            (false, (1, 1), false, None);
+          ]
+
+      let small =
+        intervals_at
+          [
+            (false, (0, 1), false, Some (0, 1));
+            (false, (0, 1), false, None);
+            (true, (0, 1), false, None);
+          ]
+
+      (* The lower ends paired with [∞], [0] paired with the upper ends, and
+         the intervals with ends at [1/4], [3/4], [3/2] and [5/2]. *)
+      let fine ~top ~den =
+        List.concat_map
+          (fun t ->
+            interval_of t Grade.Inf
+            :: interval_of ~lo_open:true t Grade.Inf
+            :: interval_of Rational.zero (Grade.rational_lit t)
+            ::
+            (if Rational.sign t > 0 then
+               [
+                 interval_of ~hi_open:true Rational.zero (Grade.rational_lit t);
+               ]
+             else []))
+          (multiples ~top ~den)
+        @ interval_ends (List.map rational [ (1, 4); (3, 4); (3, 2); (5, 2) ])
+    end)
+
+let settled_conditions =
+  Settled_lower.checks () @ Settled_upper.checks () @ Settled_interval.checks ()
+
 let witnesses =
   let module L = TimeGrades.LowerBound in
   let lower n = L.of_lit (nat n) in
@@ -4919,10 +5211,11 @@ let flow_tops =
 let () =
   let checks =
     delay_laws @ lattice @ products @ counterexamples
-    @ semidirect_counterexamples @ witnesses @ literals @ negative_delays @ tops
-    @ registry @ registered_laws @ registered_repetitions @ fractional_laws
-    @ inclusion_laws @ indexed @ mode_laws @ resource_laws @ interval_read_back
-    @ time_grade_laws @ schedule_laws @ resource_construction_laws @ finite_laws
+    @ semidirect_counterexamples @ witnesses @ settled_conditions @ literals
+    @ negative_delays @ tops @ registry @ registered_laws
+    @ registered_repetitions @ fractional_laws @ inclusion_laws @ indexed
+    @ mode_laws @ resource_laws @ interval_read_back @ time_grade_laws
+    @ schedule_laws @ resource_construction_laws @ finite_laws
     @ declared_lattice_laws @ declared_lattice_structure @ ranges @ flow_tops
     @ duration_bounds @ mode_time_laws @ timed_regex_laws @ timed_regex_overflow
     @ timed_regex_star @ timed_regex_star_reference @ timed_regex_closures
