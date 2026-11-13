@@ -28,32 +28,32 @@ Run from the root of the repository:
 
 ## Measured
 
-- 2026-11-12, at 77a8db38 on `main`
+- 2026-11-13, at 2f609f83 on `main`
 - macOS 15.8.2 (Darwin 24.6.0, arm64), Apple M3 Pro
 - OCaml 5.5.0, dune 3.24.2, `--profile release`
-- 389 files, total 1.1 s of typechecking, none over 2 s
+- 391 files, total 1.1 s of typechecking, none over 2 s
 
 The slowest 20 files:
 
 | file                                                   | grades                        | time (s) |
 | ------------------------------------------------------ | ----------------------------- | -------: |
-| examples/arduino/bala2-radio-robot/robot.tpe           | timed-regex-interval-rational |     0.28 |
-| examples/arduino/starter/starter.tpe                   | timed-regex-interval-rational |     0.22 |
+| examples/arduino/bala2-radio-robot/robot.tpe           | timed-regex-interval-rational |     0.27 |
+| examples/arduino/starter/starter.tpe                   | timed-regex-interval-rational |     0.23 |
 | examples/arduino/steps/steps.tpe                       | inter-arrival                 |     0.06 |
-| examples/arduino/bala2-radio-controller/controller.tpe | timed-regex-interval-rational |     0.06 |
+| examples/arduino/bala2-radio-controller/controller.tpe | timed-regex-interval-rational |     0.05 |
 | examples/arduino/bala2-regex/balance_regex.tpe         | timed-regex-interval-rational |     0.05 |
 | examples/arduino/fall/fall.tpe                         | timed-regex-interval-rational |     0.05 |
-| examples/arduino/bala2/balance.tpe                     | time-interval-rational        |     0.03 |
 | examples/arduino/level/level.tpe                       | timed-regex-interval-rational |     0.03 |
+| examples/arduino/bala2/balance.tpe                     | time-interval-rational        |     0.03 |
 | examples/arduino/wheels/wheels.tpe                     | timed-regex-interval-rational |     0.02 |
 | examples/lattice/staged_release.tpe                    | time-lower-bound-lattice      |     0.02 |
 | examples/opentrons/contamination.tpe                   | time-upper-bound-lattice      |     0.01 |
+| examples/arduino/peak/peak.tpe                         | at-most-counts                |     0.01 |
 | examples/arduino/calibrated/calibrated.tpe             | time-interval-rational        |     0.01 |
 | examples/opentrons/purification.tpe                    | timed-regex-interval-rational |     0.01 |
-| examples/arduino/peak/peak.tpe                         | at-most-counts                |     0.01 |
 | examples/opentrons/purification_reject.tpe             | timed-regex-interval-rational |     0.01 |
 | examples/arduino/tilt/tilt.tpe                         | time-interval-rational        |     0.01 |
 | examples/opentrons/washes.tpe                          | timed-regex-interval-rational |     0.00 |
-| examples/banked_traces/intervals.tpe                   | banked-traces-interval        |     0.00 |
 | examples/banked_traces/lower_bounds.tpe                | banked-traces-lower-bound     |     0.00 |
+| examples/banked_traces/intervals.tpe                   | banked-traces-interval        |     0.00 |
 | tests/termination.tpe                                  | time-lower-bound              |     0.00 |
