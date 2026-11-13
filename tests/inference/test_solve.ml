@@ -185,6 +185,7 @@ let expected_rejections =
     ("tests/recursion_closure_reject_finite_run_sets.tpe", [ 20 ]);
     ("tests/recursion_closure_reject_inter_arrival.tpe", [ 28 ]);
     ("tests/recursion_closure_reject_interval.tpe", [ 13 ]);
+    ("tests/recursion_closure_reject_mode_switch_costs.tpe", [ 26 ]);
     ("tests/recursion_closure_reject_regular.tpe", [ 20 ]);
     ("tests/recursion_closure_reject_upper.tpe", [ 15; 19 ]);
     ("tests/recursion_effect_reject_invariant.tpe", [ 8 ]);

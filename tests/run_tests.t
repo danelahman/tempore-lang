@@ -4816,6 +4816,9 @@ it names none:
   ]
   
   ======================================================================
+  recursion_closure_mode_switch_costs.tpe
+  ======================================================================
+  ======================================================================
   recursion_closure_reject_finite_run_sets.tpe
   ======================================================================
   File "recursion_closure_reject_finite_run_sets.tpe", line 22, characters 4-26:
@@ -4864,6 +4867,26 @@ it names none:
                ^^^
     grade `[1, ∞)` accumulates here (this computation)
     Note: the resource inequality `[1, ∞) <= [1, 5]` does not hold
+  ======================================================================
+  recursion_closure_reject_mode_switch_costs.tpe
+  ======================================================================
+  File "recursion_closure_reject_mode_switch_costs.tpe", lines 30-31, characters 2-3:
+  30 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `((Off, Off, 7), (Off, Stuck, 6), (On, Off, 1), (On, Stuck, 0))` accumulated since it was bound, which is not below its box grade `((Off, Off, ∞), (_, _, 0), (_, Stuck, 0))`
+    File "recursion_closure_reject_mode_switch_costs.tpe", line 27, characters 55-56:
+    27 |   box ((Off, Off, ∞), (_, _, 0), (_, Stuck, 0)) 7 as x in
+                                                              ^
+    `x` is bound here
+    File "recursion_closure_reject_mode_switch_costs.tpe", line 28, characters 2-10:
+    28 |   report 3;
+           ^^^^^^^^
+    grade `((Off, Off, 0), (Off, On, 6), (Off, Stuck, 6), (On, On, 0), (On, Stuck, 0), (_, _, 0), (_, Stuck, 0))` accumulates here (this computation)
+    File "recursion_closure_reject_mode_switch_costs.tpe", line 29, characters 2-21:
+    29 |   perform RadioOff ();
+           ^^^^^^^^^^^^^^^^^^^
+    grade `(On, Off, 1)` accumulates here (operation `RadioOff`)
+    Note: the resource inequality `((Off, Off, 7), (Off, Stuck, 6), (On, Off, 1), (On, Stuck, 0)) <= ((Off, Off, ∞), (_, _, 0), (_, Stuck, 0))` does not hold
   ======================================================================
   recursion_closure_reject_regular.tpe
   ======================================================================

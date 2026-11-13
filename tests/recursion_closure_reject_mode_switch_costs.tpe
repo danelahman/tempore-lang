@@ -1,0 +1,31 @@
+(* Run this test with the 'mode-switch-costs' grade algebra, e.g.
+
+     ./tempore --grades mode-switch-costs \
+       tests/recursion_closure_reject_mode_switch_costs.tpe
+
+   A recursive function each of whose rounds switches a radio on and transmits,
+   leaving it on: a round from Off costs 6 and ends in On, from which the next
+   round gets stuck at switching the radio on. The grade accumulated by a call
+   of it is the unit joined with the closure of the round, ((Off, Off, 0),
+   (Off, On, 6), (Off, Stuck, 6), (On, On, 0), (On, Stuck, 0), (_, _, 0),
+   (_, Stuck, 0)). *)
+
+operation RadioOn : unit ~> unit ! (Off, On, 2)
+operation RadioOff : unit ~> unit ! (On, Off, 1)
+operation Send : nat ~> unit ! (On, On, 4)
+
+let rec report (n : nat) : unit ! 'e =
+  match n with
+  | 0 -> ()
+  | m + 1 -> (perform RadioOn (); perform Send m; report m)
+
+(* Correctly rejected by the typechecker: the radio is switched off once
+   after the rounds, yet from Off the second round gets stuck, at cost 6, and
+   from On a call of no rounds ends in Off, at cost 1. The box permits
+   neither. *)
+let reports () =
+  box ((Off, Off, ∞), (_, _, 0), (_, Stuck, 0)) 7 as x in
+  report 3;
+  perform RadioOff ();
+  unbox x as n in
+  n
