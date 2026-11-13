@@ -275,7 +275,8 @@ let specification entries =
    implicit where another entry names the mode, and the matrix stuck at no time
    from every mode is printed [(Stuck, Stuck)]. *)
 let show_specification (m : Matrices.t) =
-  (* The bounds of the modes named that differ from the total time. *)
+  (* The bounds of the modes named that differ from [[0, u]], [u] the upper end
+     of the total time. *)
   let bounded = function
     | Times.No_trace -> []
     | Times.Traces s ->

@@ -182,8 +182,8 @@ module ModeTimes : Grade.S with type Delay.t = Delay.Rational.t
       operation, delay and specification reads back as itself. A specification
       is printed with the entry [(From, Stuck)] at no time of a mode from which
       it is the only trace left implicit, where another entry names the mode, a
-      bound equal to the total omitted, and the grade stuck at no time from
-      every mode as [(Stuck, Stuck)].
+      bound [[0, u]] omitted, [u] the upper end of the total, and the grade
+      stuck at no time from every mode as [(Stuck, Stuck)].
     - [duration_bounds] is {!Summary.duration} of the evaluated grade: the
       traces that get stuck are not executions of the computation.
     - [events] is the operations a grade names, and [is_atomic name x] holds of

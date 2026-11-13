@@ -75,9 +75,10 @@
 
     - [{X}] is the occurrence of the operation [X], the grade it declares, e.g.
       [operation Beat : unit ~> unit ! {Beat} within [0.1, 0.5]]; a brace
-      literal is a sequence [;] and a union [|] of operation names, delays,
-      intervals of delays and [skip], the computation without occurrences of
-      duration [0], e.g. [{Beat; 2 | Beat; [1, 3]}] or [{Beat | skip}].
+      literal is a sequence [;], a union [|] and a finite count [^n] or
+      [^[m, n]] of operation names, delays, intervals of delays and [skip], the
+      computation without occurrences of duration [0], e.g.
+      [{Beat; 2 | Beat; [1, 3]}] or [{Beat | skip}].
     - A number [q] or an interval, e.g. [[1, 2]], [(1/2, 3\]] or the open pair
       [(1, 4)], is a computation without occurrences taking a time in it.
     - [(X, [s, t])] is a specification: consecutive [X]s at least [s] and at
@@ -105,8 +106,8 @@
       entry are intervals, or numbers for single points.
     - [⊤] (ASCII [top]) is the greatest grade.
 
-    The repetitions, intersections, complements and the catch-all letter of the
-    brace literals are rejected.
+    The unbounded repetitions [r*] and [r^\[m, ∞)], intersections, complements
+    and the catch-all letter of the brace literals are rejected.
 
     {2 Loop invariants}
 
