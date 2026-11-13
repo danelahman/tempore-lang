@@ -103,8 +103,8 @@ let random_grade ~longest ~names state =
   | 1 -> Grade.Compl (alternatives ())
   | _ -> alternatives ()
 
-(* Random expressions with bounded repetitions of counts up to [4] over the
-   names [names], of depth [depth]. *)
+(* Random expressions with repetitions of counts with finite ends up to [4]
+   over the names [names], of depth [depth]. *)
 let random_counted ~names ~depth state =
   let count () =
     let m = Random.State.int state 3 in
@@ -1243,7 +1243,7 @@ end
    gap form agree with those by letters on random expressions and pairs of
    them, emptiness, equality and the least shortest word, which is also that
    of a search letter by letter; and they decide grades over the numerical
-   semigroup within a second. *)
+   semigroup; the time each takes is reported. *)
 module Gaps = struct
   module R = Grades.SymbolicRegex
   module D = Grades.RegularTraceLanguagesDerivative

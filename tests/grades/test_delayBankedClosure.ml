@@ -122,7 +122,7 @@ let examples =
       (upper "{A; [0, 1/2)}" "{A; [0, 1/2) | B}");
     is "upper: a complement of a delay admits every delay but it"
       (upper "{A; 1/3}" "{A; ~(1/2)}");
-    is "upper: a complement admits delays nearby"
+    is "upper: an open interval admits its lower end"
       (upper "{A; 1/2}" "{A; (1/2, 1)}");
     is "lower: a longer delay covers a shorter one" (lower "{A; 1}" "{A; 1/2}");
     is "lower: not conversely" (not (lower "{A; 1/2}" "{A; 1}"));

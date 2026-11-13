@@ -778,12 +778,11 @@ let arduino_program ~name ~grade ~settings ?(observed = false) variants source =
               variants)
 
 (* The Arduino examples, with their manifests and binding files: compiled to
-   the files of the project shown, each warning located in the program, those
-   of bala2-regex about its handler [simulated_robot], which no task uses;
-   without the binding file, refused at the
-   manifest; without a manifest, compiled to the program alone, or, if the
-   program defines a handler that is not tail-resumptive, which only the
-   definitions of the tasks of the manifest may leave out, refused at it. *)
+   the files of the project shown, each warning located in the program;
+   without the binding file, refused at the manifest; without a manifest,
+   compiled to the program alone, or, if the program defines a handler that is
+   not tail-resumptive, which only the definitions of the tasks of the manifest
+   may leave out, refused at it. *)
 let arduino_example (entry : ExampleIndex.entry) =
   let settings = List.map (fun (k, v) -> (k, read v)) entry.settings in
   let source = read entry.path in

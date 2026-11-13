@@ -25,11 +25,11 @@ let bounds_of table =
 
 let closed a b = (Grade.Closed a, Grade.Closed b)
 
-(* Random rationals with denominators of at most 4, below 6. *)
+(* Random rationals with denominators of at most 4, below 24. *)
 let random_rational st = q (Random.State.int st 24) (1 + Random.State.int st 4)
 
 (* A random non-empty interval, each end open or closed, the upper end
-   infinite if [unbounded]. *)
+   infinite one time in four if [unbounded]. *)
 let random_interval ?(unbounded = false) ?(positive = false) st =
   let a = random_rational st in
   let b = Rational.add a (random_rational st) in
@@ -46,7 +46,7 @@ let random_interval ?(unbounded = false) ?(positive = false) st =
 let random_bounds st =
   bounds_of (List.map (fun o -> (o, random_interval ~positive:true st)) names)
 
-(* A random specification of one or two names, each entry of a form with or
+(* A random specification of one to three names, each entry of a form with or
    without a count, with a total duration or none; an entry of count [0]
    without silent durations is drawn again. *)
 let rec random_specification st =

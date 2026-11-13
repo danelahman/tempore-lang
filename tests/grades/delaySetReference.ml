@@ -25,9 +25,8 @@ let ceil x = Z.cdiv (Rational.num x) (Rational.den x)
 
 module IntMap = Map.Make (Int)
 
-(* The least common multiple and the greatest common divisor of positive
-   rationals in lowest terms: [lcm (a/b) (c/d) = lcm a c / gcd b d] and
-   [gcd (a/b) (c/d) = gcd a c / lcm b d]. *)
+(* The least common multiple of positive rationals in lowest terms:
+   [lcm (a/b) (c/d) = lcm a c / gcd b d]. *)
 let lcm p q =
   Rational.make_z
     (Z.lcm (Rational.num p) (Rational.num q))
@@ -878,10 +877,11 @@ let least_integer lo lo_closed hi =
       None
   | _ -> Some n
 
-(* [simplest i] is the simplest rational of the non-empty interval [i], its
-   upper end [None] if unbounded, by the Stern–Brocot search: the least integer
-   of [i] if there is one, and otherwise [f + 1/y] for [f] the integer part of
-   the lower end and [y] the simplest rational of the reciprocal interval. *)
+(* [simplest lo lo_closed hi] is the simplest rational of the non-empty
+   interval from [lo], closed there if [lo_closed], to [hi], [None] if
+   unbounded, by the Stern–Brocot search: the least integer of the interval if
+   there is one, and otherwise [f + 1/y] for [f] the integer part of the lower
+   end and [y] the simplest rational of the reciprocal interval. *)
 let rec simplest lo lo_closed hi =
   match least_integer lo lo_closed hi with
   | Some n -> n

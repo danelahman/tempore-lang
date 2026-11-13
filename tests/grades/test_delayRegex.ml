@@ -788,7 +788,7 @@ let rec unroll = function
     | Grade.Any | Grade.Below _ | Grade.Above _ ) as r ->
       r
 
-(* [random_count st] is a count of at most [4]. *)
+(* [random_count st] is a count whose finite ends are at most [4]. *)
 let random_count st =
   let m = Random.State.int st 3 in
   match Random.State.int st 4 with

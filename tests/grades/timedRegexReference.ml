@@ -273,9 +273,9 @@ let rec show = function
    constants of both expressions otherwise, with at most as many operations
    as the two words have together. *)
 
-(* [constants e] is the sum of the finite ends of the letters of [e], each
-   repetition counted at its greatest count, and the number of operation
-   letters on the way. *)
+(* [constants e] is the sum of the finite ends of the stretches of [e] and of
+   the greatest running-time ends of its operation letters, each repetition
+   counted at its greatest count. *)
 let rec constants ~running_time = function
   | Eps | Empty -> 0
   | Letter (Op names) ->

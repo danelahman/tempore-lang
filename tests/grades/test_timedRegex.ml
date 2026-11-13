@@ -33,7 +33,7 @@ let regex text =
   | Ok _ -> failwith ("not a brace literal: " ^ text)
   | Error message -> failwith (text ^ ": " ^ message)
 
-(* [read ~side ~whole ~finite text] is the printed normal form of the brace
+(* [read ?whole ?finite side text] is the printed normal form of the brace
    literal [text] on [side], or the reason it is rejected. *)
 let read ?(whole = false) ?(finite = false) side text =
   let r = regex text in

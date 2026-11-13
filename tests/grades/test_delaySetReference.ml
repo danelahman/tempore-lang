@@ -219,7 +219,8 @@ let probes s =
          ])
        (firsts 30 ivs @ lasts 30 ivs)
 
-(* [draw n xs] is [n] random pairs of elements of [xs]. *)
+(* [draw seed n xs] is [n] random pairs of elements of [xs], from the seed
+   [seed]. *)
 let draw seed n xs =
   let st = Random.State.make [| seed |] and a = Array.of_list xs in
   List.init n (fun _ ->

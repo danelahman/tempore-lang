@@ -1177,8 +1177,6 @@ let literals =
       "not tuples";
   ]
 
-(* Every grade reads its own top back from the literal [⊤], and prints a value
-   it reads back as itself. *)
 (* Negative delays in brace literals, which the parser does not produce, are
    rejected by every grade of regular expressions. *)
 let negative_delays =
@@ -1213,6 +1211,7 @@ let negative_delays =
         literals)
     grades
 
+(* Every grade reads its own top back from the literal [⊤]. *)
 let tops =
   List.concat_map
     (fun (name, (module G : Grade.S)) ->
@@ -3281,8 +3280,8 @@ module ByName_conditions =
             (bounds_up_to 5)
     end)
 
-(* [indexed_samples of_lit] is the grades read from a few literals of entries
-   of the names [A] and [B], and the products and joins of pairs of them. *)
+(* [indexed_samples (module G) lits] is the unit, the top and the grades read
+   from [lits], and the products and joins of the first four with each. *)
 let indexed_samples (type a) (module G : Grade.S with type t = a) lits : a list
     =
   let base = G.one :: G.top :: List.map G.of_lit lits in

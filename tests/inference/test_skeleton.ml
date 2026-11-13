@@ -165,7 +165,7 @@ let unification =
     binds "unify: an alias of one head ignoring its arguments"
       (unify [ eq (apply phantom_name [ a ]) (apply phantom_name [ bool ]) ])
       [];
-    binds "unify: an unknown bound to an alias unfolded"
+    binds "unify: an unknown bound to an alias without unfolding"
       (unify [ eq a (apply pair_name [ nat ]) ])
       [ (a_var, apply pair_name [ nat ]) ];
     fails "unify: the payload of the failing equation"

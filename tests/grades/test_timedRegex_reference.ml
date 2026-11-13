@@ -14,9 +14,9 @@ let running_time = function
   | "P" -> { R.lo = 0; lo_open = true; hi = Some 1; hi_open = false }
   | name -> invalid_arg ("running_time: " ^ name)
 
-(* [word ~side text] is the expression of the space-separated word [text] of
+(* [word ~upper text] is the expression of the space-separated word [text] of
    operation names, delays [d] and idle waits [idle d], each delay read as
-   its hull on [side]. *)
+   its upper hull if [upper] and as its lower hull otherwise. *)
 let word ~upper text =
   let hull d = if upper then R.at_most d else R.at_least d in
   let rec letters = function
