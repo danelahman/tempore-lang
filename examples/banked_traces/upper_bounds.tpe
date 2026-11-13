@@ -365,8 +365,8 @@ run send_telemetry ()
    finite sample of grades the typechecker tries for traces; the
    ordering is neither derived nor refuted, and a run requires it established:
 
-     Typing error: The condition `∀ε₀. ε₀ · {1} <= {1} · ε₀` of the case for
-       `Wait` cannot be established
+     Typing error: The condition `∀ε_Wait. ε_Wait · {1} <= {1} · ε_Wait` of
+       the case for `Wait` cannot be established
        Note: a run requires the effect inequality to hold for every grade the
          continuation `k` may have, and it is neither derived nor refuted
 *)

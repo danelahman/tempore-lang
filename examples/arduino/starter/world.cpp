@@ -1,14 +1,14 @@
-// The host model of starter.tpe: a starting block at rest, its acceleration
-// 1 g along z with a noise of 0.01 g, and seven taps of 150 ms, each 7 s
-// after the last from 1 s: on Start for a legal start, the push 160 ms after
-// the gun; for a false start, the push 60 ms after it; for a movement in Set,
-// a twitch 800 ms after the Set command; for a start without a push; for a
+// The host model of starter.tpe: a starting block at rest, its acceleration 1 g
+// along z with a noise of standard deviation 0.01 g, and seven taps of 150 ms,
+// each 7 s after the last from 1 s: on Start for a legal start, the push 160 ms
+// after the gun; for a false start, the push 60 ms after it; for a movement in
+// Set, a twitch 800 ms after the Set command; for a start without a push; for a
 // start abandoned by a tap on Stand up a second after the Set command; on
-// Reset; and on Start for a start not still at the marks. The push is a rise
-// of 0.6 g for 80 ms, the twitch of 0.3 g for 50 ms, and the unsettled
-// block a rise of 0.3 g from 400 to 500 ms after the tap. The times of the
-// Set command and of the gun are those of their tones, 1500 and 2500 Hz,
-// observed through m5_speaker_observe.
+// Reset; and on Start for a start not still at the marks. The push is a rise of
+// 0.6 g for 80 ms, the twitch of 0.3 g for 50 ms, and the unsettled block a
+// rise of 0.3 g from 400 to 500 ms after the tap. The times of the Set command
+// and of the gun are those of their tones, 1500 and 2500 Hz, observed through
+// m5_speaker_observe.
 
 #include <esp_timer.h>
 #include <stdint.h>

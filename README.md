@@ -584,8 +584,8 @@ Under both variants:
   square, is `L; L*`: a recursive function whose effect is annotated by a
   grade variable `'e` (see [Annotations](#annotations)) and whose rounds read
   before the recursive call has the grade `{Read*}`;
-- when an ordering fails, a note names the shortest trace of the lesser grade
-  not in the greater one:
+- when an ordering fails, a note names a trace of the lesser grade not in the
+  greater one:
 
 ```
 Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated
@@ -696,7 +696,7 @@ are the same grade. It is read by every grade of regular expressions, also those
 with banked delays and the timed regex grades, with idle waits inside, as in
 `{(idle 2.5; ReadImu)^3}`; the grades of finite sets of traces read finite
 counts only. A repetition is decided without unrolling, by derivatives with a
-counter, in time linear in its count.
+counter.
 
 A grade the typechecker computes, an inferred grade, a counterexample or a
 timeline entry, is printed with every run of two or more equal adjacent factors
@@ -775,7 +775,7 @@ Under these:
   of the automaton of the gap derivatives of `ρ` together with a reader of the
   closure of `ρ′`;
 - a failed ordering names a trace with the fewest operations, its delays at the
-  extremes of their sets;
+  extremes of their bounded sets;
 - the alphabet is the atomic operations declared anywhere in the program, so
   `_` is any tick or atomic operation, and a grade must denote at least one
   trace over it;
@@ -1051,12 +1051,13 @@ with idle ethanol soaks.
 
 #### The grades with banked delays as instances
 
-The grades with banked delays above embed in the timed regex grades, preserving
+The trace grades with banked delays embed in the timed regex grades, preserving
 and reflecting the order: an upper bound with every operation `A` made optional,
 `A?`, and every delay a time span, `{A; 3; B}` as `{A?; ≤3; B?}`, and a lower
 bound with every operation preceded by `≥0`, every delay a time span and `≥0`
-at the end, `{A; 2; B}` as `{≥0; A; ≥2; B; ≥0}`. The grades with banked
-delays keep decision procedures of their own.
+at the end, `{A; 2; B}` as `{≥0; A; ≥2; B; ≥0}`. The regex grades with banked
+delays translate in the same way. The grades with banked delays keep decision
+procedures of their own.
 
 #### Finite timed regex grades
 

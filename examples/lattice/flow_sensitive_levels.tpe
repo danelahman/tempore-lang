@@ -39,7 +39,7 @@ let maybe_report b : unit ! (High, (Audit, High), (Board, Low)) =
   if b then report () else perform Post "no report today"
 
 (* Correctly accepted by the typechecker: a draft boxed at '(Low, (Board,
-   Low))' is in reach after a public post. *)
+   Low))' is still in reach after a public post. *)
 let draft () =
   box (Low, (Board, Low)) "draft" as d in
   perform Post "hello";

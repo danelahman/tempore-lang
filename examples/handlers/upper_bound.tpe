@@ -102,10 +102,10 @@ let h_before =
 (* Correctly rejected by the typechecker: 'f' is not eternal, so it may not
    be used after a resumption that may take any number of ticks:
 
-     Typing error: Variable `f` is used with grade `∣ε₀∣` accumulated since it
-       was bound, but its type `unit → nat` is not eternal
+     Typing error: Variable `f` is used with grade `∣ε_Get∣` accumulated
+       since it was bound, but its type `unit → nat` is not eternal
        Note: the resource inequality
-         `∀ε₀. ∣ε₀∣ <= 0` does not hold: for `ε₀ = ∞` it becomes
+         `∀ε_Get. ∣ε_Get∣ <= 0` does not hold: for `ε_Get = ∞` it becomes
          `∞ <= 0`
 *)
 (*
