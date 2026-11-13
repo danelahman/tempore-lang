@@ -105,22 +105,23 @@ module Make (E : ENTRY) : sig
   val equal : t -> t -> bool
   (** The equivalence of {!leq}. *)
 
-  val plus : star:(E.t -> E.t) -> t -> t
-  (** [plus ~star a] is [(1 ⊔ b) · s · b], where [1] is the unit matrix, [b] is
-      the join of the powers [a], [a · a], …, [a^(k+1)], [k] being four more
-      than the number of modes [a] names, and [s] is the diagonal matrix that
-      gives each mode other than {!stuck} the [star] of the entry of [b] from
-      that mode to itself.
+  val plus : star:(E.t -> E.t) -> depth:int -> t -> t
+  (** [plus ~star ~depth a] is [(1 ⊔ b) · s · b], where [1] is the unit matrix,
+      [b] is the join of the powers [a], [a · a], …, [a^(k+1)], [k] being
+      [depth] more than the number of modes [a] names, and [s] is the diagonal
+      matrix that gives each mode other than {!stuck} the [star] of the entry of
+      [b] from that mode to itself.
 
       Let [star x] be above {!E.one} and below [E.add E.one v] for every [v]
       above [x] with [E.mul v v] below [v], let [E.mul (star x) d] be below [d]
       where [E.mul x d] is, and [E.mul d (star x)] where [E.mul d x] is, and let
-      [star] commute with {!E.rename}. Then [plus ~star a] is above [a], below
-      every matrix above [a] that is closed under the product, and satisfies
-      both induction laws of a closure. Where moreover the entries name no modes
-      and [star x] is above [x], absorbs its square and has the product
-      [star x · y · star z] below [star x · y ⊔ y · star z], it is closed under
-      the product, and so it is the closure of [a]. *)
+      [star] commute with {!E.rename}. Then [plus ~star ~depth a], for [depth]
+      non-negative, is above [a], below every matrix above [a] that is closed
+      under the product, and satisfies both induction laws of a closure. Where
+      moreover [depth] is at least [4], the entries name no modes and [star x]
+      is above [x], absorbs its square and has the product [star x · y · star z]
+      below [star x · y ⊔ y · star z], it is closed under the product, and so it
+      is the closure of [a]. *)
 
   val compare : t -> t -> int
   (** The order of the representations, field by field, lexicographically. *)

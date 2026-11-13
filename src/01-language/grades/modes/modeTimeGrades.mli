@@ -166,7 +166,10 @@ module Summary : sig
   (** No counterexample is offered. *)
 
   val closure : (t -> t) option
-  (** No closures are declared. *)
+  (** The closure of every matrix [a], the least matrix above [a] that absorbs
+      its square: {!ModeMatrices.Make.plus} with [k] five more than the number
+      of modes [a] names, the star of an entry being the hull of its
+      repetitions, zero or more times. *)
 end
 
 module ModeTimes : Grade.S with type Delay.t = Delay.Rational.t
@@ -183,12 +186,21 @@ module ModeTimes : Grade.S with type Delay.t = Delay.Rational.t
       is printed with the entry [(From, Stuck)] at no time of a mode from which
       it is the only trace left implicit, where another entry names the mode, a
       bound [[0, u]] omitted, [u] the upper end of the total, and the grade
-      stuck at no time from every mode as [(Stuck, Stuck)].
+      stuck at no time from every mode as [(Stuck, Stuck)]. A closure is printed
+      [(x)^\[1, ∞)], that of a delay as a delay, and that of another grade
+      naming no operation as a specification, which need not read back.
     - [duration_bounds] is {!Summary.duration} of the evaluated grade: the
       traces that get stuck are not executions of the computation.
     - [events] is the operations a grade names, and [is_atomic name x] holds of
       the operations named [name]. [inhabited] holds of every grade, a grade
       having a trace from every mode.
+    - [plus] is the closure of every grade [a], the least grade above [a] that
+      absorbs its square, evaluated to the closure of the matrix [m] of [a]
+      ({!Summary.closure}): [(1 ⊔ b) · s · b], [b] joining the powers [m],
+      [m · m], …, [m^(k+1)] with [k] five more than the number of modes [m]
+      names, and [s] keeping each mode [p] at the star of the entry of [b] from
+      [p] to [p], the unit joined with that entry with each interval other than
+      [[0, 0]] extended to no upper end.
     - No counterexample is offered, and the witnesses are the constants and
       their pairwise products, and partial. *)
 

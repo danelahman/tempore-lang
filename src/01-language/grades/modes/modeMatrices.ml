@@ -172,8 +172,8 @@ module Make (E : ENTRY) = struct
     in
     iterate a k
 
-  let plus ~star a =
-    let b = powers a (4 + List.length a.modes) in
+  let plus ~star ~depth a =
+    let b = powers a (depth + List.length a.modes) in
     mul (mul (join unit b) (stars star b)) b
 
   let compare m m' =

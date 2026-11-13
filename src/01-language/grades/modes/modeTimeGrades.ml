@@ -91,6 +91,21 @@ module Times = struct
                 (List.map (fun (p, i) -> (f p, i)) s.times);
           }
 
+  (* [star e] is the hull of the repetitions of [e], zero or more times: the
+     unit joined with [e], each interval of [e] other than [[0, 0]] extended to
+     no upper end. *)
+  let star = function
+    | No_trace -> one
+    | Traces s ->
+        let repeated i = if I.is_zero i then i else I.from i in
+        add one
+          (Traces
+             {
+               times = List.map (fun (p, i) -> (p, repeated i)) s.times;
+               rest = repeated s.rest;
+               total = repeated s.total;
+             })
+
   (* A mode named besides [modes] is one of the modes not named, each bounded
      by the hull of its time and [rest]. *)
   let project modes = function
@@ -229,7 +244,7 @@ module Summary = struct
   let vacuous _ _ = None
   let events _ = []
   let counterexample _ _ = None
-  let closure = None
+  let closure = Some (Matrices.plus ~star:Times.star ~depth:5)
 end
 
 (* ------------------------------------------------------------------ *)
@@ -640,12 +655,24 @@ let show_occurrence x = function
       ^ String.concat ", " (List.map (fun (p, q) -> "(" ^ p ^ ", " ^ q ^ ")") b)
       ^ ")"
 
-(* Products bind tighter than joins. *)
+(* [delays_of m] is [Some i] if [m] is [Summary.delays i], and [None]
+   otherwise. *)
+let delays_of (m : Matrices.t) =
+  match m.staying with
+  | Times.Traces s when Summary.equal m (Summary.delays s.total) -> Some s.total
+  | Times.Traces _ | Times.No_trace -> None
+
+(* Products bind tighter than joins. A fixed matrix of delays, such as the
+   closure of a delay, is printed as a delay. *)
 let rec show c =
   match Terms.view c with
   | Terms.Delays i -> I.show_point i
-  | Terms.Fixed m ->
-      if Summary.equal m Summary.top then "⊤" else show_specification m
+  | Terms.Fixed m -> (
+      if Summary.equal m Summary.top then "⊤"
+      else
+        match delays_of m with
+        | Some i -> I.show_point i
+        | None -> show_specification m)
   | Terms.Op (x, b) -> show_occurrence x b
   | Terms.Mul cs ->
       String.concat " · "
@@ -667,7 +694,6 @@ module ModeTimes = struct
   let name = "mode-times"
   let leq_symbol = "<="
   let unit_least = false
-  let plus _ = None
   let commutative = false
   let needs_op_bounds = true
   let duration_ends = Grade.Both_ends
