@@ -484,7 +484,7 @@ it names none:
   File "banked_regex_rational_interval_default_open_reject.tpe", line 14, characters 0-25:
   14 | default Send () = delay 2
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Send` has grade `[{2}, {2}]`, which does not match the declared grade `[{1}, {[0, 2)}]` of `Send`
+  Typing error: The default implementation of `Send` has grade `[{2}, {2}]`, which does not match the grade `[{1}, {[0, 2)}]` of the declared running time of `Send`
     File "banked_regex_rational_interval_default_open_reject.tpe", line 11, characters 0-62:
     11 | operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -494,7 +494,7 @@ it names none:
   File "banked_regex_rational_interval_default_open_reject.tpe", line 15, characters 0-25:
   15 | default Beep () = delay 1
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the grade `[{(1, ∞)}, {2}]` of the declared running time of `Beep`
     File "banked_regex_rational_interval_default_open_reject.tpe", line 12, characters 0-62:
     12 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -518,7 +518,7 @@ it names none:
   File "banked_regex_rational_interval_open_reject.tpe", line 12, characters 0-25:
   12 | default Beep () = delay 1
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the grade `[{(1, ∞)}, {2}]` of the declared running time of `Beep`
     File "banked_regex_rational_interval_open_reject.tpe", line 10, characters 0-62:
     10 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -660,7 +660,7 @@ it names none:
   File "banked_regex_rational_upper_open_reject.tpe", line 20, characters 0-25:
   20 | default Beep () = delay 2
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `{2}`, which does not match the declared grade `{[0, 2)}` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `{2}`, which does not match the grade `{[0, 2)}` of the declared running time of `Beep`
     File "banked_regex_rational_upper_open_reject.tpe", line 12, characters 0-54:
     12 | operation Beep : unit ~> unit ! {Beep} within [1/2, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -790,7 +790,7 @@ it names none:
   File "banked_regex_upper_open_reject.tpe", line 20, characters 0-25:
   20 | default Beep () = delay 3
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the grade `{2}` of the declared running time of `Beep`
     File "banked_regex_upper_open_reject.tpe", line 12, characters 0-52:
     12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -912,7 +912,7 @@ it names none:
   File "banked_traces_intervals_default_bounds.tpe", line 14, characters 0-28:
   14 | default Extrude () = delay 1
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Extrude` has grade `[{1}, {1}]`, which does not match the declared grade `[{3}, {5}]` of `Extrude`
+  Typing error: The default implementation of `Extrude` has grade `[{1}, {1}]`, which does not match the grade `[{3}, {5}]` of the declared running time of `Extrude`
     File "banked_traces_intervals_default_bounds.tpe", line 12, characters 0-71:
     12 | operation Extrude : unit ~> unit ! [{Extrude}, {Extrude}] within [3, 5]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -924,7 +924,7 @@ it names none:
   File "banked_traces_intervals_default_open_reject.tpe", line 14, characters 0-25:
   14 | default Send () = delay 3
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Send` has grade `[{3}, {3}]`, which does not match the declared grade `[{1}, {2}]` of `Send`
+  Typing error: The default implementation of `Send` has grade `[{3}, {3}]`, which does not match the grade `[{1}, {2}]` of the declared running time of `Send`
     File "banked_traces_intervals_default_open_reject.tpe", line 11, characters 0-62:
     11 | operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -934,7 +934,7 @@ it names none:
   File "banked_traces_intervals_default_open_reject.tpe", line 15, characters 0-25:
   15 | default Beep () = delay 1
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{2}, {3}]` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the grade `[{2}, {3}]` of the declared running time of `Beep`
     File "banked_traces_intervals_default_open_reject.tpe", line 12, characters 0-62:
     12 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 3]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -990,7 +990,7 @@ it names none:
   File "banked_traces_open_bounds_reject.tpe", line 20, characters 0-25:
   20 | default Beep () = delay 3
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the grade `{2}` of the declared running time of `Beep`
     File "banked_traces_open_bounds_reject.tpe", line 12, characters 0-52:
     12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1194,7 +1194,7 @@ it names none:
   File "banked_traces_reject_default_bounds.tpe", line 13, characters 0-28:
   13 | default Extrude () = delay 6
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Extrude` has grade `{6}`, which does not match the declared grade `{5}` of `Extrude`
+  Typing error: The default implementation of `Extrude` has grade `{6}`, which does not match the grade `{5}` of the declared running time of `Extrude`
     File "banked_traces_reject_default_bounds.tpe", line 11, characters 0-58:
     11 | operation Extrude : unit ~> unit ! {Extrude} within [3, 5]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1705,7 +1705,7 @@ it names none:
   File "default_reject_bounds.tpe", line 7, characters 0-24:
   7 | default Get () = delay 2
       ^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Get` has grade `2`, which does not match the declared grade `3` of `Get`
+  Typing error: The default implementation of `Get` has grade `2`, which does not match the grade `3` of the declared running time of `Get`
     File "default_reject_bounds.tpe", line 5, characters 0-32:
     5 | operation Get : unit ~> unit ! 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1732,7 +1732,7 @@ it names none:
   File "default_reject_cycle.tpe", line 9, characters 0-31:
   9 | default Pong x = perform Ping x
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default of `Pong` may perform `Pong` again, through the default of `Ping`
+  Typing error: The default of `Pong` performs `Ping`, whose default performs `Pong`
     File "default_reject_cycle.tpe", line 9, characters 17-31:
     9 | default Pong x = perform Ping x
                          ^^^^^^^^^^^^^^
@@ -1740,8 +1740,8 @@ it names none:
     File "default_reject_cycle.tpe", line 8, characters 0-31:
     8 | default Ping x = perform Pong x
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    the default of `Ping`, which may perform `Pong`, is defined here
-    Note: a default runs in place of an unhandled operation, so a cycle through defaults does not terminate
+    the default of `Ping`, which performs `Pong`, is defined here
+    Note: a default runs in place of an unhandled operation, so an unhandled cycle through defaults does not terminate; the check does not account for handlers around a call
   ======================================================================
   default_reject_duplicate.tpe
   ======================================================================
@@ -1755,28 +1755,28 @@ it names none:
   File "default_reject_global.tpe", line 11, characters 0-27:
   11 | default Retry n = refetch n
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default of `Retry` may perform `Retry` again, through the default of `Fetch`
+  Typing error: The default of `Retry` performs `Fetch`, whose default performs `Retry`
     File "default_reject_global.tpe", line 11, characters 18-25:
     11 | default Retry n = refetch n
                            ^^^^^^^
-    `refetch`, which may perform `Fetch`, is used here
+    `refetch`, which performs `Fetch`, is used here
     File "default_reject_global.tpe", line 10, characters 0-33:
     10 | default Fetch n = perform Retry n
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    the default of `Fetch`, which may perform `Retry`, is defined here
-    Note: a default runs in place of an unhandled operation, so a cycle through defaults does not terminate
+    the default of `Fetch`, which performs `Retry`, is defined here
+    Note: a default runs in place of an unhandled operation, so an unhandled cycle through defaults does not terminate; the check does not account for handlers around a call
   ======================================================================
   default_reject_loop.tpe
   ======================================================================
   File "default_reject_loop.tpe", line 6, characters 0-31:
   6 | default Loop x = perform Loop x
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default of `Loop` may perform `Loop` again
+  Typing error: The default of `Loop` performs `Loop`
     File "default_reject_loop.tpe", line 6, characters 17-31:
     6 | default Loop x = perform Loop x
                          ^^^^^^^^^^^^^^
     `Loop` is performed here
-    Note: a default runs in place of an unhandled operation, so a cycle through defaults does not terminate
+    Note: a default runs in place of an unhandled operation, so an unhandled cycle through defaults does not terminate; the check does not account for handlers around a call
   ======================================================================
   default_reject_type.tpe
   ======================================================================
@@ -4024,7 +4024,7 @@ it names none:
   File "mode_switch_costs_reject.tpe", line 35, characters 0-18:
   35 | default On () = ()
        ^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `On` has grade `0`, which does not match the declared grade `(Off, On, 1)` of `On`
+  Typing error: The default implementation of `On` has grade `0`, which does not match the grade `(Off, On, 1)` of the declared running time of `On`
     File "mode_switch_costs_reject.tpe", line 7, characters 0-42:
     7 | operation On : unit ~> unit ! (Off, On, 1)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -6700,7 +6700,7 @@ it names none:
   File "watermarks_reject.tpe", line 31, characters 0-20:
   31 | default Close f = ()
        ^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Close` has grade `(0, 0)`, which does not match the declared grade `(-1, 0)` of `Close`
+  Typing error: The default implementation of `Close` has grade `(0, 0)`, which does not match the grade `(-1, 0)` of the declared running time of `Close`
     File "watermarks_reject.tpe", line 10, characters 0-40:
     10 | operation Close : file ~> unit ! (-1, 0)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -6720,7 +6720,7 @@ it names none:
   File "watermarks_reject.tpe", line 42, characters 0-29:
   42 | default Open name = File name
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Open` has grade `(0, 0)`, which does not match the declared grade `(1, 1)` of `Open`
+  Typing error: The default implementation of `Open` has grade `(0, 0)`, which does not match the grade `(1, 1)` of the declared running time of `Open`
     File "watermarks_reject.tpe", line 9, characters 0-40:
     9 | operation Open : string ~> file ! (1, 1)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -7200,7 +7200,7 @@ which have one implementation, excepted:
   File "banked_regex_upper_open_reject.tpe", line 20, characters 0-25:
   20 | default Beep () = delay 3
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the grade `{2}` of the declared running time of `Beep`
     File "banked_regex_upper_open_reject.tpe", line 12, characters 0-52:
     12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -7389,7 +7389,7 @@ their visible implementations, under their implementations by automata
   File "banked_regex_rational_interval_default_open_reject.tpe", line 14, characters 0-25:
   14 | default Send () = delay 2
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Send` has grade `[{2}, {2}]`, which does not match the declared grade `[{1}, {[0, 2)}]` of `Send`
+  Typing error: The default implementation of `Send` has grade `[{2}, {2}]`, which does not match the grade `[{1}, {[0, 2)}]` of the declared running time of `Send`
     File "banked_regex_rational_interval_default_open_reject.tpe", line 11, characters 0-62:
     11 | operation Send : unit ~> unit ! [{Send}, {Send}] within [1, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -7399,7 +7399,7 @@ their visible implementations, under their implementations by automata
   File "banked_regex_rational_interval_default_open_reject.tpe", line 15, characters 0-25:
   15 | default Beep () = delay 1
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the grade `[{(1, ∞)}, {2}]` of the declared running time of `Beep`
     File "banked_regex_rational_interval_default_open_reject.tpe", line 12, characters 0-62:
     12 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -7423,7 +7423,7 @@ their visible implementations, under their implementations by automata
   File "banked_regex_rational_interval_open_reject.tpe", line 12, characters 0-25:
   12 | default Beep () = delay 1
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the grade `[{(1, ∞)}, {2}]` of the declared running time of `Beep`
     File "banked_regex_rational_interval_open_reject.tpe", line 10, characters 0-62:
     10 | operation Beep : unit ~> unit ! [{Beep}, {Beep}] within (1, 2]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -7565,7 +7565,7 @@ their visible implementations, under their implementations by automata
   File "banked_regex_rational_upper_open_reject.tpe", line 20, characters 0-25:
   20 | default Beep () = delay 2
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `{2}`, which does not match the declared grade `{[0, 2)}` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `{2}`, which does not match the grade `{[0, 2)}` of the declared running time of `Beep`
     File "banked_regex_rational_upper_open_reject.tpe", line 12, characters 0-54:
     12 | operation Beep : unit ~> unit ! {Beep} within [1/2, 2)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -8699,7 +8699,7 @@ the timed regex grades excepted:
   File "banked_regex_upper_open_reject.tpe", line 20, characters 0-25:
   20 | default Beep () = delay 3
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the grade `{2}` of the declared running time of `Beep`
     File "banked_regex_upper_open_reject.tpe", line 12, characters 0-52:
     12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -8725,7 +8725,7 @@ the timed regex grades excepted:
   File "banked_regex_upper_open_reject.tpe", line 20, characters 0-25:
   20 | default Beep () = delay 3
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
+  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the grade `{2}` of the declared running time of `Beep`
     File "banked_regex_upper_open_reject.tpe", line 12, characters 0-52:
     12 | operation Beep : unit ~> unit ! {Beep} within [1, 3)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

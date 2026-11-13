@@ -255,7 +255,7 @@ module Make (C : Inference.Constraint.S) = struct
         ( reason.at,
           Printf.sprintf
             "The default implementation of %s has grade %s, which does not \
-             match the declared grade %s of %s"
+             match the grade %s of the declared running time of %s"
             (op_name op) g1 g2 (op_name op),
           ineq_notes p f )
     | Reason.Annotation, _ when specific reason ->

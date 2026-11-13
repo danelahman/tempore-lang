@@ -85,17 +85,6 @@ let path ~default performed target =
 
 let name op = Printf.sprintf "`%s`" (Ast.OpName.string_of op)
 
-let enumeration = function
-  | [] -> ""
-  | [ op ] -> name op
-  | ops -> (
-      match List.rev ops with
-      | last :: rest ->
-          Printf.sprintf "%s and %s"
-            (String.concat ", " (List.rev_map name rest))
-            (name last)
-      | [] -> "")
-
 let reject ~default ~loc op performed path =
   let here = Diagnostic.place in
   let first =
@@ -114,7 +103,7 @@ let reject ~default ~loc op performed path =
               {
                 Diagnostic.span = at;
                 text =
-                  Printf.sprintf "`%s`, which may perform %s, is used %s"
+                  Printf.sprintf "`%s`, which performs %s, is used %s"
                     (Ast.Variable.string_of x) (name first) here;
               };
             ]
@@ -130,7 +119,7 @@ let reject ~default ~loc op performed path =
                 Diagnostic.span = default_at;
                 text =
                   Printf.sprintf
-                    "the default of %s, which may perform %s, is defined %s"
+                    "the default of %s, which performs %s, is defined %s"
                     (name b) (name c) here;
               })
             (default b)
@@ -138,22 +127,21 @@ let reject ~default ~loc op performed path =
         Option.to_list label @ edges rest
     | [ _ ] | [] -> []
   in
-  let through =
-    match List.rev path with
-    | _ :: (_ :: _ as rest) ->
-        Printf.sprintf ", through the default%s of %s"
-          (if List.length rest > 1 then "s" else "")
-          (enumeration (List.rev rest))
-    | [ _ ] | [] -> ""
+  (* The calls along the path: the default of [op] performs the first
+     operation of [path], whose default performs the next, up to [op]. *)
+  let chain =
+    String.concat ", whose default performs "
+      (List.map name (if path = [] then [ op ] else path))
   in
   Error.typing ~loc
     ~labels:(first @ edges path)
     ~notes:
       [
-        "a default runs in place of an unhandled operation, so a cycle through \
-         defaults does not terminate";
+        "a default runs in place of an unhandled operation, so an unhandled \
+         cycle through defaults does not terminate; the check does not account \
+         for handlers around a call";
       ]
-    "The default of %s may perform %s again%s" (name op) (name op) through
+    "The default of %s performs %s" (name op) chain
 
 let check_default ~default ~loc op performed =
   match path ~default performed op with
