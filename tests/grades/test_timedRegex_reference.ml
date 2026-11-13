@@ -115,8 +115,8 @@ let bounds_of ?(operations = operations) ~grid running_time =
     operations;
   }
 
-(* [lower_side e] is whether [e] has a letter bounded below only, and
-   [upper_side e] one bounded above. *)
+(* [letters_of e] is the letters of [e], and [has_lower e] whether one is a
+   stretch bounded below only. *)
 let rec letters_of = function
   | R.Letter l -> [ l ]
   | R.Seq es | R.Alt es -> List.concat_map letters_of es

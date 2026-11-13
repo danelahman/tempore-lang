@@ -523,14 +523,11 @@ let consistency_laws (type a) ?(width = 12) (module G : Grade.S with type t = a)
       consistent;
   ]
 
-(* [declared_laws (module G) ~context bounds samples] checks, on [samples]
-   under [bounds], the properties the declarations of [G] assert: that the
-   product commutes up to equality if [G.commutative]; that [is_top] decides
-   the equality with the top; that equal representations under [compare]
-   are equal grades with equal hashes; and that a declared closure [c⁺] lies
-   above [c], absorbs its square, lies below every sample [w] above [c] with
-   [w · w ≾ w], and satisfies the induction laws [c · d ≾ d ⇒ c⁺ · d ≾ d] and
-   [d · c ≾ d ⇒ d · c⁺ ≾ d] at every sample [d]. *)
+(* [closure_laws (module G) ~context bounds samples] checks, on [samples] under
+   [bounds], that a declared closure [c⁺] lies above [c], absorbs its square,
+   lies below every sample [w] above [c] with [w · w ≾ w], and satisfies the
+   induction laws [c · d ≾ d ⇒ c⁺ · d ≾ d] and [d · c ≾ d ⇒ d · c⁺ ≾ d] at
+   every sample [d]. *)
 let closure_laws (type a) (module G : Grade.S with type t = a) ~context bounds
     (samples : a list) =
   let name law = G.name ^ ": " ^ law in
@@ -567,6 +564,12 @@ let closure_laws (type a) (module G : Grade.S with type t = a) ~context bounds
       with_samples;
   ]
 
+(* [declared_laws (module G) ~context bounds samples] checks, on [samples]
+   under [bounds], the properties the declarations of [G] assert: that the
+   product commutes up to equality if [G.commutative]; that [is_top] decides
+   the equality with the top; that equal representations under [compare]
+   are equal grades with equal hashes; and the laws of the declared closures
+   ({!closure_laws}). *)
 let declared_laws (type a) (module G : Grade.S with type t = a) ~context bounds
     (samples : a list) =
   let name law = G.name ^ ": " ^ law in
