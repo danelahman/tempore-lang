@@ -311,7 +311,8 @@ module Summary = struct
   let plus_interval i = if I.is_zero i then i else (fst i, Unbounded)
 
   (* The durations of the silent stretches [silent] that the closure inserts
-     between and around active parts: [0], or the closure of [silent]. *)
+     between and around active parts: [0], or the hull of [0] and the closure
+     of [silent]. *)
   let star = function
     | None -> I.zero
     | Some s -> I.hull I.zero (plus_interval s)
@@ -682,7 +683,7 @@ let show_summary (s : Summary.t) =
         @ List.map (fun total -> "total " ^ total) total)
     ^ "⟩"
 
-(* The expression of a brace literal of the term [c], if it has one. *)
+(* The brace expression printed for the term [c], if it has one. *)
 let rec regex c =
   let fold f = function
     | [] -> None

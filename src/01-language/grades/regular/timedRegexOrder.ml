@@ -522,7 +522,7 @@ struct
   (* [concretise world r steps] is the word of the path [steps], each length
      chosen within [eps] of its end, or [big] for an unbounded one, for the
      first [eps] of [1, 1/2, …] and [big] of [b, 2b, …] at which [r] rejects the
-     word, and at most 64 of them; [b] exceeds the sum of the finite ends of [r]. *)
+     word, and at most 65 of them; [b] exceeds the sum of the finite ends of [r]. *)
   let concretise world r steps =
     let b =
       Array.fold_left

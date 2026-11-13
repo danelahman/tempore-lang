@@ -838,7 +838,7 @@ module Make (C : Constraint.S) = struct
         else defer ()
     | true, true -> defer ()
 
-  (* The kept and deferred orderings, in order, or the first that blocks. *)
+  (* The kept and deferred orderings, in order, or the last that blocks. *)
   let split_orderings sp orderings =
     List.fold_right
       (fun o acc ->
@@ -1108,7 +1108,7 @@ module Make (C : Constraint.S) = struct
       | Holds, [], _ | Holds, [ _ ], Grades.Grade.Complete -> Settled
       | Holds, _, _ | Open, _, _ -> Undecided
 
-  (* The orderings left undecided, or the first refuted with its witness. *)
+  (* The orderings left undecided, or the last refuted with its witness. *)
   let sift judge orderings =
     List.fold_right
       (fun o acc ->
