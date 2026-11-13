@@ -199,8 +199,8 @@ let rec synchronise_messages_in_order (first : nat) (count : nat)
 
      Typing error: The effect inequality `{Fetch*} <= {20}` does not hold
        ...
-       Note: the grade `{Fetch; Fetch; Fetch; Fetch; Fetch; Fetch; Fetch;
-         Fetch; Fetch; Fetch; Fetch}` is below `{Fetch*}` but not below `{20}`
+       Note: the grade `{Fetch^11}` is below `{Fetch*}` but not below
+         `{20}`
 *)
 (*
 let fetch_messages_within_budget (count : nat) : message list ! {20} =

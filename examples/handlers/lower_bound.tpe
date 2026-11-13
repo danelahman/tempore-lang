@@ -107,11 +107,11 @@ let h_swap =
    71 · eps for every eps, but never resuming gives it grade 0, which
    already fails for eps = 0:
 
-     Typing error: For every grade `ε₀` the continuation `k` may have, the
-       case for `Get` must have a grade matching `71 · ε₀`, but its grade
+     Typing error: For every grade `ε_Get` the continuation `k` may have, the
+       case for `Get` must have a grade matching `71 · ε_Get`, but its grade
        `0` does not
-       Note: the effect inequality `∀ε₀. 0 >= 71 · ε₀` does not hold: for
-         `ε₀ = 0` it becomes `0 >= 71`
+       Note: the effect inequality `∀ε_Get. 0 >= 71 · ε_Get` does not hold: for
+         `ε_Get = 0` it becomes `0 >= 71`
 *)
 (*
 let h_abandon =

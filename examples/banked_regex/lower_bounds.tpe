@@ -140,9 +140,9 @@ let baked_or_inspected (b : bool) =
 (* Correctly rejected by the typechecker: two inspections after the coating
    bank two ticks, not the four the annotated grade demands:
 
-     Typing error: This function's body has grade `{Coat; Inspect; Inspect}`,
+     Typing error: This function's body has grade `{Coat; Inspect^2}`,
        which does not match its annotated grade `{Coat; 4}`
-       Note: the effect inequality `{Coat; Inspect; Inspect} <= {Coat; 4}`
+       Note: the effect inequality `{Coat; Inspect^2} <= {Coat; 4}`
          does not hold
 *)
 (*

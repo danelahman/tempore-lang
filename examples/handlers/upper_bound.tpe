@@ -47,6 +47,7 @@ let h_offset n =
 
      Typing error: Variable `k` is unboxed with grade `72` accumulated since it
        was bound, which is not below its box grade `71`
+       ...
        Note: the resource inequality `72 <= 71` does not hold
 *)
 (*
@@ -71,10 +72,11 @@ let h_abandon =
    continuation's own rigid effect eps, and |eps| <= 71 already fails
    once eps is unbounded:
 
-     Typing error: Variable `k` is unboxed with grade `∣ε₀∣` accumulated since
-       it was bound, which is not below its box grade `71`
-       Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 71` does not hold:
-         for `ε₀ = ∞` it becomes `∞ <= 71`
+     Typing error: Variable `k` is unboxed with grade `∣ε_Get∣` accumulated
+       since it was bound, which is not below its box grade `71`
+       ...
+       Note: the resource inequality `∀ε_Get. ∣ε_Get∣ <= 71` does not hold:
+         for `ε_Get = ∞` it becomes `∞ <= 71`
    (Contrast: under a lower bound it is accepted once the case first delays at
    least 71 ticks, as 'h_twice' in 'lower_bound.tpe' does.)
 *)
@@ -104,6 +106,7 @@ let h_before =
 
      Typing error: Variable `f` is used with grade `∣ε_Get∣` accumulated
        since it was bound, but its type `unit → nat` is not eternal
+       ...
        Note: the resource inequality
          `∀ε_Get. ∣ε_Get∣ <= 0` does not hold: for `ε_Get = ∞` it becomes
          `∞ <= 0`
@@ -125,6 +128,7 @@ let h_after =
      Typing error: Variable `g` has type `[71](nat → α ! ε₀) → β`, which is not
        eternal, so it cannot be used in the case for `Get`: the case runs with a
        grade the handler does not fix
+       ...
        Note: the resource inequality `∞ <= 0` does not hold
 *)
 (*

@@ -86,11 +86,11 @@ let undercured () =
    the upper bound of eight:
 
      Typing error: Variable `p` is unboxed with grade
-       `[{Bake; Bake}, {Bake; Bake}]` accumulated since it was bound, which is
+       `[{Bake^2}, {Bake^2}]` accumulated since it was bound, which is
        not below its box grade `[{4}, {8}]`
        ...
        Note: the resource inequality
-         `[{Bake; Bake}, {Bake; Bake}] <= [{4}, {8}]` does not hold
+         `[{Bake^2}, {Bake^2}] <= [{4}, {8}]` does not hold
 *)
 (*
 let overcured () =
@@ -125,11 +125,11 @@ let baked_and_idle () =
    lower bound demands:
 
      Typing error: Variable `p` is unboxed with grade
-       `[{Coat; Coat}, {Coat; Coat}]` accumulated since it was bound, which is
+       `[{Coat^2}, {Coat^2}]` accumulated since it was bound, which is
        not below its box grade `[{Coat; 2}, {Coat; 2}]`
        ...
        Note: the resource inequality
-         `[{Coat; Coat}, {Coat; Coat}] <= [{Coat; 2}, {Coat; 2}]` does not hold
+         `[{Coat^2}, {Coat^2}] <= [{Coat; 2}, {Coat; 2}]` does not hold
 *)
 (*
 let coated_twice () =
