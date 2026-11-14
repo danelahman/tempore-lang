@@ -8,16 +8,16 @@
 
     Runtime names are given below without their prefix [tempore_].
 
-    A natural number is an [int], a float a [float], a string a [str], a boolean
-    a [bool] and a tuple a [tuple], the unit value [()]. A value of a
-    constructor is [Con(tag, arg)], where [tag] numbers the label in the order
-    of labels the comparison primitives use and [arg] is [None] for a constant
-    constructor; the lists are built from the constructors [[]] and [::]. A
-    function is a Python function from its argument to a computation, and a
-    handler is [Handler(ret, clauses)], its return case and its operation cases,
-    by operation name. The components of a value nested deeper than a fixed
-    bound are bound to temporaries, as Python limits the nesting of parentheses
-    in an expression.
+    A natural number is an [int], an integer an [Int], a subclass of [int], a
+    float a [float], a string a [str], a boolean a [bool] and a tuple a [tuple],
+    the unit value [()]. A value of a constructor is [Con(tag, arg)], where
+    [tag] numbers the label in the order of labels the comparison primitives use
+    and [arg] is [None] for a constant constructor; the lists are built from the
+    constructors [[]] and [::]. A function is a Python function from its
+    argument to a computation, and a handler is [Handler(ret, clauses)], its
+    return case and its operation cases, by operation name. The components of a
+    value nested deeper than a fixed bound are bound to temporaries, as Python
+    limits the nesting of parentheses in an expression.
 
     {2 Computations}
 

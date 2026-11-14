@@ -1,5 +1,5 @@
-(** JSON documents with the locations of their values, for the device manifests
-    and board profiles of the Arduino backend.
+(** JSON documents with the locations of their values, for the device manifests,
+    board profiles and package descriptors of the Arduino backend.
 
     The syntax is that of RFC 8259. A number is kept as the text of its source,
     so that a decimal is read exactly; strings are UTF-8, and the escapes

@@ -6,7 +6,7 @@
 let bala2_full_drive = 1023i
 
 (* The drive of a motor for x: x rounded to the nearest integer, a half away
-   from zero, and clamped to -1023 to 1023; zero for NaN. *)
+   from zero, and clamped to -1023 to 1023, and -1023 for NaN. *)
 let bala2_drive (x : float) =
   if x >= 1023.0 then bala2_full_drive
   else if x <= -1023.0 then ~-!bala2_full_drive

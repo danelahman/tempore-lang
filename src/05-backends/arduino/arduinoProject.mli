@@ -7,17 +7,22 @@
     {2 Files}
 
     - [platformio.ini]: the environment of the board
-      ({!ArduinoBoard.platformio_ini}), with the build flag [-DTEMPORE_PROFILE]
-      under [profile];
+      ({!ArduinoBoard.platformio_ini}), with the build flag
+      [-DTEMPORE_IMU_FREQUENCY] on a board with an ["imu_frequency"], and
+      [-DTEMPORE_PROFILE] under [profile];
     - [src/tempore_arduino.h], [src/tempore_program.h],
       [src/tempore_program.cpp]: the compiled program;
     - [src/tempore_scaffold.h], [src/tempore_scaffold.cpp]: the scaffold, the
       same for every device: the clock ([esp_timer_get_time]), the log on the
       serial port, delays, the monitors, the profile and the halt of the tasks;
+    - [src/tempore_i2c.h]: the register transactions with the devices on the I2C
+      bus, for the bindings of the packages;
     - [src/tempore_m5_monitor.cpp], on a board with M5Unified and the capability
       ["display"]: the display of the events of the monitors on the screen, the
       banner of a violation under the policy [abort] and the line of the
       warnings under [warn];
+    - [src/tempore_halt_tones.cpp], on a board with M5Unified and the capability
+      ["speaker"]: the tones on the speaker at the halt;
     - [src/tempore_battery.cpp], under the member ["battery"] of the manifest:
       the battery indicator (see below);
     - [src/tempore_bindings.h]: for each operation [Op] the program performs,
@@ -35,9 +40,10 @@
       safe-state functions of the packages and then the safe-state hook of the
       application, the array [tempore_task_monitors] of the monitors of the
       periodic tasks, [setup()], which initialises the board, calls the
-      initialisation functions of the packages, starts the display of the events
-      of the monitors on a board with a screen and the battery indicator, if
-      any, creates a FreeRTOS task for each task of the manifest and starts the
+      initialisation functions of the packages, starts the speaker of the tones
+      of the halt on a board with a speaker, the display of the events of the
+      monitors on a board with a screen and the battery indicator, if any,
+      creates a FreeRTOS task for each task of the manifest and starts the
       profile, and [loop()], which deletes its own task;
     - the sources of the packages ({!ArduinoPackage}) and the binding file of
       the manifest, in [src/];
@@ -100,9 +106,10 @@
     while the battery charges, in grey on black in text of size 1, right-aligned
     in the top right corner of the screen, a rectangle 78 pixels wide and 8
     high, under the lock of the display. It draws the text when it changes and
-    when a drawing of the package m5-display intersects the rectangle, which
-    notifies the task; it draws nothing while the gauge reports no battery, and
-    stops once the tasks are halted.
+    when a drawing reported by [tempore_display_drawn], as those of the package
+    m5-display, intersects the rectangle, which notifies the task; it draws
+    nothing while the gauge reports no battery, and stops once the tasks are
+    halted.
 
     {2 Profile}
 

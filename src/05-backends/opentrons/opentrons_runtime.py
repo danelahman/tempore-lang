@@ -5,7 +5,8 @@
 # included in the same module keeps the other names.
 #
 # Values are represented as follows:
-#   nat -> int, float -> float, string -> str, bool -> bool,
+#   nat -> int, int -> tempore_Int, a subclass of int, float -> float,
+#   string -> str, bool -> bool,
 #   tuples -> tuple (the unit value is ()),
 #   constructors -> tempore_Con(tag, arg), the tag the rank of the label in
 #     the order of labels of the compiler and arg None for a constant

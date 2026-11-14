@@ -195,9 +195,9 @@ banked and timed regex grades and `inter-arrival`.
 The bounds of the packages and of the examples are measured on the devices
 by their profile ([Measuring running times](#measuring-running-times)): the
 lower bound is the least time measured, rounded down, and the upper bound 1.5
-times the greatest, rounded up. On a profile with the radio, the bounds are
-measured with the radio running. An operation not measured with the radio
-keeps those of the board without it.
+times the greatest, rounded up. On a profile with the radio, the bounds also
+cover the times measured with the radio running, as each declaration states.
+An operation not measured with the radio keeps those of the board without it.
 Bounds not measured are provisional; each declaration states its
 measurements and how the bounds not measured directly, such as those of
 `i2c`, are derived.
@@ -444,7 +444,8 @@ and `steps` the targets `-record`, `-capture` and `-erase` of
 `make arduino-simulate-all` and `make arduino-build-all` run the first two for
 every example, and `make examples-help` lists the targets by board with the
 values of their variables; `make arduino-diagnostics-help` lists likewise the
-diagnostic targets, `-profile`, `-log`, `-record`, `-capture` and `-erase`. The targets that need PlatformIO install it by
+diagnostic targets, `-profile`, `-log`, `-record`, `-capture` and `-erase`.
+The targets that build for the device install PlatformIO by
 `make arduino-deps` first. The variables, set on the command line or in the
 environment, are
 
