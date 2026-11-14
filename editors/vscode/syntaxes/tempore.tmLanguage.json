@@ -171,7 +171,7 @@
     },
     "grade-keyword": {
       "name": "keyword.other.tempore",
-      "match": "\\bidle\\b"
+      "match": "\\b(idle|skip)\\b"
     }
   }
 }
