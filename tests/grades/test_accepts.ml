@@ -50,8 +50,8 @@ let literals_of path =
 
 (* Literals the parser does not produce or the sources do not hold: negative
    and fractional delays, interval atoms without a whole number of time steps,
-   operations among numbers of ticks, and their intersections and
-   complements. *)
+   operations among numbers of ticks, their intersections and complements, and
+   idle waits among the times of an operation. *)
 let unwritten =
   let open Grade in
   let q = Rational.make in
@@ -74,6 +74,8 @@ let unwritten =
     Tuple [ Int 1; Tuple [ Name "Send"; Braces send ] ];
     Tuple [ Int 1; Tuple [ Name "Send"; Braces (Inter (Tick 1, Tick 2)) ] ];
     Tuple [ Int 1; Tuple [ Name "Send"; Braces (Compl (Star Any)) ] ];
+    Tuple [ Int 1; Tuple [ Name "Send"; Braces (Idle (Tick 3)) ] ];
+    Tuple [ Int 1; Tuple [ Name "Send"; Braces (Seq (Tick 1, Idle Any)) ] ];
     Tuple [ Braces (Inter (Tick 1, Tick 2)); Tuple [ Name "Send"; Braces Any ] ];
     Interval (Closed (Braces send), Closed (Braces (Inter (send, Tick 1))));
     Interval (Closed (Braces (Seq (send, no_tick))), Unbounded);

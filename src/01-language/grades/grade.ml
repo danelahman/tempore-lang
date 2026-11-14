@@ -191,14 +191,14 @@ let rec whole_delays ~names = function
   | Letter _ -> names
   | Skip | Tick _ | Any -> true
   | Frac _ -> false
-  | Below _ | Above _ -> false
+  | Below _ | Above _ | Idle _ -> false
   | Delays (lo, hi) -> (
       match tick_interval lo hi with
       | _ -> true
       | exception Invalid_literal _ -> false)
   | Seq (r, s) | Union (r, s) | Inter (r, s) ->
       whole_delays ~names r && whole_delays ~names s
-  | Star r | Repeat (r, _) | Compl r | Idle r -> whole_delays ~names r
+  | Star r | Repeat (r, _) | Compl r -> whole_delays ~names r
 
 let whole_braces ~names r =
   Option.is_none (negative_delay r) && whole_delays ~names r
