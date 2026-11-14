@@ -27,10 +27,11 @@
 #   examples-help' and 'make arduino-diagnostics-help' group the Arduino
 #   targets by board, named by the member "title" of the board profile.
 #
-# Each target builds tempore first, and a target that needs the Opentrons
-# simulator or PlatformIO first installs it by opentrons-deps or
-# arduino-deps. tests/make/examples.t checks that every example has its
-# fragment.
+# Each target of an example but -capture and -erase under EXAMPLE_RECORD_TOOL
+# builds tempore first, and a target that runs the Opentrons simulator or
+# builds for a device first installs the simulator or PlatformIO by
+# opentrons-deps or arduino-deps. tests/make/examples.t checks that every
+# example has its fragment.
 
 # The serial ports of the boards: PORT, when set, is the port of every
 # target that opens one, and else PORT_BOARD, the port of the board BOARD, if

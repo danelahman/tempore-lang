@@ -1450,8 +1450,8 @@ annotated by a grade variable `'e` (see [Annotations](#annotations)) and whose
 rounds perform the body of `round` has a grade below
 `((Cold, Cold, (_, 0)), (Out, Out, 0), (Out, Stuck, 0), (_, _, 0), (_, Stuck, 0))`:
 from the cold block it ends there, spending no time in a third mode, and from
-any other mode it keeps the mode or gets stuck, at no time. A closure is
-printed `(x)^[1, ∞)`, which does not read back.
+any other mode it keeps the mode or gets stuck, at no time. A closure of a
+grade naming an operation is printed `(x)^[1, ∞)`, which does not read back.
 
 See
 [`examples/modes/mode_switch_costs.tpe`](examples/modes/mode_switch_costs.tpe).
@@ -1583,8 +1583,10 @@ durations and the lead time together form a further gap. The total duration
 loses its upper end unless it is 0. A recursive function whose effect is
 annotated by a grade variable `'e` (see [Annotations](#annotations)) and whose
 rounds perform `Beat` and then `delay 2` has the grade
-`{skip | (Beat; 2)^[1, ∞)}`, its gaps in `[2.1, 2.5]`. A closure is printed as
-`{r^[1, ∞)}`, which does not read back.
+`{skip | (Beat; 2)^[1, ∞)}`, its gaps in `[2.1, 2.5]`. A closure of a grade
+whose brace literals name an operation is printed as `{r^[1, ∞)}` where the
+grade is the brace literal `{r}`, and as `(c)^[1, ∞)` otherwise; neither reads
+back.
 
 Counts add under sequencing, so they suit bounded durations, such as a box held
 over exactly one new reading, and not loop invariants, which carry no count.
@@ -1724,9 +1726,10 @@ operation Read : unit ~> string ! 2
 ```
 
 declares an operation whose call `perform Read ()` has grade `2`. Under the
-trace and regular-expression grade algebras whose operations declare
-running-time bounds, an *atomic* operation, graded by its own name, also
-declares its running-time bounds (`within [n, m]`):
+grade algebras whose operations declare running-time bounds (the trace and
+regex grades with banked delays, the timed regex grades, `mode-times` and
+`inter-arrival`), an *atomic* operation, graded by its own name, also declares
+its running-time bounds (`within [n, m]`):
 
 ```
 operation Tx : string ~> unit ! {Tx} within [2, 3]
@@ -1904,12 +1907,13 @@ A `run` must establish every such condition: one without unknowns that the
 typechecker can neither derive nor refute rejects it, and one with unknowns
 must hold together with `Q` at a closed instance of the unknowns.
 
-Under the time grades, the grade lattices and their products, a condition in
-the effect of a single continuation is decided; under the trace grades
-it may not be. It is decided at finitely many witnesses of the effect, whose
+Under the time grades, the grade lattices, the time with an energy budget,
+`at-most-counts`, `at-least-counts`, and their products, a condition in the
+effect of a single continuation is decided; under the other grade algebras it
+may not be. It is decided at finitely many witnesses of the effect, whose
 number grows with its constants, their common denominator over rational delays
-and the number of its occurrences, and multiplies over products: conditions with large constants or fine
-fractions are slow to decide.
+and the number of its occurrences, and multiplies over products: conditions
+with large constants or fine fractions are slow to decide.
 
 ### Annotations
 

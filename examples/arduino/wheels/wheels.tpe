@@ -81,8 +81,8 @@ let spin (drive : int) : float * float =
   (float_of_int left /. seconds, float_of_int right /. seconds)
 
 (* Correctly rejected by the typechecker: the drive is commanded after the
-   wait, just before the encoders are read, so that the counts are read 0.2
-   to 0.45 ms after the drive command, not 100 to 101 ms:
+   wait, just before the encoders are read, so that the counts are read at
+   once after the end of the drive command, not 100 to 101 ms after it:
 
      Typing error: Variable `window` is unboxed with grade `{idle 100.5;
        SetMotors; ReadEncoders}` accumulated since it was bound, which is not
@@ -103,7 +103,7 @@ let spin_unordered (drive : int) : float * float =
 
 (* Correctly rejected by the typechecker: the drive is shown on the display
    within the window, which takes up to 12.5 ms, so that the counts may be
-   read up to 113 ms after the drive command:
+   read up to 113 ms after the end of the drive command:
 
      Typing error: Variable `window` is unboxed with grade `{SetMotors;
        ShowNumber; idle 100.5; ReadEncoders}` accumulated since it was bound,

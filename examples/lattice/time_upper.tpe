@@ -24,8 +24,8 @@ default Query (t, q) = delay 1; "rows"
 operation ReadPayroll : unit ~> string ! (1, High)
 default ReadPayroll () = delay 1; "salaries"
 
-(* Correctly accepted by the typechecker: a query and three ticks of thinking
-   stay within the five ticks of the session. *)
+(* Correctly accepted by the typechecker: three ticks of thinking stay within
+   the five ticks of the session before the token is used. *)
 let query_in_time () =
   let s = perform Login "alice" in
   delay 3;

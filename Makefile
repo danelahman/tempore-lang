@@ -53,9 +53,10 @@ clean-opentrons:
 # below of version 3.10 or later; an error if there is none. PlatformIO keeps
 # its platforms, toolchains and libraries in _arduino/platformio, which the
 # executable sets as PLATFORMIO_CORE_DIR when it runs this installation and the
-# environment does not set it. Optional: only --build and --upload need
-# it. clean-arduino removes _arduino, together with the projects written by
-# --emit-arduino to _arduino/projects.
+# environment does not set it. Optional: needed by --build and --upload, and
+# by scripts/port.sh and scripts/link.sh to find ports and read board
+# addresses. clean-arduino removes _arduino, together with the projects
+# written by --emit-arduino to _arduino/projects.
 ARDUINO_DIR = _arduino
 ARDUINO_VENV = $(ARDUINO_DIR)/venv
 ARDUINO_PYTHONS = $(OPENTRONS_PYTHONS)

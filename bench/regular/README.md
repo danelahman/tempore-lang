@@ -23,8 +23,8 @@ regex grades are hidden: `--grades` accepts them for benchmarking, and
 | letters  | `regular-trace-languages-symbolic-by-letters`                                       | symbolic expressions over letter sets                      | derivatives by single letters, depth-first                 |
 | symbolic | `regular-trace-languages-symbolic`                                                  | symbolic expressions over letter sets                      | gap derivatives by minterms, depth-first                   |
 | automata | `banked-regex-{lower-bound,upper-bound,interval}-letter-automata`                   | minimal automata over single letters                       | product with the closure, breadth-first                    |
-| plain    | `banked-regex-{lower-bound,upper-bound,interval}-letter-derivatives`                | expressions over single letters                            | derivatives by single letters with closures, depth-first   |
-| letters  | `banked-regex-{lower-bound,upper-bound,interval}-symbolic-by-letters`               | symbolic expressions over letter sets                      | derivatives by single letters with closures, depth-first   |
+| plain    | `banked-regex-{lower-bound,upper-bound,interval}-letter-derivatives`                | expressions over single letters                            | derivatives by single letters with closures, breadth-first |
+| letters  | `banked-regex-{lower-bound,upper-bound,interval}-symbolic-by-letters`               | symbolic expressions over letter sets                      | derivatives by single letters with closures, breadth-first |
 | symbolic | `banked-regex-{lower-bound,upper-bound,interval}-symbolic`                          | symbolic expressions over letter sets                      | gap derivatives with a closure reader, breadth-first       |
 | automata | `regular-trace-languages-rational-automata`                                         | minimal symbolic automata over letter and delay sets       | product with the complement, breadth-first                 |
 | symbolic | `regular-trace-languages-rational-symbolic`                                         | symbolic expressions over letter and delay sets            | gap derivatives by minterms, depth-first                   |
@@ -139,6 +139,8 @@ corpora are read from their files in a separate child process.
 - Apple M3 Pro, macOS 15.8.2 (Darwin 24.6.0, arm64)
 - OCaml 5.5.0, dune 3.24.2, `--profile release`
 - Total run time: 13 min 44 s
+- `tests/recursion_closure_reject_regular.tpe`, added after 050a3898, is not in
+  the tables
 
 ## Summary
 
