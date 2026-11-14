@@ -125,7 +125,7 @@ drive doubled between the samples of the profile:
     Note: the resource inequality `{SetMotors; idle 19.75; ReadEncoders; SetMotors; idle 19.75; ReadEncoders; idle 19.75; ReadEncoders; idle 19.75; ReadEncoders; idle 19.75; ReadEncoders} <= {SetMotors; (idle [19, 21]; ReadEncoders)*}` does not hold
   [1]
 
-A periodic task whose trace takes 10.2 to 10.8 ms is refused for a period of
+A periodic task whose trace takes 10.55 to 11.25 ms is refused for a period of
 10 ms:
 
   $ cat > slow.tpe <<'EOF'

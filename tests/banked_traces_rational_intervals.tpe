@@ -49,7 +49,7 @@ let pair_window () =
   unbox due as u in
   v
 
-(* The same window written with traces: the guarantee demands the first sample
+(* A wider window written with traces: the guarantee demands the first sample
    and the delay, and the allowance permits the pair followed by a rest. *)
 let pair_by_events () =
   box [{Sample; 0.25}, {Sample; 1/4; Sample; 1/2}] () as due in

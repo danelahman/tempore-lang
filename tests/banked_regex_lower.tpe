@@ -3,7 +3,7 @@
      ./tempore --grades banked-regex-lower-bound-symbolic \
        tests/banked_regex_lower.tpe
 
-   Accepted under the 'banked-regex-lower-bound-letter-automata' grade algebra:
+   Accepted under the 'banked-regex-lower-bound-symbolic' grade algebra:
    regular lower bounds covered by traces whose operations bank their lower
    running-time bounds. *)
 

@@ -9,7 +9,7 @@
 operation Read : unit ~> nat ! {Read}
 
 (* Correctly accepted by the typechecker: the recursive call follows a read,
-   and the body has effect {1 | Read; Read*}, below {Read*}. *)
+   and the body has effect {skip | Read; Read*}, below {Read*}. *)
 let rec read_all n : nat ! {Read*} =
   match n with
   | 0 -> 0

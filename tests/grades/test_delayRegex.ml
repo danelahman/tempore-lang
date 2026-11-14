@@ -247,8 +247,6 @@ let laws =
 
 let names = [ "A"; "B"; "C" ]
 
-(* [random_regex st ~depth ~constant] is a random expression over [names],
-   the delays and bounds drawn by [constant]. *)
 (* [interval_atom k q] is the interval atom of the delays below, up to,
    above or from [q], for [k] = 0, 1, 2 or 3; no delay is below [0], and the
    empty language is written [~_*]. *)
@@ -265,6 +263,8 @@ let interval_atom k q =
     in
     Grade.Delays (lo, hi)
 
+(* [random_regex st ~depth ~constant] is a random expression over [names],
+   the delays and bounds drawn by [constant]. *)
 let rec random_regex st ~depth ~constant =
   let int = Random.State.int st in
   let sub () = random_regex st ~depth:(depth - 1) ~constant in

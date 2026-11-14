@@ -8,7 +8,7 @@ run true < false
 
 run (1,true) < (0,false)
 
-(* More comprehensive checking of < can be found in test_less_than.eff *)
+(* More comprehensive checking of < can be found in test_less_then.tpe *)
 
 run "test equal"
 
@@ -16,7 +16,7 @@ run 1 = 1
 
 run 1.0 = 1.0
 
-(* More comprehensive checking of = can be found in test_equality.eff *)
+(* More comprehensive checking of = can be found in test_equality.tpe *)
 
 (* Assert is not supported. 
 
@@ -107,15 +107,6 @@ run to_string [1,2,3]
 run to_string (1,2,3)
 
 run to_string (fun x -> x)
-
-(* Casting is not supported.
-
-run nat_of_float ~-.1.5
-
-run nat_of_float 12.0001
-
-run float_of_nat 42
-*)
 
 run "test some and none"
 

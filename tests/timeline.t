@@ -408,7 +408,7 @@ grades are printed in full. Only the timelines are shown.
   Run  Start  Event  Grade
   Run 4 returned Epoxy at [{skip}, {skip}].
 
-  $ ../tempore --grades banked-traces-interval --timeline-full ../examples/banked_traces/3d_printing.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
+  $ ../tempore --grades banked-traces-interval --timeline-full ../examples/banked_traces/3d_printing.tpe | sed -n '/^Timeline$/,/^Run [0-9][0-9]* /p'
   Timeline
   Run  Start                                                                     Event          Grade
   1    [{skip}, {skip}]                                                          MixEpoxy       [{MixEpoxy}, {MixEpoxy}]
@@ -443,27 +443,14 @@ grades are printed in full. Only the timelines are shown.
   2    [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]        delay          [{4}, {4}]
   2    [{Heat; Extrude; Cool; 4}, {Heat; Extrude; Cool; 4}]  unbox printed
   Run 2 returned ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword"))))) at [{Heat; Extrude; Cool; 4}, {Heat; Extrude; Cool; 4}].
-  
-  === Run 3 ===
-  return (Model "Sword")
-  State: [
-    [{1}, {1}]
-  ]
-  
   Timeline
   Run  Start             Event    Grade
   3    [{skip}, {skip}]  Heat     [{Heat}, {Heat}]
   3                      · delay  [{1}, {1}]
   Run 3 returned Model "Sword" at [{Heat}, {Heat}].
-  
-  === Run 4 ===
-  return Epoxy
-  State: []
-  
   Timeline
   Run  Start  Event  Grade
   Run 4 returned Epoxy at [{skip}, {skip}].
-  
 
 --timeline and --timeline-full are refused with --emit-opentrons, and
 --time-unit needs --bind.

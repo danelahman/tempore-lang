@@ -7051,8 +7051,7 @@ under their implementation by automata, 'regular-trace-languages-letter-automata
 
 The programs of the regex grades with banked delays, run above under
 their implementations by symbolic derivatives, under their implementations by
-automata, the programs over rational delays and of the timed regex grades,
-which have one implementation, excepted:
+automata, the programs over rational delays, run below, excepted:
 
   $ for f in banked_regex_*.tpe
   > do

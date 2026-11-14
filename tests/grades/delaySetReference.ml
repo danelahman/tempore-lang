@@ -1,6 +1,7 @@
 (* The sets of delays kept as sorted lists of intervals with rational ends: an
-   implementation of the interface of [DelaySet] independent of its
-   representation, and the oracle of the tests that compare the two. *)
+   implementation of the interface of [DelaySet] but for [repeat] and
+   [naturals], independent of its representation, and the oracle of the tests
+   that compare the two. *)
 
 module Hashing = Grades.Hashing
 module GradeLiteral = Grades.GradeLiteral

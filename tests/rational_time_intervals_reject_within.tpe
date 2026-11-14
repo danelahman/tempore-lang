@@ -4,7 +4,7 @@
        tests/rational_time_intervals_reject_within.tpe
 
    Correctly rejected by the typechecker, under the 'time-interval-rational'
-   grade algebra: its delays read the fractional running-time bounds, but they
-   are only declared under the grade algebras that read them. *)
+   grade algebra: running-time bounds, fractional or not, are only declared
+   under the grade algebras that use them. *)
 
 operation Dose : unit ~> unit ! [0.5, 1.5] within [1/2, 3/2]

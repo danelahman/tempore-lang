@@ -3,7 +3,7 @@
      ./tempore --grades banked-regex-upper-bound-symbolic \
        tests/banked_regex_upper_reject.tpe
 
-   Rejected under the 'banked-regex-upper-bound-letter-automata' grade algebra: traces
+   Rejected under the 'banked-regex-upper-bound-symbolic' grade algebra: traces
    that the regular upper bounds do not permit at the upper running-time bounds. *)
 
 type token = Token of string

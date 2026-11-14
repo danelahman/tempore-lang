@@ -58,7 +58,7 @@ a write:
     Note: the resource inequality `((Latest, 1), (StorePeak, 1)) <= ((StorePeak, 0), (_, ∞))` does not hold
   [1]
 
-The project, for the board m5stack-cores3: the calls of the eight operations
+The project, for the board m5stack-cores3: the calls of the nine operations
 are monitored without running-time bounds, and the steps of the periodic
 task against its period by the monitor only; its sources compile without
 exceptions and run-time type information:

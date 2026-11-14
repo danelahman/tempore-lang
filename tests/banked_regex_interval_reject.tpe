@@ -3,7 +3,7 @@
      ./tempore --grades banked-regex-interval-symbolic \
        tests/banked_regex_interval_reject.tpe
 
-   Rejected under the 'banked-regex-interval-letter-automata' grade algebra: each
+   Rejected under the 'banked-regex-interval-symbolic' grade algebra: each
    component is checked at its own end of the running-time bounds. *)
 
 type token = Token of string

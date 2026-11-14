@@ -378,8 +378,8 @@ let check_entries name t expected =
 (* A default implementation that performs an operation, and a run that ends
    at an operation with neither a handler nor a default implementation. The
    delays of a default implementation and the declared grades of the calls it
-   performs make up its grade; only calls at the top level add to the
-   accumulated grade. *)
+   performs make up the grade of its body; only calls at the top level add
+   their declared grades to the accumulated grade. *)
 let nested =
   {|operation Inner : unit ~> unit ! [1, 2]
 default Inner () = delay 1

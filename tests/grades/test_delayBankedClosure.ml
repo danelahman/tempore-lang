@@ -419,7 +419,8 @@ let literals =
 
    The bounds are unions of sequences of operations and sets of delays closed
    at the top (allowance) or at the bottom (coverage), so that each sequence
-   has a greatest (least) word, and a word is in the closure iff it is below
+   has a greatest (least) word, an unbounded delay taken as 1000, and a word is
+   in the closure iff it is below
    (above) the greatest (least) word of one of them by the recursions of the
    timed traces. *)
 
@@ -688,8 +689,9 @@ let recursions =
 
    The verdicts, implied running-time bounds and inhabitation of the grades
    decided on the graphs of the gap derivatives against those decided on the
-   automata, exactly, on random pairs of grades and running-time bounds with
-   closed and open ends; and their counterexamples, which are traces of the
+   automata, on random pairs of grades and running-time bounds with closed and
+   open ends, the bounds and inhabitation on a sample of them; and their
+   counterexamples, which are traces of the
    lesser grade outside the closure of the greater one, with no more
    operations than those of the automata. *)
 
@@ -723,17 +725,12 @@ let gap_cases =
 let show_case ((r, _, _), (s, _, _)) = show_regex r ^ ", " ^ show_regex s
 
 (* [operations e] is the number of operations of the expression [e] of a
-   trace, a concatenation of delays and operations. *)
-let operations e =
-  let rec factors = function
-    | Grade.Seq (r, s) -> factors r @ factors s
-    | r -> [ r ]
-  in
-  List.length
-    (List.filter
-       (function
-         | Grade.Skip | Grade.Tick _ | Grade.Frac _ -> false | _ -> true)
-       (factors e))
+   trace, a concatenation of delays, operations and repetitions of these. *)
+let rec operations = function
+  | Grade.Seq (r, s) -> operations r + operations s
+  | Grade.Repeat (r, c) -> c.least * operations r
+  | Grade.Skip | Grade.Tick _ | Grade.Frac _ -> 0
+  | _ -> 1
 
 (* [valid leq c rho rho'] is whether the trace grade [c], read by the automata,
    is in [rho] and not below [rho'] under [leq]. *)
@@ -849,7 +846,7 @@ let preorders =
    On integer instances the orders agree with those of the regex grades
    with banked delays over whole time steps through the translation [ι] of
    [test_delayRegex]: [ι(_) = 1 | ops] and [ι(~r) = ~ι(r) & (ops | 1)*], [ops]
-   the operations [_ & ~(>0)], the identity elsewhere. Scaling every delay and
+   the operations [_ & ~(0, ∞)], the identity elsewhere. Scaling every delay and
    every running time by [1/N] keeps the verdicts: the grades over whole steps
    of a program resolution [N] read a delay [q] as [qN] steps of [1/N], [_] as
    [1/N | ops] and complements among the traces of steps of [1/N]. *)

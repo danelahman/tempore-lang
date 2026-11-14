@@ -2,8 +2,8 @@
    [DelaySetReference], which keeps them as lists of intervals with rational
    ends: on random sets, mixed, dense, point-heavy and on grids of coprime
    denominators, and on the families with long finite parts at small sizes,
-   every operation of the interface gives the same sets, printed and hashed
-   alike, and the same answers. *)
+   the Boolean operations, the sum, the star and the queries give the same
+   sets, printed and hashed alike, and the same answers. *)
 
 module D = Grades.DelaySet
 module R = DelaySetReference
@@ -72,7 +72,7 @@ let rec reference = function
 (* {1 Random expressions}
 
    Atoms whose ends are multiples of [1/d] for a denominator [d] drawn from
-   [dens], below [range], of widths below [width] and points with probability
+   [dens], below [range], of widths at most [width] and points with probability
    [points]; expressions of depth at most [depth], with sums and repetitions
    only if [sums]. *)
 

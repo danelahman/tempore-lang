@@ -6,9 +6,9 @@
    matcher of regular expressions and against the parser; and the agreement of
    the implementations on random expressions, on which equal grades have equal
    canonical automata and print alike unless the printing of one of them falls
-   back to its normal form; the time and size of the printing, bounded by the
-   size of the normal form; and long runs of ticks, taken at once by the
-   derivatives. *)
+   back to its normal form; the size of the printing, bounded by the size of
+   the normal form, and its time, reported; and long runs of ticks, taken at
+   once by the derivatives. *)
 
 module Grade = Grades.Grade
 module SugaredAst = SugaredAst
@@ -224,7 +224,7 @@ module type PRINTED = sig
   val canonical : t -> Grades.LetterRegex.t option
 end
 
-(* The checks of one implementation [G], both printing each grade alike. *)
+(* The checks of one implementation [G]. *)
 module Suite
     (G : PRINTED)
     (I : sig

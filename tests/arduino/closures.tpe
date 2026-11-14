@@ -10,8 +10,8 @@ operation B : unit ~> unit ! {B} within [1, 2]
 operation C : unit ~> unit ! {C} within [1, 2]
 operation Read : unit ~> nat ! {Read} within [1, 2]
 
-(* The results of A, B and C, and the number read, each operation taking one
-   unit of time. *)
+(* The results of A, B and C, and the number read; each case resumes at once,
+   taking no time. *)
 let device (a : nat) (r : nat) =
   handler
   | x -> x

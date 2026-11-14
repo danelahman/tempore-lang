@@ -9,8 +9,8 @@
    fails for ε = {Tick}, a grade the typechecker does not try: those it tries
    for traces are not complete, so it neither derives nor refutes the
    ordering, and a run requires it established. Were the run accepted, the
-   handled computation would have the grade {skip}, yet it performs Tick and then
-   waits. *)
+   handled computation would have the grade {1; Tick}, yet it performs Tick
+   and then waits. *)
 
 operation Tick : unit ~> unit ! {Tick} within [1, 1]
 operation Op : unit ~> unit ! 1

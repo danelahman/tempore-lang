@@ -526,8 +526,9 @@ module Suite (G : Grade.S) = struct
             ]
 
   (* The value of lowering [v] = [a] under lower bounds and cycles: where the
-     grade gives one, every cycle and lower bound holds at it; at the time
-     upper bounds and intervals, cycles of several shapes give the closure of a
+     grade gives one, every cycle and lower bound holds at it; at the
+     whole-step time upper bounds and intervals, cycles of several shapes give
+     the closure of a
      tick, the unit and a tick a step give the closure of a tick above the
      unit, and a cycle of no shape read gives no value. *)
   let lowering =

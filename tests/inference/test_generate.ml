@@ -181,8 +181,6 @@ module Program (GS : GradeSystem.S) = struct
         env
 
   (* Each command is desugared and generated for in turn; a typing error in a
-     definition leaves it assumed, as the loader does. *)
-  (* Each command is desugared and generated for in turn; a typing error in a
      definition leaves it assumed, as the loader does. The result counts the
      typing errors. *)
   let run name ~expect_errors (desugarer, env) cmds =

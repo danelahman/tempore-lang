@@ -1,4 +1,4 @@
-(* A sequence of 300 bindings. *)
+(* A sequence of 301 bindings. *)
 
 let step x = x + 1
 

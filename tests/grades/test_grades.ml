@@ -2,10 +2,14 @@
    construction and its counterexamples, the witnesses of closed conditions,
    the interpretation of literals by the grades of
    [GradeRegistry.grade_modules], the laws and the declared flags of these
-   grades on samples of each family of grades, the laws of the components and
-   actions of the semidirect products, the laws of the finite grades on all
-   their elements, and the laws of the morphisms of the registered grade
-   systems. *)
+   grades on samples of each family of grades, the grades indexed by names,
+   the mode grades, the watermarks, the call-time sets, the laws of the
+   components and actions of the semidirect products, the laws of the finite
+   grades on all their elements, the declared grade lattices, the duration
+   bounds, the timed regex grades, the closures of the timed regex grades, of
+   the regular trace languages, of the finite run sets and of the inter-arrival
+   grades, the time with an energy budget, and the laws of the morphisms of the
+   registered grade systems. *)
 
 module Grade = Grades.Grade
 module TimeGrades = Grades.TimeGrades
@@ -1178,7 +1182,7 @@ let literals =
   ]
 
 (* Negative delays in brace literals, which the parser does not produce, are
-   rejected by every grade of regular expressions. *)
+   rejected by the regular trace languages and the call-time sets. *)
 let negative_delays =
   let open Grade in
   let q n = Rational.of_int n in
@@ -2323,8 +2327,10 @@ let letter_c = Grade.Letter "C"
    releases, acquisitions, ranges of net changes, explicit and unbounded troughs
    and the resources not named; durations with the times of named and other
    operations; partial operations, changes of mode, traces stuck at a cost,
-   round trips and the modes not named; counts of several operations, of the
-   others, [0] and [∞]; and occurrences, delays, intervals of delays and
+   round trips and the modes not named; operations of modes and specifications
+   of the times in modes with totals; counts of several operations, of the
+   others, [0] and [∞]; pairs of time and energy bounds; and occurrences,
+   delays, intervals of delays and
    specifications of inter-arrival bounds, of one operation and of several with a total
    duration. *)
 let cover =
@@ -3162,9 +3168,10 @@ let system_laws =
          (Grade.Closed Grade.Top, Grade.Closed (Grade.Braces Grade.Skip)));
   ]
 
-(* The trace grades without running times: inclusion of the normal forms,
-   ignoring the running-time bounds of [running_times], a counterexample to
-   every failure, and the laws under [fractional_running_times]. *)
+(* The grades by inclusion and the rational regex grades: inclusion of the
+   normal forms, ignoring the running-time bounds of [running_times], a
+   counterexample to every failure, and the laws under
+   [fractional_running_times]. *)
 let inclusion_laws =
   let module U = FiniteRunSetGrades.UpperBound in
   let read r = U.of_lit (Grade.Braces r) in
@@ -3452,11 +3459,11 @@ let timed_regex_laws =
   let upper (type a) (module M : Grade.S with type t = a) =
     let lit, leq, product, delay = checks (module M) in
     [
-      leq "F4 premise" "{1}" "{1}" true;
-      leq "F4 premise" "{1}" "{idle 1; 1}" true;
-      product "F4: {1}·{1} <= {1; idle 1; 1}" ("{1}", "{1}")
+      leq "monotone product: premise" "{1}" "{1}" true;
+      leq "monotone product: premise" "{1}" "{idle 1; 1}" true;
+      product "monotone product: {1}·{1} <= {1; idle 1; 1}" ("{1}", "{1}")
         ("{1}", "{idle 1; 1}") true;
-      leq "F4 product" "{1; 1}" "{1; idle 1; 1}" true;
+      leq "monotone product: the product read" "{1; 1}" "{1; idle 1; 1}" true;
       leq "window rule: both sets" "{C}" "{(2 & C); (2 & (A | C))}" true;
       leq "window rule: a set without it" "{C}" "{(2 & C); (2 & A)}" false;
       leq "a restricted time span into a wider one" "{(2 & A)}" "{2 & (A | C)}"
@@ -3509,9 +3516,9 @@ let timed_regex_laws =
   let lower (type a) (module M : Grade.S with type t = a) =
     let lit, leq, product, delay = checks (module M) in
     [
-      leq "F4 premise" "{1; idle 1}" "{1; idle 1}" true;
-      leq "F4 premise fails" "{1; idle 1}" "{idle 1}" false;
-      product "F4: {1; idle 1}·{1; idle 1} <= {1; idle 2}"
+      leq "monotone product: premise" "{1; idle 1}" "{1; idle 1}" true;
+      leq "monotone product: premise fails" "{1; idle 1}" "{idle 1}" false;
+      product "monotone product: {1; idle 1}·{1; idle 1} <= {1; idle 2}"
         ("{1; idle 1}", "{1; idle 1}")
         ("{1; idle 2}", "{skip}") false;
       check

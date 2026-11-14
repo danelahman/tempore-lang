@@ -30,7 +30,7 @@ let claim_secret () =
   unbox r as y in
   (y, w, v)
 
-(* Accepted: the unit (0, Public) is least. *)
+(* Accepted: a delay touches only Public, the least element. *)
 let claim_public () =
   box (2, Public) "notice" as r in
   delay 2;

@@ -1,16 +1,20 @@
 ; Unit tests of the grades: the grade lattices, the products of grades, the
-; literals of every grade, the four implementations of the regular trace
-; languages, by automata and by three kinds of derivatives, the regex grades
-; with banked delays with their closures, the sets of delays, the timed regular
-; expressions with the regular trace languages over rational delays, and the
-; regex grades with banked delays over rational delays with their closures; the
-; sets of delays against an implementation by lists of intervals; the laws of
-; every registered grade and of the morphism of every registered grade system,
-; on samples, by the checks the tests share; the
-; inter-arrival grade against concrete computations; the grades with
-; banked delays against their translations into the timed regex grades; and
-; the run consistency of the intervals of the timed regex grades against the
-; reference.
+; grades indexed by names, the mode grades, the time with an energy budget,
+; the closures and the literals of every grade, and the agreement of the
+; acceptance of a literal with its reading; the four implementations of the
+; regular trace languages, by automata and by three kinds of derivatives, the
+; regex grades with banked delays with their closures, the sets of delays, the
+; timed regular expressions with the regular trace languages over rational
+; delays, and the regex grades with banked delays over rational delays with
+; their closures; the sets of delays against an implementation by lists of
+; intervals; the laws of every registered grade and of the morphism of every
+; registered grade system, on samples, by the checks the tests share; the
+; inter-arrival grade against concrete computations; the grades with banked
+; delays against their translations into the timed regex grades; the run
+; consistency of the intervals of the grades with banked delays; the timed
+; regular expressions over time spans and the reference decision of their
+; order; and the run consistency of the intervals of the timed regex grades
+; against the reference.
 
 (library
  (name lawChecks)

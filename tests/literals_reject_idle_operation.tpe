@@ -4,8 +4,8 @@
        tests/literals_reject_idle_operation.tpe
 
    Rejected under the 'timed-regex-upper-bound-rational' grade
-   algebra: an idle wait applies to a delay, a set of delays or `_`,
-   not to an operation. *)
+   algebra: an idle wait applies to a delay or a set of delays, not
+   to an operation. *)
 
 operation Read : unit ~> nat ! {Read} within [1, 1]
 

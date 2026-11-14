@@ -88,11 +88,12 @@ exceptions and run-time type information:
   $ cd ../../..
 
 One second of simulated time: the step every 20 ms and the display every
-289.56 ms (the clearing 31 ms, two lines of 1 ms each, the name of the
-example, 3.8 ms, and the footer, 2.76 ms, with the filling of their bands,
-and the wait of 250 ms), which shows the tilt of the world filtered from the
-readings, and the battery indicator of the scaffold, drawn again in the top
-right corner once the display has drawn over it:
+289 ms (the clearing 31 ms, two lines of 1 ms each, the name of the
+example, 3.8 ms, and the footer, 1.968 ms, with the filling of their bands,
+the wait of 250 ms, and the task then yielding to the next tick of 1 ms),
+which shows the tilt of the world filtered from the readings, and the battery
+indicator of the scaffold, drawn again in the top right corner once the
+display has drawn over it:
 
   $ tempore --emit-arduino tilt --device $app/tilt.device.json --host-simulate 1 $app/tilt.tpe | grep '\] Display\|simulation'
   [31.000 ms] Display cleared

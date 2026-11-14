@@ -1,6 +1,7 @@
 (* Operations of a protocol under the 'banked-regex-interval-symbolic' grade
    algebra: the atomic 'Probe' and the compound 'Measure' have neither a binding
-   function nor a default implementation, and are performed under handlers. *)
+   function nor a default implementation, and are performed under handlers, but
+   the case for 'Probe' performs it again outside them. *)
 
 operation Probe : unit ~> nat ! {Probe} within (0, 1]
 operation Measure : unit ~> nat ! {Probe; Probe}

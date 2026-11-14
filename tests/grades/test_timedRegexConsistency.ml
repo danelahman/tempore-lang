@@ -73,7 +73,7 @@ let chosen =
   in
   List.concat
     [
-      (* F7: no run waits at least 5 and at most 2. *)
+      (* No run waits at least 5 and at most 2. *)
       all "[{idle ≥5}, {idle ≤2}]" []
         (because "its lower end lasts at least 5 and its upper end at most 2");
       all "[{idle ≥2}, {idle ≤2}]" [] None;

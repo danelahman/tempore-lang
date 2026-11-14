@@ -6,8 +6,8 @@
 noneternal type token = Token
 
 (* Correctly rejected by the typechecker: the token is bound, a tick of waiting
-   passes, and only then is it used --- but 'noneternal' says a token does not
-   survive any accumulated grade at all. *)
+   passes, and only then is it used, but a non-eternal token survives only an
+   accumulated grade below the unit, 0. *)
 let use_late () =
   let t = Token in
   delay 1;

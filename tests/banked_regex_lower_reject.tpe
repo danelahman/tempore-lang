@@ -3,7 +3,7 @@
      ./tempore --grades banked-regex-lower-bound-symbolic \
        tests/banked_regex_lower_reject.tpe
 
-   Rejected under the 'banked-regex-lower-bound-letter-automata' grade algebra: traces
+   Rejected under the 'banked-regex-lower-bound-symbolic' grade algebra: traces
    that do not cover the regular lower bounds at the lower running-time bounds. *)
 
 type token = Token of string

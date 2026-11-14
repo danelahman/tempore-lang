@@ -1,6 +1,7 @@
 (* Tests of the reference decision of the order of the timed regex grades on
    exact words: products checked for monotonicity, and the verdicts on time
-   spans and idle waits, upper and lower, open ends and the point rule. *)
+   spans and idle waits, upper and lower, open ends, positive running times,
+   the window rule, overflow, and a cross-check of the core. *)
 
 open LawChecks
 module R = TimedRegexReference

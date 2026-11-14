@@ -3,7 +3,7 @@
      ./tempore --grades banked-regex-interval-symbolic \
        tests/banked_regex_interval.tpe
 
-   Accepted under the 'banked-regex-interval-letter-automata' grade algebra:
+   Accepted under the 'banked-regex-interval-symbolic' grade algebra:
    intervals of a regular lower bound, at the lower running-time bounds, and a
    regular upper bound, at the upper ones. *)
 

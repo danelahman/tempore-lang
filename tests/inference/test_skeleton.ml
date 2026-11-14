@@ -66,7 +66,8 @@ let show_result show = function
   | Ok v -> "Ok " ^ show v
   | Error failure -> "Error " ^ show_failure failure
 
-(* [binds name sigma expected] passes when [sigma] is exactly [expected]. *)
+(* [binds name result expected] passes when [result] is [Ok] of exactly
+   [expected]. *)
 let binds name result expected =
   let expected = Ast.TyParamMap.of_seq (List.to_seq expected) in
   let passed =

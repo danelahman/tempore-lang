@@ -1,5 +1,5 @@
 (* The conversions between natural numbers and floats, the square root and
-   the arctangents, computed in single precision. *)
+   the arctangents, which the C++ backend computes in single precision. *)
 
 let convert n x = (float_of_nat n, nat_of_float x)
 let roots x = (sqrt x, atan x)

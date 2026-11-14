@@ -3,7 +3,7 @@
      ./tempore --grades banked-regex-interval-symbolic \
        tests/banked_regex_interval_ticks_reject.tpe
 
-   Rejected under the 'banked-regex-interval-letter-automata' grade algebra: each
+   Rejected under the 'banked-regex-interval-symbolic' grade algebra: each
    component of a grade must permit at least one trace of the operations the
    program declares. *)
 

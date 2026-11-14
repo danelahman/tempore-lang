@@ -27,7 +27,8 @@ let copy_twice () : nat ! {Open; (Read | Write)*; Close} =
 let touch () : unit ! {Open; (Read | Write)*; Close} =
   perform Open (); perform Close ()
 
-(* A session realised by one read. *)
+(* A session realised by one read, by sub-effecting: a single read fits inside
+   any number of reads and writes. *)
 let sessions =
   handler
   | x -> x
@@ -37,8 +38,7 @@ let sessions =
       perform Close ();
       continue k with x
 
-(* Sub-effecting: a single read fits inside any number of reads and writes,
-   and delays may be spent between sessions. *)
+(* Sub-effecting: delays may be spent between sessions. *)
 let two_sessions () : nat ! {(Open; (Read | Write)*; Close | 1)*} =
   let x = perform Session () in
   delay 2;

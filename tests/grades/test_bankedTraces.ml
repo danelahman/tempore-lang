@@ -390,10 +390,10 @@ module Suite (I : IMPLEMENTATION) = struct
   (* {2 (b) Closure membership} *)
 
   (* [membership name table short (rho, members)] checks that a trace of [short]
-     is in a closure of [rho] under [table] iff it is below one of the
-     [members] of [rho] in the order of [TimedTrace], that the closures of the
-     table of [rho] are closure operators, and that the upward closure of the
-     traces of [rho] is that of its table. *)
+     is in a closure of [rho] under [table] iff it is below (allowance) or above
+     (coverage) one of the [members] of [rho] in the order of [TimedTrace], that
+     the closures of the table of [rho] are extensive and idempotent, and that
+     the upward closure of the traces of [rho] is that of its table. *)
   let membership name table short (rho, members) =
     let name = I.name ^ ": " ^ name in
     let dfa = L.concrete names rho in
@@ -934,10 +934,10 @@ module LongByLetters = Long (ByLetters)
 module LongPlain = Long (Plain)
 
 (* The implementations by derivatives embed the trace grades with banked delays,
-   whose delays are numbers, on delays of up to 10⁴ ticks; they agree with each
-   other on random grades over delays of up to 300 ticks, in their verdicts and
-   the lengths of their counterexamples, and with the automata on delays of up
-   to 30 ticks; and they decide long delays; the time each takes is reported.
+   whose delays are numbers, on delays of up to 10⁴ ticks; they agree in their
+   verdicts on random grades over delays of up to 300 ticks, and with the
+   automata on delays of up to 30 ticks; and they decide long delays; the time
+   each takes is reported.
    A comparison explores every tick of a delay that no run of ticks covers, as
    one within a complement, and a search moves by one tick at a time while one
    of its pairs has a lead of 0, as after a repetition before a delay: these

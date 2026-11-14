@@ -19,7 +19,7 @@ let two () : unit ! (Off, Off, 4) =
   perform Tx ();
   perform Off ()
 
-(* Rejected: idling may happen in any mode, and a transmission gets stuck. *)
+(* Rejected: idling in a third mode and Tx stuck outside On are not covered. *)
 let idle_or_tx b : unit ! ((On, On, 2), (Off, Off, 1)) =
   if b then perform Tx () else perform Idle ()
 

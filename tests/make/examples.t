@@ -263,10 +263,10 @@ Further targets, under variables set on the command line:
 The examples of an encrypted ESP-NOW link, EXAMPLE_LINK, name the role of
 their board in it, EXAMPLE_LINK_ROLE. Each device build of such an example
 first runs scripts/link.sh with the link, the role, the other role of the
-link and the upload target of its example, and the port of an upload, and
-passes the peer and the key that it prints as the build flags ESP_NOW_PEER
-and ESP_NOW_KEY through shell variables, so that the command does not show
-the key; a build without an upload reads no port:
+link and the upload target of the example of the other role, and the port of
+an upload, and passes the peer and the key that it prints as the build flags
+ESP_NOW_PEER and ESP_NOW_KEY through shell variables, so that the command
+does not show the key; a build without an upload reads no port:
 
   $ make -s --no-print-directory -n arduino-bala2-radio-robot-build | grep tempore' ' | tr -s ' '
   link=$(sh scripts/link.sh -t arduino-bala2-radio-controller-upload bala2-radio robot controller) && eval "$link" && PLATFORMIO_BUILD_FLAGS="-DTEMPORE_IMU_REST_SPREAD=25 -DESP_NOW_PEER=$esp_now_peer -DESP_NOW_KEY=$esp_now_key" ./tempore --grades timed-regex-interval-rational --emit-arduino robot --device examples/arduino/bala2-radio-robot/robot.device.json --monitor abort --build examples/arduino/bala2-radio-robot/robot.tpe

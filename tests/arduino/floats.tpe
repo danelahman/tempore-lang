@@ -1,4 +1,4 @@
-(* Arithmetic on floats, computed in single precision. *)
+(* Arithmetic on floats, which the C++ backend computes in single precision. *)
 
 let ops x y = (x +. y, x -. y, x *. y, x /. y, x ** y, ~-. x)
 let compare_all x y = (x < y, x <= y, x > y, x >= y, x = y, x <> y)

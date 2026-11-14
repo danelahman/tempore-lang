@@ -3,7 +3,7 @@
      ./tempore --grades banked-regex-upper-bound-symbolic \
        tests/banked_regex_upper.tpe
 
-   Accepted under the 'banked-regex-upper-bound-letter-automata' grade algebra:
+   Accepted under the 'banked-regex-upper-bound-symbolic' grade algebra:
    regular upper bounds whose delays pay for operations at their upper
    running-time bounds. *)
 
