@@ -18,8 +18,12 @@
     nor refutes rejects it.
 
     Once solved, the recursive functions of a command must pass the structural
-    termination check ({!Termination}), and a default must not perform its own
-    operation again, directly or through other defaults ({!DefaultGraph}). The
+    termination check ({!Termination}) and its matches the exhaustiveness check
+    ({!Exhaustiveness}); a default must not perform its own operation again,
+    directly or through other defaults ({!DefaultGraph}). Under the grade
+    algebras whose operations declare running-time bounds, where the effect of a
+    default is a constant, its durations, where bounded, must lie within the
+    running-time bounds of the operation on the ends the grade bounds. The
     environment records the operations each top-level definition, accepted or
     not, and each accepted default may perform.
 

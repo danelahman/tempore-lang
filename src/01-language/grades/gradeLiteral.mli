@@ -11,7 +11,7 @@ type 'a bound =
 
 val show_interval : ('a -> string) -> 'a bound -> 'a bound -> string
 (** [show_interval show lo hi] prints the interval from [lo] to [hi], its finite
-    endpoints printed by [show], e.g. [\[1, 2)] or [(1/2, ∞)]. *)
+    endpoints printed by [show], e.g. [\[1, 2)] or [(0.5, ∞)]. *)
 
 (** Regular expressions over operation names and delays, the contents of a brace
     literal [{...}]. *)
@@ -41,8 +41,9 @@ type regex =
   | Inter of regex * regex  (** Intersection, [r & s] *)
   | Compl of regex  (** Complement, [~r] *)
   | Idle of regex
-      (** An idle wait, [idle r], [r] the wildcard [_] or an expression of
-          delays only ({!delays_only}): [idle 3], [idle [2, 3]], [idle _] *)
+      (** An idle wait, [idle r], [r] an expression of delays only
+          ({!delays_only}): [idle 3], [idle [2, 3]]; [idle _] and the idle waits
+          of complements are parsed and rejected by every grade *)
 
 val delays_only : regex -> bool
 (** [delays_only r] is whether [r] is built from [skip], delays, intervals of
@@ -50,10 +51,10 @@ val delays_only : regex -> bool
     its words are delays. *)
 
 val show_below : Rational.t bound -> string
-(** [show_below b] prints the letter [Below b], e.g. [≤3] or [<1/2]. *)
+(** [show_below b] prints the letter [Below b], e.g. [≤3] or [<0.5]. *)
 
 val show_above : Rational.t bound -> string
-(** [show_above b] prints the letter [Above b], e.g. [≥3] or [>1/2]. *)
+(** [show_above b] prints the letter [Above b], e.g. [≥3] or [>0.5]. *)
 
 val unrolled : regex -> Count.t -> regex
 (** [unrolled r c] is an expression of [r^c] without bounded repetition:

@@ -74,7 +74,7 @@ module Boolean (E : FORM) : sig
 
   val unsubsumed : E.t list -> E.t list
   (** [unsubsumed rs] is the operands [r] of the union of [rs] that are not
-      contained in another operand [s] of [rs] by one of the laws [0 ⊆ s] for a
+      contained in another operand [s] of [rs] by one of the laws [ε ⊆ s] for a
       nullable [s] other than a repetition [s'*], and [r ⊆ r*], in their order.
   *)
 

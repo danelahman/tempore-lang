@@ -30,7 +30,8 @@
       disjunction's grade;
     - the unit, where it has no lower bound, occurs on a left side, in a
       disjunction's grade or in a deferred condition, and the unit is least;
-    - the top, where it occurs on no left side and in no disjunction's grade.
+    - the top, where it occurs on a right side or a greater side of a condition,
+      and on no left side and in no disjunction's grade.
 
     A value keeps the deferred conditions of inner scopes: lowering, and the
     unit, where the unknown is on no greater side of a condition; raising, and

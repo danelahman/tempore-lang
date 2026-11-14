@@ -47,9 +47,9 @@ module Base (D : Delay.S) : sig
 
   val normalise : event list -> trace
   (** [normalise evs] is the trace denoted by the raw event sequence [evs]: zero
-      delays are dropped and adjacent delays of the same kind are merged. This
-      invariant is what makes [of_delay (add m n)] equal to the product of
-      [of_delay m] and [of_delay n] on the nose. *)
+      delays are dropped and adjacent delays are merged. This invariant is what
+      makes [of_delay (add m n)] equal to the product of [of_delay m] and
+      [of_delay n] on the nose. *)
 
   val concat : trace -> trace -> trace
   (** [concat s t] is the trace monoid [_∙_]: the trailing delay of [s] is

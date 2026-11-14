@@ -121,7 +121,15 @@ module Make (E : ENTRY) : sig
       moreover [depth] is at least [4], the entries name no modes and [star x]
       is above [x], absorbs its square and has the product [star x · y · star z]
       below [star x · y ⊔ y · star z], it is closed under the product, and so it
-      is the closure of [a]. *)
+      is the closure of [a].
+
+      More generally, let the order of the entries be determined by maps, one
+      per mode and one more, into the entries that name no modes, each map with
+      a right adjoint, naming at most [w] modes, preserving {!E.zero}, {!E.one},
+      the sum, the product and [star], and unchanged by the renamings of the
+      modes it does not name. Where [star] satisfies the three laws above on the
+      images of the maps and [depth] is at least [4 + w], [plus ~star ~depth a]
+      is closed under the product, and so it is the closure of [a]. *)
 
   val compare : t -> t -> int
   (** The order of the representations, field by field, lexicographically. *)

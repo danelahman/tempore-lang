@@ -168,12 +168,12 @@ let banked_symbolic_inclusion_short =
   "gap derivatives with a closure reader, breadth-first"
 
 let banked_letter_inclusion =
-  "emptiness relative to the closure of the greater grade, by depth-first \
+  "emptiness relative to the closure of the greater grade, by breadth-first \
    search of the derivatives by single letters with the closure stepped \
    alongside, an automaton built on the fly"
 
 let banked_letter_inclusion_short =
-  "derivatives by single letters with closures, depth-first"
+  "derivatives by single letters with closures, breadth-first"
 
 let banked_product_inclusion =
   "emptiness of the product with the automaton of the closure of the greater \

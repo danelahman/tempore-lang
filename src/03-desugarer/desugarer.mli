@@ -1,4 +1,4 @@
-(** Desugaring of [Parser.SugaredAst] commands into [Language.Ast] commands.
+(** Desugaring of [SugaredAst] commands into [Language.Ast] commands.
 
     [Make] is parameterised by a grade system, whose resource and effect grades
     grade the commands on either side. *)

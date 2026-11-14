@@ -169,7 +169,10 @@ module Summary : sig
   (** The closure of every matrix [a], the least matrix above [a] that absorbs
       its square: {!ModeMatrices.Make.plus} with [k] five more than the number
       of modes [a] names, the star of an entry being the hull of its
-      repetitions, zero or more times. *)
+      repetitions, zero or more times. The entries are determined by the time in
+      each mode and the total time, maps naming at most one mode, so that
+      [w = 1] and the depth [5] meets the condition of
+      {!ModeMatrices.Make.plus}. *)
 end
 
 module ModeTimes : Grade.S with type Delay.t = Delay.Rational.t
@@ -200,7 +203,8 @@ module ModeTimes : Grade.S with type Delay.t = Delay.Rational.t
       [m · m], …, [m^(k+1)] with [k] five more than the number of modes [m]
       names, and [s] keeping each mode [p] at the star of the entry of [b] from
       [p] to [p], the unit joined with that entry with each interval other than
-      [[0, 0]] extended to no upper end.
+      [[0, 0]] extended to no upper end. The depth [5] is [4 + w] for the maps
+      of {!Summary.closure}, [w = 1].
     - No counterexample is offered, and the witnesses are the constants and
       their pairwise products, and partial. *)
 

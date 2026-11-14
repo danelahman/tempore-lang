@@ -56,7 +56,7 @@ val hash : t -> int
 (** A hash compatible with {!compare}. *)
 
 val show : t -> string
-(** [show i] prints [i] as an interval literal, e.g. [[0, 5]] or [(1/2, ∞)]. *)
+(** [show i] prints [i] as an interval literal, e.g. [[0, 5]] or [(0.5, ∞)]. *)
 
 val show_point : t -> string
 (** [show_point i] prints [i] as a number if it is a single point, and as

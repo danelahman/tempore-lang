@@ -930,11 +930,11 @@ minus_infinity:
 
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] below the postfix
-   repetition [*], bounded repetition [r^n], [r^[m, n]] or [r^[m, ∞)] and the optional
-   [r?], which is [(r | skip)], the idle wait [idle] binding as the
-   complement but applying to the operand of a repetition [*]; [idle r^c] is
-   the idle wait of the delays of [r^c], and [(idle r)^c] a repetition of
-   idle waits.
+   repetition [*], bounded repetition [r^c], [c] a count ([repeat_count]),
+   and the optional [r?], which is [(r | skip)], the idle wait [idle] binding
+   as the complement but applying to the operand of a repetition [*];
+   [idle r^c] is the idle wait of the delays of [r^c], and [(idle r)^c] a
+   repetition of idle waits.
    Braces group as parentheses do. An atom is an operation name, a delay,
    the empty word [skip], the wildcard [_], an interval of delays [[a, b]],
    [(a, b)], [[a, b)], [(a, b]], [[a, ∞)] or [(a, ∞)], or a one-sided

@@ -257,8 +257,9 @@ end
 (** The grades over {!ConcreteDerivatives}, named
     ["banked-regex-lower-bound-symbolic-by-letters"],
     ["banked-regex-upper-bound-symbolic-by-letters"] and
-    ["banked-regex-interval-symbolic-by-letters"]: {!Symbolic} with derivatives
-    and closures by letters in place of minterms. *)
+    ["banked-regex-interval-symbolic-by-letters"]: the grades of {!Make} over
+    {!ConcreteDerivatives}, with derivatives and closures by letters
+    ({!BankedClosure}) in place of the gap graphs by minterms of {!Symbolic}. *)
 module Concrete : sig
   module LowerBound :
     Grade.S

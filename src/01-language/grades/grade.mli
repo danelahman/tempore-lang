@@ -29,17 +29,18 @@
 
     {2 Running times}
 
-    The orders of the trace grades with banked delays read the running-time
+    The orders of the trace and regex grades with banked delays, the timed regex
+    grades, the mode times and the inter-arrival grades read the running-time
     bounds [within [lo, hi]] that operations declare, each end closed or open,
-    and those of the regex grades with banked delays also the set of the
-    operations the program declares, over which their catch-all letter ranges:
-    all of them, before or after the grade, so that a grade means the same
-    throughout a program. The operations that depend on the order, [leq],
-    [equal], [counterexample], [duration_bounds], [vacuous] and [inhabited],
-    take both as an argument of type {!bounds}; the other grades ignore it.
-    Running-time bounds are kept as the non-negative rationals the source writes
-    ({!type-running_time}), and each grade reads them as its delays
-    ({!read_bound}).
+    and those of the regex grades with banked delays and the timed regex grades
+    also the set of the operations the program declares, over which their
+    catch-all letter ranges: all of them, before or after the grade, so that a
+    grade means the same throughout a program. The operations that depend on the
+    order, [leq], [equal], [counterexample], [duration_bounds], [vacuous] and
+    [inhabited], take both as an argument of type {!bounds}; the other grades
+    ignore it. Running-time bounds are kept as the non-negative rationals the
+    source writes ({!type-running_time}), and each grade reads them as its
+    delays ({!read_bound}).
 
     {2 Literals}
 
@@ -245,7 +246,10 @@ module type S = sig
       upper-bound component, which coincide for the one-sided grades; the upper
       end is infinite where the durations of the upper-bound component are
       unbounded, and the interval is [None] where either component denotes no
-      trace. For a product it is the intersection of those of its components
+      trace; likewise for the regex grades with banked delays and the timed
+      regex grades, by the weights of their words. For the mode times and the
+      inter-arrival grades it is the hull of their total durations. For a
+      product it is the intersection of those of its components
       ([intersect_durations]). It is [None] for the grades that do not bound
       durations. *)
 
@@ -351,8 +355,8 @@ val whole_braces : names:bool -> regex -> bool
 (** [whole_braces ~names r] is whether a grade over whole time steps reads the
     delays of the brace literal [{r}]: they are non-negative, no delay is a
     fraction, each interval atom contains a whole number of time steps
-    ({!tick_interval}), and, unless [names], [r] names no operation. It builds
-    no expression of the ticks of an interval atom. *)
+    ({!tick_interval}), [r] holds no idle wait, and, unless [names], [r] names
+    no operation. It builds no expression of the ticks of an interval atom. *)
 
 val positive : regex -> bool
 (** [positive r] is whether [r] holds no intersection, complement or idle wait.

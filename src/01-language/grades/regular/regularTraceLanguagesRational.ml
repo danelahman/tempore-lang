@@ -3,8 +3,7 @@ open Grade
 (* [concatenation r s] is the expression [r; s], the factors of both
    concatenations listed in turn, [skip] and the delays [0] left out, adjacent
    delays added and runs of factors of the same base joined into bounded
-   repetitions ({!Grade.sequence}); adjacent idle waits stay apart, as
-   distinct words. *)
+   repetitions ({!Grade.sequence}). *)
 let concatenation r s =
   let rec factors = function
     | Seq (r, s) -> factors r @ factors s

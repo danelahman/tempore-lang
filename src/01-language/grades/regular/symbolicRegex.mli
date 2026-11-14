@@ -27,9 +27,9 @@
     their unit and zero laws, an intersection with the empty word being the
     empty word or the empty language; [~~r] is [r], [r | ~r] is [Σ*] and
     [r & ~r] the empty language, also where [r] is a union, respectively an
-    intersection, whose operands are flattened among those of the other; [0 | r]
+    intersection, whose operands are flattened among those of the other; [ε | r]
     is [r] for a nullable [r] that is not a repetition [s*] and [r | r*] is
-    [r*]; [r**], [(0 | r)*] and [r*; r*] are [r*], and the repetition of the
+    [r*]; [r**], [(ε | r)*] and [r*; r*] are [r*], and the repetition of the
     empty word or language is the empty word. A bounded repetition [r^c] has an
     interval of counts ({!Count}); the laws of repetition over intervals apply
     ({!S.repeat}), and adjacent factors of the same base are joined, [x^c; x^c']
