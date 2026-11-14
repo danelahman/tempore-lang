@@ -509,10 +509,12 @@ let check_recursive () =
     ]
 
 (* Annotated types, each with its type as printed. The precedences are, by
-   decreasing strength, type-constructor application, the box, products and
-   arrows; an arrow's effect grade belongs to the innermost arrow, and an
-   arrow without one has the unit, which is not printed. A codomain that is a
-   function type is parenthesised where either arrow shows its effect. *)
+   decreasing strength, the box, which applies to a simple type,
+   type-constructor application, products and arrows; an arrow's effect grade
+   belongs to the innermost arrow, and an arrow without one has the unit,
+   which is not printed. A codomain that is a function type is parenthesised
+   where either arrow shows its effect. Each printed type, in ASCII, reads back
+   to itself. *)
 let annotations =
   [
     ("nat -> (nat -> nat ! 1) ! 2", "nat → (nat → nat ! 1) ! 2");
@@ -526,34 +528,67 @@ let annotations =
     ( "nat -> [2](nat -> (nat -> bool ! 1)) ! 1",
       "nat → [2](nat → (nat → bool ! 1)) ! 1" );
     ("[2]nat list", "[2]nat list");
-    ("([2]nat) list", "([2]nat) list");
+    ("([2]nat) list", "[2]nat list");
+    ("[2](nat list)", "[2](nat list)");
+    ("[2][3]nat list", "[2][3]nat list");
+    ("([2][3]nat) list", "[2][3]nat list");
+    ("[2]([3]nat list)", "[2]([3]nat list)");
+    ("[2]nat list list", "[2]nat list list");
+    ("([2]nat, bool) pair", "([2]nat, bool) pair");
+    ("[2]((nat, bool) pair)", "[2]((nat, bool) pair)");
     ("[2][3]nat", "[2][3]nat");
     ("[2]nat * bool -> nat", "[2]nat × bool → nat");
+    ("([2]nat * bool) -> nat", "[2]nat × bool → nat");
     ("[2](nat * bool)", "[2](nat × bool)");
+    ("[2](nat * bool) list", "[2](nat × bool) list");
+    ("(nat * bool) list", "(nat × bool) list");
+    ("[2](nat -> nat) list", "[2](nat → nat) list");
+    ("(nat -> nat) list", "(nat → nat) list");
     ("(nat * nat) * nat", "(nat × nat) × nat");
     ("nat * nat -> (nat * nat -> nat ! 1)", "nat × nat → (nat × nat → nat ! 1)");
   ]
+
+(* The type [pair] of the annotations. *)
+let pair_declaration = "type ('a, 'b) pair = Pair of 'a * 'b"
+
+(* [ascii printed] is the printed type [printed] in the ASCII syntax. *)
+let ascii printed =
+  let rec replace pattern by text i =
+    let n = String.length pattern in
+    if i > String.length text - n then String.sub text i (String.length text - i)
+    else if String.sub text i n = pattern then
+      by ^ replace pattern by text (i + n)
+    else String.make 1 text.[i] ^ replace pattern by text (i + 1)
+  in
+  replace "→" "->" (replace "×" "*" printed 0) 0
 
 let check_round_trip () =
   let (module G) = TestPrograms.grade_module "time-upper-bound" in
   let module T = Programs (G) in
   let name i = Printf.sprintf "annotated_%d" i in
-  let actual =
+  let printed annotations =
     T.argument_types
       (String.concat "\n"
-         (List.mapi
-            (fun i (annotation, _) ->
-              Printf.sprintf "let %s (g : %s) = g" (name i) annotation)
-            annotations))
+         (pair_declaration
+         :: List.mapi
+              (fun i annotation ->
+                Printf.sprintf "let %s (g : %s) = g" (name i) annotation)
+              annotations))
   in
-  List.iteri
-    (fun i (annotation, expected) ->
-      match List.assoc_opt (name i) actual with
-      | Some (Some printed) when printed = expected -> ()
-      | Some (Some printed) ->
-          fail "annotation %s: expected %s, got %s" annotation expected printed
-      | Some None | None -> fail "annotation %s: rejected" annotation)
-    annotations
+  let check what annotations expected =
+    let actual = printed annotations in
+    List.iteri
+      (fun i (annotation, expected) ->
+        match List.assoc_opt (name i) actual with
+        | Some (Some printed) when printed = expected -> ()
+        | Some (Some printed) ->
+            fail "%s %s: expected %s, got %s" what annotation expected printed
+        | Some None | None -> fail "%s %s: rejected" what annotation)
+      (List.combine annotations expected)
+  in
+  let expected = List.map snd annotations in
+  check "annotation" (List.map fst annotations) expected;
+  check "printed type" (List.map ascii expected) expected
 
 let () =
   List.iter check four_grades;

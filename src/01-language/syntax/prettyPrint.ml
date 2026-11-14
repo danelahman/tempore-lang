@@ -131,9 +131,9 @@ let rec print_ty ?max_level grades ty_print_param ty ppf =
   | TyConst c -> print "%t" (Const.print_ty c)
   | TyApply (ty_name, []) -> print "%t" (TyName.print ty_name)
   | TyApply (ty_name, [ ty ]) ->
-      print ~at_level:1 "%t %t" (aux ~max_level:1 ty) (TyName.print ty_name)
+      print ~at_level:2 "%t %t" (aux ~max_level:2 ty) (TyName.print ty_name)
   | TyApply (ty_name, tys) ->
-      print ~at_level:1 "%t %t"
+      print ~at_level:2 "%t %t"
         (Print.print_tuple aux tys)
         (TyName.print ty_name)
   | TyParam a -> print "%t" (ty_print_param a)
@@ -144,7 +144,7 @@ let rec print_ty ?max_level grades ty_print_param ty ppf =
   | TyTuple tys ->
       print ~at_level:3 "%t" (Print.print_sequence " × " (aux ~max_level:2) tys)
   | TyBox (rho, ty) ->
-      print ~at_level:2 "[%t]%t" (grades.rho rho) (aux ~max_level:2 ty)
+      print ~at_level:1 "[%t]%t" (grades.rho rho) (aux ~max_level:1 ty)
   | TyHandler (CompTy (ty1, eps1), CompTy (ty2, eps2)) ->
       let computation ty eps ppf =
         Format.fprintf ppf "%t ! %t" (aux ~max_level:3 ty) (grades.eps eps)

@@ -590,11 +590,11 @@ written after `!` stands for the resource image `∣ε∣` of that effect in box
 grades. `let pass (f : unit -> nat ! 'e) : nat ! 'e = f ()` has the grade of
 `f`.
 
-Type-constructor application binds tightest, then the box `[rho]`, then
+The box `[rho]` binds tightest, then type-constructor application, then
 products `a * b`, which are n-ary and non-associative, and last arrows
 `a -> b ! e`, which are right-associative: `[2]nat list * bool -> nat` takes
-a pair of a `[2](nat list)` and a `bool`, and a box of a function is written
-`[2](nat -> nat)`.
+a pair of a list of `[2]nat` and a `bool`, and a box of a list is written
+`[2](nat list)`.
 
 An effect `! e` belongs to the innermost arrow, so `nat -> nat -> nat ! 1` is
 `nat -> (nat -> nat ! 1)`, and an arrow without one has the unit effect.

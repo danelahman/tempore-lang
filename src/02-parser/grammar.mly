@@ -758,10 +758,10 @@ defined_ty:
   | t = ty
     { TyInline t }
 
-(* Types, by decreasing precedence: application of a type constructor
-   [α list], the box [[ρ]α], products [α * β], n-ary and non-associative, and
-   arrows [α -> β ! ε], right-associative, an effect [! ε] belonging to the
-   innermost arrow. *)
+(* Types, by decreasing precedence: the box [[ρ]α] of a simple type [α],
+   application of a type constructor [α list], products [α * β], n-ary and
+   non-associative, and arrows [α -> β ! ε], right-associative, an effect
+   [! ε] belonging to the innermost arrow. *)
 ty: mark_position(plain_ty) { $1 }
 plain_ty:
   | t1 = prod_ty ARROW t2 = ty BANG eps = eps_grade
@@ -774,19 +774,12 @@ plain_ty:
 
 prod_ty: mark_position(plain_prod_ty) { $1 }
 plain_prod_ty:
-  | ts = separated_nonempty_list(STAR, box_ty)
+  | ts = separated_nonempty_list(STAR, ty_apply)
     {
       match ts with
       | [t] -> t.it
       | ts -> TyTuple ts
      }
-
-box_ty: mark_position(plain_box_ty) { $1 }
-plain_box_ty:
-  | LBRACK rho = rho_grade RBRACK ty = box_ty
-    { TyBox (rho, ty) }
-  | t = plain_ty_apply
-    { t }
 
 ty_apply: mark_position(plain_ty_apply) { $1 }
 plain_ty_apply:
@@ -794,6 +787,13 @@ plain_ty_apply:
     { TyApply (t2, (t :: ts)) }
   | t = ty_apply t2 = mark_position(tyname)
     { TyApply (t2, [t]) }
+  | t = plain_box_ty
+    { t }
+
+box_ty: mark_position(plain_box_ty) { $1 }
+plain_box_ty:
+  | LBRACK rho = rho_grade RBRACK ty = box_ty
+    { TyBox (rho, ty) }
   | t = plain_simple_ty
     { t }
 

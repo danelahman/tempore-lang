@@ -73,7 +73,7 @@ val print_ty :
   unit
 (** [print_ty grades ty_print_param ty] prints [ty], its grades by [grades],
     with the parentheses the precedences of the types require: by decreasing
-    precedence, application of a type constructor (level 1), the box (2),
+    precedence, the box (level 1), application of a type constructor (2),
     products (3), and arrows and handler types (4). *)
 
 val arrow_parts :
