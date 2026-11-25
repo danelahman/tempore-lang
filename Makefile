@@ -21,14 +21,15 @@ tempore-deps:
 
 # The Opentrons simulator, opentrons_simulate of the Python package opentrons
 # 10.0.0, in the virtual environment _opentrons, created with the first of the
-# interpreters below of version 3.10 or later; an error if there is none.
+# interpreters below of version 3.10 or later; an error if there is none. An
+# environment whose interpreter does not import the package is created anew.
 # Optional: only --simulate needs it. clean-opentrons removes it, together with the protocols written by
 # --emit-opentrons to _opentrons/protocols.
 OPENTRONS_VENV = _opentrons
 OPENTRONS_PYTHONS = python3.13 python3.12 python3.11 python3.10 python3
 
 opentrons-deps:
-	@if [ -x $(OPENTRONS_VENV)/bin/opentrons_simulate ]; then \
+	@if $(OPENTRONS_VENV)/bin/python -c 'import opentrons' > /dev/null 2>&1; then \
 	  echo "The Opentrons simulator is installed in $(OPENTRONS_VENV)."; \
 	  exit 0; \
 	fi; \
@@ -36,6 +37,7 @@ opentrons-deps:
 	  if command -v $$python > /dev/null 2>&1 && \
 	     $$python -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then \
 	    echo "Installing the Opentrons simulator in $(OPENTRONS_VENV) with $$python."; \
+	    rm -rf $(OPENTRONS_VENV)/bin $(OPENTRONS_VENV)/lib $(OPENTRONS_VENV)/include $(OPENTRONS_VENV)/pyvenv.cfg && \
 	    $$python -m venv $(OPENTRONS_VENV) && \
 	    $(OPENTRONS_VENV)/bin/pip install --quiet --disable-pip-version-check opentrons==10.0.0 && \
 	    mkdir -p $(OPENTRONS_VENV)/config; \
