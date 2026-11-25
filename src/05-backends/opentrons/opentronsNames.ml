@@ -20,7 +20,8 @@ let escape u =
   else if code = Char.code '\'' then "_p"
   else Printf.sprintf "_u%x" code
 
-let base name =
+(* [name] with its characters escaped. *)
+let escaped_name name =
   let rec escaped i acc =
     if i >= String.length name then String.concat "" (List.rev acc)
     else
@@ -29,12 +30,47 @@ let base name =
         (i + Uchar.utf_decode_length d)
         (escape (Uchar.utf_decode_uchar d) :: acc)
   in
-  match escaped 0 [] with
+  escaped 0 []
+
+let base name =
+  match escaped_name name with
   | "" -> "v"
   | s when not (is_identifier_start s.[0]) -> "v" ^ s
   | s -> s
 
 let identifier name index = Printf.sprintf "%s_%d" (base name) index
+
+(* Whether [name] consists of ASCII letters and digits with single underscores
+   between them. *)
+let is_plain name =
+  name <> ""
+  && List.for_all
+       (fun part -> part <> "" && String.for_all is_identifier_char part)
+       (String.split_on_char '_' name)
+
+(* The bytes of [name] in hexadecimal, two lowercase digits each. *)
+let hexadecimal name =
+  String.concat ""
+    (List.map
+       (fun c -> Printf.sprintf "%02x" (Char.code c))
+       (List.of_seq (String.to_seq name)))
+
+(* [name] if it is plain, and otherwise its escape with runs of underscores
+   reduced to one, followed by its bytes in hexadecimal between underscores. *)
+let symbol name =
+  if is_plain name then name
+  else
+    let words =
+      List.filter (( <> ) "") (String.split_on_char '_' (escaped_name name))
+    in
+    String.concat "_" (words @ [ hexadecimal name ]) ^ "_"
+
+let operation op = "tempore_op_" ^ symbol (Ast.OpName.string_of op)
+
+let constructor l =
+  if Ast.Label.equal l Ast.nil_label then "tempore_con_nil"
+  else if Ast.Label.equal l Ast.cons_label then "tempore_con_cons"
+  else "tempore_con_" ^ symbol (Ast.Label.string_of l)
 
 (* The variables bound by [p], prepended to [acc] in reverse order. *)
 let rec pattern_binders acc (p : _ Ast.pattern) =
@@ -123,7 +159,7 @@ let of_commands commands =
 
 let variable names x = Ast.VariableMap.find_opt x names
 
-type labels = { ranks : int LabelMap.t; names : string list }
+type labels = { ranks : int LabelMap.t; sorted : Ast.label list }
 
 let labels_of_commands commands =
   let _, labels = collect commands in
@@ -136,8 +172,8 @@ let labels_of_commands commands =
         (fun ranks (i, l) -> LabelMap.add l i ranks)
         LabelMap.empty
         (List.mapi (fun i l -> (i, l)) sorted);
-    names = List.map Ast.Label.string_of sorted;
+    sorted;
   }
 
 let label_rank labels l = LabelMap.find l labels.ranks
-let label_names labels = labels.names
+let label_list labels = labels.sorted

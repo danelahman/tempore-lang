@@ -6,8 +6,8 @@
 # samples are in the first wells of the columns of a PCR plate in D2, and the
 # tagmentation takes place in the first four wells of the columns of a PCR
 # plate on the thermocycler. A reagent is passed as the Tempore value
-# Reagent name, a tempore_Con whose argument is its name; Thaw returns the
-# value it is given. Each function declares the nominal duration of its action
+# Reagent name, tempore_con_Reagent(name); Thaw returns the value it is
+# given. Each function declares the nominal duration of its action
 # in seconds by tempore_elapse, the duration the virtual clock of a simulation
 # advances by.
 

@@ -118,11 +118,76 @@ let top_level_names source =
        (fun i line -> List.map (fun x -> (x, i + 1)) (line_names line))
        (String.split_on_char '\n' source))
 
+(* [code_identifiers source] is the identifiers of the Python [source] outside
+   its comments and string literals, each with its line number, in order. *)
+let code_identifiers source =
+  let n = String.length source in
+  let at i s =
+    i + String.length s <= n && String.sub source i (String.length s) = s
+  in
+  let rec stop i =
+    if i < n && Names.is_identifier_char source.[i] then stop (i + 1) else i
+  in
+  let rec code i line acc =
+    if i >= n then List.rev acc
+    else
+      match source.[i] with
+      | '\n' -> code (i + 1) (line + 1) acc
+      | '#' -> comment i line acc
+      | ('"' | '\'') as q ->
+          let triple = String.make 3 q in
+          let quote = if at i triple then triple else String.make 1 q in
+          literal (i + String.length quote) line quote acc
+      | c when Names.is_identifier_start c ->
+          let j = stop i in
+          code j line ((String.sub source i (j - i), line) :: acc)
+      | c when Names.is_identifier_char c -> code (stop i) line acc
+      | _ -> code (i + 1) line acc
+  and comment i line acc =
+    if i >= n then List.rev acc
+    else if source.[i] = '\n' then code i line acc
+    else comment (i + 1) line acc
+  and literal i line quote acc =
+    if i >= n then List.rev acc
+    else if at i quote then code (i + String.length quote) line acc
+    else
+      let width = if source.[i] = '\\' && i + 1 < n then 2 else 1 in
+      let lines =
+        if String.contains (String.sub source i width) '\n' then 1 else 0
+      in
+      literal (i + width) (line + lines) quote acc
+  in
+  code 0 1 []
+
+(* The prefixes of the identifiers of the declarations of the compiled
+   program, each with the kind of the declarations. *)
+let declaration_prefixes =
+  [ ("tempore_con_", "constructor"); ("tempore_op_", "operation") ]
+
 (* The checks of the binding file. *)
 
 let binding_errors ~compiled ~binding_name binding =
   let defined = top_level_names binding in
   let compiled_names = List.map fst (top_level_names compiled) in
+  let undeclared =
+    List.fold_left
+      (fun acc (x, line) ->
+        match
+          List.find_opt
+            (fun (prefix, _) -> String.starts_with ~prefix x)
+            declaration_prefixes
+        with
+        | Some (_, kind)
+          when (not (List.mem x compiled_names))
+               && not (List.exists (fun (x', _, _) -> x' = x) acc) ->
+            (x, line, kind) :: acc
+        | _ -> acc)
+      [] (code_identifiers binding)
+  in
+  let undeclared_error (x, line, kind) =
+    Printf.sprintf "%s, line %d: the name `%s` names no %s of the program"
+      binding_name line x kind
+  in
   let check (x, line) =
     if
       List.exists (fun prefix -> String.starts_with ~prefix x) reserved_prefixes
@@ -144,6 +209,7 @@ let binding_errors ~compiled ~binding_name binding =
     else None
   in
   List.filter_map check defined
+  @ List.rev_map undeclared_error undeclared
   @
   if List.mem_assoc "setup" defined then []
   else [ Printf.sprintf "%s: no function `setup` is defined" binding_name ]
@@ -181,6 +247,10 @@ let operation_diagnostics ~bound ~compound commands =
 let python_string = OpentronsEmit.python_string
 let dictionary = OpentronsEmit.dictionary
 
+(* The Python expression of the monitor policy [m]. *)
+let monitor m =
+  "tempore_Monitor." ^ String.uppercase_ascii (Utils.Monitor.name m)
+
 let protocol options ~operations ~compound ~binding_name ~binding commands =
   let compiled = OpentronsEmit.compile ~operations commands in
   let defined = List.map fst (top_level_names binding) in
@@ -196,9 +266,11 @@ let protocol options ~operations ~compound ~binding_name ~binding commands =
   | _ :: _ as errors -> Error errors
   | [] ->
       let bindings =
-        List.filter_map
-          (fun op -> if bound op then Some (op, op) else None)
-          (List.sort_uniq String.compare declared)
+        List.map fst operations
+        |> List.filter (fun op -> bound (Ast.OpName.string_of op))
+        |> List.sort_uniq (fun op op' ->
+            String.compare (Ast.OpName.string_of op) (Ast.OpName.string_of op'))
+        |> List.map (fun op -> (Names.operation op, Ast.OpName.string_of op))
       in
       let metadata =
         dictionary
@@ -236,13 +308,11 @@ let protocol options ~operations ~compound ~binding_name ~binding commands =
             "        protocol,";
             "        tempore_RUNS,";
             "        setup,";
-            "        " ^ dictionary bindings ^ ",";
+            "        " ^ OpentronsEmit.dictionary_display bindings ^ ",";
             "        time_unit="
             ^ OpentronsEmit.fraction options.time_unit
             ^ ",";
-            "        monitor="
-            ^ python_string (Utils.Monitor.name options.monitor)
-            ^ ",";
+            "        monitor=" ^ monitor options.monitor ^ ",";
             "    )";
             "";
             "";

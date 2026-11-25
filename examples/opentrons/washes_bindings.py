@@ -10,8 +10,8 @@
 # wash. ChangeTip replaces the tip, and the elution buffer is added with the
 # tip it leaves, then a new tip for each further sample. The context records
 # whether the pipette holds a tip. The beads are passed as the Tempore value
-# Beads name, a tempore_Con whose argument is their name, and every function
-# but Transfer returns the value it is given.
+# Beads name, tempore_con_Beads(name), and every function but Transfer
+# returns the value it is given.
 # Each function declares the nominal duration of its action in seconds by
 # tempore_elapse, the duration the virtual clock of a simulation advances by.
 

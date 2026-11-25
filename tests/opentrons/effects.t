@@ -268,6 +268,6 @@ bounds of the operations it names, compound ones included.
   > run return ()
   > TPE
   $ ../../tempore --grades banked-traces-upper-bound --emit-opentrons compound.py compound.tpe &&
-  > grep -o '"C": tempore_Bounds([^)]*)[^)]*)[^)]*)' _opentrons/protocols/compound.py
+  > grep '^tempore_op_C ' _opentrons/protocols/compound.py
   Wrote _opentrons/protocols/compound.py
-  "C": tempore_Bounds(tempore_Fraction(3, 1), True, tempore_Fraction(6, 1), True)
+  tempore_op_C = tempore_Operation("C", tempore_Bounds(tempore_Fraction(3, 1), True, tempore_Fraction(6, 1), True))

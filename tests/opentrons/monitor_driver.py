@@ -10,6 +10,11 @@ spec = importlib.util.spec_from_file_location("monitors", sys.argv[1])
 program = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(program)
 rt = program.tempore_rt
+Monitor = program.tempore_Monitor
+
+
+def operation(name):
+    return getattr(program, "tempore_op_" + name)
 
 
 def taking(seconds):
@@ -30,39 +35,47 @@ def attempt(run, **configuration):
     return outcome, reports
 
 
-for policy in ("abort", "warn"):
-    print("Policy %s:" % policy)
-    for run, op in enumerate(("CC", "OO", "CO", "OC")):
+for policy in (Monitor.ABORT, Monitor.WARN):
+    print("Policy %s:" % policy.value)
+    for run, name in enumerate(("CC", "OO", "CO", "OC")):
+        op = operation(name)
         for seconds in (1, 2, 3, 4, 5):
             outcome, reports = attempt(
                 run, binding={op: taking(seconds)}, monitor=policy
             )
-            print("  %s %s, %d s: %s" % (op, program.tempore_OPERATIONS[op], seconds, outcome))
+            print("  %s %s, %d s: %s" % (op, op.bounds, seconds, outcome))
             for report in reports:
                 print("    reported: %s" % report)
-            if policy == "warn":
+            if policy is Monitor.WARN:
                 assert len(rt.violations) == len(reports)
 
 print("Policy off:")
-outcome, reports = attempt(0, binding={"CC": taking(5)}, monitor="off")
+outcome, reports = attempt(
+    0, binding={operation("CC"): taking(5)}, monitor=Monitor.OFF
+)
 print("  CC, 5 s: %s, %d monitored calls" % (outcome, len(rt.timeline)))
 
 print("Exact durations:")
 for seconds in (Fraction(1, 2), (3, 2), Fraction(3, 2) + Fraction(1, 10**9)):
-    outcome, reports = attempt(4, binding={"Wait": taking(seconds)})
+    outcome, reports = attempt(4, binding={operation("Wait"): taking(seconds)})
     duration = program.tempore_format_quantity(program.tempore_exact(seconds))
     print("  Wait, %s s: %s" % (duration, outcome))
 
 print("Time unit of 60 s:")
-outcome, reports = attempt(0, binding={"CC": taking(150)}, time_unit=60)
+outcome, reports = attempt(0, binding={operation("CC"): taking(150)}, time_unit=60)
 print("  CC, 150 s: %s" % outcome)
-outcome, reports = attempt(0, binding={"CC": taking(100)}, time_unit=60)
+outcome, reports = attempt(0, binding={operation("CC"): taking(100)}, time_unit=60)
 print("  CC, 100 s: %s" % outcome)
 
 print("Timeline:")
 rt.configure(
-    binding={"CC": taking(3), "OO": taking(5), "CO": taking(2), "OC": taking(4)},
-    monitor="warn",
+    binding={
+        operation("CC"): taking(3),
+        operation("OO"): taking(5),
+        operation("CO"): taking(2),
+        operation("OC"): taking(4),
+    },
+    monitor=Monitor.WARN,
     report=lambda message: None,
 )
 for run in range(5):

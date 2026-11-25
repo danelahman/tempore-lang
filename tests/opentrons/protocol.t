@@ -606,16 +606,19 @@ implementation declared above the run, refuses the protocol.
   [1]
 
 A binding file may not define names with the prefixes of the runtime, the names
-of the protocol or those of the compiled program, and must define setup.
+of the protocol or those of the compiled program, may not use a constructor or
+an operation that the program does not have, and must define setup.
 
   $ ../../tempore --grades time-interval --emit-opentrons bad.py \
   >   --bind protocol_bad_bindings.py protocol_ok.tpe
-  Error: protocol_bad_bindings.py, line 4: the name `_tempore_os` begins with `tempore_` or `_tempore_`, which are reserved for the runtime and the compiled program
-  Error: protocol_bad_bindings.py, line 5: the name `tempore_join` begins with `tempore_` or `_tempore_`, which are reserved for the runtime and the compiled program
-  Error: protocol_bad_bindings.py, line 7: the name `tempore_count` begins with `tempore_` or `_tempore_`, which are reserved for the runtime and the compiled program
-  Error: protocol_bad_bindings.py, line 8: the name `metadata` is defined by the protocol
-  Error: protocol_bad_bindings.py, line 11: the name `run` is defined by the protocol
-  Error: protocol_bad_bindings.py, line 15: the name `probe_0` is defined by the compiled program
+  Error: protocol_bad_bindings.py, line 6: the name `_tempore_os` begins with `tempore_` or `_tempore_`, which are reserved for the runtime and the compiled program
+  Error: protocol_bad_bindings.py, line 7: the name `tempore_join` begins with `tempore_` or `_tempore_`, which are reserved for the runtime and the compiled program
+  Error: protocol_bad_bindings.py, line 9: the name `tempore_count` begins with `tempore_` or `_tempore_`, which are reserved for the runtime and the compiled program
+  Error: protocol_bad_bindings.py, line 10: the name `metadata` is defined by the protocol
+  Error: protocol_bad_bindings.py, line 13: the name `run` is defined by the protocol
+  Error: protocol_bad_bindings.py, line 17: the name `probe_0` is defined by the compiled program
+  Error: protocol_bad_bindings.py, line 33: the name `tempore_con_Missing` names no constructor of the program
+  Error: protocol_bad_bindings.py, line 33: the name `tempore_op_Missing` names no operation of the program
   Error: protocol_bad_bindings.py: no function `setup` is defined
   Error: Operation `Pipette`, which run 1 may perform, has neither a binding function nor a default implementation
   Error: Operation `Pipette`, which run 3 may perform, has neither a binding function nor a default implementation

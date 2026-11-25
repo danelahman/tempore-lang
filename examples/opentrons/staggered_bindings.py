@@ -4,8 +4,8 @@
 # The cells grow in the first four wells of the columns of a flat plate. The
 # reservoir holds the fixative (A1) and the rinse buffer (A2), and receives
 # the liquid waste (A12). Fix receives the number of a column and returns the
-# Tempore value Column number, a tempore_Con with the tag of the label Column,
-# whose argument Rinse reads. Each function declares the nominal duration of
+# Tempore value Column number, tempore_con_Column(number), whose argument
+# Rinse reads. Each function declares the nominal duration of
 # its action in seconds by tempore_elapse, the duration the virtual clock of a
 # simulation advances by.
 
@@ -28,7 +28,7 @@ def column(ctx, number):
 def Fix(ctx, number):
     ctx["pipette"].distribute(100, ctx["reservoir"]["A1"], column(ctx, number))
     tempore_elapse(90)
-    return tempore_Con(tempore_LABELS.index("Column"), number)
+    return tempore_con_Column(number)
 
 
 def Rinse(ctx, fixed):

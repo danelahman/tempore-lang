@@ -5,9 +5,9 @@
 # the ethanol (A2) and the elution buffer (A3), and receives the liquid waste
 # (A12); the eluates go to a second PCR plate. The ethanol is added to every
 # sample from above with one tip; every other liquid is moved with a new tip
-# for each sample. The beads are passed as the Tempore value Beads name, a
-# tempore_Con whose argument is their name, and every function but Transfer
-# returns the value it is given. Each function declares the nominal duration
+# for each sample. The beads are passed as the Tempore value Beads name,
+# tempore_con_Beads(name), and every function but Transfer returns the value
+# it is given. Each function declares the nominal duration
 # of its action in seconds by tempore_elapse, the duration the virtual clock
 # of a simulation advances by.
 

@@ -13,17 +13,21 @@
     and returns a context object, and, for an operation [Op] of the program, a
     function [Op(ctx, arg)] that performs the operation on the context object
     and the argument and returns its result. It may declare the nominal duration
-    of the action of a binding function by calling [tempore_elapse(seconds)]. It
-    must not define names that begin with [tempore_] or [_tempore_], nor the
+    of the action of a binding function by calling [tempore_elapse(seconds)],
+    and builds a value of a constructor [Label] of the program by the class
+    [tempore_con_Label] of the compiled program ({!OpentronsNames.constructor}).
+    It must not define names that begin with [tempore_] or [_tempore_], nor the
     names [metadata], [requirements] and [run], nor the names of the top-level
-    definitions of the compiled program.
+    definitions of the compiled program, and every name it uses that begins with
+    [tempore_con_] or [tempore_op_] must be declared by the compiled program.
 
     The names a file defines are found by a line-based check, not by parsing
     Python: a line that starts at column 0 with [def NAME], [async def NAME] or
     [class NAME], an import ([import M], [import M as NAME],
     [from M import NAME] or [from M import X as NAME]), or an assignment
     [NAME = ...], [NAME: T = ...] or [NAME, NAME = ...] defines the names it
-    binds. *)
+    binds. The names a file uses are its identifiers outside comments and string
+    literals. *)
 
 type robot = Flex  (** the Opentrons Flex, robot type ["Flex"] *)
 
@@ -73,13 +77,14 @@ val protocol :
     is announced by a comment, each monitored call is commented as it completes,
     and the value of the run is commented at its end.
 
-    The errors are the names the binding file must not define, a missing
-    [setup], and each operation that the code of a [run] command may perform
-    ({!OpentronsReach.val-run_operations}) that has no binding function and no
-    default implementation declared above the run and that no handler in the
-    run's code has a case for. Such an operation that a handler in the run's
-    code does have a case for is a warning instead if it is atomic, since the
-    check does not decide whether every call is inside such a handler, and
-    neither an error nor a warning if it is compound, since a compound operation
-    has neither a binding function nor a default implementation and is
-    implemented by a handler only. *)
+    The errors are the names the binding file must not define, the names of
+    constructors and operations it uses that the compiled program does not
+    declare, a missing [setup], and each operation that the code of a [run]
+    command may perform ({!OpentronsReach.val-run_operations}) that has no
+    binding function and no default implementation declared above the run and
+    that no handler in the run's code has a case for. Such an operation that a
+    handler in the run's code does have a case for is a warning instead if it is
+    atomic, since the check does not decide whether every call is inside such a
+    handler, and neither an error nor a warning if it is compound, since a
+    compound operation has neither a binding function nor a default
+    implementation and is implemented by a handler only. *)

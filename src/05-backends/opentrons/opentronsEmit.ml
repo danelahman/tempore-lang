@@ -122,7 +122,6 @@ let primitive_function = function
    body of the current definition. *)
 type context = {
   names : Names.t;
-  labels : Names.labels;
   local : VariableSet.t;
   in_lifted : bool;
   top : bool;
@@ -130,15 +129,20 @@ type context = {
 }
 
 (* The emission state: the supply of fresh names, which consist of a lowercase
-   prefix and a number and so differ from the identifiers of variables, and
-   the definitions lifted to the level of the current function's body, the
-   last first. *)
-type state = { next : int; lifted : stmt list }
+   prefix and a number and so differ from the identifiers of variables, the
+   definitions lifted to the level of the current function's body, the last
+   first, and the operations the code emitted refers to. *)
+type state = { next : int; lifted : stmt list; operations : Ast.OpNameSet.t }
 
 let fresh prefix st =
   (prefix ^ string_of_int st.next, { st with next = st.next + 1 })
 
 let lift def st = { st with lifted = def :: st.lifted }
+
+(* The identifier of the operation [op], recorded as referred to. *)
+let operation op st =
+  ( Names.operation op,
+    { st with operations = Ast.OpNameSet.add op st.operations } )
 
 (* [in_scope st body] is the body of a new function: the statements [body]
    emits, preceded by the definitions lifted out of them. *)
@@ -192,8 +196,7 @@ let rec tests ctx path (p : _ Ast.pattern) acc =
         (List.mapi (fun i p -> (i, p)) ps)
   | Ast.PVariant (l, arg) ->
       let acc =
-        Printf.sprintf "%s.tag == %d" path (Names.label_rank ctx.labels l)
-        :: acc
+        Printf.sprintf "type(%s) is %s" path (Names.constructor l) :: acc
       in
       Option.fold ~none:acc ~some:(fun p -> tests ctx (path ^ ".arg") p acc) arg
   | Ast.PConst (Const.Boolean true) -> path :: acc
@@ -260,15 +263,12 @@ and nested_expression ctx st (e : _ Ast.expression) =
   | Ast.Variant (l, arg) ->
       let st, defs, arg, nesting =
         match arg with
-        | None -> (st, [], "None", 0)
+        | None -> (st, [], "", 0)
         | Some e ->
             let st, defs, args, nesting = components ctx st [ e ] in
             (st, defs, String.concat "" args, nesting)
       in
-      ( st,
-        defs,
-        Printf.sprintf "tempore_Con(%d, %s)" (Names.label_rank ctx.labels l) arg,
-        nesting + 1 )
+      (st, defs, Printf.sprintf "%s(%s)" (Names.constructor l) arg, nesting + 1)
   | Ast.Lambda abs | Ast.PureLambda abs ->
       let name, st = fresh (definition_prefix ctx "f") st in
       let st, def = function_definition ctx st name abs in
@@ -285,10 +285,8 @@ and nested_expression ctx st (e : _ Ast.expression) =
           (fun (st, defs, clauses) (op, abs) ->
             let clause, st = fresh (definition_prefix ctx "h") st in
             let st, def = function_definition ctx st clause abs in
-            ( st,
-              def :: defs,
-              (python_string (Ast.OpName.string_of op) ^ ": " ^ clause)
-              :: clauses ))
+            let op, st = operation op st in
+            (st, def :: defs, (op ^ ": " ^ clause) :: clauses))
           (st, [ ret_def ], [])
           (Ast.OpNameMap.bindings ops)
       in
@@ -370,14 +368,11 @@ and computation ctx st (c : _ Ast.computation) =
   | Ast.Perform (op, e, abs) ->
       let st, defs, e = expression ctx st e in
       let st, k = continuation ctx st abs in
+      let op, st = operation op st in
       ( st,
         defs
-        @ [
-            Line
-              (Printf.sprintf "return tempore_Perform(%s, %s, %s)"
-                 (python_string (Ast.OpName.string_of op))
-                 e k);
-          ] )
+        @ [ Line (Printf.sprintf "return tempore_Perform(%s, %s, %s)" op e k) ]
+      )
   | Ast.Handle (c, h) ->
       let st, defs, node = node ctx st c in
       let st, defs', h = expression ctx st h in
@@ -517,15 +512,19 @@ let constraining = function
   | Grades.Grade.Closed q, Grades.Grade.Unbounded -> Grades.Rational.sign q <> 0
   | _ -> true
 
-let dictionary entries =
+let dictionary_display entries =
   "{"
   ^ String.concat ", "
-      (List.map (fun (key, value) -> python_string key ^ ": " ^ value) entries)
+      (List.map (fun (key, value) -> key ^ ": " ^ value) entries)
   ^ "}"
+
+let dictionary entries =
+  dictionary_display
+    (List.map (fun (key, value) -> (python_string key, value)) entries)
 
 (* The emission of the commands: the statements, the last first, the [tempore_Run]
    values of the [run] commands, the last first, and the default
-   implementations declared so far. *)
+   implementations declared so far, each by the identifier of its operation. *)
 type commands = {
   stmts : stmt list;
   runs : string list;
@@ -541,6 +540,7 @@ let command ctx (st, acc) (cmd : _ Ast.command) =
   | Ast.OpDefault (op, abs) ->
       let name, st = fresh "tempore_d" st in
       let st, def = function_definition ctx st name abs in
+      let _, st = operation op st in
       ( st,
         {
           acc with
@@ -554,7 +554,7 @@ let command ctx (st, acc) (cmd : _ Ast.command) =
       in
       let defaults =
         List.map
-          (fun (op, name) -> (Ast.OpName.string_of op, name))
+          (fun (op, name) -> (Names.operation op, name))
           (Ast.OpNameMap.bindings acc.defaults)
       in
       ( st,
@@ -562,7 +562,8 @@ let command ctx (st, acc) (cmd : _ Ast.command) =
           acc with
           stmts = Block (Printf.sprintf "def %s():" name, body) :: acc.stmts;
           runs =
-            Printf.sprintf "tempore_Run(%s, %s)" name (dictionary defaults)
+            Printf.sprintf "tempore_Run(%s, %s)" name
+              (dictionary_display defaults)
             :: acc.runs;
         } )
 
@@ -572,37 +573,53 @@ let compile ~operations commands =
   let ctx =
     {
       names = Names.of_commands commands;
-      labels;
       local = VariableSet.empty;
       in_lifted = false;
       top = true;
       depth = 0;
     }
   in
-  let _, { stmts; runs; _ } =
+  let st, { stmts; runs; _ } =
     List.fold_left (command ctx)
-      ( { next = 0; lifted = [] },
+      ( { next = 0; lifted = []; operations = Ast.OpNameSet.empty },
         { stmts = []; runs = []; defaults = Ast.OpNameMap.empty } )
       commands
   in
-  let labels =
-    Printf.sprintf "tempore_declare_labels(%s, %d, %d)"
-      (tuple (List.map python_string (Names.label_names labels)))
-      (Names.label_rank labels Ast.nil_label)
-      (Names.label_rank labels Ast.cons_label)
-  and operations =
-    Printf.sprintf "tempore_declare_operations(%s)"
-      (dictionary
-         (List.filter_map
-            (fun (op, b) ->
-              match b with
-              | Some b when constraining b ->
-                  Some (Ast.OpName.string_of op, bounds b)
-              | _ -> None)
-            operations))
+  let constructors =
+    List.map
+      (fun l ->
+        Line
+          (Printf.sprintf "%s = tempore_constructor(%s, %d)"
+             (Names.constructor l)
+             (python_string (Ast.label_string_of l))
+             (Names.label_rank labels l)))
+      (Names.label_list labels)
+  in
+  let declared op =
+    List.exists
+      (fun (op', _) -> Ast.OpName.string_of op' = Ast.OpName.string_of op)
+      operations
+  in
+  let operations =
+    List.map
+      (fun (op, b) ->
+        (op, Option.bind b (fun b -> if constraining b then Some b else None)))
+      operations
+    @ List.filter_map
+        (fun op -> if declared op then None else Some (op, None))
+        (Ast.OpNameSet.elements st.operations)
+  in
+  let operations =
+    List.map
+      (fun (op, b) ->
+        let name = python_string (Ast.OpName.string_of op) in
+        Line
+          (Printf.sprintf "%s = tempore_Operation(%s)" (Names.operation op)
+             (Option.fold ~none:name ~some:(fun b -> name ^ ", " ^ bounds b) b)))
+      operations
   in
   render
-    ((Line labels :: Line operations :: List.rev stmts)
+    (constructors @ operations @ List.rev stmts
     @ [
         Block
           ("tempore_RUNS = (", List.rev_map (fun run -> Line (run ^ ",")) runs);

@@ -27,17 +27,32 @@ The binding file, in Python, defines
   operation on the context object and the argument and returns its result.
 
 A binding function declares the nominal duration of its action by
-`tempore_elapse(seconds)`.
+`tempore_elapse(seconds)`. It builds a value of a constructor `Label` by
+`tempore_con_Label(arg)`, or `tempore_con_Label()` for a constant
+constructor.
 
 The binding file must not define the names `metadata`, `requirements` and
 `run`, names beginning with `tempore_` or `_tempore_`, nor the names of the
-top-level definitions of the compiled program.
+top-level definitions of the compiled program. Every name `tempore_con_X` or
+`tempore_op_X` it uses must be declared by the compiled program.
+
+## The compiled program
+
+The compiled program declares each constructor `Label` of the program as a
+class `tempore_con_Label` and each operation `Op` as a `tempore_Operation`
+value `tempore_op_Op`, with the running-time bounds of the operation. The
+code, the handlers, the default implementations, and the binding dictionary
+of `run` refer to them by these names. A name other than ASCII letters and
+digits with single underscores between them is escaped and followed by its
+bytes in hexadecimal, so that `Show'` is declared as
+`tempore_op_Show_p_53686f7727_`.
 
 ## From programs to protocols
 
 - Values. Arguments and results are Python values: a `nat` is an `int`, an
   `int` a `tempore_Int`, a subclass of `int`, a `string` a `str`, a tuple a
-  `tuple` and `()` the unit value.
+  `tuple`, and `()` the unit value. A value of a constructor `Label` is an
+  instance of `tempore_con_Label`, its argument the attribute `arg`.
 - Operations. An operation call that no handler handles calls the binding
   function of the operation, or else its default implementation, run outside
   every handler.
@@ -51,7 +66,9 @@ top-level definitions of the compiled program.
 
 The protocol is refused when
 
-- the binding file defines no `setup` or defines a reserved name, or
+- the binding file defines no `setup` or defines a reserved name,
+- the binding file uses a name `tempore_con_X` or `tempore_op_X` that names
+  no constructor or operation of the program, or
 - the code of a `run` command may perform an operation that has neither a
   binding function nor a default implementation and that no handler in that
   code has a case for.

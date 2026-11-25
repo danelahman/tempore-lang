@@ -9,12 +9,11 @@
 # aluminium block of a second temperature module, held at 4 °C, where the
 # master mix is mixed into them. The ethanol is added to every sample from
 # above with one tip; every other liquid is moved with a new tip for each
-# sample. TakeSamples returns the samples paired with the token Token, a
-# tempore_Con with the tag of the label Token, and Transfer receives the
-# token alone. AddBeads returns the beads Beads, a tempore_Con with the tag
-# of the label Beads, and the other functions that take the beads return
-# the value they are given, which stands for the box of the next phase,
-# boxes being erased. Each function declares the nominal duration of its
+# sample. TakeSamples returns the samples paired with the token Token,
+# tempore_con_Token(), and Transfer receives the token alone. AddBeads returns
+# the beads Beads, tempore_con_Beads(), and the other functions that take the
+# beads return the value they are given, which stands for the box of the next
+# phase, boxes being erased. Each function declares the nominal duration of its
 # action in seconds by tempore_elapse, the duration the virtual clock of a
 # simulation advances by.
 
@@ -49,13 +48,13 @@ def setup(protocol):
 def TakeSamples(ctx, unit):
     ctx["protocol"].move_labware(ctx["plate"], "D2", use_gripper=True)
     tempore_elapse(30)
-    return ("samples", tempore_Con(tempore_LABELS.index("Token"), None))
+    return ("samples", tempore_con_Token())
 
 
 def AddBeads(ctx, samples):
     ctx["pipette"].transfer(50, ctx["reservoir"]["A1"], ctx["samples"], mix_after=(5, 40), new_tip="always")
     tempore_elapse(90)
-    return tempore_Con(tempore_LABELS.index("Beads"), None)
+    return tempore_con_Beads()
 
 
 def MagnetOn(ctx, unit):

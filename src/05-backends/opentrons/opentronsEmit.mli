@@ -10,14 +10,18 @@
 
     A natural number is an [int], an integer an [Int], a subclass of [int], a
     float a [float], a string a [str], a boolean a [bool] and a tuple a [tuple],
-    the unit value [()]. A value of a constructor is [Con(tag, arg)], where
+    the unit value [()]. Each label of the program is represented by a subclass
+    of [Con], declared once by [con_Label = constructor("Label", tag)], where
     [tag] numbers the label in the order of labels the comparison primitives use
-    and [arg] is [None] for a constant constructor; the lists are built from the
-    constructors [[]] and [::]. A function is a Python function from its
-    argument to a computation, and a handler is [Handler(ret, clauses)], its
-    return case and its operation cases, by operation name. The components of a
-    value nested deeper than a fixed bound are bound to temporaries, as Python
-    limits the nesting of parentheses in an expression.
+    ({!OpentronsNames.constructor}). A value of a constructor is an instance
+    [con_Label(arg)] of its class, [con_Label()] for a constant constructor, and
+    a pattern of the constructor tests [type(v) is con_Label]. The lists are
+    built from the constructors [[]] and [::], the classes [con_nil] and
+    [con_cons]. A function is a Python function from its argument to a
+    computation, and a handler is [Handler(ret, clauses)], its return case and
+    its operation cases, by operation. The components of a value nested deeper
+    than a fixed bound are bound to temporaries, as Python limits the nesting of
+    parentheses in an expression.
 
     {2 Computations}
 
@@ -49,13 +53,17 @@
 
     {2 Operations}
 
-    An operation call that no handler handles calls the binding function of the
-    operation, if the runtime has one, monitored against the bounds of the
-    running time of the operation if it has any other than [\[0, ∞)]; otherwise
-    it runs the default implementation of the operation declared above the [run]
-    command, outside every handler; otherwise the run ends at the call. A
-    [delay q] delays for [q] units of the program, converted to seconds by the
-    runtime's time unit. *)
+    Each operation is declared once by [op_Op = Operation("Op", bounds)]
+    ({!OpentronsNames.operation}), with the bounds of its running time if it has
+    any other than [\[0, ∞)], and is referred to by [op_Op] in operation calls,
+    handlers, default implementations and binding dictionaries. An operation
+    call that no handler handles calls the binding function of the operation, if
+    the runtime has one, monitored against the bounds of the running time of the
+    operation if it has any other than [\[0, ∞)]; otherwise it runs the default
+    implementation of the operation declared above the [run] command, outside
+    every handler; otherwise the run ends at the call. A [delay q] delays for
+    [q] units of the program, converted to seconds by the runtime's time unit.
+*)
 
 val runtime : string
 (** The source of the runtime. Its global names, and those of the definitions
@@ -71,6 +79,10 @@ val python_string : string -> string
 val dictionary : (string * string) list -> string
 (** [dictionary entries] is a Python dictionary display of [entries], each a
     key, written as a {!python_string}, and a Python expression. *)
+
+val dictionary_display : (string * string) list -> string
+(** [dictionary_display entries] is a Python dictionary display of [entries],
+    each a key and a value, both Python expressions. *)
 
 val fraction : Grades.Rational.t -> string
 (** [fraction q] is a Python expression of the exact rational [q], a [Fraction].
@@ -89,9 +101,11 @@ val compile :
     desugared [commands], accepted by the typechecker, of a program, the
     standard library's included, whose declared operations are [operations],
     each with the bounds of its running time if it has any, the upper end
-    possibly infinite. It declares the bounds other than [\[0, ∞)] to the
-    runtime, defines the program's top-level definitions and default
-    implementations, and binds [tempore_RUNS] to the tuple of its [run]
+    possibly infinite. It declares the classes of the labels of the program, in
+    the order of their tags, and the operations [operations], in order,
+    followed, without bounds, by those the program refers to that [operations]
+    lacks; defines the program's top-level definitions and default
+    implementations; and binds [tempore_RUNS] to the tuple of its [run]
     commands, each a [tempore_Run] of the function returning its computation and
     the default implementations declared above it. *)
 

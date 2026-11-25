@@ -1,5 +1,5 @@
-(** Python identifiers for the variables of a program, and tags for its labels.
-*)
+(** Python identifiers for the variables, operations and labels of a program,
+    and tags for its labels. *)
 
 val is_identifier_start : char -> bool
 (** [is_identifier_start c] holds if [c] is an ASCII letter or [_], a character
@@ -19,6 +19,20 @@ val identifier : string -> int -> string
     code point in hexadecimal, and [v] is prepended to an empty name or one that
     starts with a digit. Since it ends in [_] and digits, it is neither a Python
     keyword nor a name of the builtins or of the runtime. *)
+
+val operation : Language.Ast.operation -> string
+(** [operation op] is the identifier of the declaration of [op] in the compiled
+    program: [tempore_op_] followed by the name of [op] if it consists of ASCII
+    letters and digits with single underscores between them, and otherwise by
+    the name escaped as by {!identifier}, its runs of underscores reduced to
+    one, followed by [_], the bytes of the name in hexadecimal and [_]. Distinct
+    names have distinct identifiers. *)
+
+val constructor : Language.Ast.label -> string
+(** [constructor l] is the identifier of the class of the label [l] in the
+    compiled program: [tempore_con_nil] and [tempore_con_cons] for the list
+    constructors, and otherwise [tempore_con_] followed by the name of [l] made
+    an identifier as by {!operation}. *)
 
 val of_commands : ('rho, 'eps) Language.Ast.command list -> t
 (** [of_commands commands] gives each variable bound in [commands] the
@@ -40,6 +54,5 @@ val labels_of_commands : ('rho, 'eps) Language.Ast.command list -> labels
 val label_rank : labels -> Language.Ast.label -> int
 (** [label_rank labels l] is the tag of [l]. *)
 
-val label_names : labels -> string list
-(** [label_names labels] is the names of the labels, in the order of their tags.
-*)
+val label_list : labels -> Language.Ast.label list
+(** [label_list labels] is the labels, in the order of their tags. *)

@@ -8,11 +8,11 @@
 #   nat -> int, int -> tempore_Int, a subclass of int, float -> float,
 #   string -> str, bool -> bool,
 #   tuples -> tuple (the unit value is ()),
-#   constructors -> tempore_Con(tag, arg), the tag the rank of the label in
-#     the order of labels of the compiler and arg None for a constant
-#     constructor,
+#   constructors -> tempore_con_Label(arg), an instance of the subclass of
+#     tempore_Con that the compiled program declares for the label, arg
+#     omitted for a constant constructor,
 #   functions -> Python functions from a value to a computation,
-#   handlers -> tempore_Handler(ret, clauses),
+#   handlers -> tempore_Handler(ret, clauses), the clauses by operation,
 #   continuations -> tempore_Continuation(segments), called as functions.
 #
 # Computations are effect trees, run by the abstract machine
@@ -24,11 +24,13 @@
 # recursion consume Python stack, and a captured continuation may be dropped
 # or resumed any number of times.
 #
-# Durations are exact rationals, in units of the program, converted to seconds
-# by the runtime's time unit. The runtime `tempore_rt` holds the configuration
-# of a run: the binding functions of operations, the clock, the time unit and
-# the policy of the monitors of running-time bounds.
+# Operations are tempore_Operation values, declared by the compiled program
+# as tempore_op_Op. Durations are exact rationals, in units of the program,
+# converted to seconds by the runtime's time unit. The runtime `tempore_rt`
+# holds the configuration of a run: the binding functions of operations, the
+# clock, the time unit and the policy of the monitors of running-time bounds.
 
+import enum as tempore_enum
 import math as tempore_math
 import sys as tempore_sys
 import time as tempore_time
@@ -165,29 +167,26 @@ class tempore_Continuation:
 
 
 class tempore_Con:
-    __slots__ = ("tag", "arg")
+    """A value of a constructor, an instance of the subclass of its label:
+    the class attributes `label` and `tag` are the name of the label and its
+    rank in the order of labels of the compiler, and the attribute `arg` is
+    the argument, None for a constant constructor."""
 
-    def __init__(self, tag, arg):
-        self.tag = tag
+    __slots__ = ("arg",)
+
+    def __init__(self, arg=None):
         self.arg = arg
 
 
-# The names of the labels, indexed by tag, and the tags of the list
-# constructors.
-tempore_LABELS = ()
-tempore_NIL = -1
-tempore_CONS = -1
+def tempore_constructor(label, tag):
+    """The subclass of tempore_Con of the label `label` of tag `tag`. The list
+    constructors are the labels "[]" and "::"."""
+    attributes = {"__slots__": (), "label": label, "tag": tag}
+    return type(label, (tempore_Con,), attributes)
 
 
-def tempore_declare_labels(names, nil, cons):
-    global tempore_LABELS, tempore_NIL, tempore_CONS
-    tempore_LABELS = tuple(names)
-    tempore_NIL = nil
-    tempore_CONS = cons
-
-
-# Operations: the bounds of the running times of the operations of the
-# program, those they declare or else those their grades imply.
+# Operations, each with the bounds of its running time, those it declares or
+# else those its grade implies.
 
 
 class tempore_Bounds:
@@ -230,13 +229,19 @@ class tempore_Bounds:
         )
 
 
-# The operations of the program whose running times are bounded, by name.
-tempore_OPERATIONS = {}
+class tempore_Operation:
+    """An operation of the program: its name and the bounds of its running
+    time, a tempore_Bounds, or None if they do not constrain it. It prints as
+    its name."""
 
+    __slots__ = ("name", "bounds")
 
-def tempore_declare_operations(bounds):
-    global tempore_OPERATIONS
-    tempore_OPERATIONS = dict(bounds)
+    def __init__(self, name, bounds=None):
+        self.name = name
+        self.bounds = bounds
+
+    def __str__(self):
+        return self.name
 
 
 def tempore_format_quantity(x):
@@ -365,7 +370,12 @@ class tempore_Wait:
         )
 
 
-tempore_MONITOR_POLICIES = ("abort", "warn", "off")
+class tempore_Monitor(tempore_enum.Enum):
+    """The policy of the monitors of running-time bounds."""
+
+    ABORT = "abort"
+    WARN = "warn"
+    OFF = "off"
 
 
 def _tempore_warn_to_stderr(message):
@@ -375,15 +385,15 @@ def _tempore_warn_to_stderr(message):
 class tempore_Runtime:
     """The configuration of the runs of a program.
 
-    binding: the binding functions, a mapping from operation names to
-      functions f(ctx, arg) returning the result of the operation;
+    binding: the binding functions, a mapping from operations to functions
+      f(ctx, arg) returning the result of the operation;
     ctx: the context passed to the binding functions;
     clock: the clock, tempore_VirtualClock() unless given;
     time_unit: the length of one unit of duration of the program in seconds;
     monitor: what a call of a binding function outside the running-time
-      bounds of its operation does: "abort" raises tempore_BoundViolation,
-      "warn" records it and reports it by `report`, "off" neither checks nor
-      records calls;
+      bounds of its operation does, a tempore_Monitor: ABORT raises
+      tempore_BoundViolation, WARN records it and reports it by `report`, OFF
+      neither checks nor records calls;
     on_delay: a function called with the length in seconds of each delay,
       which waits that long, or None;
     on_event: a function called with each monitored call as it completes,
@@ -400,17 +410,17 @@ class tempore_Runtime:
 
     def configure(
         self,
-        binding: dict[str, tempore_Callable] | None = None,
+        binding: dict[tempore_Operation, tempore_Callable] | None = None,
         ctx: object = None,
         clock: object = None,
         time_unit: tempore_Seconds = 1,
-        monitor: str = "abort",
+        monitor: tempore_Monitor = tempore_Monitor.ABORT,
         on_delay: tempore_Callable[[float], object] | None = None,
         on_event: tempore_Callable[[tempore_Event], object] | None = None,
         on_wait: tempore_Callable[[tempore_Wait], object] | None = None,
         report: tempore_Callable[[str], object] = _tempore_warn_to_stderr,
     ) -> None:
-        if monitor not in tempore_MONITOR_POLICIES:
+        if not isinstance(monitor, tempore_Monitor):
             raise ValueError("unknown monitor policy " + repr(monitor))
         self.binding = dict(binding or {})
         self.ctx = ctx
@@ -449,8 +459,8 @@ class tempore_Runtime:
     def call(self, op, function, arg):
         """The result of the binding function `function` of the operation
         `op` on `arg`, monitored if `op` declares running-time bounds."""
-        bounds = tempore_OPERATIONS.get(op)
-        if bounds is None or self.monitor == "off":
+        bounds = op.bounds
+        if bounds is None or self.monitor is tempore_Monitor.OFF:
             return function(self.ctx, arg)
         start = self.clock.now()
         value = function(self.ctx, arg)
@@ -462,7 +472,7 @@ class tempore_Runtime:
         if self.on_event is not None:
             self.on_event(event)
         if not event.within():
-            if self.monitor == "abort":
+            if self.monitor is tempore_Monitor.ABORT:
                 raise tempore_BoundViolation(op, event.elapsed, event.bounds)
             self.violations.append(event)
             self.report(
@@ -478,12 +488,13 @@ tempore_rt = tempore_Runtime()
 
 
 def tempore_execute(
-    comp: object, defaults: dict[str, tempore_Callable] | None = None
+    comp: object,
+    defaults: dict[tempore_Operation, tempore_Callable] | None = None,
 ) -> object:
     """The value the computation `comp` returns, its unhandled operations
     performed by their binding functions in `tempore_rt` or else their default
-    implementations in `defaults`, a mapping from operation names to
-    functions from the argument to a computation.
+    implementations in `defaults`, a mapping from operations to functions
+    from the argument to a computation.
 
     The state is the current computation and its evaluation context, split at
     the handlers into segments: `frames`, the frames inside the innermost
@@ -620,7 +631,7 @@ def tempore_compare(a, b):
         elif cls is tuple:
             for i in range(len(x) - 1, -1, -1):
                 pending.append((x[i], y[i]))
-        elif cls is tempore_Con:
+        elif isinstance(x, tempore_Con):
             if x.tag != y.tag:
                 return -1 if x.tag < y.tag else 1
             if x.arg is None or y.arg is None:
@@ -1127,13 +1138,12 @@ def _tempore_print_value(fmt, value, max_level):
                 items.append((_tempore_PRINT_CLOSE,))
                 items.append((_tempore_PRINT_TEXT, ")"))
                 work.extend(reversed(items))
-            elif cls is tempore_Con:
+            elif isinstance(v, tempore_Con):
                 if v.arg is None:
-                    nil = v.tag == tempore_NIL
-                    fmt.text("[]" if nil else tempore_LABELS[v.tag])
+                    fmt.text(v.label)
                     continue
                 pair = v.arg.__class__ is tuple and len(v.arg) == 2
-                if v.tag == tempore_CONS and pair:
+                if v.label == "::" and pair:
                     items = [
                         (_tempore_PRINT_VALUE, v.arg[0], 0),
                         (_tempore_PRINT_TEXT, "::"),
@@ -1141,7 +1151,7 @@ def _tempore_print_value(fmt, value, max_level):
                     ]
                 else:
                     items = [
-                        (_tempore_PRINT_TEXT, tempore_LABELS[v.tag] + " "),
+                        (_tempore_PRINT_TEXT, v.label + " "),
                         (_tempore_PRINT_VALUE, v.arg, 0),
                     ]
                 if level < 1:
@@ -1199,7 +1209,7 @@ def tempore_unhandled(op, arg):
 
 class tempore_Run:
     """A run command: the function that returns its computation, and the
-    default implementations declared above it, by operation name."""
+    default implementations declared above it, by operation."""
 
     __slots__ = ("comp", "defaults")
 
@@ -1274,19 +1284,19 @@ def tempore_run_protocol(
     protocol: object,
     runs: tuple[tempore_Run, ...],
     setup: tempore_Callable[[object], object],
-    binding: dict[str, tempore_Callable],
+    binding: dict[tempore_Operation, tempore_Callable],
     time_unit: tempore_Seconds = 1,
-    monitor: str = "abort",
+    monitor: tempore_Monitor = tempore_Monitor.ABORT,
 ) -> None:
     """Executes the run commands `runs` in order as the Opentrons protocol
-    `protocol`, the binding functions `binding`, by operation name, given the
+    `protocol`, the binding functions `binding`, by operation, given the
     context `setup(protocol)` returns. In simulation the clock is virtual,
     and on the robot it is the monotonic clock of the host. A delay calls
     `protocol.delay`, and a warning of a monitor `protocol.comment`. Each
     run is announced by a comment, each monitored call is commented as it
     completes, each delay outside every default implementation before it
     waits, and the value of the run is commented at its end; an error of
-    a run, a violation of running-time bounds under the policy "abort"
+    a run, a violation of running-time bounds under the policy ABORT
     included, ends the protocol with that error, after the comment of the
     call that violated them."""
     ctx = setup(protocol)

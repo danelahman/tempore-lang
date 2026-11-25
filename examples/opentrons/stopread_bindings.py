@@ -4,8 +4,8 @@
 # their samples in the wells of the first column. The reservoir holds the
 # stop solution (A12). Stop and Read are handled by the simulated reader of
 # the program, which performs AddStop and Note. A plate is passed as the
-# Tempore value Plate name, a tempore_Con whose argument is its name; AddStop
-# returns the value it is given. Each function declares the nominal duration
+# Tempore value Plate name, tempore_con_Plate(name); AddStop returns the
+# value it is given. Each function declares the nominal duration
 # of its action in seconds by tempore_elapse, the duration the virtual clock
 # of a simulation advances by.
 
